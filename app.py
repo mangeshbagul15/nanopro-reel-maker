@@ -147,7 +147,7 @@ if st.button("🚀 Generate 60s Reel", use_container_width=True):
         for i, sc in enumerate(aligned_scenes):
             status_box.info(f"🎨 Step 3/5: Rendering dynamic 2D scene {i + 1}/{total_sc} ({sc.get('visual_type', 'cards')})...")
             progress_bar.progress(40 + int(30 * (i + 1) / max(1, total_sc)))
-            render_scene_frames(sc, i + 1)
+            render_scene_frames(sc, i + 1, total_scenes=total_sc)
             all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 
         # STEP 5: Subtitles & Video Stitching
@@ -175,6 +175,15 @@ if st.button("🚀 Generate 60s Reel", use_container_width=True):
         with col_vid:
             st.markdown("### 📱 9:16 Reel Preview")
             st.video(str(final_video_path))
+            with open(final_video_path, "rb") as vf:
+                st.download_button(
+                    label="⬇️ Download 1080x1920 MP4 Reel",
+                    data=vf.read(),
+                    file_name=final_video_path.name,
+                    mime="video/mp4",
+                    use_container_width=True,
+                    type="primary"
+                )
 
         with col_meta:
             st.markdown("### 📊 Reel Summary")
