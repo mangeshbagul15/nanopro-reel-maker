@@ -142,11 +142,11 @@ if st.button("🚀 Generate 60s Reel", use_container_width=True):
             st.write(f"Total Spoken Words: {len(word_timestamps)}")
 
         # STEP 4: 2D Generative Visual Rendering (Zero Template)
-        status_box.info("🎨 Step 3/5: Rendering dynamic 2D animations (Nodes, Tables, Code Blocks)...")
-        progress_bar.progress(60)
-        
+        total_sc = len(aligned_scenes)
         all_scene_frame_dirs = []
         for i, sc in enumerate(aligned_scenes):
+            status_box.info(f"🎨 Step 3/5: Rendering dynamic 2D scene {i + 1}/{total_sc} ({sc.get('visual_type', 'cards')})...")
+            progress_bar.progress(40 + int(30 * (i + 1) / max(1, total_sc)))
             render_scene_frames(sc, i + 1)
             all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 

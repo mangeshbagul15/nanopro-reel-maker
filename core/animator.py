@@ -66,8 +66,8 @@ def render_scene_frames(scene: Dict[str, Any], scene_idx: int) -> List[Path]:
         else:
             _render_concept_cards(draw, visual_data, progress)
             
-        frame_file = scene_frames_dir / f"frame_{f:04d}.png"
-        frame.convert("RGB").save(frame_file)
+        frame_file = scene_frames_dir / f"frame_{f:04d}.jpg"
+        frame.convert("RGB").save(frame_file, "JPEG", quality=88, optimize=False)
         frame_paths.append(frame_file)
         
     return frame_paths

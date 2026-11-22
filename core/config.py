@@ -33,7 +33,7 @@ CF_R2_BUCKET = os.getenv("CLOUDFLARE_R2_BUCKET", "nanopro-reels")
 # Video Specs (9:16 Vertical Reel)
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
-VIDEO_FPS = 30
+VIDEO_FPS = 15
 
 # FFmpeg Executable
 try:

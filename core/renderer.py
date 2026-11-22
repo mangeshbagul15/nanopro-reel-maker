@@ -24,7 +24,7 @@ def render_final_reel(
     concat_list_file = OUTPUT_DIR / f"concat_frames_{timestamp}.txt"
     with open(concat_list_file, "w", encoding="utf-8") as f:
         for scene_dir in all_scene_frame_dirs:
-            frames = sorted(scene_dir.glob("frame_*.png"))
+            frames = sorted([p for p in scene_dir.iterdir() if p.name.startswith("frame_") and p.suffix.lower() in [".jpg", ".png", ".jpeg"]])
             for frame in frames:
                 # FFmpeg requires forward slashes or escaped backslashes
                 safe_path = str(frame.resolve()).replace("\\", "/")
