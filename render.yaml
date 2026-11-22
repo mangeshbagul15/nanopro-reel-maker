@@ -7,19 +7,4 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.enableCORS false
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GROQ_API_KEY
-        sync: false
-      - key: OPENROUTER_API_KEY
-        sync: false
-      - key: CLOUDFLARE_ACCOUNT_ID
-        sync: false
-      - key: CLOUDFLARE_R2_ACCESS_KEY
-        sync: false
-      - key: CLOUDFLARE_R2_SECRET_KEY
-        sync: false
-      - key: CLOUDFLARE_R2_BUCKET
-        value: nanopro-reels
+      - fromGroup: nanopro-secrets
