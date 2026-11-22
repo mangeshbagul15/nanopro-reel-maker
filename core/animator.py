@@ -49,9 +49,8 @@ def render_scene_frames(scene: Dict[str, Any], scene_idx: int, total_scenes: int
     
     frame_paths = []
     
-    # Pre-render base background
-    base_canvas = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT))
-    _draw_background_gradient(base_canvas)
+    # Pre-render clean matte dark background
+    base_canvas = Image.new("RGB", (VIDEO_WIDTH, VIDEO_HEIGHT), (14, 17, 24))
     
     for f in range(total_frames):
         progress = f / max(1, total_frames - 1)  # 0.0 to 1.0
@@ -61,10 +60,7 @@ def render_scene_frames(scene: Dict[str, Any], scene_idx: int, total_scenes: int
         # 1. Instagram / Shorts Top Story Progress Bars
         _draw_story_progress_bar(draw, total_scenes, scene_idx, progress)
         
-        # 2. Ambient Pulse Glow in center
-        _draw_ambient_glow(draw, progress)
-        
-        # 3. Topic Pill Badge & Scene Title
+        # 2. Topic Pill Badge & Scene Title
         _draw_header(draw, visual_data.get("badge", "TECH DEEP-DIVE"), visual_data.get("title", ""))
         
         # 4. Dispatch to dynamic 2D visual scene renderer
@@ -85,37 +81,6 @@ def render_scene_frames(scene: Dict[str, Any], scene_idx: int, total_scenes: int
         
     return frame_paths
 
-def _draw_background_gradient(img: Image.Image) -> None:
-    """Draws rich deep tech gradient with perspective cyber grid."""
-    draw = ImageDraw.Draw(img, "RGBA")
-    w, h = img.size
-    step = 8
-    for y in range(0, h, step):
-        ratio = y / h
-        if ratio < 0.5:
-            r = int(COLOR_BG_TOP[0] + (COLOR_BG_MID[0] - COLOR_BG_TOP[0]) * (ratio * 2))
-            g = int(COLOR_BG_TOP[1] + (COLOR_BG_MID[1] - COLOR_BG_TOP[1]) * (ratio * 2))
-            b = int(COLOR_BG_TOP[2] + (COLOR_BG_MID[2] - COLOR_BG_TOP[2]) * (ratio * 2))
-        else:
-            r = int(COLOR_BG_MID[0] + (COLOR_BG_BOT[0] - COLOR_BG_MID[0]) * ((ratio - 0.5) * 2))
-            g = int(COLOR_BG_MID[1] + (COLOR_BG_BOT[1] - COLOR_BG_MID[1]) * ((ratio - 0.5) * 2))
-            b = int(COLOR_BG_MID[2] + (COLOR_BG_BOT[2] - COLOR_BG_MID[2]) * ((ratio - 0.5) * 2))
-        draw.rectangle((0, y, w, y + step), fill=(r, g, b, 255))
-        
-    # Subtle Dot Matrix Pattern
-    dot_color = (255, 255, 255, 14)
-    spacing = 80
-    for x in range(40, w, spacing):
-        for y in range(40, h, spacing):
-            draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill=dot_color)
-
-def _draw_ambient_glow(draw: ImageDraw.Draw, progress: float) -> None:
-    """Draws subtle animated radial neon aura behind main content."""
-    cx = VIDEO_WIDTH // 2
-    cy = int(VIDEO_HEIGHT * 0.42 + math.sin(progress * math.pi * 2) * 30)
-    for rad in range(360, 60, -45):
-        alpha = int(18 * (1.0 - (rad / 360)))
-        draw.ellipse((cx - rad, cy - rad, cx + rad, cy + rad), fill=(56, 189, 248, alpha))
 
 def _draw_story_progress_bar(draw: ImageDraw.Draw, total_scenes: int, current_scene: int, progress: float) -> None:
     """Draws Instagram / Reels style segmented progress indicators at the very top."""
