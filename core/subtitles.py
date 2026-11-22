@@ -23,14 +23,14 @@ def generate_ass_subtitles(word_timestamps: List[Dict[str, Any]], output_path: P
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        "Style: ReelHighlight,Arial,68,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,-1,0,0,0,100,100,2,0,1,6,3,2,60,60,320,1",
+        "Style: ReelHighlight,Arial,76,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,-1,0,0,0,100,100,2,0,1,6,3,2,60,60,340,1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
     ]
 
-    # Group words into short 3-5 word chunks for fast-paced short retention
-    CHUNK_SIZE = 4
+    # Group words into fast-paced punchy 2-3 word chunks (Viral Shorts retention)
+    CHUNK_SIZE = 2
     for i in range(0, len(word_timestamps), CHUNK_SIZE):
         chunk = word_timestamps[i:i + CHUNK_SIZE]
         if not chunk:

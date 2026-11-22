@@ -3,7 +3,7 @@ import shutil
 import time
 from pathlib import Path
 from typing import List
-from core.config import FFMPEG_EXE, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR
+from core.config import FFMPEG_EXE, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, SFX_DIR
 
 def render_final_reel(
     all_scene_frame_dirs: List[Path],
@@ -35,26 +35,49 @@ def render_final_reel(
             last_frame_path = str(frames[-1].resolve()).replace("\\", "/")
             f.write(f"file '{last_frame_path}'\n")
 
-    # 2. Build FFmpeg command
+    # 2. Build FFmpeg command with Lo-Fi Cyber Tech Background Music
     temp_video_no_subs = OUTPUT_DIR / f"temp_visuals_{timestamp}.mp4"
+    bgm_path = SFX_DIR / "lofi_cyber_bgm.wav"
     
-    # Pass 1: Stitches frames with audio
-    cmd_pass1 = [
-        str(FFMPEG_EXE),
-        "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", str(concat_list_file.resolve()),
-        "-i", str(audio_path.resolve()),
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-preset", "faster",
-        "-crf", "22",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-shortest",
-        str(temp_video_no_subs.resolve())
-    ]
+    if bgm_path.exists():
+        cmd_pass1 = [
+            str(FFMPEG_EXE),
+            "-y",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", str(concat_list_file.resolve()),
+            "-i", str(audio_path.resolve()),
+            "-stream_loop", "-1",
+            "-i", str(bgm_path.resolve()),
+            "-filter_complex", "[1:a]volume=1.0[speech];[2:a]volume=0.18[bgm];[speech][bgm]amix=inputs=2:duration=first:dropout_transition=2[a_out]",
+            "-map", "0:v",
+            "-map", "[a_out]",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-preset", "faster",
+            "-crf", "22",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-shortest",
+            str(temp_video_no_subs.resolve())
+        ]
+    else:
+        cmd_pass1 = [
+            str(FFMPEG_EXE),
+            "-y",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", str(concat_list_file.resolve()),
+            "-i", str(audio_path.resolve()),
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-preset", "faster",
+            "-crf", "22",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-shortest",
+            str(temp_video_no_subs.resolve())
+        ]
     
     _run_ffmpeg(cmd_pass1)
 

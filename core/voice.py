@@ -16,7 +16,7 @@ async def _synthesize_edge_tts(text: str, output_path: Path, voice: str = DEFAUL
     """Uses Edge-TTS to synthesize human-like voice with natural pacing."""
     # Pre-clean pauses: replace ... with natural comma pauses for smooth speech
     cleaned_text = text.replace("...", ", ")
-    communicate = edge_tts.Communicate(cleaned_text, voice, rate="+2%", pitch="+0Hz")
+    communicate = edge_tts.Communicate(cleaned_text, voice, rate="+8%", pitch="+0Hz")
     await communicate.save(str(output_path))
 
 def generate_voiceover(scenes: List[Dict[str, Any]], voice: str = DEFAULT_VOICE) -> Tuple[Path, List[Dict[str, Any]], List[Dict[str, Any]]]:

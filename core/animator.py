@@ -75,6 +75,15 @@ def render_scene_frames(scene: Dict[str, Any], scene_idx: int, total_scenes: int
         else:
             _render_concept_cards(draw, visual_data, progress)
             
+        # Subtle cinematic forward camera drift (Ken Burns effect)
+        zoom = 1.0 + (progress * 0.04)
+        if zoom > 1.001:
+            zw = int(VIDEO_WIDTH / zoom)
+            zh = int(VIDEO_HEIGHT / zoom)
+            zx = (VIDEO_WIDTH - zw) // 2
+            zy = (VIDEO_HEIGHT - zh) // 2
+            frame = frame.crop((zx, zy, zx + zw, zy + zh)).resize((VIDEO_WIDTH, VIDEO_HEIGHT), Image.Resampling.BILINEAR)
+
         frame_file = scene_frames_dir / f"frame_{f:04d}.jpg"
         frame.convert("RGB").save(frame_file, "JPEG", quality=88, optimize=False)
         frame_paths.append(frame_file)
