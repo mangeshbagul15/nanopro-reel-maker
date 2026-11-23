@@ -97,7 +97,9 @@ with st.sidebar:
             ("kinetic_type", "🔤 Kinetic Typography (Apple Keynote Style)"),
             ("scene_graph", "🎨 Primitive Scene Graph (Canva / Figma Engine)"),
             ("ai_video_broll", "🎬 AI Generative Video & B-Roll (Runway / Pexels) [Requires Key]"),
-            ("digital_avatar", "👤 AI Digital Human Presenter (HeyGen) [Requires Key]")
+            ("digital_avatar", "👤 AI Digital Human Presenter (HeyGen) [Requires Key]"),
+            ("blender_local_gpu", "🖥️ Local NVIDIA GPU 3D Ray-Tracing (Blender 3D / Unreal Engine) [Heavy PC]"),
+            ("cloud_serverless_gpu", "☁️ Cloud Serverless GPU 3D Studio (RunPod / Modal Ray-Tracing) [Cloud GPU]")
         ],
         format_func=lambda x: x[1]
     )
