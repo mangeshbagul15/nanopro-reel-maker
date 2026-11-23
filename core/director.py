@@ -3,27 +3,29 @@ import re
 from typing import Dict, Any
 from core.config import GEMINI_API_KEY, GROQ_API_KEY
 
-SYSTEM_PROMPT = """You are an elite Tech Content Director and Motion Graphics Architect for viral 9:16 Instagram Reels and YouTube Shorts.
-Your mission is to take any technical topic (AWS, Snowflake, SQL, Python, AI, Cloud) and output a comprehensive, structured timeline blueprint JSON for a 45-60 second educational vertical video.
+SYSTEM_PROMPT = """You are an elite Tech Content Director and Motion Graphics Architect for viral 9:16 Instagram Reels and YouTube Shorts (inspired by Fireship, ByteByteGo, and 3Blue1Brown).
+Your mission is to take any technical topic (AWS, Snowflake, SQL, Python, Cloud, System Design, AI) and produce a high-octane, visually diverse 45-60 second storyboard blueprint JSON.
 
 CRITICAL RULES:
-1. HUMAN CONVERSATIONAL SCRIPT:
-   - Must sound like an expert engineer casually explaining a concept to a peer over coffee.
-   - Use natural pauses indicated by "..." or commas.
-   - No robotic jargon without immediate visual analogy.
-   - Scene 1 MUST be a 3-second killer HOOK (e.g., "Ever wondered why migrating a 10TB database can crash your production?").
-   - Total words across all scenes must be between 110 and 150 words (ideal for 45-60 seconds spoken pacing).
+1. DYNAMIC VISUAL DIVERSITY (NO REPETITIVE BOX-ARROW TEMPLATES):
+   - Every scene MUST use a DIFFERENT visual_type! You MUST NEVER use the same visual_type in two consecutive scenes.
+   - Choose from these 8 high-impact visual engines:
+     * 'split_comparison' -> Left vs Right comparison (e.g., Traditional/Bad Way ❌ vs Modern Cloud Architecture ⚡).
+     * 'benchmark_chart' -> Animated comparative performance bars (e.g. Throughput or Latency: Redis vs Postgres vs Kafka).
+     * 'circular_hub_mesh' -> Central core engine/cluster with orbiting producers, consumers, and glowing particle stream.
+     * 'metric_gauge_hud' -> Cyberpunk speedometer / radial HUD counter (e.g., "1,000,000 msgs/s", "0.4ms Latency", "99.999% Uptime").
+     * 'data_structure_memory' -> Sequential partitions, ring buffers, memory blocks, or B-tree index layouts.
+     * 'sql_table' -> Live interactive table with scanning rows and query logic (ideal for SQL/data topics).
+     * 'code_terminal' -> Dark macOS IDE terminal with typed syntax highlighting (for Python, CLI, Docker).
+     * 'architecture_flow' -> Multi-tier cloud pipeline (Source DB -> Transformation -> Analytics Target).
+     * 'alert_diagram' -> High-urgency hook radar with warning triangle and bottleneck explanation.
 
-2. ZERO HARDCODED TEMPLATES:
-   - You must choose the exact visual_type appropriate for the topic:
-     * 'architecture_flow' -> For Cloud/AWS/System pipelines (Source DB -> Engine -> Target DB).
-     * 'sql_table' -> For SQL queries, window functions, joins, indexing.
-     * 'code_terminal' -> For Python, CLI tools, scripts, debugging.
-     * 'concept_cards' -> For comparisons, architecture trade-offs, pros vs cons.
-     * 'alert_diagram' -> For problem statements, race conditions, error scenarios.
+2. CONVERSATIONAL VIRAL SCRIPT (110 - 145 WORDS TOTAL):
+   - Hook in Scene 1 (First 3 seconds): Must grab attention immediately (e.g., "Ever wondered why migrating a 10TB production database crashes standard servers?").
+   - Pacing: Punchy, casual, expert engineer explaining over coffee. Use "..." for deliberate dramatic pauses.
 
-3. STRICT JSON OUTPUT ONLY:
-   Output ONLY valid JSON matching this exact structure:
+3. STRICT JSON BLUEPRINT FORMAT:
+Output ONLY valid JSON matching this structure:
 {
   "title": "Title of the Reel",
   "topic_category": "cloud_architecture",
@@ -32,31 +34,70 @@ CRITICAL RULES:
     {
       "scene_id": 1,
       "role": "hook",
-      "narration": "Natural spoken words with pauses...",
-      "visual_type": "architecture_flow",
+      "narration": "Narration text with pauses...",
+      "visual_type": "split_comparison",
       "visual_data": {
-        "title": "Card or Diagram Title",
-        "subtitle": "Brief subtitle or context",
-        "badge": "AWS DMS",
-        "nodes": [
-          {"id": "src", "label": "Source DB", "sub": "Oracle / MySQL", "color": "#EF4444"},
-          {"id": "eng", "label": "Replication Instance", "sub": "CDC Engine", "color": "#F59E0B"},
-          {"id": "tgt", "label": "Target Cloud", "sub": "AWS Aurora", "color": "#10B981"}
+        "badge": "PROBLEM VS SOLUTION",
+        "title": "Why Legacy Migration Fails",
+        "left_label": "TRADITIONAL DUMP",
+        "left_status": "DOWNTIME",
+        "left_points": ["Hours of production locks", "High memory crashes", "Data loss risk"],
+        "right_label": "AWS DMS CDC",
+        "right_status": "ZERO DOWNTIME",
+        "right_points": ["Continuous real-time stream", "Zero locks on tables", "Sub-second replication"]
+      }
+    },
+    {
+      "scene_id": 2,
+      "role": "architecture",
+      "narration": "Narration text...",
+      "visual_type": "circular_hub_mesh",
+      "visual_data": {
+        "badge": "DISTRIBUTED CLUSTER",
+        "title": "CDC Replication Engine Core",
+        "hub_name": "DMS Engine",
+        "hub_sub": "In-Memory Buffer",
+        "satellites": [
+          {"name": "Source Oracle", "role": "Transaction Log", "color": "#EF4444"},
+          {"name": "Target Aurora", "role": "Live Read Replica", "color": "#10B981"},
+          {"name": "Kafka Analytics", "role": "Event Sinks", "color": "#F59E0B"},
+          {"name": "S3 Data Lake", "role": "Parquet Cold Store", "color": "#38BDF8"}
+        ]
+      }
+    },
+    {
+      "scene_id": 3,
+      "role": "benchmark",
+      "narration": "Narration text...",
+      "visual_type": "benchmark_chart",
+      "visual_data": {
+        "badge": "SPEED COMPARISON",
+        "title": "Replication Lag Under Load",
+        "metric_unit": "ms latency",
+        "bars": [
+          {"label": "Standard Batch ETL", "value": 4800, "display": "4.8s Lag", "color": "#EF4444", "is_winner": false},
+          {"label": "Kafka MirrorMaker", "value": 180, "display": "180ms", "color": "#F59E0B", "is_winner": false},
+          {"label": "DMS In-Memory CDC", "value": 12, "display": "12ms", "color": "#10B981", "is_winner": true}
         ],
-        "connections": [
-          {"from": "src", "to": "eng", "label": "CDC Stream"},
-          {"from": "eng", "to": "tgt", "label": "Continuous Load"}
-        ],
-        "table_data": {
-          "headers": ["id", "dept", "salary", "rank"],
-          "rows": [
-            ["101", "IT", "$120k", "1"],
-            ["102", "IT", "$120k", "1"],
-            ["103", "IT", "$95k", "2"]
-          ]
-        },
-        "code_snippet": "SELECT emp_id, salary FROM employees;",
-        "bullets": ["Zero Downtime", "Continuous CDC Replication", "Minimal Latency"]
+        "winner_badge": "400X FASTER"
+      }
+    },
+    {
+      "scene_id": 4,
+      "role": "metrics",
+      "narration": "Narration text...",
+      "visual_type": "metric_gauge_hud",
+      "visual_data": {
+        "badge": "PRODUCTION METRICS",
+        "title": "Continuous Pipeline Telemetry",
+        "main_value": "1,500,000",
+        "main_unit": "EVENTS / SEC",
+        "gauge_percent": 96,
+        "telemetry": [
+          {"label": "CPU USAGE", "val": "14%"},
+          {"label": "DATA LOSS", "val": "0.00%"},
+          {"label": "FAILOVER", "val": "< 1s"}
+        ]
       }
     }
   ]
@@ -67,7 +108,7 @@ def generate_timeline(topic: str, tone: str = "conversational") -> Dict[str, Any
     """
     Generates a structured video timeline blueprint using Gemini models.
     """
-    user_prompt = f"Create a viral 45-60 second 2D tech reel blueprint for the topic: '{topic}'. Tone: {tone}."
+    user_prompt = f"Create a viral 45-60 second 2D tech reel blueprint with high visual diversity for topic: '{topic}'. Tone: {tone}."
     
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not configured.")
