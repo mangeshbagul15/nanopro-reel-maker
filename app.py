@@ -111,22 +111,13 @@ with st.sidebar:
     is_local_machine = (sys.platform == "win32")
     
     if is_local_machine:
-        st.success("🟢 Active Mode: **Local RTX 3050 Studio**")
+        st.success("🟢 Active: **Local RTX 3050 Studio**")
         st.caption("💻 Hardware: NVIDIA RTX 3050 NVENC • 16GB RAM • Blazing Fast")
         st.link_button("🌐 Switch to Online Cloud Studio", "https://nanopro-reel-maker.streamlit.app", use_container_width=True, type="secondary")
     else:
-        st.info("☁️ Active Mode: **Online Cloud Studio**")
+        st.info("☁️ Active: **Online Cloud Studio**")
         st.caption("Running in Cloud. Switch to your laptop's GPU for maximum speed.")
         st.link_button("⚡ Switch to Local RTX GPU Studio", "http://localhost:8501", use_container_width=True, type="primary")
-
-    compute_mode = st.selectbox(
-        "Acceleration Mode",
-        [
-            ("local_studio", "⚡ पर्याय 'A': Local High-Performance Studio (NVIDIA RTX 3050 + 13th Gen i5)"),
-            ("hybrid_daemon", "🌐 पर्याय 'B': Online UI + Local Worker Daemon (Hybrid Cloud & Local GPU)")
-        ],
-        format_func=lambda x: x[1]
-    )
     
     st.markdown("---")
     st.markdown("### ☁️ Cloudflare R2 Storage")
