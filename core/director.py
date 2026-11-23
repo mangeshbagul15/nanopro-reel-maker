@@ -31,6 +31,14 @@ GUIDELINES FOR AUTONOMOUS DIRECTOR:
    - Each scene must select the visual_type that best serves that specific explanation.
    - Ensure visual_data is rich, specific to the topic, and contains appropriate fields (e.g., nodes for architecture, code_snippet for terminal, table_data for sql_table, bars for benchmark_chart, left/right points for split_comparison, satellites for hub_mesh, or bullets for concept_cards).
 
+4. ENGINE STYLE ADAPTATION:
+   - When preferred style is 'terminal_screencast': Emphasize 'code_terminal' scenes, shell CLI commands, execution output, and code snippets.
+   - When preferred style is 'bytebytego_dsl': Emphasize 'architecture_flow', 'sql_table', and multi-tier systems diagrams.
+   - When preferred style is 'manim_math': Emphasize 'benchmark_chart', 'data_structure_memory', performance metrics, and algorithmic graphs.
+   - When preferred style is 'handdrawn_sketch' or 'scene_graph': Emphasize 'concept_cards', 'split_comparison', and intuitive flow comparisons.
+   - When preferred style is 'remotion_web' or 'hybrid_modern': Deliver a rich, diverse combination of motion engines (e.g. terminal + architecture + benchmarks + HUD gauge).
+   - When preferred style is 3D ('blender_local_gpu', 'cloud_serverless_gpu'): Structure scenes with volumetric HUD telemetry ('metric_gauge_hud', 'circular_hub_mesh', 'alert_diagram').
+
 STRICT JSON OUTPUT FORMAT ONLY:
 Output a single valid JSON object matching this structure:
 {

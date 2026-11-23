@@ -1,4 +1,5 @@
 import asyncio
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 import edge_tts
@@ -14,8 +15,11 @@ DEFAULT_VOICE = "en-US-ChristopherNeural"  # Authoritative, calm, clear tech nar
 
 async def _synthesize_edge_tts(text: str, output_path: Path, voice: str = DEFAULT_VOICE) -> None:
     """Uses Edge-TTS to synthesize human-like voice with natural pacing."""
-    # Pre-clean pauses: replace ... with natural comma pauses for smooth speech
+    # Pre-clean pauses & technical punctuation for natural narration
     cleaned_text = text.replace("...", ", ")
+    cleaned_text = cleaned_text.replace("`", "").replace("*", "")
+    # Replace technical underscores with spaces (e.g. DENSE_RANK -> DENSE RANK)
+    cleaned_text = re.sub(r'(?<=\w)_(?=\w)', ' ', cleaned_text)
     communicate = edge_tts.Communicate(cleaned_text, voice, rate="+8%", pitch="+0Hz")
     await communicate.save(str(output_path))
 
