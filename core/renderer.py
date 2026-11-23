@@ -5,6 +5,16 @@ from pathlib import Path
 from typing import List
 from core.config import FFMPEG_EXE, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, SFX_DIR
 
+def _get_encoder_args() -> List[str]:
+    """Detects if NVIDIA NVENC hardware acceleration is available, otherwise uses libx264."""
+    try:
+        res = subprocess.run([str(FFMPEG_EXE), "-encoders"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if "h264_nvenc" in res.stdout:
+            return ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "22", "-pix_fmt", "yuv420p"]
+    except Exception:
+        pass
+    return ["-c:v", "libx264", "-preset", "faster", "-crf", "22", "-pix_fmt", "yuv420p"]
+
 def render_final_reel(
     all_scene_frame_dirs: List[Path],
     audio_path: Path,
@@ -52,10 +62,7 @@ def render_final_reel(
             "-filter_complex", "[1:a]volume=1.0[speech];[2:a]volume=0.18[bgm];[speech][bgm]amix=inputs=2:duration=first:dropout_transition=2[a_out]",
             "-map", "0:v",
             "-map", "[a_out]",
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-preset", "faster",
-            "-crf", "22",
+            *_get_encoder_args(),
             "-c:a", "aac",
             "-b:a", "192k",
             "-shortest",
@@ -69,10 +76,7 @@ def render_final_reel(
             "-safe", "0",
             "-i", str(concat_list_file.resolve()),
             "-i", str(audio_path.resolve()),
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-preset", "faster",
-            "-crf", "22",
+            *_get_encoder_args(),
             "-c:a", "aac",
             "-b:a", "192k",
             "-shortest",

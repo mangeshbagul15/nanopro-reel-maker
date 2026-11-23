@@ -117,8 +117,10 @@ with st.sidebar:
     
     if compute_mode[0] == "local_studio":
         st.success("🟢 Hardware: NVIDIA RTX 3050 NVENC • 16GB RAM • Zero-Cost Local Studio")
+        st.link_button("⚡ Open / Switch to Local RTX GPU Studio", "http://localhost:8501", use_container_width=True, type="primary")
     else:
         st.info("📡 Hybrid Mode: Cloud Webhook ➔ Local Laptop GPU Worker ➔ Cloudflare R2 CDN")
+        st.link_button("🌐 Open Local Daemon Listener", "http://localhost:8501", use_container_width=True)
     
     st.markdown("---")
     st.markdown("### ☁️ Cloudflare R2 Storage")
