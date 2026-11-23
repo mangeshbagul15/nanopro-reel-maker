@@ -104,11 +104,11 @@ Output ONLY valid JSON matching this structure:
 }
 """
 
-def generate_timeline(topic: str, tone: str = "conversational") -> Dict[str, Any]:
+def generate_timeline(topic: str, tone: str = "conversational", engine_style: str = "hybrid_modern") -> Dict[str, Any]:
     """
     Generates a structured video timeline blueprint using Gemini models.
     """
-    user_prompt = f"Create a viral 45-60 second 2D tech reel blueprint with high visual diversity for topic: '{topic}'. Tone: {tone}."
+    user_prompt = f"Create a viral 45-60 second 2D tech reel blueprint with high visual diversity for topic: '{topic}'. Tone: {tone}. Visual Engine Style: '{engine_style}'."
     
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not configured.")

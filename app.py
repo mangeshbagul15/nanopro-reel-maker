@@ -85,6 +85,23 @@ with st.sidebar:
     
     aspect_ratio = st.selectbox("Format", ["9:16 Vertical (Reels / Shorts / TikTok)"])
     
+    visual_engine = st.selectbox(
+        "Visual Engine & Style",
+        [
+            ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal) [Recommended]"),
+            ("bytebytego_dsl", "📊 ByteByteGo Architecture & Diagram DSL (D2 / Mermaid)"),
+            ("remotion_web", "⚛️ Remotion React Motion Graphics (Fireship Cyberpunk)"),
+            ("handdrawn_sketch", "✏️ Hand-Drawn Whiteboard Sketch (NeetCode / Excalidraw)"),
+            ("terminal_screencast", "💻 Real Terminal Screencast (Asciinema / Hacker CLI)"),
+            ("manim_math", "📐 Mathematical Animation (3Blue1Brown / Manim)"),
+            ("kinetic_type", "🔤 Kinetic Typography (Apple Keynote Style)"),
+            ("scene_graph", "🎨 Primitive Scene Graph (Canva / Figma Engine)"),
+            ("ai_video_broll", "🎬 AI Generative Video & B-Roll (Runway / Pexels) [Requires Key]"),
+            ("digital_avatar", "👤 AI Digital Human Presenter (HeyGen) [Requires Key]")
+        ],
+        format_func=lambda x: x[1]
+    )
+    
     st.markdown("---")
     st.markdown("### ☁️ Cloudflare R2 Storage")
     try:
@@ -147,7 +164,7 @@ with tab_create:
             # STEP 1: AI Director Timeline Generation
             status_box.info("🧠 Step 1/5: AI Director is planning the scenes and conversational script...")
             progress_bar.progress(15)
-            timeline = generate_timeline(user_prompt.strip())
+            timeline = generate_timeline(user_prompt.strip(), engine_style=visual_engine[0])
             
             with st.expander("📄 View AI Director Blueprint (JSON)", expanded=False):
                 st.json(timeline)
