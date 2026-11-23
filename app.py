@@ -105,6 +105,22 @@ with st.sidebar:
     )
     
     st.markdown("---")
+    st.markdown("### ⚡ Compute & Acceleration Mode")
+    compute_mode = st.selectbox(
+        "Compute Architecture",
+        [
+            ("local_studio", "⚡ पर्याय 'A': Local High-Performance Studio (NVIDIA RTX 3050 + 13th Gen i5) [Fastest]"),
+            ("hybrid_daemon", "🌐 पर्याय 'B': Online UI + Local Worker Daemon (Hybrid Cloud & Local GPU)")
+        ],
+        format_func=lambda x: x[1]
+    )
+    
+    if compute_mode[0] == "local_studio":
+        st.success("🟢 Hardware: NVIDIA RTX 3050 NVENC • 16GB RAM • Zero-Cost Local Studio")
+    else:
+        st.info("📡 Hybrid Mode: Cloud Webhook ➔ Local Laptop GPU Worker ➔ Cloudflare R2 CDN")
+    
+    st.markdown("---")
     st.markdown("### ☁️ Cloudflare R2 Storage")
     try:
         r2_stats = get_r2_storage_stats()
