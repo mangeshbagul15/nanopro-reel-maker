@@ -161,21 +161,18 @@ def render_scene_frames(scene: Dict[str, Any], scene_idx: int, total_scenes: int
     return frame_paths
 
 def _draw_story_progress_bar(draw: ImageDraw.Draw, total_scenes: int, current_scene: int, progress: float) -> None:
-    padding = 60
-    bar_y = 55
-    bar_h = 7
-    gap = 12
-    total_w = VIDEO_WIDTH - (padding * 2)
-    bar_w = (total_w - ((total_scenes - 1) * gap)) // max(1, total_scenes)
+    """Draws a continuous sleek modern YouTube Shorts / Fireship progress bar across the entire video."""
+    global_progress = ((current_scene - 1) + progress) / max(1, total_scenes)
+    bar_y = 25
+    bar_h = 6
+    padding = 40
+    track_w = VIDEO_WIDTH - (padding * 2)
+    fill_w = max(10, int(track_w * min(1.0, max(0.01, global_progress))))
     
-    for i in range(total_scenes):
-        bx = padding + i * (bar_w + gap)
-        draw.rounded_rectangle((bx, bar_y, bx + bar_w, bar_y + bar_h), radius=4, fill=(255, 255, 255, 50))
-        if i < current_scene - 1:
-            draw.rounded_rectangle((bx, bar_y, bx + bar_w, bar_y + bar_h), radius=4, fill=NEON_CYAN)
-        elif i == current_scene - 1:
-            fill_w = max(4, int(bar_w * progress))
-            draw.rounded_rectangle((bx, bar_y, bx + fill_w, bar_y + bar_h), radius=4, fill=NEON_CYAN)
+    # Sleek dark track
+    draw.rounded_rectangle((padding, bar_y, padding + track_w, bar_y + bar_h), radius=3, fill=(255, 255, 255, 35))
+    # Glowing neon cyan progress
+    draw.rounded_rectangle((padding, bar_y, padding + fill_w, bar_y + bar_h), radius=3, fill=NEON_CYAN)
 
 def _draw_header(draw: ImageDraw.Draw, badge_text: str, title_text: str) -> None:
     font_badge = get_font(26, bold=True)
@@ -203,10 +200,24 @@ def _draw_header(draw: ImageDraw.Draw, badge_text: str, title_text: str) -> None
 # 1. SPLIT COMPARISON (Left vs Right - Problem vs Solution)
 # =========================================================================
 def _render_split_comparison(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    left_label = data.get("left_label", "TRADITIONAL BATCH")
-    right_label = data.get("right_label", "STREAMING CDC")
-    left_points = data.get("left_points", ["Production DB Lockups", "Hours of Replication Lag", "Single Point of Failure"])
-    right_points = data.get("right_points", ["Zero Table Locks", "Sub-second CDC Sync", "Automatic Failover"])
+    left_label = data.get("left_label") or data.get("left_side", {}).get("label") or "TRADITIONAL BATCH"
+    right_label = data.get("right_label") or data.get("right_side", {}).get("label") or "STREAMING CDC"
+    
+    left_points = data.get("left_points") or []
+    if not left_points and "left_side" in data:
+        ls = data["left_side"]
+        left_points = [ls.get("status", "")] + ls.get("points", [])
+    left_points = [p for p in left_points if p]
+    if not left_points:
+        left_points = ["Production DB Lockups", "Hours of Replication Lag", "Single Point of Failure"]
+        
+    right_points = data.get("right_points") or []
+    if not right_points and "right_side" in data:
+        rs = data["right_side"]
+        right_points = [rs.get("status", "")] + rs.get("points", [])
+    right_points = [p for p in right_points if p]
+    if not right_points:
+        right_points = ["Zero Table Locks", "Sub-second CDC Sync", "Automatic Failover"]
     
     col_w = 445
     card_h = 680
@@ -402,12 +413,14 @@ def _render_data_structure_memory(draw: ImageDraw.Draw, data: Dict[str, Any], pr
     
     # Memory Layout Container
     draw.rounded_rectangle((px, py, px + panel_w, py + 720), radius=26, fill=CARD_BG, outline=CARD_BORDER, width=2)
-    draw.text((px + 40, py + 35), "SEQUENTIAL APPEND-ONLY MEMORY LOG", fill=NEON_CYAN, font=get_font(28, bold=True))
+    header_title = data.get("title", "WRITE-AHEAD LOG (WAL) & CDC BUFFER")
+    draw_wrapped_text(draw, header_title.upper(), get_font(26, bold=True), px + 40, py + 30, panel_w - 80, NEON_CYAN, max_lines=1)
     
-    slots = 5
+    entries = data.get("log_sequence_entries") or data.get("entries") or data.get("slots") or []
+    slots = max(3, min(5, len(entries))) if entries else 5
     slot_w = 860
     slot_h = 95
-    base_y = py + 100
+    base_y = py + 95
     
     active_idx = int(progress * slots * 1.5) % slots
     
@@ -419,17 +432,30 @@ def _render_data_structure_memory(draw: ImageDraw.Draw, data: Dict[str, Any], pr
         
         draw.rounded_rectangle((px + 40, sy, px + 40 + slot_w, sy + slot_h), radius=16, fill=fill_bg, outline=color, width=2 if is_active else 1)
         
+        if entries and i < len(entries):
+            e = entries[i]
+            if isinstance(e, dict):
+                offset_label = e.get("lsn") or e.get("offset") or f"0x{i*1024:04X}"
+                op = e.get("op", "")
+                tbl = e.get("table", "")
+                st = e.get("status", "")
+                msg = f"{op} {tbl} • {st}" if (op or tbl) else e.get("data", f"Entry #{i+1}")
+            else:
+                offset_label = f"0x{i*1024:04X}"
+                msg = str(e)
+        else:
+            offset_label = f"0x{i*1024:04X}"
+            msg = f"Record #{i+101} • Zero-Copy Kernel Buffering" if i <= active_idx else "[ Empty Block Available ]"
+
         # Offset block
         draw.rounded_rectangle((px + 55, sy + 15, px + 220, sy + slot_h - 15), radius=10, fill=(30, 41, 59))
-        draw.text((px + 70, sy + 25), f"OFFSET 0x{i*1024:04X}", fill=NEON_AMBER, font=get_font(20, bold=True))
+        draw.text((px + 70, sy + 25), str(offset_label).upper()[:10], fill=NEON_AMBER, font=get_font(20, bold=True))
         
         # Message Data
-        msg = f"Record #{i+101} • Zero-Copy Kernel Buffering (No Lock)" if i <= active_idx else "[ Empty Block Available ]"
-        draw.text((px + 245, sy + 30), msg, fill=TEXT_PRIMARY if i <= active_idx else TEXT_DIM, font=get_font(24))
+        draw.text((px + 245, sy + 30), str(msg)[:42], fill=TEXT_PRIMARY if i <= active_idx else TEXT_DIM, font=get_font(24))
         
         if is_active:
-            # Active Writer Pointer Arrow
-            draw.text((px + slot_w - 70, sy + 22), "◀ WRITE", fill=NEON_EMERALD, font=get_font(20, bold=True))
+            draw.text((px + slot_w - 70, sy + 22), "◀ LIVE", fill=NEON_EMERALD, font=get_font(20, bold=True))
 
 # =========================================================================
 # 6. SQL TABLE
@@ -479,7 +505,16 @@ def _render_sql_table(draw: ImageDraw.Draw, data: Dict[str, Any], progress: floa
 # 7. CODE TERMINAL
 # =========================================================================
 def _render_code_terminal(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    raw_code = data.get("code_snippet", "def kafka_stream_handler(event):\n    # Zero-copy memory mapped file\n    return broker.append_log(event, acks=-1)")
+    raw_code = data.get("code_snippet") or ""
+    if not raw_code:
+        cmd_text = data.get("command") or data.get("cli") or ""
+        out_text = data.get("output") or ""
+        if cmd_text:
+            raw_code = f"$ {cmd_text}"
+            if out_text:
+                raw_code += f"\n\n{out_text}"
+    if not raw_code:
+        raw_code = "def pipeline_sync(event):\n    # Zero-copy memory mapped stream\n    return broker.append_log(event, acks='all')"
     lines = raw_code.split("\n")
     
     tx, ty, tw, th = 70, 460, 940, 750
@@ -577,7 +612,10 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
         draw.ellipse((center_x + 35, ny + 65, center_x + 85, ny + 115), fill=accent_rgb)
         
         draw_wrapped_text(draw, node.get("label", ""), font_title, center_x + 105, ny + 35, 710, TEXT_PRIMARY, max_lines=1)
-        draw_wrapped_text(draw, node.get("sub", ""), font_sub, center_x + 105, ny + 92, 710, TEXT_MUTED, max_lines=2)
+        sub_text = node.get("sub") or node.get("type") or "Cloud Service"
+        if isinstance(sub_text, str):
+            sub_text = sub_text.title()
+        draw_wrapped_text(draw, sub_text, font_sub, center_x + 105, ny + 92, 710, TEXT_MUTED, max_lines=2)
 
     for i in range(len(node_coords) - 1):
         x1, y1 = node_coords[i]

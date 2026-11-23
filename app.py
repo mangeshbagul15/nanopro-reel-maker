@@ -196,16 +196,16 @@ with tab_create:
 
         try:
             # STEP 1: AI Director Timeline Generation
-            status_box.info("🧠 Step 1/5: AI Director is planning the scenes and conversational script...")
-            progress_bar.progress(15)
+            status_box.info("🧠 AI Director is designing the technical storyboard & script...")
+            progress_bar.progress(20)
             timeline = generate_timeline(user_prompt.strip(), engine_style=visual_engine[0])
             
             with st.expander("📄 View AI Director Blueprint (JSON)", expanded=False):
                 st.json(timeline)
 
-            # STEP 2 & 3: Voiceover & Whisper Alignment
-            status_box.info("🎙️ Step 2/5: Synthesizing natural human voice & aligning microsecond word timestamps...")
-            progress_bar.progress(35)
+            # STEP 2: Voiceover & Whisper Alignment
+            status_box.info("🎙️ Synthesizing conversational voiceover & microsecond word timestamps...")
+            progress_bar.progress(40)
             scenes = timeline.get("scenes", [])
             audio_path, word_timestamps, aligned_scenes = generate_voiceover(scenes, voice=voice_option[0])
 
@@ -213,18 +213,19 @@ with tab_create:
                 st.audio(str(audio_path))
                 st.write(f"Total Spoken Words: {len(word_timestamps)}")
 
-            # STEP 4: 2D Generative Visual Rendering (Zero Template)
+            # STEP 3: 2D Generative Visual Rendering
             total_sc = len(aligned_scenes)
             all_scene_frame_dirs = []
             for i, sc in enumerate(aligned_scenes):
-                status_box.info(f"🎨 Step 3/5: Rendering dynamic 2D scene {i + 1}/{total_sc} ({sc.get('visual_type', 'cards')})...")
-                progress_bar.progress(40 + int(30 * (i + 1) / max(1, total_sc)))
+                v_type = sc.get('visual_type', 'cards')
+                status_box.info(f"🎨 Rendering motion visuals for scene {i + 1}/{total_sc} ({v_type})...")
+                progress_bar.progress(45 + int(35 * (i + 1) / max(1, total_sc)))
                 render_scene_frames(sc, i + 1, total_scenes=total_sc)
                 all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 
-            # STEP 5: Subtitles & Video Stitching
-            status_box.info("✂️ Step 4/5: Generating karaoke captions & encoding 1080x1920 MP4 via FFmpeg...")
-            progress_bar.progress(80)
+            # STEP 4: Video Stitching via Local Hardware / Cloud
+            status_box.info("⚡ Assembling 1080x1920 MP4 with karaoke captions & Lo-Fi audio...")
+            progress_bar.progress(85)
             subtitles_path = generate_ass_subtitles(word_timestamps)
             
             final_video_path = render_final_reel(
@@ -234,15 +235,20 @@ with tab_create:
                 output_filename=f"nanopro_{int(time.time())}.mp4"
             )
 
-            # Optional: Cloudflare R2 Upload
-            status_box.info("☁️ Step 5/5: Uploading to Cloudflare R2 CDN...")
-            progress_bar.progress(95)
-            r2_url = upload_to_r2(final_video_path)
+            # Cloudflare R2 Upload (Automatic only on Cloud, Optional on Local)
+            r2_url = None
+            if not is_local_machine:
+                status_box.info("☁️ Uploading to Cloudflare R2 CDN...")
+                progress_bar.progress(95)
+                r2_url = upload_to_r2(final_video_path)
 
             progress_bar.progress(100)
-            status_box.success("🎉 Reel generation complete!")
+            if is_local_machine:
+                status_box.success("🎉 Reel generated and saved locally on your laptop!")
+            else:
+                status_box.success("🎉 Reel generation complete and deployed to Cloud CDN!")
 
-            # Display Final Video & Download
+            # Display Final Video & Actions
             col_vid, col_meta = st.columns([1, 1])
             with col_vid:
                 st.markdown("### 📱 9:16 Reel Preview")
@@ -264,18 +270,24 @@ with tab_create:
                 st.markdown(f"**Duration:** `{aligned_scenes[-1]['end_time']:.1f} seconds`")
                 st.markdown(f"**Scenes Count:** `{len(aligned_scenes)} scenes`")
 
-                with open(final_video_path, "rb") as vf:
-                    st.download_button(
-                        label="⬇️ Download MP4 Reel",
-                        data=vf.read(),
-                        file_name=final_video_path.name,
-                        mime="video/mp4",
-                        use_container_width=True
-                    )
-
-                if r2_url:
-                    st.success("✅ Uploaded to Cloudflare R2 CDN (Permanent Link)!")
-                    st.code(r2_url, language="markdown")
+                if is_local_machine:
+                    st.success(f"💾 **Local File Location:** `{final_video_path}`")
+                    col_l1, col_l2 = st.columns(2)
+                    with col_l1:
+                        if st.button("📂 Open Output Folder", use_container_width=True):
+                            import os
+                            os.startfile(str(OUTPUT_DIR))
+                    with col_l2:
+                        if st.button("☁️ Upload to R2 CDN", use_container_width=True):
+                            with st.spinner("Uploading to Cloudflare R2..."):
+                                manual_r2 = upload_to_r2(final_video_path)
+                                if manual_r2:
+                                    st.success("Uploaded!")
+                                    st.code(manual_r2)
+                else:
+                    if r2_url:
+                        st.success("✅ Uploaded to Cloudflare R2 CDN (Permanent Link)!")
+                        st.code(r2_url, language="markdown")
 
         except Exception as e:
             status_box.error(f"❌ Error during generation: {e}")
