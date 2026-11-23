@@ -105,22 +105,28 @@ with st.sidebar:
     )
     
     st.markdown("---")
-    st.markdown("### ⚡ Compute & Acceleration Mode")
+    st.markdown("### ⚡ Compute & Studio Switcher")
+    
+    # Automatic Environment Detection (Windows = Local RTX 3050, Linux = Streamlit Cloud)
+    is_local_machine = (sys.platform == "win32")
+    
+    if is_local_machine:
+        st.success("🟢 Active Mode: **Local RTX 3050 Studio**")
+        st.caption("💻 Hardware: NVIDIA RTX 3050 NVENC • 16GB RAM • Blazing Fast")
+        st.link_button("🌐 Switch to Online Cloud Studio", "https://nanopro-reel-maker.streamlit.app", use_container_width=True, type="secondary")
+    else:
+        st.info("☁️ Active Mode: **Online Cloud Studio**")
+        st.caption("Running in Cloud. Switch to your laptop's GPU for maximum speed.")
+        st.link_button("⚡ Switch to Local RTX GPU Studio", "http://localhost:8501", use_container_width=True, type="primary")
+
     compute_mode = st.selectbox(
-        "Compute Architecture",
+        "Acceleration Mode",
         [
-            ("local_studio", "⚡ पर्याय 'A': Local High-Performance Studio (NVIDIA RTX 3050 + 13th Gen i5) [Fastest]"),
+            ("local_studio", "⚡ पर्याय 'A': Local High-Performance Studio (NVIDIA RTX 3050 + 13th Gen i5)"),
             ("hybrid_daemon", "🌐 पर्याय 'B': Online UI + Local Worker Daemon (Hybrid Cloud & Local GPU)")
         ],
         format_func=lambda x: x[1]
     )
-    
-    if compute_mode[0] == "local_studio":
-        st.success("🟢 Hardware: NVIDIA RTX 3050 NVENC • 16GB RAM • Zero-Cost Local Studio")
-        st.link_button("⚡ Open / Switch to Local RTX GPU Studio", "http://localhost:8501", use_container_width=True, type="primary")
-    else:
-        st.info("📡 Hybrid Mode: Cloud Webhook ➔ Local Laptop GPU Worker ➔ Cloudflare R2 CDN")
-        st.link_button("🌐 Open Local Daemon Listener", "http://localhost:8501", use_container_width=True)
     
     st.markdown("---")
     st.markdown("### ☁️ Cloudflare R2 Storage")
