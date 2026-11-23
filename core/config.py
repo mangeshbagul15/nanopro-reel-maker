@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 import imageio_ffmpeg
@@ -36,8 +37,11 @@ VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 VIDEO_FPS = 15
 
-# FFmpeg Executable
+# FFmpeg Executable (prefer system ffmpeg if installed, fallback to imageio_ffmpeg)
 try:
-    FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
+    if shutil.which("ffmpeg"):
+        FFMPEG_EXE = "ffmpeg"
+    else:
+        FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
 except Exception:
     FFMPEG_EXE = "ffmpeg"
