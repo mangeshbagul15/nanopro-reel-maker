@@ -163,24 +163,30 @@ st.markdown('<div class="sub-title">100% Automated 2D Tech Video Generator — Z
 tab_create, tab_storage = st.tabs(["🎬 Create New Reel", "☁️ Cloudflare R2 Media & Storage Manager"])
 
 with tab_create:
+    # Initialize session state for user prompt
+    if "user_prompt_input" not in st.session_state:
+        st.session_state.user_prompt_input = "Explain AWS Database Migration Service (DMS) architecture with zero downtime"
+
     # Quick Prompts
     st.markdown("**Quick Preset Topics:**")
     col1, col2, col3, col4 = st.columns(4)
-    preset_selected = None
     if col1.button("☁️ AWS DMS in 60s"):
-        preset_selected = "Explain AWS Database Migration Service (DMS) architecture with zero downtime"
+        st.session_state.user_prompt_input = "Explain AWS Database Migration Service (DMS) architecture with zero downtime"
+        st.rerun()
     if col2.button("📊 SQL DENSE_RANK"):
-        preset_selected = "Explain SQL DENSE_RANK vs RANK with real data table and duplicate salaries"
+        st.session_state.user_prompt_input = "Explain SQL DENSE_RANK vs RANK with real data table and duplicate salaries"
+        st.rerun()
     if col3.button("❄️ Snowflake Pruning"):
-        preset_selected = "How Snowflake micro-partitions and query pruning work under the hood"
+        st.session_state.user_prompt_input = "How Snowflake micro-partitions and query pruning work under the hood"
+        st.rerun()
     if col4.button("🐍 Python GIL"):
-        preset_selected = "Explain Python Global Interpreter Lock (GIL) and why multi-threading blocks"
+        st.session_state.user_prompt_input = "Explain Python Global Interpreter Lock (GIL) and why multi-threading blocks"
+        st.rerun()
 
-    # Prompt Input Box
-    default_prompt = preset_selected if preset_selected else "Explain AWS Database Migration Service (DMS) architecture with zero downtime"
+    # Prompt Input Box bound directly to session state
     user_prompt = st.text_area(
         "Enter Tech Topic / Scenario Prompt:",
-        value=default_prompt,
+        key="user_prompt_input",
         height=90,
         placeholder="e.g. Explain SQL Window Functions LEAD and LAG with interview scenario"
     )
@@ -216,6 +222,15 @@ with tab_create:
             # STEP 3: 2D Generative Visual Rendering
             total_sc = len(aligned_scenes)
             all_scene_frame_dirs = []
+
+            # Clean previous scene frame directories to avoid cross-contamination
+            import shutil
+            for old_dir in OUTPUT_DIR.glob("scene_*_frames"):
+                try:
+                    shutil.rmtree(old_dir, ignore_errors=True)
+                except Exception:
+                    pass
+
             for i, sc in enumerate(aligned_scenes):
                 v_type = sc.get('visual_type', 'cards')
                 status_box.info(f"🎨 Rendering motion visuals for scene {i + 1}/{total_sc} ({v_type})...")

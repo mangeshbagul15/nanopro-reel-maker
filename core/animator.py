@@ -104,6 +104,12 @@ def render_scene_frames(scene: Dict[str, Any], scene_idx: int, total_scenes: int
     total_frames = int(duration * VIDEO_FPS)
     
     scene_frames_dir = OUTPUT_DIR / f"scene_{scene_idx:02d}_frames"
+    if scene_frames_dir.exists():
+        for old_f in scene_frames_dir.glob("frame_*.*"):
+            try:
+                old_f.unlink()
+            except Exception:
+                pass
     scene_frames_dir.mkdir(parents=True, exist_ok=True)
     
     visual_type = scene.get("visual_type", "concept_cards")
@@ -200,24 +206,24 @@ def _draw_header(draw: ImageDraw.Draw, badge_text: str, title_text: str) -> None
 # 1. SPLIT COMPARISON (Left vs Right - Problem vs Solution)
 # =========================================================================
 def _render_split_comparison(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    left_label = data.get("left_label") or data.get("left_side", {}).get("label") or "TRADITIONAL BATCH"
-    right_label = data.get("right_label") or data.get("right_side", {}).get("label") or "STREAMING CDC"
+    left_label = data.get("left_label") or data.get("left_side", {}).get("label") or "TRADITIONAL APPROACH"
+    right_label = data.get("right_label") or data.get("right_side", {}).get("label") or "OPTIMIZED SOLUTION"
     
-    left_points = data.get("left_points") or []
+    left_points = data.get("left_points") or data.get("cons") or []
     if not left_points and "left_side" in data:
         ls = data["left_side"]
         left_points = [ls.get("status", "")] + ls.get("points", [])
     left_points = [p for p in left_points if p]
     if not left_points:
-        left_points = ["Production DB Lockups", "Hours of Replication Lag", "Single Point of Failure"]
+        left_points = ["High Operational Overhead", "Resource Contention & Latency", "Fragile Manual Workflows"]
         
-    right_points = data.get("right_points") or []
+    right_points = data.get("right_points") or data.get("pros") or []
     if not right_points and "right_side" in data:
         rs = data["right_side"]
         right_points = [rs.get("status", "")] + rs.get("points", [])
     right_points = [p for p in right_points if p]
     if not right_points:
-        right_points = ["Zero Table Locks", "Sub-second CDC Sync", "Automatic Failover"]
+        right_points = ["Zero Downtime & Fast Execution", "Low Latency & High Throughput", "Automated Scalable Architecture"]
     
     col_w = 445
     card_h = 680
@@ -257,12 +263,12 @@ def _render_split_comparison(draw: ImageDraw.Draw, data: Dict[str, Any], progres
 # 2. BENCHMARK PERFORMANCE COMPARISON BARS
 # =========================================================================
 def _render_benchmark_chart(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    bars = data.get("bars", [
-        {"label": "Direct Database Polling", "value": 4500, "display": "4.5s Latency", "color": "#EF4444", "is_winner": False},
-        {"label": "Kafka Disk Streaming", "value": 180, "display": "180ms", "color": "#FBBF24", "is_winner": False},
-        {"label": "In-Memory CDC Engine", "value": 12, "display": "12ms (Instant)", "color": "#10B981", "is_winner": True}
-    ])
-    winner_badge = data.get("winner_badge", "375X FASTER")
+    bars = data.get("bars") or data.get("benchmarks") or data.get("comparisons") or [
+        {"label": "Naive Unoptimized Pattern", "value": 4500, "display": "4.5s Latency", "color": "#EF4444", "is_winner": False},
+        {"label": "Standard Implementation", "value": 180, "display": "180ms", "color": "#FBBF24", "is_winner": False},
+        {"label": "High-Performance Architecture", "value": 12, "display": "12ms (15x Faster)", "color": "#10B981", "is_winner": True}
+    ]
+    winner_badge = data.get("winner_badge", "15X FASTER")
     
     container_w = 940
     cx = (VIDEO_WIDTH - container_w) // 2
@@ -307,13 +313,13 @@ def _render_benchmark_chart(draw: ImageDraw.Draw, data: Dict[str, Any], progress
 # 3. CIRCULAR HUB & SPOKE MESH CLUSTER
 # =========================================================================
 def _render_circular_hub_mesh(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    hub_name = data.get("hub_name", "CORE ENGINE")
-    satellites = data.get("satellites", [
-        {"name": "Source DB", "role": "Transaction Log", "color": "#EF4444"},
-        {"name": "Target Aurora", "role": "Read Replica", "color": "#10B981"},
-        {"name": "Kafka Stream", "role": "Event Lake", "color": "#FBBF24"},
-        {"name": "S3 Cold Store", "role": "Parquet", "color": "#38BDF8"}
-    ])
+    hub_name = data.get("hub_name", "CORE SYSTEM")
+    satellites = data.get("satellites") or data.get("nodes") or data.get("components") or [
+        {"name": "Client Ingestion", "role": "API Requests", "color": "#EF4444"},
+        {"name": "App Cluster", "role": "State Processing", "color": "#10B981"},
+        {"name": "Event Broker", "role": "Message Stream", "color": "#FBBF24"},
+        {"name": "Storage Tier", "role": "Data Store", "color": "#38BDF8"}
+    ]
     
     center_x = VIDEO_WIDTH // 2
     center_y = 760
@@ -413,11 +419,11 @@ def _render_data_structure_memory(draw: ImageDraw.Draw, data: Dict[str, Any], pr
     
     # Memory Layout Container
     draw.rounded_rectangle((px, py, px + panel_w, py + 720), radius=26, fill=CARD_BG, outline=CARD_BORDER, width=2)
-    header_title = data.get("title", "WRITE-AHEAD LOG (WAL) & CDC BUFFER")
+    header_title = data.get("title") or data.get("badge") or "MEMORY LAYOUT & STATE BUFFER"
     draw_wrapped_text(draw, header_title.upper(), get_font(26, bold=True), px + 40, py + 30, panel_w - 80, NEON_CYAN, max_lines=1)
     
-    entries = data.get("log_sequence_entries") or data.get("entries") or data.get("slots") or []
-    slots = max(3, min(5, len(entries))) if entries else 5
+    entries = data.get("log_sequence_entries") or data.get("entries") or data.get("slots") or data.get("memory_blocks") or []
+    slots = max(3, min(5, len(entries))) if entries else 4
     slot_w = 860
     slot_h = 95
     base_y = py + 95
@@ -435,17 +441,19 @@ def _render_data_structure_memory(draw: ImageDraw.Draw, data: Dict[str, Any], pr
         if entries and i < len(entries):
             e = entries[i]
             if isinstance(e, dict):
-                offset_label = e.get("lsn") or e.get("offset") or f"0x{i*1024:04X}"
-                op = e.get("op", "")
-                tbl = e.get("table", "")
+                offset_label = e.get("address") or e.get("lsn") or e.get("offset") or f"0x{i*1024:04X}"
+                op = e.get("op") or e.get("label") or ""
+                tbl = e.get("table") or e.get("value") or ""
                 st = e.get("status", "")
-                msg = f"{op} {tbl} • {st}" if (op or tbl) else e.get("data", f"Entry #{i+1}")
+                msg = f"{op} • {tbl}" if (op and tbl) else (op or tbl or e.get("data", f"Block #{i+1}"))
+                if st:
+                    msg += f" ({st})"
             else:
                 offset_label = f"0x{i*1024:04X}"
                 msg = str(e)
         else:
             offset_label = f"0x{i*1024:04X}"
-            msg = f"Record #{i+101} • Zero-Copy Kernel Buffering" if i <= active_idx else "[ Empty Block Available ]"
+            msg = f"Block #{i+101} • Active State Execution" if i <= active_idx else "[ Allocated Buffer Slot ]"
 
         # Offset block
         draw.rounded_rectangle((px + 55, sy + 15, px + 220, sy + slot_h - 15), radius=10, fill=(30, 41, 59))
@@ -588,11 +596,11 @@ def _render_alert_diagram(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
 # 9. ARCHITECTURE PIPELINE FLOW
 # =========================================================================
 def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    nodes = data.get("nodes", [
-        {"id": "src", "label": "Producers (IoT / Web)", "sub": "1,000,000 Events / sec", "color": "#38BDF8"},
-        {"id": "eng", "label": "Kafka Cluster (Partitions)", "sub": "Sequential Append-Only Log", "color": "#FBBF24"},
-        {"id": "tgt", "label": "Consumer Analytics", "sub": "Zero-Copy sendfile() Stream", "color": "#34D399"}
-    ])
+    nodes = data.get("nodes") or data.get("stages") or data.get("steps") or data.get("services") or [
+        {"id": "src", "label": "Client / Ingestion Layer", "sub": "Incoming Requests & Payloads", "color": "#38BDF8"},
+        {"id": "eng", "label": "Processing & Business Engine", "sub": "Distributed Core Execution", "color": "#FBBF24"},
+        {"id": "tgt", "label": "Persistence & Output Target", "sub": "High-Throughput Storage & CDN", "color": "#34D399"}
+    ]
     
     font_title = get_font(36, bold=True)
     font_sub = get_font(26)
