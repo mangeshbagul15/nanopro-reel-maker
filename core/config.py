@@ -29,6 +29,7 @@ CF_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "")
 CF_R2_ACCESS_KEY = os.getenv("CLOUDFLARE_R2_ACCESS_KEY", "")
 CF_R2_SECRET_KEY = os.getenv("CLOUDFLARE_R2_SECRET_KEY", "")
 CF_R2_BUCKET = os.getenv("CLOUDFLARE_R2_BUCKET", "nanopro-reels")
+CF_R2_PUBLIC_URL = os.getenv("CLOUDFLARE_R2_PUBLIC_URL", "https://pub-ba534bece9ff4d909b3a002a10a42a31.r2.dev")
 
 # Video Specs (9:16 Vertical Reel)
 VIDEO_WIDTH = 1080
