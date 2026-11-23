@@ -56,11 +56,31 @@ Output a single valid JSON object matching this structure:
 }
 """
 
+ENGINE_STYLE_DIRECTIVES = {
+    "terminal_screencast": "MANDATORY STYLE DIRECTIVE: The user explicitly selected 'Terminal Screencast'. The video MUST heavily prioritize 'code_terminal' scenes featuring real terminal commands, shell scripts, execution logs, and code outputs.",
+    "bytebytego_dsl": "MANDATORY STYLE DIRECTIVE: The user explicitly selected 'ByteByteGo Architecture'. The video MUST heavily prioritize 'architecture_flow' showing multi-tier system designs, cloud services, and pipeline topologies.",
+    "manim_math": "MANDATORY STYLE DIRECTIVE: The user explicitly selected 'Mathematical & Algorithmic'. Focus on 'data_structure_memory' buffers, algorithmic steps, and 'benchmark_chart' performance comparisons.",
+    "handdrawn_sketch": "MANDATORY STYLE DIRECTIVE: The user explicitly selected 'Whiteboard Sketch'. Focus on intuitive conceptual breakdowns using 'concept_cards' and 'split_comparison'.",
+    "kinetic_type": "MANDATORY STYLE DIRECTIVE: The user explicitly selected 'Kinetic Typography'. Focus on punchy technical principles using bold 'concept_cards' and crisp 'split_comparison'.",
+    "hybrid_modern": "MANDATORY STYLE DIRECTIVE: The user selected 'Hybrid Modern'. Use a balanced, high-octane mix of 'architecture_flow', 'code_terminal', and 'data_structure_memory'.",
+    "remotion_web": "MANDATORY STYLE DIRECTIVE: Focus on cyberpunk developer motion graphics with 'code_terminal' and 'architecture_flow'.",
+    "blender_local_gpu": "MANDATORY STYLE DIRECTIVE: Structure deep system internals with detailed 'architecture_flow' and 'data_structure_memory' buffers.",
+    "cloud_serverless_gpu": "MANDATORY STYLE DIRECTIVE: Focus on distributed cloud pipeline flows ('architecture_flow') and live streaming buffers."
+}
+
 def generate_timeline(topic: str, tone: str = "conversational", engine_style: str = "hybrid_modern") -> Dict[str, Any]:
     """
-    Generates a structured video timeline blueprint using Gemini models with full AI autonomy.
+    Generates a structured video timeline blueprint using Gemini models with full AI autonomy,
+    strictly adapted to the chosen Visual Engine & Style.
     """
-    user_prompt = f"Topic: '{topic}'. Tone: {tone}. Preferred Engine Style: '{engine_style}'. Autonomously plan the best visual scenes and script for this topic."
+    style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["hybrid_modern"])
+    user_prompt = (
+        f"Topic: '{topic}'.\n"
+        f"Tone: {tone}.\n"
+        f"Selected Visual Engine: '{engine_style}'.\n"
+        f"{style_directive}\n"
+        f"Autonomously plan the best visual scenes and conversational script matching this style exactly."
+    )
     
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not configured.")
