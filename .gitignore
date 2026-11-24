@@ -19,6 +19,9 @@ output/
 
 # Streamlit
 .streamlit/
+# Local helpers
+gui_runner.py
+open_on_screen.ps1
 scratch_inspect.py
 *.code-workspace
 

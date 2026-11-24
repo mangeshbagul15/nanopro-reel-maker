@@ -17,20 +17,20 @@ def _get_encoder_args() -> List[str]:
         return _CACHED_ENCODER_ARGS
 
     candidates = [
-        # Candidate 1: NVIDIA NVENC Hardware Acceleration
+        # Candidate 1: Windows Media Foundation Hardware Acceleration with 8 Mbps high-bitrate
         (
-            ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "22", "-pix_fmt", "yuv420p"],
+            ["-c:v", "h264_mf", "-b:v", "8M", "-pix_fmt", "yuv420p"],
+            "Windows Media Foundation Hardware (MF 8Mbps High Bitrate)"
+        ),
+        # Candidate 2: High-Fidelity libx264 CPU with visually lossless CRF 18
+        (
+            ["-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p"],
+            "libx264 High-Fidelity CPU (CRF 18)"
+        ),
+        # Candidate 3: NVIDIA NVENC Hardware Acceleration
+        (
+            ["-c:v", "h264_nvenc", "-preset", "p5", "-cq", "18", "-b:v", "8M", "-pix_fmt", "yuv420p"],
             "NVIDIA NVENC Hardware"
-        ),
-        # Candidate 2: Windows Media Foundation Hardware Acceleration (Intel / NVIDIA MFT)
-        (
-            ["-c:v", "h264_mf", "-pix_fmt", "yuv420p"],
-            "Windows Media Foundation Hardware (MF)"
-        ),
-        # Candidate 3: Standard libx264 CPU (Universal fallback)
-        (
-            ["-c:v", "libx264", "-preset", "faster", "-crf", "22", "-pix_fmt", "yuv420p"],
-            "libx264 CPU"
         )
     ]
 

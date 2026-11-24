@@ -25,7 +25,7 @@ importlib.reload(core.subtitles)
 importlib.reload(core.renderer)
 importlib.reload(core.uploader)
 
-from core.config import OUTPUT_DIR
+from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS
 from core.director import generate_timeline
 from core.voice import generate_voiceover, DEFAULT_VOICE
 from core.animator import render_scene_frames
@@ -106,7 +106,15 @@ with st.sidebar:
         format_func=lambda x: x[1]
     )
     
-    aspect_ratio = st.selectbox("Format", ["9:16 Vertical (Reels / Shorts / TikTok)"])
+    aspect_ratio = st.selectbox(
+        "Format",
+        [
+            ("9:16", "📱 9:16 Vertical (Reels / Shorts / TikTok - 1080x1920)"),
+            ("16:9", "🖥️ 16:9 Widescreen (YouTube / Landscape - 1920x1080)"),
+            ("1:1", "⏹️ 1:1 Square (Instagram / LinkedIn Post - 1080x1080)")
+        ],
+        format_func=lambda x: x[1]
+    )
     
     duration_option = st.selectbox(
         "Video Duration & Depth (No 60s Limit)",
@@ -233,7 +241,9 @@ with tab_create:
                 user_prompt.strip(),
                 engine_style=visual_engine[0],
                 duration_mode=duration_option[0],
-                custom_style_prompt=custom_style_prompt
+                custom_style_prompt=custom_style_prompt,
+                voice=voice_option[0],
+                format_ratio=aspect_ratio[0]
             )
             
             with st.expander("📄 View Raw AI Director Blueprint (JSON)", expanded=False):
@@ -265,19 +275,28 @@ with tab_create:
                 v_type = sc.get('visual_type', 'cards')
                 status_box.info(f"🎨 Rendering motion visuals for scene {i + 1}/{total_sc} ({v_type})...")
                 progress_bar.progress(45 + int(35 * (i + 1) / max(1, total_sc)))
-                render_scene_frames(sc, i + 1, total_scenes=total_sc, engine_style=visual_engine[0])
+                render_scene_frames(
+                    sc,
+                    i + 1,
+                    total_scenes=total_sc,
+                    engine_style=visual_engine[0],
+                    format_ratio=aspect_ratio[0]
+                )
                 all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 
             # STEP 4: Video Stitching via Local Hardware / Cloud
-            status_box.info("⚡ Assembling 1080x1920 MP4 with karaoke captions & Lo-Fi audio...")
+            status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 with karaoke captions & Lo-Fi audio...")
             progress_bar.progress(85)
-            subtitles_path = generate_ass_subtitles(word_timestamps)
+            subtitles_path = generate_ass_subtitles(
+                word_timestamps,
+                format_ratio=aspect_ratio[0]
+            )
             
             final_video_path = render_final_reel(
                 all_scene_frame_dirs=all_scene_frame_dirs,
                 audio_path=audio_path,
                 subtitles_path=subtitles_path,
-                output_filename=f"nanopro_{int(time.time())}.mp4"
+                output_filename=f"nanopro_{aspect_ratio[0].replace(':', 'x')}_{int(time.time())}.mp4"
             )
 
             # Cloudflare R2 Upload (Automatic only on Cloud, Optional on Local)
@@ -296,11 +315,11 @@ with tab_create:
             # Display Final Video & Actions
             col_vid, col_meta = st.columns([1, 1.1])
             with col_vid:
-                st.markdown("### 📱 9:16 Reel Preview")
+                st.markdown(f"### 📱 {aspect_ratio[0]} Video Preview")
                 st.video(str(final_video_path))
                 with open(final_video_path, "rb") as vf:
                     st.download_button(
-                        label="⬇️ Download 1080x1920 MP4 Reel",
+                        label=f"⬇️ Download {aspect_ratio[0]} MP4 Video",
                         data=vf.read(),
                         file_name=final_video_path.name,
                         mime="video/mp4",
@@ -317,7 +336,7 @@ with tab_create:
                 kpi1.metric("⏱️ Duration", f"{total_duration:.1f}s")
                 kpi2.metric("🎬 Scenes", f"{len(aligned_scenes)}")
                 kpi3.metric("🗣️ Words", f"{len(word_timestamps)}")
-                kpi4.metric("📐 Format", "9:16 (1080p)")
+                kpi4.metric("📐 Format", f"{aspect_ratio[0]}")
 
                 # Permanent Cloudflare R2 CDN Link Section
                 if r2_url:
@@ -359,13 +378,13 @@ with tab_create:
 
                     3. **🎨 Step 3 — 2D Generative Visual Rendering:**
                        - **Rendering Engine:** Python 2D Generative Canvas (Pillow)
-                       - **Resolution & Frame Rate:** 1080x1920 (9:16 Vertical) @ 15 FPS
+                       - **Resolution & Frame Rate:** {FORMAT_SPECS[aspect_ratio[0]]['width']}x{FORMAT_SPECS[aspect_ratio[0]]['height']} ({aspect_ratio[0]}) @ {VIDEO_FPS} FPS (Razor-sharp, 0% blur)
                        - **Dynamic Story Elements:** Visuals strictly enforced to match `{visual_engine[0]}`.
-                       - **Total Frames Generated:** `{round(total_duration * 15)}` frames rendered frame-by-frame.
+                       - **Total Frames Generated:** `{round(total_duration * VIDEO_FPS)}` frames rendered frame-by-frame.
 
                     4. **⚡ Step 4 — Hardware FFmpeg Video Stitching & Captions:**
-                       - **Video Encoder:** Hardware Accelerated (Windows Media Foundation / NVIDIA NVENC)
-                       - **Karaoke Subtitles:** Advanced SubStation Alpha (`.ass`) with safe-zone margin (MarginV=420) and glowing neon cyan/yellow active pop
+                       - **Video Encoder:** Hardware Accelerated High-Bitrate (Windows Media Foundation 8 Mbps / libx264 CRF 18)
+                       - **Karaoke Subtitles:** Advanced SubStation Alpha (`.ass`) with safe-zone margin adapted to {aspect_ratio[0]}
                        - **Audio Mixing:** Lo-Fi Cyber BGM mixed at 18% ducking volume under voiceover.
 
                     5. **☁️ Step 5 — Deployment & Storage:**
@@ -430,8 +449,8 @@ with tab_create:
                         {"Pipeline Layer": "AI Director & Storyboard", "API / Provider": "Google AI Studio", "Model / Spec": "gemini-3-flash-preview", "Status": "Active 🟢"},
                         {"Pipeline Layer": "Text-to-Speech (TTS)", "API / Provider": "Microsoft Edge-TTS", "Model / Spec": str(voice_option[0]), "Status": "Active 🟢"},
                         {"Pipeline Layer": "Audio Alignment", "API / Provider": "Groq Cloud API", "Model / Spec": "whisper-large-v3 (Word-Level)", "Status": "Active 🟢"},
-                        {"Pipeline Layer": "Visual Graphics Engine", "API / Provider": "Python Pillow (PIL)", "Model / Spec": "1080x1920 (9:16) @ 15 FPS", "Status": "Active 🟢"},
-                        {"Pipeline Layer": "Video Stitcher & Encoder", "API / Provider": "FFmpeg Engine", "Model / Spec": "Hardware Acceleration (MF / NVENC)", "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Visual Graphics Engine", "API / Provider": "Python Pillow (PIL)", "Model / Spec": f"{FORMAT_SPECS[aspect_ratio[0]]['width']}x{FORMAT_SPECS[aspect_ratio[0]]['height']} ({aspect_ratio[0]}) @ {VIDEO_FPS} FPS", "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Video Stitcher & Encoder", "API / Provider": "FFmpeg Engine", "Model / Spec": "Hardware MF 8Mbps / libx264 CRF 18", "Status": "Active 🟢"},
                         {"Pipeline Layer": "Subtitles & Karaoke", "API / Provider": "ASS SubStation Engine", "Model / Spec": "Segoe UI Safe-Zone Font", "Status": "Active 🟢"},
                         {"Pipeline Layer": "Cloud CDN Storage", "API / Provider": "Cloudflare R2", "Model / Spec": "S3 Global Edge (pub-ba534...)", "Status": "Active 🟢"},
                         {"Pipeline Layer": "Host Compute", "API / Provider": "Local RTX 3050" if is_local_machine else "Streamlit Cloud", "Model / Spec": "Windows 11 / 16GB RAM", "Status": "Active 🟢"}

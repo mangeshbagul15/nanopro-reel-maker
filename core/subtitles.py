@@ -2,29 +2,46 @@ from pathlib import Path
 from typing import List, Dict, Any
 from core.config import OUTPUT_DIR
 
-def generate_ass_subtitles(word_timestamps: List[Dict[str, Any]], output_path: Path = None) -> Path:
+def generate_ass_subtitles(
+    word_timestamps: List[Dict[str, Any]],
+    output_path: Path = None,
+    format_ratio: str = "9:16"
+) -> Path:
     """
     Generates an Advanced SubStation Alpha (.ass) subtitle file with viral
     TikTok / Instagram Reels style:
-    - Safe-zone positioning (MarginV: 420) so text never touches bottom UI or middle cards
-    - Fontsize 62 with clean margins so words never go out of frame
+    - Safe-zone positioning adapted to aspect ratio (9:16, 16:9, 1:1) so text never touches bottom UI or middle cards
+    - Fontsize dynamically scaled with clean margins so words never go out of frame
     - Intelligent 1-2 word chunking for long technical words
     - Active spoken word highlighted in bright glowing cyan/yellow with contrast outline
     """
     if output_path is None:
         output_path = OUTPUT_DIR / "subtitles.ass"
 
-    # ASS Header & Styles - strictly constrained to 1080x1920 safe frame
+    if format_ratio == "16:9":
+        res_x, res_y = 1920, 1080
+        font_size = 52
+        margin_v = 110
+    elif format_ratio == "1:1":
+        res_x, res_y = 1080, 1080
+        font_size = 54
+        margin_v = 150
+    else:  # 9:16
+        res_x, res_y = 1080, 1920
+        font_size = 62
+        margin_v = 420
+
+    # ASS Header & Styles - strictly constrained to chosen aspect ratio safe frame
     ass_content = [
         "[Script Info]",
         "ScriptType: v4.00+",
-        "PlayResX: 1080",
-        "PlayResY: 1920",
+        f"PlayResX: {res_x}",
+        f"PlayResY: {res_y}",
         "ScaledBorderAndShadow: yes",
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        "Style: ReelHighlight,Segoe UI,62,&H00FFFFFF,&H0000FFFF,&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,5,2,2,80,80,420,1",
+        f"Style: ReelHighlight,Segoe UI,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,5,2,2,80,80,{margin_v},1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"

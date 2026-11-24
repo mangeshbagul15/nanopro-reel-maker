@@ -230,11 +230,13 @@ def generate_timeline(
     tone: str = "conversational",
     engine_style: str = "hybrid_modern",
     duration_mode: str = "auto",
-    custom_style_prompt: str = ""
+    custom_style_prompt: str = "",
+    voice: str = "en-US-ChristopherNeural",
+    format_ratio: str = "9:16"
 ) -> Dict[str, Any]:
     """
     Generates a structured video timeline blueprint using Gemini models with full AI autonomy,
-    strictly adapted to the chosen Visual Engine & Style, with no artificial 60-second limit.
+    strictly adapted to the chosen Visual Engine, Voice Persona (Language/Dialect), Format and Duration.
     """
     if engine_style == "custom_user_style" and custom_style_prompt.strip():
         style_directive = (
@@ -244,20 +246,54 @@ def generate_timeline(
     else:
         style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["hybrid_modern"])
     
+    # 1. Language & Dialect based on the selected Voice Persona
+    if voice.startswith("hi-") or voice == "en-IN-NeerjaExpressiveNeural":
+        lang_directive = (
+            "LANGUAGE & DIALECT MANDATE: The user explicitly selected a Hindi / Hinglish voice persona. "
+            "You MUST write the narration script in natural, conversational Hinglish (Hindi mixed with technical English terms like "
+            "database, pipeline, CDC, failover, cluster, latency, table, query, lock, downtime). "
+            "Explain like a staff software engineer speaking in Hinglish to Indian developers."
+        )
+    elif voice.startswith("mr-"):
+        lang_directive = (
+            "LANGUAGE & DIALECT MANDATE: The user explicitly selected a Marathi voice persona. "
+            "You MUST write the narration script in natural conversational Marathi / Marathi-English tech style. "
+            "Explain the technical concepts using clear technical terms with Marathi grammar."
+        )
+    elif voice == "en-IN-PrabhatNeural":
+        lang_directive = (
+            "LANGUAGE & DIALECT MANDATE: Write in crisp, authoritative Indian Tech English with high technical clarity."
+        )
+    else:
+        lang_directive = (
+            "LANGUAGE & DIALECT MANDATE: Write in natural, high-octane conversational tech English (Fireship / ByteByteGo style)."
+        )
+
+    # 2. Duration & Depth guidance
     duration_instructions = {
         "auto": "Natural duration based on topic depth (typically 4 to 6 scenes). Completely explain the core architecture and trade-offs.",
-        "short": "Quick, punchy overview (3 scenes, ~30-45 seconds). High-impact summary.",
+        "short": "Quick, punchy overview (EXACTLY 3 scenes, ~30-45 seconds). High-impact summary.",
         "standard": "Standard explainer (4 to 5 scenes, ~60 seconds). Balanced walkthrough.",
         "deep_dive": "Comprehensive in-depth breakdown (6 to 8 scenes, 90 to 180+ seconds). Detail every pipeline stage, internal buffer, and real implementation commands."
     }
     dur_guidance = duration_instructions.get(duration_mode, duration_instructions["auto"])
 
+    # 3. Format guidance
+    format_directive = f"Target Aspect Ratio: '{format_ratio}'."
+
     user_prompt = (
         f"Topic: '{topic}'.\n"
         f"Tone: {tone}.\n"
         f"Selected Visual Engine: '{engine_style}'.\n"
+        f"Selected Voice Persona: '{voice}'.\n"
+        f"{lang_directive}\n"
+        f"{format_directive}\n"
         f"Target Depth / Duration: {dur_guidance}\n"
         f"{style_directive}\n\n"
+        f"MANDATORY REQUIREMENT: For EVERY scene, make sure the visual_data fields (node labels, schemas, table rows, code snippet, bullet points, metrics) "
+        f"EXACTLY match and illustrate what the narrator is speaking in that scene's narration. Never use generic or unrelated placeholders.\n"
+        f"Autonomously design the complete storyboard blueprint JSON now."
+    )
         f"MANDATORY REQUIREMENT: For EVERY scene, make sure the visual_data fields (node labels, schemas, table rows, code snippet, bullet points, metrics) "
         f"EXACTLY match and illustrate what the narrator is speaking in that scene's narration. Never use generic or unrelated placeholders.\n"
         f"Autonomously design the complete storyboard blueprint JSON now."

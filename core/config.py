@@ -43,10 +43,16 @@ CF_R2_SECRET_KEY = _get_env_or_secret("CLOUDFLARE_R2_SECRET_KEY")
 CF_R2_BUCKET = _get_env_or_secret("CLOUDFLARE_R2_BUCKET", "nanopro-reels")
 CF_R2_PUBLIC_URL = _get_env_or_secret("CLOUDFLARE_R2_PUBLIC_URL", "https://pub-ba534bece9ff4d909b3a002a10a42a31.r2.dev")
 
-# Video Specs (9:16 Vertical Reel)
+# Video Specs
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
-VIDEO_FPS = 15
+VIDEO_FPS = 30
+
+FORMAT_SPECS = {
+    "9:16": {"width": 1080, "height": 1920, "label": "9:16 Vertical (Reels / Shorts / TikTok)"},
+    "16:9": {"width": 1920, "height": 1080, "label": "16:9 Widescreen (YouTube / Landscape)"},
+    "1:1": {"width": 1080, "height": 1080, "label": "1:1 Square (Instagram / LinkedIn)"}
+}
 
 # FFmpeg Executable (prefer system ffmpeg if installed, fallback to imageio_ffmpeg)
 try:
