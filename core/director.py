@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from core.config import GEMINI_API_KEY, GROQ_API_KEY
 
 SYSTEM_PROMPT = """You are an elite Tech Content Director and Visual Storyteller for viral 9:16 vertical tech videos and reels (inspired by Fireship and ByteByteGo).
@@ -305,9 +305,9 @@ def generate_timeline(
             
             models_to_try = [
                 "gemini-3-flash-preview",
-                "gemini-3.5-flash",
-                "gemini-3.1-flash-lite-preview",
-                "gemini-3.5-flash-lite"
+                "gemini-flash-latest",
+                "gemini-2.5-flash-lite",
+                "gemini-3.1-flash-lite-preview"
             ]
             
             for model_name in models_to_try:
@@ -319,6 +319,7 @@ def generate_timeline(
                     raw_text = response.text.strip() if response.text else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
+                        clean_json = _enforce_engine_style(clean_json, engine_style, topic)
                         clean_json["meta_director"] = {
                             "model_used": model_name,
                             "engine_style": engine_style,
@@ -355,6 +356,7 @@ def generate_timeline(
                     raw_text = g_res.choices[0].message.content.strip() if g_res.choices else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
+                        clean_json = _enforce_engine_style(clean_json, engine_style, topic)
                         clean_json["meta_director"] = {
                             "model_used": f"groq/{g_model}",
                             "engine_style": engine_style,
@@ -373,6 +375,199 @@ def generate_timeline(
 
     err_summary = "; ".join(last_errors) if last_errors else "No valid API keys configured."
     raise RuntimeError(f"Failed to generate video timeline from AI Director. Details: {err_summary}")
+
+def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: str) -> Dict[str, Any]:
+    """
+    Guarantees that every scene in the timeline strictly adheres to the user-selected Visual Engine & Style,
+    adapting both visual_type and populating rich, topic-specific visual_data fields.
+    """
+    if not timeline or "scenes" not in timeline:
+        return timeline
+
+    scenes = timeline.get("scenes", [])
+    
+    # Engine to target visual_type mapping
+    engine_type_map = {
+        "terminal_screencast": "code_terminal",
+        "sql_deepdive": "sql_table",
+        "bytebytego_dsl": "architecture_flow",
+        "split_comparison": "split_comparison",
+        "benchmark_speed": "benchmark_chart",
+        "memory_internals": "data_structure_memory",
+        "network_mesh": "circular_hub_mesh",
+        "telemetry_hud": "metric_gauge_hud",
+        "alert_troubleshoot": "alert_diagram",
+        "concept_keynote": "concept_cards"
+    }
+
+    target_type = engine_type_map.get(engine_style)
+
+    for idx, sc in enumerate(scenes):
+        v_data = sc.get("visual_data", {})
+        current_vtype = sc.get("visual_type", "concept_cards")
+        
+        # If user explicitly chose a single-focus engine (not hybrid), enforce it
+        if target_type:
+            if engine_style == "bytebytego_dsl" and current_vtype in ["architecture_flow", "circular_hub_mesh"]:
+                pass
+            elif engine_style == "benchmark_speed" and current_vtype in ["benchmark_chart", "metric_gauge_hud"]:
+                pass
+            else:
+                sc["visual_type"] = target_type
+                current_vtype = target_type
+
+        # Ensure required data structures are present and rich for the active visual_type
+        title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
+        badge = v_data.get("badge") or engine_style.replace("_", " ").upper()
+        v_data["title"] = title
+        v_data["badge"] = badge
+
+        if current_vtype == "code_terminal":
+            if not v_data.get("code_snippet") and not v_data.get("command"):
+                v_data["command"] = f"python -m engine --run {topic.lower().replace(' ', '_')[:16]}"
+                v_data["code_snippet"] = (
+                    f"# Scene {idx+1}: {title}\n"
+                    f"async def handle_sync_event(ctx):\n"
+                    f"    cluster = await init_pipeline()\n"
+                    f"    res = cluster.replicate(ctx)\n"
+                    f"    return {{'status': 200, 'synced': True}}"
+                )
+
+        elif current_vtype == "sql_table":
+            if not v_data.get("code_snippet"):
+                tbl_name = topic.lower().replace(" ", "_")[:12]
+                v_data["code_snippet"] = f"SELECT emp_id, salary, DENSE_RANK() OVER (ORDER BY salary DESC) FROM {tbl_name};"
+            if not v_data.get("table_data"):
+                v_data["table_data"] = {
+                    "headers": ["ID", "COMPONENT", "METRIC", "RANK"],
+                    "rows": [
+                        ["101", f"{topic[:10]} A", "120,000", "1"],
+                        ["102", f"{topic[:10]} B", "95,000", "2"],
+                        ["103", f"{topic[:10]} C", "95,000", "2"],
+                        ["104", f"{topic[:10]} D", "80,000", "3"]
+                    ]
+                }
+
+        elif current_vtype == "architecture_flow":
+            if not v_data.get("nodes"):
+                v_data["nodes"] = [
+                    {"id": "src", "label": "Client Ingestion", "sub": "Traffic & Event Stream", "color": "#38BDF8"},
+                    {"id": "engine", "label": f"{topic[:16]} Engine", "sub": "Distributed State Sync", "color": "#FBBF24"},
+                    {"id": "target", "label": "Target Cluster", "sub": "Persistent Replicated Store", "color": "#34D399"}
+                ]
+
+        elif current_vtype == "split_comparison":
+            if not v_data.get("left_points") or not v_data.get("right_points"):
+                v_data["left_label"] = v_data.get("left_label") or "LEGACY / UNOPTIMIZED"
+                v_data["left_points"] = v_data.get("left_points") or [
+                    "High Latency & Contention",
+                    "Fragile Manual Failover",
+                    "Table Locks & Downtime"
+                ]
+                v_data["right_label"] = v_data.get("right_label") or "MODERN / SCALABLE"
+                v_data["right_points"] = v_data.get("right_points") or [
+                    "Sub-Second Zero-Lock Sync",
+                    "Zero Production Downtime",
+                    "Automated Resilient Scale"
+                ]
+
+        elif current_vtype == "benchmark_chart":
+            if not v_data.get("bars"):
+                v_data["winner_badge"] = v_data.get("winner_badge") or "15X SPEEDUP"
+                v_data["bars"] = [
+                    {"label": "Standard Batch Load", "value": 4500, "display": "4.5s Latency", "color": "#EF4444", "is_winner": False},
+                    {"label": "Optimized Buffer Stream", "value": 350, "display": "350ms", "color": "#FBBF24", "is_winner": False},
+                    {"label": f"{topic[:16]} Stream", "value": 24, "display": "24ms Lag (Winner)", "color": "#10B981", "is_winner": True}
+                ]
+
+        elif current_vtype == "data_structure_memory":
+            if not v_data.get("entries"):
+                v_data["entries"] = [
+                    {"address": "0x00A1", "op": "COMMIT LSN 4920", "table": "orders", "status": "REPLICATED"},
+                    {"address": "0x00B4", "op": "INSERT LSN 4921", "table": "payments", "status": "IN-TRANSIT"},
+                    {"address": "0x00C8", "op": "UPDATE LSN 4922", "table": "inventory", "status": "BUFFERED"}
+                ]
+
+        elif current_vtype == "circular_hub_mesh":
+            if not v_data.get("satellites"):
+                v_data["hub_name"] = v_data.get("hub_name") or "CORE BROKER"
+                v_data["satellites"] = [
+                    {"name": "Client Ingestion", "role": "API Gateway", "color": "#EF4444"},
+                    {"name": "App Workers", "role": "Compute Nodes", "color": "#10B981"},
+                    {"name": "State Cache", "role": "Sub-millisecond", "color": "#FBBF24"},
+                    {"name": "Database Cluster", "role": "ACID Store", "color": "#38BDF8"}
+                ]
+
+        elif current_vtype == "metric_gauge_hud":
+            if not v_data.get("main_value"):
+                v_data["main_value"] = "99.999%"
+                v_data["main_unit"] = "PRODUCTION SLA"
+                v_data["gauge_percent"] = 99
+                v_data["telemetry"] = [
+                    {"label": "THROUGHPUT", "val": "1.2M req/s"},
+                    {"label": "AVG LATENCY", "val": "1.8 ms"},
+                    {"label": "AVAILABILITY", "val": "99.999%"}
+                ]
+
+        elif current_vtype == "alert_diagram":
+            if not v_data.get("challenge"):
+                v_data["problem_title"] = v_data.get("problem_title") or f"Production Bottleneck: {title}"
+                v_data["problem_desc"] = v_data.get("problem_desc") or "High concurrency spikes caused thread contention and system degradation."
+                v_data["challenge"] = "How to achieve 100% availability without sacrificing latency?"
+
+        sc["visual_data"] = v_data
+
+    return timeline
+
+def generate_video_titles(topic: str, channel_tag: str = "@Code_With_Mangesh") -> List[Dict[str, str]]:
+    """
+    Generates 6 distinct, high-CTR, viral titles categorized by marketing hooks.
+    """
+    clean_topic = topic.strip()
+    
+    # 1. Try Gemini
+    if GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            prompt = f"""You are a YouTube Shorts & Instagram Reels viral growth strategist.
+Generate 6 ultra-high CTR video titles for this technical topic:
+Topic: "{clean_topic}"
+
+Return ONLY a valid JSON array of 6 objects matching this schema:
+[
+  {{"title": "🔥 Catchy Title 1 (Punchy, with emojis, under 65 chars)", "category": "Viral Hook"}},
+  {{"title": "⚡ Architecture Title 2", "category": "System Design"}},
+  {{"title": "❌ Trade-off Title 3", "category": "Common Mistake"}},
+  {{"title": "🧠 Interview Title 4", "category": "Interview"}},
+  {{"title": "🚀 Staff Engineer Title 5", "category": "Staff Engineer"}},
+  {{"title": "💡 Crash Course Title 6", "category": "Quick Explainer"}}
+]
+"""
+            for m in ["gemini-3-flash-preview", "gemini-flash-latest", "gemini-2.5-flash-lite"]:
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""
+                    match = re.search(r"\[[\s\S]*\]", raw_text)
+                    if match:
+                        parsed = json.loads(match.group(0))
+                        if isinstance(parsed, list) and len(parsed) >= 3:
+                            return parsed
+                except Exception:
+                    continue
+        except Exception:
+            pass
+            
+    # 2. Resilient Fallback Template
+    safe_topic = clean_topic.title()
+    return [
+        {"title": f"🔥 {safe_topic} Explained Like a Staff Engineer!", "category": "Staff Engineer"},
+        {"title": f"⚡ Why 99% of Developers Get {safe_topic} Wrong!", "category": "Common Mistake"},
+        {"title": f"🧠 System Design Interview: {safe_topic} Architecture", "category": "Interview"},
+        {"title": f"🚀 How Production Systems Scale {safe_topic} to Millions!", "category": "Production Scale"},
+        {"title": f"❌ Stop Using Traditional Patterns for {safe_topic}!", "category": "Trade-off"},
+        {"title": f"💡 Zero-Fluff 60s Visual Guide to {safe_topic}", "category": "Quick Explainer"}
+    ]
 
 def _extract_json(text: str) -> Dict[str, Any]:
     """Helper to extract JSON from markdown or raw string."""
@@ -440,7 +635,7 @@ Return ONLY a valid JSON object matching this schema:
   ]
 }}
 """
-            for m in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
+            for m in ["gemini-3-flash-preview", "gemini-flash-latest", "gemini-2.5-flash-lite"]:
                 try:
                     res = client.models.generate_content(model=m, contents=prompt)
                     raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""

@@ -9,7 +9,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
-from core.director import generate_timeline, generate_viral_meta
+from core.director import generate_timeline, generate_viral_meta, generate_video_titles
 from core.voice import generate_voiceover, DEFAULT_VOICE
 from core.animator import render_scene_frames, generate_thumbnail_9_16
 from core.subtitles import generate_ass_subtitles
@@ -218,7 +218,7 @@ with tab_create:
     col_act3, col_act4 = st.columns([1, 1])
 
     do_full_generate = col_act1.button("🎬 Generate Full Video Reel", type="primary", use_container_width=True)
-    do_trial = col_act2.button("⚡ Make Trial Video (Quick 5-10s Preview)", type="secondary", use_container_width=True)
+    do_titles = col_act2.button("🏷️ Make Title for Video", type="secondary", use_container_width=True)
     do_thumbnail = col_act3.button("🖼️ Generate 9:16 Thumbnail", use_container_width=True)
     do_meta = col_act4.button("📋 Generate Description & Hashtags", use_container_width=True)
 
@@ -285,127 +285,33 @@ with tab_create:
             except Exception as e:
                 st.error(f"❌ Error generating metadata: {e}")
 
-    # 3. QUICK 5-10s TRIAL VIDEO GENERATOR
-    elif do_trial:
+    # 3. MAKE TITLE FOR VIDEO (High-CTR Viral Title Generator)
+    elif do_titles:
         if not user_prompt.strip():
-            st.error("Please enter a technical topic prompt.")
+            st.error("Please enter a technical topic prompt first.")
             st.stop()
-
-        progress_bar = st.progress(0)
-        status_box = st.empty()
-
-        try:
-            status_box.info("🧠 AI Director is designing the quick trial hook scene...")
-            progress_bar.progress(20)
-            timeline = generate_timeline(
-                user_prompt.strip(),
-                engine_style=visual_engine[0],
-                duration_mode="short",
-                custom_style_prompt=custom_style_prompt,
-                voice=voice_option[0],
-                format_ratio=aspect_ratio[0]
-            )
-            trial_scenes = [timeline["scenes"][0]] if timeline.get("scenes") else []
-            if not trial_scenes:
-                st.error("Could not generate trial blueprint.")
-                st.stop()
-
-            status_box.info(f"🎙️ Synthesizing voiceover ({voice_option[0]})...")
-            progress_bar.progress(40)
-            audio_path, word_timestamps, aligned_scenes = generate_voiceover(trial_scenes, voice=voice_option[0])
-
-            status_box.info(f"🎨 Rendering motion visuals for trial with watermark ({channel_watermark})...")
-            progress_bar.progress(65)
-
-            import shutil
-            for old_dir in OUTPUT_DIR.glob("scene_*_frames"):
-                try:
-                    shutil.rmtree(old_dir, ignore_errors=True)
-                except Exception:
-                    pass
-
-            render_scene_frames(
-                aligned_scenes[0],
-                1,
-                total_scenes=1,
-                engine_style=visual_engine[0],
-                format_ratio=aspect_ratio[0],
-                watermark=channel_watermark
-            )
-            trial_frame_dirs = [OUTPUT_DIR / "scene_01_frames"]
-
-            status_box.info(f"⚡ Assembling trial MP4 with karaoke captions & Lo-Fi audio...")
-            progress_bar.progress(85)
-            subtitles_path = generate_ass_subtitles(word_timestamps, format_ratio=aspect_ratio[0])
-
-            trial_video_path = render_final_reel(
-                all_scene_frame_dirs=trial_frame_dirs,
-                audio_path=audio_path,
-                subtitles_path=subtitles_path,
-                output_filename=f"trial_nanopro_{int(time.time())}.mp4"
-            )
-
-            status_box.info("🖼️ Creating 9:16 trial thumbnail...")
-            thumb_path = generate_thumbnail_9_16(
-                user_prompt.strip(),
-                timeline={"scenes": aligned_scenes},
-                watermark=channel_watermark,
-                visual_engine=visual_engine[0]
-            )
-
-            viral_meta = generate_viral_meta(
-                user_prompt.strip(),
-                timeline={"scenes": aligned_scenes},
-                channel_tag=channel_watermark
-            )
-
-            progress_bar.progress(100)
-            status_box.success("🎉 Trial Preview video ready in seconds! Pacing, watermark, and audio verified below:")
-
-            col_vid, col_meta = st.columns([1, 1.1])
-            with col_vid:
-                st.markdown(f"### ⚡ Trial Preview Video ({aligned_scenes[0]['duration']:.1f}s)")
-                st.video(str(trial_video_path))
-                with open(trial_video_path, "rb") as vf:
-                    st.download_button(
-                        label=f"⬇️ Download Trial Video ({aspect_ratio[0]})",
-                        data=vf.read(),
-                        file_name=trial_video_path.name,
-                        mime="video/mp4",
-                        use_container_width=True,
-                        type="primary"
-                    )
-                if thumb_path and thumb_path.exists():
-                    st.markdown("---")
-                    st.markdown("### 🖼️ 9:16 Thumbnail (Trial)")
-                    st.image(str(thumb_path), caption="9:16 High-Conversion Thumbnail", use_container_width=True)
-                    with open(thumb_path, "rb") as tf:
-                        st.download_button(
-                            label="⬇️ Download 9:16 Thumbnail (PNG)",
-                            data=tf.read(),
-                            file_name=thumb_path.name,
-                            mime="image/png",
-                            use_container_width=True,
-                            type="secondary"
-                        )
-            with col_meta:
-                st.markdown("### 📊 Trial Reel Inspector")
-                st.metric("⏱️ Trial Duration", f"{aligned_scenes[0]['duration']:.1f}s")
-                st.metric("🏷️ Watermark", channel_watermark)
-                st.metric("🗣️ Voice", voice_option[0])
-                st.success("💡 **Pacing & tone look great?** Click **'🎬 Generate Full Video Reel'** to build the complete multi-scene reel!")
-                with st.expander("📋 Viral Description & 25+ Hashtags", expanded=True):
-                    st.code(viral_meta.get("full_text", ""), language="markdown")
-                    st.download_button(
-                        label="⬇️ Download Description & Tags (.txt)",
-                        data=viral_meta.get("full_text", ""),
-                        file_name=f"trial_description_{int(time.time())}.txt",
-                        mime="text/plain",
-                        use_container_width=True
-                    )
-        except Exception as e:
-            status_box.error(f"❌ Error during trial generation: {e}")
-            st.exception(e)
+        with st.spinner(f"Generating viral, high-converting video titles for '{user_prompt[:50]}' ..."):
+            try:
+                title_list = generate_video_titles(user_prompt.strip(), channel_tag=channel_watermark)
+                st.success("🎉 High-CTR Video Titles Ready! Choose one or click 'Use This Title':")
+                
+                for idx, t_obj in enumerate(title_list):
+                    t_text = t_obj.get("title", "")
+                    t_cat = t_obj.get("category", "Viral Hook")
+                    c_t1, c_t2 = st.columns([3.5, 1])
+                    with c_t1:
+                        st.markdown(f"**{idx + 1}. {t_text}** `[{t_cat}]`")
+                    with c_t2:
+                        if st.button("📌 Use This Title", key=f"use_title_btn_{idx}", use_container_width=True):
+                            st.session_state.user_prompt_input = t_text
+                            st.rerun()
+                
+                st.markdown("---")
+                all_titles_text = "\n".join([f"{i+1}. {t.get('title', '')} [{t.get('category', '')}]" for i, t in enumerate(title_list)])
+                st.markdown("**Copy All Titles:**")
+                st.code(all_titles_text, language="text")
+            except Exception as e:
+                st.error(f"❌ Error generating titles: {e}")
 
     # 4. FULL REEL GENERATION ACTION
     elif do_full_generate:

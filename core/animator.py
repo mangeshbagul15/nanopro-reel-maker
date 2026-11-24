@@ -524,9 +524,6 @@ def _render_sql_table(draw: ImageDraw.Draw, data: Dict[str, Any], progress: floa
     draw_wrapped_text(draw, code, get_font(26, bold=True), qx + 30, qy + 58, 880, TEXT_PRIMARY, max_lines=2)
     
     tx, ty, tw = 70, 610, 940
-    headers = table_data.get("headers", ["Col 1", "Col 2", "Col 3", "Col 4"])
-    rows = table_data.get("rows", [])
-    
     col_w = tw // max(1, len(headers))
     row_h = 90
     
