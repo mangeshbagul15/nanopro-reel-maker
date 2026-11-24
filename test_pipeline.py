@@ -17,16 +17,18 @@ from core.config import OUTPUT_DIR
 def run_smoke_test():
     print("=== STARTING SMOKE TEST FOR NANOPRO REEL MAKER ===")
     
-    # 1. Test Director with ElevenLabs Ultra-Realistic Voice, sql_deepdive Engine, and 9:16 Format
+    # 1. Test Director with ElevenLabs Ultra-Realistic Voice, Fireship Octane Tone, and 9:16 Format
     topic = "SQL DENSE_RANK vs RANK with duplicate salaries"
     voice = "elevenlabs:pNInz6obpgDQGcFmaJgB" # Adam
     elevenlabs_model = "eleven_flash_v2_5"
+    tone = "fireship_octane"
     engine_style = "sql_deepdive"
     duration_mode = "short"
     format_ratio = "9:16"
-    print(f"\n[1/5] Calling Director for topic: '{topic}' (Engine: {engine_style}, Voice: {voice}, Format: {format_ratio})...")
+    print(f"\n[1/5] Calling Director for topic: '{topic}' (Engine: {engine_style}, Tone: {tone}, Voice: {voice}, Format: {format_ratio})...")
     timeline = generate_timeline(
         topic=topic,
+        tone=tone,
         engine_style=engine_style,
         duration_mode=duration_mode,
         voice=voice,
@@ -39,11 +41,12 @@ def run_smoke_test():
     assert len(scenes) > 0, "No scenes generated!"
 
     # 2. Test ElevenLabs Voice & Groq Whisper Alignment
-    print(f"\n[2/5] Synthesizing ElevenLabs Voice ({voice}, Model: {elevenlabs_model}) & Extracting Timestamps...")
+    print(f"\n[2/5] Synthesizing ElevenLabs Voice ({voice}, Model: {elevenlabs_model}, Tone: {tone}) & Extracting Timestamps...")
     audio_path, word_timestamps, aligned_scenes = generate_voiceover(
         scenes,
         voice=voice,
-        elevenlabs_model=elevenlabs_model
+        elevenlabs_model=elevenlabs_model,
+        tone=tone
     )
     print(f"Audio Path: {audio_path} (exists: {audio_path.exists()})")
     print(f"Total Spoken Words Extracted: {len(word_timestamps)}")

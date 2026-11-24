@@ -232,6 +232,34 @@ ENGINE_STYLE_DIRECTIVES = {
     )
 }
 
+TONE_DIRECTIVES = {
+    "fireship_octane": (
+        "SCRIPT TONE & CADENCE MANDATE: Write in high-octane Fireship style. "
+        "Punchy sentences, witty comparisons, rapid pacing, zero corporate throat-clearing. "
+        "Start immediately with a dramatic hook. Keep sentences crisp and energetic."
+    ),
+    "dramatic_performance": (
+        "SCRIPT TONE & CADENCE MANDATE: Emotionally rich, theatrical, dramatic performance. "
+        "Build tension and suspense around the problem. Use natural dramatic pauses ('...') before revealing key engineering insights. "
+        "Make the engineering stakes feel massive (e.g. 'At 3 AM, the primary database locked up...')."
+    ),
+    "staff_engineer": (
+        "SCRIPT TONE & CADENCE MANDATE: Senior Staff Engineer / ByteByteGo masterclass style. "
+        "Calm, deeply authoritative, mature technical confidence. "
+        "Focus on real-world production trade-offs, scalability bottlenecks, and architectural rationale."
+    ),
+    "conversational_casual": (
+        "SCRIPT TONE & CADENCE MANDATE: Conversational, warm, and friendly. "
+        "Like an experienced senior dev explaining an awesome concept to a friend over coffee. "
+        "Engaging, approachable, and highly relatable."
+    ),
+    "interview_prep": (
+        "SCRIPT TONE & CADENCE MANDATE: High-stakes Technical Interview Prep. "
+        "Frame the topic as a top FAANG/MAANG interview question. "
+        "Clear problem setup, common candidate traps, and the optimal staff-level solution."
+    )
+}
+
 def generate_timeline(
     topic: str,
     tone: str = "conversational",
@@ -287,10 +315,11 @@ def generate_timeline(
 
     # 3. Format guidance
     format_directive = f"Target Aspect Ratio: '{format_ratio}'."
+    tone_directive = TONE_DIRECTIVES.get(tone, f"SCRIPT TONE & CADENCE: {tone}.")
 
     user_prompt = (
         f"Topic: '{topic}'.\n"
-        f"Tone: {tone}.\n"
+        f"{tone_directive}\n"
         f"Selected Visual Engine: '{engine_style}'.\n"
         f"Selected Voice Persona: '{voice}'.\n"
         f"{lang_directive}\n"

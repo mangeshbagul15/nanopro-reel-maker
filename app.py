@@ -19,7 +19,7 @@ for mod_name in list(sys.modules.keys()):
 
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles
-from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS
+from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS, VOICE_CATALOG
 from core.animator import render_scene_frames, generate_thumbnail_9_16
 from core.subtitles import generate_ass_subtitles
 from core.renderer import render_final_reel
@@ -87,13 +87,33 @@ with st.sidebar:
         help="Channel watermark displayed in the corner of every video frame and thumbnail."
     )
     st.markdown("---")
+    st.markdown("### 🎭 Script Tone & Delivery Style")
+    tone_option = st.selectbox(
+        "Script Tone & Emotion",
+        [
+            ("fireship_octane", "🔥 High-Octane & Punchy (Fireship Style - Fast, Witty & Zero Fluff) [Recommended]"),
+            ("dramatic_performance", "🎭 Dramatic & Emotionally Rich (Suspenseful, Dramatic Pauses & Theatrical)"),
+            ("staff_engineer", "🧠 Senior Staff Engineer Authority (ByteByteGo Architectural Depth & Trade-offs)"),
+            ("conversational_casual", "☕ Conversational & Friendly (Casual Tech Friend Chat over Coffee)"),
+            ("interview_prep", "⚡ High-Stakes Interview Prep (FAANG Question & Tactical Masterclass)")
+        ],
+        format_func=lambda x: x[1],
+        help="Controls the AI Director's scriptwriting style, dramatic pauses ('...'), and ElevenLabs voice delivery emotion."
+    )
+    chosen_tone = tone_option[0]
+
+    st.markdown("---")
     st.markdown("### 🎙️ Voice & TTS Engine")
     voice_provider = st.radio(
         "Select Voice Engine Provider:",
         ["ElevenLabs AI (Ultra-Realistic)", "Microsoft Edge-TTS (Free & Fast)"],
         index=0,
-        help="ElevenLabs provides studio-quality realistic human cadence. Edge-TTS is completely free and fast."
+        help="ElevenLabs provides studio-quality realistic human cadence with emotional performance. Edge-TTS is completely free and fast."
     )
+
+    # Gender filter pills
+    gender_filter = st.pills("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], default="All")
+    g_filter_key = "all" if gender_filter == "All" else ("male" if "Male" in gender_filter else "female")
 
     if voice_provider == "ElevenLabs AI (Ultra-Realistic)":
         el_usage = get_elevenlabs_usage()
@@ -113,19 +133,17 @@ with st.sidebar:
         )
         elevenlabs_model_id = elevenlabs_model_choice[0]
 
+        # Filter available voices by gender
+        available_el_voices = VOICE_CATALOG.get("elevenlabs", [])
+        if g_filter_key != "all":
+            available_el_voices = [v for v in available_el_voices if v.get("gender") == g_filter_key]
+
+        el_voice_options = [(v["id"], v["label"]) for v in available_el_voices]
+        el_voice_options.append(("custom", "✍️ Custom Voice ID (Enter your own Voice ID)"))
+
         elevenlabs_voice_choice = st.selectbox(
-            "ElevenLabs Voice Persona",
-            [
-                ("elevenlabs:pNInz6obpgDQGcFmaJgB", "🎙️ Adam (Deep, Tech Authority Narration - Male) [Recommended]"),
-                ("elevenlabs:21m00Tcm4TlvDq8ikWAM", "🎙️ Rachel (Conversational & Engaging Tech - Female)"),
-                ("elevenlabs:IKne3meq5aSn9XLyUdCD", "🎙️ Charlie (Deep, Confident & Energetic - Male)"),
-                ("elevenlabs:JBFqnCBsd6RMkjVDRZzb", "🎙️ George (Warm, Captivating Storyteller - Male)"),
-                ("elevenlabs:EXAVITQu4vr4xnSDxMaL", "🎙️ Sarah (Mature, Reassuring, Confident - Female)"),
-                ("elevenlabs:FGY2WhTYpPnrIDTdsKH5", "🎙️ Laura (Enthusiast, Quirky Tech Attitude - Female)"),
-                ("elevenlabs:CwhRBWXzGAHq8TQ4Fs17", "🎙️ Roger (Laid-Back, Casual, Resonant - Male)"),
-                ("elevenlabs:N2lVS1w4EtoT3dr4eOWO", "🎙️ Callum (Husky Dynamic Narrator - Male)"),
-                ("custom", "✍️ Custom Voice ID (Enter your own Voice ID)")
-            ],
+            f"ElevenLabs Voice Persona ({len(available_el_voices)} available)",
+            el_voice_options,
             format_func=lambda x: x[1]
         )
         if elevenlabs_voice_choice[0] == "custom":
@@ -137,20 +155,14 @@ with st.sidebar:
             voice_label = elevenlabs_voice_choice[1]
     else:
         elevenlabs_model_id = "eleven_flash_v2_5"
+        available_edge_voices = VOICE_CATALOG.get("edge_tts", [])
+        if g_filter_key != "all":
+            available_edge_voices = [v for v in available_edge_voices if v.get("gender") == g_filter_key]
+        edge_voice_options = [(v["id"], v["label"]) for v in available_edge_voices]
+
         edge_voice_choice = st.selectbox(
-            "Edge-TTS Voice Persona",
-            [
-                ("hi-IN-MadhurNeural", "🇮🇳 Madhur (Hindi / Hinglish Tech Authority - Male)"),
-                ("hi-IN-SwaraNeural", "🇮🇳 Swara (Hindi / Hinglish Conversational - Female)"),
-                ("en-IN-PrabhatNeural", "🇮🇳 Prabhat (Crisp Indian Tech English - Male)"),
-                ("en-IN-NeerjaExpressiveNeural", "🇮🇳 Neerja (Expressive Hinglish / Indian Tech - Female)"),
-                ("mr-IN-ManoharNeural", "🇮🇳 Manohar (Marathi Tech Authority - Male)"),
-                ("mr-IN-AarohiNeural", "🇮🇳 Aarohi (Marathi Conversational - Female)"),
-                ("en-US-ChristopherNeural", "🇺🇸 Christopher (Calm Tech Authority - US Male)"),
-                ("en-US-GuyNeural", "🇺🇸 Guy (Conversational American - US Male)"),
-                ("en-US-JennyNeural", "🇺🇸 Jenny (Engaging Female Tech - US Female)"),
-                ("en-GB-RyanNeural", "🇬🇧 Ryan (Crisp British Tech - UK Male)")
-            ],
+            f"Edge-TTS Voice Persona ({len(available_edge_voices)} available)",
+            edge_voice_options,
             format_func=lambda x: x[1]
         )
         chosen_voice = edge_voice_choice[0]
@@ -276,6 +288,15 @@ with tab_create:
         placeholder="e.g. Explain SQL Window Functions LEAD and LAG with interview scenario"
     )
 
+    with st.expander("✍️ Custom Script / Storyboard Override (Optional)", expanded=False):
+        st.caption("Want full control over the spoken script? Type or paste your exact scene-by-scene narration below. The AI Director will structure the visuals around your exact words.")
+        custom_script_override = st.text_area(
+            "Custom Script Narration Override:",
+            placeholder="Scene 1: At 3 AM, our production database locked up under traditional mysqldump...\nScene 2: Here's how AWS DMS replicates changes continuously using CDC without table locks...\nScene 3: The result? Sub-second replication lag and zero production downtime.",
+            height=130,
+            help="If provided, AI Director will strictly adapt the scenes and visuals to match these exact spoken narrations."
+        )
+
     # Action Studio Controls Bar
     st.markdown("#### 🚀 Action Studio Controls:")
     col_act1, col_act2 = st.columns([1.3, 1])
@@ -390,8 +411,13 @@ with tab_create:
             # STEP 1: AI Director Timeline Generation
             status_box.info("🧠 AI Director is designing the technical storyboard & script...")
             progress_bar.progress(15)
+            full_prompt = user_prompt.strip()
+            if custom_script_override.strip():
+                full_prompt += f"\n\nEXPLICIT USER SCRIPT OVERRIDE (MANDATORY: Follow these exact scene narrations):\n{custom_script_override.strip()}"
+
             timeline = generate_timeline(
-                user_prompt.strip(),
+                full_prompt,
+                tone=chosen_tone,
                 engine_style=visual_engine[0],
                 duration_mode=duration_option[0],
                 custom_style_prompt=custom_style_prompt,
@@ -409,7 +435,8 @@ with tab_create:
             audio_path, word_timestamps, aligned_scenes = generate_voiceover(
                 scenes,
                 voice=chosen_voice,
-                elevenlabs_model=elevenlabs_model_id
+                elevenlabs_model=elevenlabs_model_id,
+                tone=chosen_tone
             )
 
             with st.expander("🔊 Audio & Word Timestamps", expanded=False):
@@ -579,13 +606,14 @@ with tab_create:
                     st.markdown(f"""
                     1. **🧠 Step 1 — AI Director & Storyboard Blueprinting:**
                        - **Topic Entered:** *"{user_prompt.strip()}"*
-                       - **AI Model Used:** `Google Gemini 3 Flash (gemini-3-flash-preview)`
+                       - **Script Tone & Cadence:** `{tone_option[1]}`
                        - **Visual Engine:** `{visual_engine[1]}`
                        - **Duration Strategy:** `{duration_option[1]}` (Planned {len(aligned_scenes)} scenes without artificial 60s cutoff)
                     
                     2. **🎙️ Step 2 — Text-to-Speech & Microsecond Alignment:**
+                       - **Voice Gender Filter:** `{gender_filter}`
                        - **Voice Persona (TTS):** `{voice_label}` (`{chosen_voice}`)
-                       - **Speech Engine:** `{"ElevenLabs (" + elevenlabs_model_id + ")" if chosen_voice.startswith("elevenlabs:") else "Microsoft Edge-TTS"}`
+                       - **Speech Engine:** `{"ElevenLabs (" + elevenlabs_model_id + " - " + chosen_tone + ")" if chosen_voice.startswith("elevenlabs:") else "Microsoft Edge-TTS"}`
                        - **Audio Alignment API:** `Groq Whisper Large v3` (`whisper-large-v3`)
                        - **Total Aligned Words:** `{len(word_timestamps)}` words aligned with 0% drift across all scenes.
 
