@@ -8,6 +8,15 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+# Ensure fresh module imports on Streamlit Cloud hot-reloads
+import importlib
+for mod_name in list(sys.modules.keys()):
+    if mod_name.startswith("core."):
+        try:
+            importlib.reload(sys.modules[mod_name])
+        except Exception:
+            pass
+
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles
 from core.voice import generate_voiceover, DEFAULT_VOICE

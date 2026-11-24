@@ -18,7 +18,7 @@ output/
 *.png
 
 # Streamlit
-.streamlit/
+.streamlit/secrets.toml
 # Local helpers
 gui_runner.py
 open_on_screen.ps1
