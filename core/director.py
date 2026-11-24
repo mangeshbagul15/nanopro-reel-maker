@@ -295,42 +295,84 @@ def generate_timeline(
         f"Autonomously design the complete storyboard blueprint JSON now."
     )
     
-    if not GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY is not configured.")
+    last_errors = []
 
-    from google import genai
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    
-    models_to_try = [
-        "gemini-3-flash-preview",
-        "gemini-3.1-pro-preview",
-        "gemini-2.5-pro",
-        "gemini-3.8-flash",
-        "gemini-flash-latest"
-    ]
-    
-    for model_name in models_to_try:
+    # 1. Primary: High-speed Gemini Models
+    if GEMINI_API_KEY:
         try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=f"{SYSTEM_PROMPT}\n\n{user_prompt}",
-            )
-            raw_text = response.text.strip()
-            clean_json = _extract_json(raw_text)
-            if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                clean_json["meta_director"] = {
-                    "model_used": model_name,
-                    "engine_style": engine_style,
-                    "custom_style_prompt": custom_style_prompt,
-                    "duration_mode": duration_mode,
-                    "topic": topic
-                }
-                return clean_json
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            
+            models_to_try = [
+                "gemini-3-flash-preview",
+                "gemini-3.5-flash",
+                "gemini-3.1-flash-lite-preview",
+                "gemini-3.5-flash-lite"
+            ]
+            
+            for model_name in models_to_try:
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=f"{SYSTEM_PROMPT}\n\n{user_prompt}",
+                    )
+                    raw_text = response.text.strip() if response.text else ""
+                    clean_json = _extract_json(raw_text)
+                    if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
+                        clean_json["meta_director"] = {
+                            "model_used": model_name,
+                            "engine_style": engine_style,
+                            "custom_style_prompt": custom_style_prompt,
+                            "duration_mode": duration_mode,
+                            "topic": topic,
+                            "voice": voice,
+                            "format_ratio": format_ratio
+                        }
+                        return clean_json
+                except Exception as e:
+                    err_str = str(e)
+                    print(f"[Director] Model {model_name} error: {err_str[:120]}")
+                    last_errors.append(f"{model_name}: {err_str[:120]}")
+                    continue
         except Exception as e:
-            print(f"[Director] Model {model_name} error: {e}")
-            continue
+            last_errors.append(f"Gemini client error: {e}")
 
-    raise RuntimeError("Failed to generate video timeline from Gemini.")
+    # 2. Resilient Secondary Fallback: Groq Ultra-Fast LLM
+    if GROQ_API_KEY:
+        try:
+            from groq import Groq
+            g_client = Groq(api_key=GROQ_API_KEY)
+            for g_model in ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]:
+                try:
+                    g_res = g_client.chat.completions.create(
+                        model=g_model,
+                        messages=[
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        temperature=0.7
+                    )
+                    raw_text = g_res.choices[0].message.content.strip() if g_res.choices else ""
+                    clean_json = _extract_json(raw_text)
+                    if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
+                        clean_json["meta_director"] = {
+                            "model_used": f"groq/{g_model}",
+                            "engine_style": engine_style,
+                            "custom_style_prompt": custom_style_prompt,
+                            "duration_mode": duration_mode,
+                            "topic": topic,
+                            "voice": voice,
+                            "format_ratio": format_ratio
+                        }
+                        return clean_json
+                except Exception as e:
+                    last_errors.append(f"groq/{g_model}: {str(e)[:120]}")
+                    continue
+        except Exception as e:
+            last_errors.append(f"Groq client error: {e}")
+
+    err_summary = "; ".join(last_errors) if last_errors else "No valid API keys configured."
+    raise RuntimeError(f"Failed to generate video timeline from AI Director. Details: {err_summary}")
 
 def _extract_json(text: str) -> Dict[str, Any]:
     """Helper to extract JSON from markdown or raw string."""
