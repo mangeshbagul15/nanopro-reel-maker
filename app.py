@@ -118,7 +118,8 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal) [Recommended]"),
+            ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion) [Recommended]"),
+            ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
             ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
             ("bytebytego_dsl", "📊 ByteByteGo Architecture & Cloud Topology (Pipelines / Microservices)"),
             ("sql_deepdive", "🗄️ SQL Table, Query & Dataset Execution (Schemas / DENSE_RANK / Window Functions)"),
@@ -582,6 +583,10 @@ with tab_create:
                             st.markdown(f"- **Central Broker:** `{v_data.get('hub_name', 'CORE BROKER')}` with {len(v_data.get('satellites', []))} satellite nodes")
                         elif v_type == "metric_gauge_hud":
                             st.markdown(f"- **Primary Gauge:** `{v_data.get('main_value')}` {v_data.get('main_unit')} ({v_data.get('gauge_percent')}% meter)")
+                        elif v_type == "all_in_one_tech_canvas":
+                            st.markdown(f"- **Cloud Boundary:** `{v_data.get('vpc_label')}`")
+                            st.markdown(f"- **2D Tech Stack:** 🗄️ `{v_data.get('comp4_label')}` (DB Cylinder) • 🐍 `{v_data.get('comp1_label')}` (Python Chip) • 🤖 `{v_data.get('comp2_label')}` (AI Bot) • 🖥️ `{v_data.get('comp3_label')}` (K8s Rack) • 🪣 `{v_data.get('comp5_label')}` (S3 Lake)")
+                            st.markdown(f"- **2D Motion:** Directed arrows with traveling packet streams & live pulsing target reticle")
                         else:
                             st.markdown(f"- **Bullet Cards:** `{v_data.get('bullets', [])}`")
 

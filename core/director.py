@@ -166,6 +166,13 @@ Output a single valid JSON object matching this structure:
 """
 
 ENGINE_STYLE_DIRECTIVES = {
+    "all_in_one_tech_canvas": (
+        "CRITICAL MANDATORY INSTRUCTION: The user explicitly selected 'All-in-One Tech Canvas'. "
+        "EVERY scene's visual_type MUST BE 'all_in_one_tech_canvas'. "
+        "Illustrate the complete modern technical ecosystem: 2D Database Cylinders, Python Silicon Chip, "
+        "Server Blade Racks, AI Robot / LLM Reasoning, Amazon S3 Storage Buckets, Cloud VPC Boundaries, "
+        "animated data packet arrows, and active motion pointers."
+    ),
     "terminal_screencast": (
         "CRITICAL MANDATORY INSTRUCTION: The user explicitly selected 'Terminal Screencast'. "
         "EVERY scene's visual_type MUST BE 'code_terminal'. "
@@ -304,9 +311,9 @@ def generate_timeline(
             client = genai.Client(api_key=GEMINI_API_KEY)
             
             models_to_try = [
-                "gemini-3-flash-preview",
+                "gemini-2.0-flash",
                 "gemini-flash-latest",
-                "gemini-2.5-flash-lite",
+                "gemini-3-flash-preview",
                 "gemini-3.1-flash-lite-preview"
             ]
             
@@ -388,6 +395,7 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
     
     # Engine to target visual_type mapping
     engine_type_map = {
+        "all_in_one_tech_canvas": "all_in_one_tech_canvas",
         "terminal_screencast": "code_terminal",
         "sql_deepdive": "sql_table",
         "bytebytego_dsl": "architecture_flow",
@@ -515,6 +523,19 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 v_data["problem_desc"] = v_data.get("problem_desc") or "High concurrency spikes caused thread contention and system degradation."
                 v_data["challenge"] = "How to achieve 100% availability without sacrificing latency?"
 
+        elif current_vtype == "all_in_one_tech_canvas":
+            v_data["vpc_label"] = v_data.get("vpc_label") or f"AWS CLOUD VPC • {title.upper()[:24]}"
+            v_data["comp1_label"] = v_data.get("comp1_label") or "Python 3.12 Engine"
+            v_data["comp1_sub"] = v_data.get("comp1_sub") or "Ingestion & API Service"
+            v_data["comp2_label"] = v_data.get("comp2_label") or "AI Agent / LLM"
+            v_data["comp2_sub"] = v_data.get("comp2_sub") or "Transformer Reasoning"
+            v_data["comp3_label"] = v_data.get("comp3_label") or f"{title[:14]} Worker"
+            v_data["comp3_sub"] = v_data.get("comp3_sub") or "K8s Microservice Pods"
+            v_data["comp4_label"] = v_data.get("comp4_label") or "Aurora PostgreSQL"
+            v_data["comp4_sub"] = v_data.get("comp4_sub") or "Storage Cylinder (ACID)"
+            v_data["comp5_label"] = v_data.get("comp5_label") or "Amazon S3 Lake"
+            v_data["comp5_sub"] = v_data.get("comp5_sub") or "Parquet Analytics Store"
+
         sc["visual_data"] = v_data
 
     return timeline
@@ -544,7 +565,7 @@ Return ONLY a valid JSON array of 6 objects matching this schema:
   {{"title": "💡 Crash Course Title 6", "category": "Quick Explainer"}}
 ]
 """
-            for m in ["gemini-3-flash-preview", "gemini-flash-latest", "gemini-2.5-flash-lite"]:
+            for m in ["gemini-2.0-flash", "gemini-flash-latest", "gemini-3-flash-preview"]:
                 try:
                     res = client.models.generate_content(model=m, contents=prompt)
                     raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""
@@ -635,7 +656,7 @@ Return ONLY a valid JSON object matching this schema:
   ]
 }}
 """
-            for m in ["gemini-3-flash-preview", "gemini-flash-latest", "gemini-2.5-flash-lite"]:
+            for m in ["gemini-2.0-flash", "gemini-flash-latest", "gemini-3-flash-preview"]:
                 try:
                     res = client.models.generate_content(model=m, contents=prompt)
                     raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""

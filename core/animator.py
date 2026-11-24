@@ -124,7 +124,9 @@ def render_scene_frames(
     visual_data = scene.get("visual_data", {})
 
     # Strict Visual Engine enforcement matching the user's selected dropdown choice
-    if engine_style == "terminal_screencast" and visual_type != "code_terminal":
+    if engine_style == "all_in_one_tech_canvas":
+        visual_type = "all_in_one_tech_canvas"
+    elif engine_style == "terminal_screencast" and visual_type != "code_terminal":
         visual_type = "code_terminal"
     elif engine_style == "sql_deepdive" and visual_type != "sql_table":
         visual_type = "sql_table"
@@ -186,6 +188,8 @@ def render_scene_frames(
             _render_alert_diagram(draw, visual_data, progress)
         elif visual_type == "architecture_flow":
             _render_architecture_flow(draw, visual_data, progress)
+        elif visual_type == "all_in_one_tech_canvas":
+            _render_all_in_one_tech_canvas(draw, visual_data, progress)
         else:
             _render_concept_cards(draw, visual_data, progress)
             
@@ -758,6 +762,392 @@ def _hex_to_rgb(hex_code: str) -> Tuple[int, int, int]:
         return tuple(int(hex_code[i:i+2], 16) for i in (0, 2, 4))
     return (56, 189, 248)
 
+# =========================================================================
+# ALL-IN-ONE TECH CANVAS VECTOR SHAPES & 2D MOTION GRAPHICS
+# =========================================================================
+
+def _draw_database_cylinder(
+    draw: ImageDraw.Draw,
+    cx: int,
+    cy: int,
+    w: int = 240,
+    h: int = 180,
+    label: str = "PostgreSQL DB",
+    sub: str = "Storage Cylinder (ACID)",
+    color: Tuple[int, int, int] = NEON_CYAN,
+    progress: float = 0.0
+) -> None:
+    """Draws a 2D isometric/cylindrical database storage unit with disk partitions and animated write-pulse."""
+    x1 = cx - w // 2
+    x2 = cx + w // 2
+    y1 = cy - h // 2
+    y2 = cy + h // 2
+    ellipse_h = 42
+
+    body_top = y1 + ellipse_h // 2
+    body_bot = y2 - ellipse_h // 2
+    draw.rectangle((x1, body_top, x2, body_bot), fill=(15, 23, 42, 240))
+    draw.line((x1, body_top, x1, body_bot), fill=color, width=3)
+    draw.line((x2, body_top, x2, body_bot), fill=color, width=3)
+
+    # Bottom curved base
+    draw.ellipse((x1, y2 - ellipse_h, x2, y2), fill=(15, 23, 42, 240), outline=color, width=3)
+
+    # Disk partitions across height (showing internal storage sectors)
+    num_disks = 3
+    disk_gap = (body_bot - body_top) // num_disks
+    active_disk = int((progress * 4) % num_disks)
+    for i in range(1, num_disks):
+        dy = body_top + (i * disk_gap)
+        is_active = (i == active_disk)
+        disk_color = NEON_AMBER if is_active else (color[0], color[1], color[2], 140)
+        draw.arc((x1, dy - ellipse_h // 2, x2, dy + ellipse_h // 2), start=0, end=180, fill=disk_color, width=2 if not is_active else 4)
+
+    # Top Cap (Perspective Lid)
+    draw.ellipse((x1, y1, x2, y1 + ellipse_h), fill=(24, 35, 58, 255), outline=color, width=3)
+
+    # Active blinking read/write LED on the top rim
+    led_blink = (int(progress * 8) % 2 == 0)
+    led_x = x2 - 28
+    led_y = y1 + ellipse_h // 2
+    draw.ellipse((led_x - 5, led_y - 5, led_x + 5, led_y + 5), fill=NEON_EMERALD if led_blink else (51, 65, 85))
+
+    # Text Labels
+    draw_wrapped_text(draw, label, get_font(21, bold=True), x1 + 10, cy - 14, w - 20, TEXT_PRIMARY, align="center", max_lines=1)
+    draw_wrapped_text(draw, sub, get_font(15), x1 + 10, cy + 14, w - 20, color, align="center", max_lines=1)
+
+
+def _draw_server_rack(
+    draw: ImageDraw.Draw,
+    cx: int,
+    cy: int,
+    w: int = 260,
+    h: int = 165,
+    label: str = "K8s Worker Pod",
+    sub: str = "EC2 Cluster",
+    color: Tuple[int, int, int] = NEON_PURPLE,
+    progress: float = 0.0
+) -> None:
+    """Draws a datacenter blade server rack with cooling ventilation grilles and blinking LED lights."""
+    x1 = cx - w // 2
+    x2 = cx + w // 2
+    y1 = cy - h // 2
+    y2 = cy + h // 2
+
+    # Chassis
+    draw.rounded_rectangle((x1, y1, x2, y2), radius=16, fill=(15, 23, 42, 245), outline=color, width=3)
+
+    # 3 Blade Unit Bays
+    bay_h = (h - 24) // 3
+    for b in range(3):
+        by1 = y1 + 8 + (b * bay_h)
+        by2 = by1 + bay_h - 5
+        draw.rounded_rectangle((x1 + 10, by1, x2 - 10, by2), radius=7, fill=(30, 41, 59, 230), outline=(51, 65, 85), width=1)
+
+        # Ventilation Grille Lines
+        for g in range(4):
+            gx = x1 + 22 + (g * 14)
+            draw.line((gx, by1 + 5, gx, by2 - 5), fill=(71, 85, 105), width=2)
+
+        # Blinking Status LEDs
+        led1 = (int(progress * 12 + b) % 2 == 0)
+        led2 = (int(progress * 9 + b) % 3 != 0)
+        draw.ellipse((x2 - 36, by1 + 8, x2 - 28, by1 + 16), fill=NEON_EMERALD if led1 else (20, 80, 50))
+        draw.ellipse((x2 - 22, by1 + 8, x2 - 14, by1 + 16), fill=NEON_CYAN if led2 else (30, 60, 90))
+
+    # Central Label Badge
+    draw_wrapped_text(draw, label, get_font(20, bold=True), x1 + 10, y2 - 40, w - 20, TEXT_PRIMARY, align="center", max_lines=1)
+
+
+def _draw_ai_robot(
+    draw: ImageDraw.Draw,
+    cx: int,
+    cy: int,
+    size: int = 170,
+    label: str = "AI Agent / LLM",
+    sub: str = "Transformer Core",
+    progress: float = 0.0
+) -> None:
+    """Draws an intelligent 2D AI Bot/Robot with scanning digital visor and pulsing antenna radio waves."""
+    hw = size // 2
+    hh = (size - 20) // 2
+    x1, y1, x2, y2 = cx - hw, cy - hh, cx + hw, cy + hh
+
+    # Pulsing RF Waves from Antenna
+    for r in range(1, 3):
+        wave_pulse = (progress * 2.0 + (r * 0.4)) % 1.0
+        rad = int(22 + wave_pulse * 30)
+        alpha = int(180 * (1.0 - wave_pulse))
+        draw.arc((cx - rad, y1 - 30 - rad, cx + rad, y1 - 30 + rad), start=210, end=330, fill=(168, 85, 247, alpha), width=3)
+
+    # Antenna
+    draw.line((cx, y1, cx, y1 - 22), fill=NEON_PURPLE, width=4)
+    draw.ellipse((cx - 6, y1 - 30, cx + 6, y1 - 18), fill=NEON_AMBER)
+
+    # Ear pods
+    draw.rounded_rectangle((x1 - 10, cy - 18, x1, cy + 18), radius=5, fill=NEON_CYAN)
+    draw.rounded_rectangle((x2, cy - 18, x2 + 10, cy + 18), radius=5, fill=NEON_CYAN)
+
+    # Head Chassis
+    draw.rounded_rectangle((x1, y1, x2, y2), radius=26, fill=(15, 23, 42, 250), outline=NEON_PURPLE, width=3)
+
+    # Digital Visor Window
+    vx1, vy1, vx2, vy2 = x1 + 16, y1 + 20, x2 - 16, y1 + 68
+    draw.rounded_rectangle((vx1, vy1, vx2, vy2), radius=12, fill=(10, 15, 28, 255), outline=(56, 189, 248, 120), width=2)
+
+    # Scanning Neon Eyes / Visor Beam
+    scan_x = int(vx1 + 10 + ((vx2 - vx1 - 42) * (0.5 + 0.5 * math.sin(progress * 8))))
+    draw.rounded_rectangle((scan_x, vy1 + 8, scan_x + 30, vy2 - 8), radius=6, fill=NEON_CYAN)
+
+    # Neural Waveform Bars at bottom of visor
+    for i in range(5):
+        bx = cx - 34 + (i * 17)
+        bar_h = int(6 + 12 * abs(math.sin(progress * 12 + i)))
+        draw.line((bx, y2 - 25, bx, y2 - 25 - bar_h), fill=NEON_EMERALD, width=3)
+
+    # Label
+    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 20, y2 + 8, size + 40, TEXT_PRIMARY, align="center", max_lines=1)
+    draw_wrapped_text(draw, sub, get_font(15), x1 - 20, y2 + 30, size + 40, NEON_PURPLE, align="center", max_lines=1)
+
+
+def _draw_python_chip(
+    draw: ImageDraw.Draw,
+    cx: int,
+    cy: int,
+    size: int = 175,
+    label: str = "Python 3.12 Engine",
+    sub: str = "GIL & Threading",
+    progress: float = 0.0
+) -> None:
+    """Draws a silicon microchip with Python dual-snake colors (Blue & Gold) and etched circuits."""
+    hw = size // 2
+    x1, y1, x2, y2 = cx - hw, cy - hw, cx + hw, cy + hw
+
+    # Gold Pin Leads (Left & Right)
+    for p in range(5):
+        py = y1 + 18 + (p * 27)
+        draw.line((x1 - 15, py, x1, py), fill=(251, 191, 36), width=3)
+        draw.line((x2, py, x2 + 15, py), fill=(251, 191, 36), width=3)
+
+    # Silicon Chip Body
+    draw.rounded_rectangle((x1, y1, x2, y2), radius=16, fill=(15, 23, 42, 245), outline=NEON_CYAN, width=3)
+
+    # Python Snake Glyphs
+    draw.rounded_rectangle((cx - 34, cy - 38, cx + 16, cy - 6), radius=7, fill=(56, 189, 248, 220))
+    draw.ellipse((cx - 16, cy - 30, cx - 10, cy - 24), fill=COLOR_BG_DARK)
+    draw.rounded_rectangle((cx - 16, cy + 6, cx + 34, cy + 38), radius=7, fill=(251, 191, 36, 220))
+    draw.ellipse((cx + 10, cy + 24, cx + 16, cy + 30), fill=COLOR_BG_DARK)
+
+    # Label
+    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 20, y2 + 8, size + 40, TEXT_PRIMARY, align="center", max_lines=1)
+    draw_wrapped_text(draw, sub, get_font(15), x1 - 20, y2 + 30, size + 40, NEON_AMBER, align="center", max_lines=1)
+
+
+def _draw_s3_bucket(
+    draw: ImageDraw.Draw,
+    cx: int,
+    cy: int,
+    w: int = 210,
+    h: int = 170,
+    label: str = "Amazon S3 Lake",
+    sub: str = "Parquet / Delta",
+    color: Tuple[int, int, int] = NEON_EMERALD,
+    progress: float = 0.0
+) -> None:
+    """Draws an Amazon S3 storage bucket shape with metallic wire handle and data levels."""
+    x1 = cx - w // 2
+    x2 = cx + w // 2
+    y1 = cy - h // 2
+    y2 = cy + h // 2
+    rim_h = 36
+
+    # Wire Handle
+    draw.arc((cx - 52, y1 - 26, cx + 52, y1 + 16), start=180, end=360, fill=(148, 163, 184), width=3)
+
+    # Tapered Bucket Body
+    taper = 18
+    poly = [
+        (x1, y1 + rim_h // 2),
+        (x2, y1 + rim_h // 2),
+        (x2 - taper, y2),
+        (x1 + taper, y2)
+    ]
+    draw.polygon(poly, fill=(15, 23, 42, 245), outline=color)
+
+    # Top Rim
+    draw.ellipse((x1, y1, x2, y1 + rim_h), fill=(30, 41, 59, 255), outline=color, width=3)
+
+    # Storage Fill Waves
+    wave_h = y2 - 30
+    draw.line((x1 + taper + 8, wave_h, x2 - taper - 8, wave_h), fill=NEON_EMERALD, width=3)
+
+    # Labels
+    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 10, cy - 8, w + 20, TEXT_PRIMARY, align="center", max_lines=1)
+    draw_wrapped_text(draw, sub, get_font(15), x1 - 10, cy + 14, w + 20, NEON_EMERALD, align="center", max_lines=1)
+
+
+def _draw_cloud_vpc_boundary(
+    draw: ImageDraw.Draw,
+    x: int,
+    y: int,
+    w: int,
+    h: int,
+    label: str = "AWS VPC REGION (us-east-1)",
+    color: Tuple[int, int, int] = NEON_CYAN
+) -> None:
+    """Draws a dashed glowing cloud/VPC security boundary enclosing services."""
+    draw.rounded_rectangle((x, y, x + w, y + h), radius=28, fill=(15, 23, 42, 130), outline=color, width=2)
+    badge_w = min(440, len(label) * 11 + 60)
+    draw.rounded_rectangle((x + 28, y - 18, x + 28 + badge_w, y + 18), radius=14, fill=(15, 23, 42, 240), outline=color, width=2)
+    draw.text((x + 42, y - 11), f"☁️ {label}", fill=color, font=get_font(17, bold=True))
+
+
+def _draw_data_packet_arrow(
+    draw: ImageDraw.Draw,
+    p1: Tuple[int, int],
+    p2: Tuple[int, int],
+    label: str = "",
+    progress: float = 0.0,
+    color: Tuple[int, int, int] = NEON_CYAN
+) -> None:
+    """Draws a directed data flow connection line with moving glowing packet bullets."""
+    x1, y1 = p1
+    x2, y2 = p2
+
+    draw.line((x1, y1, x2, y2), fill=(51, 65, 85, 220), width=4)
+
+    ang = math.atan2(y2 - y1, x2 - x1)
+    arrow_len = 16
+    arrow_ang = math.pi / 6
+    ax1 = x2 - arrow_len * math.cos(ang - arrow_ang)
+    ay1 = y2 - arrow_len * math.sin(ang - arrow_ang)
+    ax2 = x2 - arrow_len * math.cos(ang + arrow_ang)
+    ay2 = y2 - arrow_len * math.sin(ang + arrow_ang)
+    draw.polygon([(x2, y2), (ax1, ay1), (ax2, ay2)], fill=color)
+
+    num_packets = 2
+    for pk in range(num_packets):
+        t = (progress * 2.2 + (pk * (1.0 / num_packets))) % 1.0
+        if 0.05 < t < 0.95:
+            px = int(x1 + (x2 - x1) * t)
+            py = int(y1 + (y2 - y1) * t)
+            draw.ellipse((px - 9, py - 9, px + 9, py + 9), fill=(*color, 70))
+            draw.ellipse((px - 5, py - 5, px + 5, py + 5), fill=TEXT_PRIMARY)
+
+    if label:
+        mx = (x1 + x2) // 2
+        my = (y1 + y2) // 2 - 16
+        bw = len(label) * 9 + 16
+        draw.rounded_rectangle((mx - bw // 2, my - 12, mx + bw // 2, my + 12), radius=8, fill=(15, 23, 42, 230), outline=(51, 65, 85), width=1)
+        draw.text((mx - bw // 2 + 8, my - 9), label, fill=NEON_AMBER, font=get_font(14, bold=True))
+
+
+def _draw_motion_pointer(
+    draw: ImageDraw.Draw,
+    cx: int,
+    cy: int,
+    label: str = "ACTIVE EXECUTION",
+    progress: float = 0.0,
+    color: Tuple[int, int, int] = NEON_ROSE
+) -> None:
+    """Draws an animated target reticle / motion spotlight pointing at a critical component."""
+    pulse = (progress * 2.5) % 1.0
+    r = int(30 + pulse * 22)
+    alpha = int(200 * (1.0 - pulse))
+    draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(*color, alpha), width=3)
+    draw.ellipse((cx - 13, cy - 13, cx + 13, cy + 13), fill=(*color, 90), outline=color, width=2)
+    draw.ellipse((cx - 4, cy - 4, cx + 4, cy + 4), fill=TEXT_PRIMARY)
+
+    draw.line((cx - 22, cy, cx - 13, cy), fill=color, width=2)
+    draw.line((cx + 13, cy, cx + 22, cy), fill=color, width=2)
+    draw.line((cx, cy - 22, cx, cy - 13), fill=color, width=2)
+    draw.line((cx, cy + 13, cx, cy + 22), fill=color, width=2)
+
+    if label:
+        draw_wrapped_text(draw, f"📍 {label}", get_font(15, bold=True), cx - 110, cy + 26, 220, color, align="center")
+
+
+def _render_all_in_one_tech_canvas(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    """
+    Renders an all-in-one comprehensive 2D architecture & engineering canvas:
+    - 2D Database Cylinder (layered disk partitions, read/write LED)
+    - 2D Server Blade Rack (LEDs, K8s pods, cluster blades)
+    - 2D AI Bot / Robot (digital scanning visor, holographic pulses)
+    - 2D Python Silicon Chip (gold pin leads, Python glyphs)
+    - 2D Amazon S3 Storage Bucket
+    - Dashed Cloud & VPC Container Boundary
+    - Directed data flow arrows with moving glowing packet animation
+    - Motion pointer / reticle highlighting the active execution zone
+    - Real-time SLA & Telemetry HUD
+    """
+    topic_title = data.get("title") or "Cloud & Data Architecture"
+    
+    # 1. Cloud & VPC Security Group Boundary
+    vpc_label = data.get("vpc_label") or "AWS CLOUD VPC • HIGH-AVAILABILITY REGION"
+    _draw_cloud_vpc_boundary(draw, 50, 420, 980, 800, label=vpc_label, color=NEON_CYAN)
+
+    # 2. Dynamic Component Placement (Coordinates in 1080x1920 space)
+    c1_lbl = data.get("comp1_label") or "Python 3.12 Engine"
+    c1_sub = data.get("comp1_sub") or "App / FastAPI Service"
+    _draw_python_chip(draw, cx=260, cy=560, size=175, label=c1_lbl, sub=c1_sub, progress=progress)
+
+    c2_lbl = data.get("comp2_label") or "AI Agent / LLM"
+    c2_sub = data.get("comp2_sub") or "Transformer Reasoning"
+    _draw_ai_robot(draw, cx=820, cy=560, size=170, label=c2_lbl, sub=c2_sub, progress=progress)
+
+    c3_lbl = data.get("comp3_label") or "K8s Worker Cluster"
+    c3_sub = data.get("comp3_sub") or "Distributed Pods"
+    _draw_server_rack(draw, cx=540, cy=780, w=280, h=165, label=c3_lbl, sub=c3_sub, color=NEON_PURPLE, progress=progress)
+
+    c4_lbl = data.get("comp4_label") or "Aurora PostgreSQL"
+    c4_sub = data.get("comp4_sub") or "Storage Cylinder (ACID)"
+    _draw_database_cylinder(draw, cx=270, cy=1050, w=260, h=180, label=c4_lbl, sub=c4_sub, color=NEON_CYAN, progress=progress)
+
+    c5_lbl = data.get("comp5_label") or "Amazon S3 Lake"
+    c5_sub = data.get("comp5_sub") or "Parquet Analytics Store"
+    _draw_s3_bucket(draw, cx=810, cy=1050, w=230, h=170, label=c5_lbl, sub=c5_sub, color=NEON_EMERALD, progress=progress)
+
+    # 3. Animated Flow Arrows with Moving Data Packets
+    _draw_data_packet_arrow(draw, (350, 580), (450, 720), label="gRPC Stream", progress=progress, color=NEON_CYAN)
+    _draw_data_packet_arrow(draw, (730, 580), (630, 720), label="Async Inference", progress=progress, color=NEON_PURPLE)
+    _draw_data_packet_arrow(draw, (440, 860), (330, 960), label="CDC WAL Write", progress=progress, color=NEON_AMBER)
+    _draw_data_packet_arrow(draw, (640, 860), (750, 960), label="Delta Parquet", progress=progress, color=NEON_EMERALD)
+
+    # 4. Motion Pointer (Attention Target Spotlight on active stage)
+    active_idx = int((progress * 4) % 4)
+    pointer_coords = [
+        (260, 560, "INGESTION PHASE"),
+        (820, 560, "AI INFERENCE"),
+        (540, 780, "STREAM SYNC"),
+        (270, 1050, "ACID COMMIT")
+    ]
+    px, py, plbl = pointer_coords[active_idx]
+    _draw_motion_pointer(draw, px, py - 95, label=plbl, progress=progress, color=NEON_AMBER)
+
+    # 5. Bottom Architectural Telemetry & KPI HUD (y = 1250 to y = 1430)
+    hx = 50
+    hy = 1250
+    hw = 980
+    hh = 175
+    draw.rounded_rectangle((hx, hy, hx + hw, hy + hh), radius=22, fill=(11, 18, 33, 245), outline=NEON_EMERALD, width=3)
+    
+    col_w = hw // 3
+    draw_wrapped_text(draw, "⚡ DATA PIPELINE FLOW", get_font(18, bold=True), hx + 25, hy + 22, col_w - 40, NEON_CYAN)
+    draw_wrapped_text(draw, "100,000+ msgs/s", get_font(30, bold=True), hx + 25, hy + 50, col_w - 40, TEXT_PRIMARY)
+    draw_wrapped_text(draw, "Zero-Copy Memory Bus", get_font(15), hx + 25, hy + 92, col_w - 40, TEXT_MUTED)
+
+    draw_wrapped_text(draw, "⏱️ REPLICATION LAG", get_font(18, bold=True), hx + col_w + 25, hy + 22, col_w - 40, NEON_AMBER)
+    draw_wrapped_text(draw, "< 4.2 ms", get_font(30, bold=True), hx + col_w + 25, hy + 50, col_w - 40, NEON_AMBER)
+    draw_wrapped_text(draw, "Sub-second CDC Sync", get_font(15), hx + col_w + 25, hy + 92, col_w - 40, TEXT_MUTED)
+
+    draw_wrapped_text(draw, "🛡️ CLOUD RESILIENCE", get_font(18, bold=True), hx + (col_w * 2) + 25, hy + 22, col_w - 40, NEON_EMERALD)
+    draw_wrapped_text(draw, "99.999% SLA", get_font(30, bold=True), hx + (col_w * 2) + 25, hy + 50, col_w - 40, NEON_EMERALD)
+    draw_wrapped_text(draw, "Multi-AZ Auto-Failover", get_font(15), hx + (col_w * 2) + 25, hy + 92, col_w - 40, TEXT_MUTED)
+
+    draw.rounded_rectangle((hx + 20, hy + hh - 38, hx + hw - 20, hy + hh - 12), radius=8, fill=(16, 185, 129, 45), outline=NEON_EMERALD, width=1)
+    draw_wrapped_text(draw, "🟢 100% PRODUCTION VERIFIED • ZERO DATA LOSS ARCHITECTURE", get_font(16, bold=True), hx + 40, hy + hh - 34, hw - 80, TEXT_PRIMARY, align="center")
+
+
 def _draw_watermark(
     draw: ImageDraw.Draw,
     canvas_w: int,
@@ -910,6 +1300,8 @@ def generate_thumbnail_9_16(
         _render_alert_diagram(draw, v_data, 1.0)
     elif v_type == "architecture_flow":
         _render_architecture_flow(draw, v_data, 1.0)
+    elif v_type == "all_in_one_tech_canvas":
+        _render_all_in_one_tech_canvas(draw, v_data, 1.0)
     else:
         _render_concept_cards(draw, v_data, 1.0)
         
