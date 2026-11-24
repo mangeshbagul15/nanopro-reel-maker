@@ -47,6 +47,7 @@ CF_R2_PUBLIC_URL = _get_env_or_secret("CLOUDFLARE_R2_PUBLIC_URL", "https://pub-b
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 VIDEO_FPS = 30
+DEFAULT_WATERMARK = _get_env_or_secret("DEFAULT_WATERMARK", "@Code_With_Mangesh")
 
 FORMAT_SPECS = {
     "9:16": {"width": 1080, "height": 1920, "label": "9:16 Vertical (Reels / Shorts / TikTok)"},

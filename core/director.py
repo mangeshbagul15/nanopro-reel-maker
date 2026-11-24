@@ -390,3 +390,147 @@ def _extract_json(text: str) -> Dict[str, Any]:
             except Exception:
                 pass
         return {}
+
+def generate_viral_meta(
+    topic: str,
+    timeline: Optional[Dict[str, Any]] = None,
+    channel_tag: str = "@Code_With_Mangesh"
+) -> Dict[str, Any]:
+    """
+    Generates high-engagement YouTube Shorts & Instagram Reels titles, description, and hashtags.
+    """
+    cleaned_topic = topic.strip()
+    tag_name = channel_tag.lstrip("@").replace(" ", "")
+    
+    # Extract scene summaries if available
+    script_points = []
+    if timeline and isinstance(timeline, dict) and "scenes" in timeline:
+        for idx, sc in enumerate(timeline["scenes"]):
+            v_title = sc.get("visual_data", {}).get("title") or sc.get("narration", "")[:60]
+            if v_title:
+                script_points.append(f"• Scene {idx+1}: {v_title}")
+    
+    # 1. Try Gemini LLM for dynamic tailored generation
+    if GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            prompt = f"""You are a viral YouTube Shorts and Instagram Reels growth strategist.
+Create high-conversion metadata for a vertical tech explainer video.
+Topic: "{cleaned_topic}"
+Channel: {channel_tag}
+Key Breakdown:
+{chr(10).join(script_points[:4]) if script_points else "Production architecture & system design deep dive"}
+
+Return ONLY a valid JSON object matching this schema:
+{{
+  "titles": [
+    "🔥 Viral Catchy Title 1 (Punchy, under 60 chars)",
+    "⚡ High-CTR Title 2 (Curiosity or trade-off)",
+    "🧠 Interview / System Design Title 3"
+  ],
+  "hook": "2-line engaging hook description explaining the core problem and why it matters.",
+  "takeaways": [
+    "Key engineering insight or architectural trade-off",
+    "Production-level mechanism or query optimization",
+    "How to prevent bottlenecks or downtime"
+  ],
+  "hashtags": [
+    "#{tag_name}", "#CodeWithMangesh", "#SystemDesign", "#SoftwareEngineering"
+  ]
+}}
+"""
+            for m in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""
+                    parsed = _extract_json(raw_text)
+                    if parsed and "titles" in parsed and "hashtags" in parsed:
+                        titles = parsed.get("titles", [])
+                        hook = parsed.get("hook", f"Ever wondered how {cleaned_topic} works in production?")
+                        takeaways = parsed.get("takeaways", [])
+                        tags = parsed.get("hashtags", [])
+                        
+                        # Ensure channel hashtag is present
+                        if f"#{tag_name}" not in tags:
+                            tags.insert(0, f"#{tag_name}")
+                        if "#CodeWithMangesh" not in tags:
+                            tags.insert(1, "#CodeWithMangesh")
+                        
+                        full_text = (
+                            f"{titles[0] if titles else cleaned_topic}\n\n"
+                            f"📌 {hook}\n\n"
+                            f"Key Engineering Takeaways:\n"
+                            + "\n".join([f"✅ {t}" for t in takeaways]) + "\n\n"
+                            f"🚀 Follow {channel_tag} for daily System Design & Coding breakdowns!\n"
+                            f"💾 Save this reel so you have it ready for your next tech interview!\n\n"
+                            + " ".join(tags)
+                        )
+                        return {
+                            "titles": titles,
+                            "hook": hook,
+                            "takeaways": takeaways,
+                            "hashtags": tags,
+                            "full_text": full_text
+                        }
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    # 2. Resilient Fallback Template Engine
+    safe_topic = cleaned_topic.title()
+    titles = [
+        f"🔥 {safe_topic} Explained Like a Staff Engineer!",
+        f"⚡ Why 99% of Developers Get {safe_topic} Wrong!",
+        f"🧠 {safe_topic}: Zero Downtime Architecture Blueprint"
+    ]
+    hook = f"Here is the complete architectural breakdown of {safe_topic} with zero fluff and real production trade-offs."
+    takeaways = [
+        f"Core internal mechanism behind {safe_topic}",
+        "Trade-offs between latency, throughput, and operational complexity",
+        "How senior engineers implement this pattern in production"
+    ]
+    
+    words = re.findall(r"[A-Za-z0-9]+", cleaned_topic)
+    topic_tags = [f"#{w.capitalize()}" for w in words if len(w) > 2][:6]
+    base_tags = [
+        f"#{tag_name}",
+        "#CodeWithMangesh",
+        "#SystemDesign",
+        "#SoftwareEngineering",
+        "#CloudComputing",
+        "#Coding",
+        "#Programming",
+        "#DevCommunity",
+        "#BackendEngineering",
+        "#TechReels",
+        "#ComputerScience",
+        "#WebDevelopment",
+        "#Python",
+        "#Database",
+        "#DevOps",
+        "#TechInterview",
+        "#FullStack",
+        "#LearnToCode",
+        "#DataEngineering",
+        "#Microservices"
+    ]
+    all_tags = list(dict.fromkeys(topic_tags + base_tags))
+    
+    full_text = (
+        f"{titles[0]}\n\n"
+        f"📌 {hook}\n\n"
+        f"Key Engineering Takeaways:\n"
+        + "\n".join([f"✅ {t}" for t in takeaways]) + "\n\n"
+        f"🚀 Follow {channel_tag} for daily System Design, Cloud & Architecture deep dives!\n"
+        f"💾 Save this reel for your next technical interview.\n\n"
+        + " ".join(all_tags)
+    )
+    return {
+        "titles": titles,
+        "hook": hook,
+        "takeaways": takeaways,
+        "hashtags": all_tags,
+        "full_text": full_text
+    }

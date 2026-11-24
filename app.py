@@ -8,10 +8,10 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS
-from core.director import generate_timeline
+from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
+from core.director import generate_timeline, generate_viral_meta
 from core.voice import generate_voiceover, DEFAULT_VOICE
-from core.animator import render_scene_frames
+from core.animator import render_scene_frames, generate_thumbnail_9_16
 from core.subtitles import generate_ass_subtitles
 from core.renderer import render_final_reel
 from core.uploader import (
@@ -72,6 +72,11 @@ st.markdown("""
 # Sidebar
 with st.sidebar:
     st.markdown("### ⚙️ Video Settings")
+    channel_watermark = st.text_input(
+        "🏷️ Channel Watermark (Video Corner)",
+        value=DEFAULT_WATERMARK,
+        help="Channel watermark displayed in the corner of every video frame and thumbnail."
+    )
     voice_option = st.selectbox(
         "Voice Persona (TTS)",
         [
@@ -207,8 +212,203 @@ with tab_create:
         placeholder="e.g. Explain SQL Window Functions LEAD and LAG with interview scenario"
     )
 
-    # Execution Action
-    if st.button("🚀 Generate Video Reel", use_container_width=True):
+    # Action Studio Controls Bar
+    st.markdown("#### 🚀 Action Studio Controls:")
+    col_act1, col_act2 = st.columns([1.3, 1])
+    col_act3, col_act4 = st.columns([1, 1])
+
+    do_full_generate = col_act1.button("🎬 Generate Full Video Reel", type="primary", use_container_width=True)
+    do_trial = col_act2.button("⚡ Make Trial Video (Quick 5-10s Preview)", type="secondary", use_container_width=True)
+    do_thumbnail = col_act3.button("🖼️ Generate 9:16 Thumbnail", use_container_width=True)
+    do_meta = col_act4.button("📋 Generate Description & Hashtags", use_container_width=True)
+
+    # 1. STANDALONE 9:16 THUMBNAIL GENERATOR
+    if do_thumbnail:
+        if not user_prompt.strip():
+            st.error("Please enter a technical topic prompt first.")
+            st.stop()
+        with st.spinner(f"Generating 9:16 high-impact thumbnail with watermark {channel_watermark}..."):
+            try:
+                thumb_path = generate_thumbnail_9_16(
+                    user_prompt.strip(),
+                    watermark=channel_watermark,
+                    visual_engine=visual_engine[0]
+                )
+                st.success("🎉 9:16 Thumbnail generated successfully!")
+                c_th1, c_th2 = st.columns([1, 1.2])
+                with c_th1:
+                    st.image(str(thumb_path), caption="9:16 High-Conversion Thumbnail (Shorts / Reels Cover)", use_container_width=True)
+                with c_th2:
+                    st.markdown("### 🖼️ 9:16 Thumbnail Details")
+                    st.write(f"- **Aspect Ratio:** `9:16` (1080x1920)")
+                    st.write(f"- **Channel Watermark:** `{channel_watermark}`")
+                    st.write(f"- **Topic:** *{user_prompt.strip()}*")
+                    with open(thumb_path, "rb") as tf:
+                        st.download_button(
+                            label="⬇️ Download 9:16 Thumbnail (PNG)",
+                            data=tf.read(),
+                            file_name=thumb_path.name,
+                            mime="image/png",
+                            use_container_width=True,
+                            type="primary"
+                        )
+            except Exception as e:
+                st.error(f"❌ Error generating thumbnail: {e}")
+
+    # 2. STANDALONE VIRAL DESCRIPTION & HASHTAGS GENERATOR
+    elif do_meta:
+        if not user_prompt.strip():
+            st.error("Please enter a technical topic prompt first.")
+            st.stop()
+        with st.spinner("Generating viral YouTube Shorts & Instagram Reels copy & hashtags..."):
+            try:
+                viral_meta = generate_viral_meta(
+                    user_prompt.strip(),
+                    channel_tag=channel_watermark
+                )
+                st.success("🎉 Viral Description & 25+ Hashtags Ready!")
+                st.markdown("### 🎯 High-CTR Catchy Titles:")
+                for t in viral_meta.get("titles", []):
+                    st.markdown(f"- **{t}**")
+                
+                st.markdown("### 📝 Full Description & Hashtags (Ready to Copy):")
+                st.code(viral_meta.get("full_text", ""), language="markdown")
+                
+                st.download_button(
+                    label="⬇️ Download Description & Tags (.txt)",
+                    data=viral_meta.get("full_text", ""),
+                    file_name=f"description_and_hashtags_{int(time.time())}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    type="primary"
+                )
+            except Exception as e:
+                st.error(f"❌ Error generating metadata: {e}")
+
+    # 3. QUICK 5-10s TRIAL VIDEO GENERATOR
+    elif do_trial:
+        if not user_prompt.strip():
+            st.error("Please enter a technical topic prompt.")
+            st.stop()
+
+        progress_bar = st.progress(0)
+        status_box = st.empty()
+
+        try:
+            status_box.info("🧠 AI Director is designing the quick trial hook scene...")
+            progress_bar.progress(20)
+            timeline = generate_timeline(
+                user_prompt.strip(),
+                engine_style=visual_engine[0],
+                duration_mode="short",
+                custom_style_prompt=custom_style_prompt,
+                voice=voice_option[0],
+                format_ratio=aspect_ratio[0]
+            )
+            trial_scenes = [timeline["scenes"][0]] if timeline.get("scenes") else []
+            if not trial_scenes:
+                st.error("Could not generate trial blueprint.")
+                st.stop()
+
+            status_box.info(f"🎙️ Synthesizing voiceover ({voice_option[0]})...")
+            progress_bar.progress(40)
+            audio_path, word_timestamps, aligned_scenes = generate_voiceover(trial_scenes, voice=voice_option[0])
+
+            status_box.info(f"🎨 Rendering motion visuals for trial with watermark ({channel_watermark})...")
+            progress_bar.progress(65)
+
+            import shutil
+            for old_dir in OUTPUT_DIR.glob("scene_*_frames"):
+                try:
+                    shutil.rmtree(old_dir, ignore_errors=True)
+                except Exception:
+                    pass
+
+            render_scene_frames(
+                aligned_scenes[0],
+                1,
+                total_scenes=1,
+                engine_style=visual_engine[0],
+                format_ratio=aspect_ratio[0],
+                watermark=channel_watermark
+            )
+            trial_frame_dirs = [OUTPUT_DIR / "scene_01_frames"]
+
+            status_box.info(f"⚡ Assembling trial MP4 with karaoke captions & Lo-Fi audio...")
+            progress_bar.progress(85)
+            subtitles_path = generate_ass_subtitles(word_timestamps, format_ratio=aspect_ratio[0])
+
+            trial_video_path = render_final_reel(
+                all_scene_frame_dirs=trial_frame_dirs,
+                audio_path=audio_path,
+                subtitles_path=subtitles_path,
+                output_filename=f"trial_nanopro_{int(time.time())}.mp4"
+            )
+
+            status_box.info("🖼️ Creating 9:16 trial thumbnail...")
+            thumb_path = generate_thumbnail_9_16(
+                user_prompt.strip(),
+                timeline={"scenes": aligned_scenes},
+                watermark=channel_watermark,
+                visual_engine=visual_engine[0]
+            )
+
+            viral_meta = generate_viral_meta(
+                user_prompt.strip(),
+                timeline={"scenes": aligned_scenes},
+                channel_tag=channel_watermark
+            )
+
+            progress_bar.progress(100)
+            status_box.success("🎉 Trial Preview video ready in seconds! Pacing, watermark, and audio verified below:")
+
+            col_vid, col_meta = st.columns([1, 1.1])
+            with col_vid:
+                st.markdown(f"### ⚡ Trial Preview Video ({aligned_scenes[0]['duration']:.1f}s)")
+                st.video(str(trial_video_path))
+                with open(trial_video_path, "rb") as vf:
+                    st.download_button(
+                        label=f"⬇️ Download Trial Video ({aspect_ratio[0]})",
+                        data=vf.read(),
+                        file_name=trial_video_path.name,
+                        mime="video/mp4",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                if thumb_path and thumb_path.exists():
+                    st.markdown("---")
+                    st.markdown("### 🖼️ 9:16 Thumbnail (Trial)")
+                    st.image(str(thumb_path), caption="9:16 High-Conversion Thumbnail", use_container_width=True)
+                    with open(thumb_path, "rb") as tf:
+                        st.download_button(
+                            label="⬇️ Download 9:16 Thumbnail (PNG)",
+                            data=tf.read(),
+                            file_name=thumb_path.name,
+                            mime="image/png",
+                            use_container_width=True,
+                            type="secondary"
+                        )
+            with col_meta:
+                st.markdown("### 📊 Trial Reel Inspector")
+                st.metric("⏱️ Trial Duration", f"{aligned_scenes[0]['duration']:.1f}s")
+                st.metric("🏷️ Watermark", channel_watermark)
+                st.metric("🗣️ Voice", voice_option[0])
+                st.success("💡 **Pacing & tone look great?** Click **'🎬 Generate Full Video Reel'** to build the complete multi-scene reel!")
+                with st.expander("📋 Viral Description & 25+ Hashtags", expanded=True):
+                    st.code(viral_meta.get("full_text", ""), language="markdown")
+                    st.download_button(
+                        label="⬇️ Download Description & Tags (.txt)",
+                        data=viral_meta.get("full_text", ""),
+                        file_name=f"trial_description_{int(time.time())}.txt",
+                        mime="text/plain",
+                        use_container_width=True
+                    )
+        except Exception as e:
+            status_box.error(f"❌ Error during trial generation: {e}")
+            st.exception(e)
+
+    # 4. FULL REEL GENERATION ACTION
+    elif do_full_generate:
         if not user_prompt.strip():
             st.error("Please enter a technical topic prompt.")
             st.stop()
@@ -219,7 +419,7 @@ with tab_create:
         try:
             # STEP 1: AI Director Timeline Generation
             status_box.info("🧠 AI Director is designing the technical storyboard & script...")
-            progress_bar.progress(20)
+            progress_bar.progress(15)
             timeline = generate_timeline(
                 user_prompt.strip(),
                 engine_style=visual_engine[0],
@@ -234,7 +434,7 @@ with tab_create:
 
             # STEP 2: Voiceover & Whisper Alignment
             status_box.info("🎙️ Synthesizing conversational voiceover & microsecond word timestamps...")
-            progress_bar.progress(40)
+            progress_bar.progress(35)
             scenes = timeline.get("scenes", [])
             audio_path, word_timestamps, aligned_scenes = generate_voiceover(scenes, voice=voice_option[0])
 
@@ -256,20 +456,21 @@ with tab_create:
 
             for i, sc in enumerate(aligned_scenes):
                 v_type = sc.get('visual_type', 'cards')
-                status_box.info(f"🎨 Rendering motion visuals for scene {i + 1}/{total_sc} ({v_type})...")
-                progress_bar.progress(45 + int(35 * (i + 1) / max(1, total_sc)))
+                status_box.info(f"🎨 Rendering visuals for scene {i + 1}/{total_sc} with watermark ({channel_watermark})...")
+                progress_bar.progress(40 + int(35 * (i + 1) / max(1, total_sc)))
                 render_scene_frames(
                     sc,
                     i + 1,
                     total_scenes=total_sc,
                     engine_style=visual_engine[0],
-                    format_ratio=aspect_ratio[0]
+                    format_ratio=aspect_ratio[0],
+                    watermark=channel_watermark
                 )
                 all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 
             # STEP 4: Video Stitching via Local Hardware / Cloud
             status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 with karaoke captions & Lo-Fi audio...")
-            progress_bar.progress(85)
+            progress_bar.progress(80)
             subtitles_path = generate_ass_subtitles(
                 word_timestamps,
                 format_ratio=aspect_ratio[0]
@@ -282,18 +483,36 @@ with tab_create:
                 output_filename=f"nanopro_{aspect_ratio[0].replace(':', 'x')}_{int(time.time())}.mp4"
             )
 
+            # STEP 5: Generate 9:16 High-Conversion Thumbnail
+            status_box.info("🖼️ Generating 9:16 high-impact thumbnail with watermark...")
+            progress_bar.progress(90)
+            thumb_path = generate_thumbnail_9_16(
+                user_prompt.strip(),
+                timeline=timeline,
+                watermark=channel_watermark,
+                visual_engine=visual_engine[0]
+            )
+
+            # STEP 6: Generate Viral Description & Hashtags
+            status_box.info("📋 Preparing YouTube Shorts & Reels viral description & hashtags...")
+            progress_bar.progress(95)
+            viral_meta = generate_viral_meta(
+                user_prompt.strip(),
+                timeline=timeline,
+                channel_tag=channel_watermark
+            )
+
             # Cloudflare R2 Upload (Automatic only on Cloud, Optional on Local)
             r2_url = None
             if not is_local_machine:
                 status_box.info("☁️ Uploading to Cloudflare R2 CDN...")
-                progress_bar.progress(95)
                 r2_url = upload_to_r2(final_video_path)
 
             progress_bar.progress(100)
             if is_local_machine:
-                status_box.success("🎉 Reel generated and saved locally on your laptop!")
+                status_box.success("🎉 Full Reel generated and saved locally on your laptop!")
             else:
-                status_box.success("🎉 Reel generation complete and deployed to Cloud CDN!")
+                status_box.success("🎉 Full Reel generation complete and deployed to Cloud CDN!")
 
             # Display Final Video & Actions
             col_vid, col_meta = st.columns([1, 1.1])
@@ -310,9 +529,46 @@ with tab_create:
                         type="primary"
                     )
 
+                # 9:16 Thumbnail Section
+                if thumb_path and thumb_path.exists():
+                    st.markdown("---")
+                    st.markdown("### 🖼️ 9:16 Thumbnail (Shorts / Reels Cover)")
+                    st.image(str(thumb_path), caption="9:16 High-Conversion Thumbnail", use_container_width=True)
+                    with open(thumb_path, "rb") as tf:
+                        st.download_button(
+                            label="⬇️ Download 9:16 Thumbnail (PNG)",
+                            data=tf.read(),
+                            file_name=thumb_path.name,
+                            mime="image/png",
+                            use_container_width=True,
+                            type="secondary"
+                        )
+
             with col_meta:
                 st.markdown("### 📊 Production Inspector & Reel Summary")
                 total_duration = aligned_scenes[-1]['end_time']
+                
+                # Top KPI Row
+                kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+                kpi1.metric("⏱️ Duration", f"{total_duration:.1f}s")
+                kpi2.metric("🎬 Scenes", f"{len(aligned_scenes)}")
+                kpi3.metric("🗣️ Words", f"{len(word_timestamps)}")
+                kpi4.metric("📐 Format", f"{aspect_ratio[0]}")
+
+                # Viral Description & Hashtags Expander
+                with st.expander("📋 Viral Description & 25+ Hashtags (Ready to Copy)", expanded=True):
+                    st.markdown("#### 🎯 Catchy Titles:")
+                    for t in viral_meta.get("titles", []):
+                        st.markdown(f"- **{t}**")
+                    st.markdown("#### 📝 Full Description & Hashtags:")
+                    st.code(viral_meta.get("full_text", ""), language="markdown")
+                    st.download_button(
+                        label="⬇️ Download Description & Tags (.txt)",
+                        data=viral_meta.get("full_text", ""),
+                        file_name=f"description_{int(time.time())}.txt",
+                        mime="text/plain",
+                        use_container_width=True
+                    )
                 
                 # Top KPI Row
                 kpi1, kpi2, kpi3, kpi4 = st.columns(4)

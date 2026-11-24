@@ -2,7 +2,7 @@ import math
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
 from PIL import Image, ImageDraw, ImageFont
-from core.config import VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, FONTS_DIR, FORMAT_SPECS
+from core.config import VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, FONTS_DIR, FORMAT_SPECS, DEFAULT_WATERMARK
 
 # Premium Cyber-Tech Color Palette
 COLOR_BG_DARK = (11, 15, 25)
@@ -101,7 +101,8 @@ def render_scene_frames(
     scene_idx: int,
     total_scenes: int = 4,
     engine_style: str = "hybrid_modern",
-    format_ratio: str = "9:16"
+    format_ratio: str = "9:16",
+    watermark: str = DEFAULT_WATERMARK
 ) -> List[Path]:
     """
     Renders high-octane 2D frames across 10+ rich motion-graphics visual engines,
@@ -158,6 +159,10 @@ def render_scene_frames(
         
         # 1. Instagram / Shorts Top Story Progress Bars
         _draw_story_progress_bar(draw, total_scenes, scene_idx, progress)
+        
+        # 1.5 Channel Watermark in Top-Right Corner (@Code_With_Mangesh)
+        if watermark:
+            _draw_watermark(draw, canvas_w, canvas_h, watermark)
         
         # 2. Topic Pill Badge & Scene Title
         _draw_header(draw, visual_data.get("badge", "TECH ARCHITECTURE"), visual_data.get("title", ""))
@@ -755,3 +760,182 @@ def _hex_to_rgb(hex_code: str) -> Tuple[int, int, int]:
     if len(hex_code) == 6:
         return tuple(int(hex_code[i:i+2], 16) for i in (0, 2, 4))
     return (56, 189, 248)
+
+def _draw_watermark(
+    draw: ImageDraw.Draw,
+    canvas_w: int,
+    canvas_h: int,
+    watermark_text: str = DEFAULT_WATERMARK
+) -> None:
+    """Draws a sleek, glassmorphic channel watermark in the top-right corner."""
+    if not watermark_text:
+        return
+    font_wm = get_font(24, bold=True)
+    text = watermark_text.strip()
+    bbox = font_wm.getbbox(text)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    
+    pad_x = 16
+    pad_y = 8
+    badge_w = tw + (pad_x * 2) + 16  # room for cyan dot
+    badge_h = th + (pad_y * 2)
+    
+    # Top-right corner, below the top progress bar
+    bx = canvas_w - badge_w - 36
+    by = 44
+    
+    # Outer glow
+    draw.rounded_rectangle(
+        (bx - 1, by - 1, bx + badge_w + 1, by + badge_h + 1),
+        radius=badge_h // 2,
+        fill=(56, 189, 248, 40)
+    )
+    # Glassmorphic dark card
+    draw.rounded_rectangle(
+        (bx, by, bx + badge_w, by + badge_h),
+        radius=badge_h // 2,
+        fill=(15, 23, 42, 220),
+        outline=(56, 189, 248, 180),
+        width=2
+    )
+    
+    # Glowing neon cyan dot
+    dot_r = 4
+    dot_x = bx + pad_x + 4
+    dot_y = by + (badge_h // 2)
+    draw.ellipse((dot_x - dot_r, dot_y - dot_r, dot_x + dot_r, dot_y + dot_r), fill=(56, 189, 248, 255))
+    
+    # Text
+    tx = dot_x + dot_r + 8
+    ty = by + pad_y - 2
+    draw.text((tx, ty), text, fill=(248, 250, 252, 240), font=font_wm)
+
+def generate_thumbnail_9_16(
+    topic: str,
+    timeline: Any = None,
+    watermark: str = DEFAULT_WATERMARK,
+    visual_engine: str = "hybrid_modern",
+    output_path: Any = None
+) -> Path:
+    """
+    Generates a high-impact 1080x1920 (9:16) thumbnail image for YouTube Shorts & Instagram Reels:
+    - High-contrast viral topic headline
+    - Cyber-tech neon border & background styling
+    - Channel watermark @Code_With_Mangesh in top corner
+    - Centerpiece tech architecture/code/comparison graphic card
+    - Bottom punchy badge hook
+    """
+    import time
+    canvas_w = 1080
+    canvas_h = 1920
+    im = Image.new("RGB", (canvas_w, canvas_h), COLOR_BG_DARK)
+    draw = ImageDraw.Draw(im, "RGBA")
+    
+    # Outer modern neon frame (inset 24px)
+    draw.rounded_rectangle((24, 24, canvas_w - 24, canvas_h - 24), radius=36, outline=(56, 189, 248, 120), width=4)
+    draw.rounded_rectangle((32, 32, canvas_w - 32, canvas_h - 32), radius=30, outline=(168, 85, 247, 50), width=2)
+    
+    # Story progress bar at top
+    _draw_story_progress_bar(draw, total_scenes=4, current_scene=1, progress=0.25)
+    
+    # Top-right watermark (@Code_With_Mangesh)
+    _draw_watermark(draw, canvas_w, canvas_h, watermark)
+    
+    # Top category pill badge
+    badge_text = "⚡ SYSTEM DESIGN & ARCHITECTURE"
+    if timeline and isinstance(timeline, dict) and "scenes" in timeline and len(timeline["scenes"]) > 0:
+        first_sc = timeline["scenes"][0]
+        badge_text = first_sc.get("visual_data", {}).get("badge", badge_text)
+    
+    font_badge = get_font(28, bold=True)
+    badge_bbox = font_badge.getbbox(badge_text)
+    bw = min(880, (badge_bbox[2] - badge_bbox[0]) + 50)
+    bh = 54
+    bx = (canvas_w - bw) // 2
+    by = 120
+    draw.rounded_rectangle((bx - 2, by - 2, bx + bw + 2, by + bh + 2), radius=27, fill=(56, 189, 248, 45))
+    draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=26, fill=(15, 23, 42, 240), outline=NEON_CYAN, width=3)
+    draw.text((bx + (bw - (badge_bbox[2] - badge_bbox[0])) // 2, by + 11), badge_text, fill=NEON_CYAN, font=font_badge)
+    
+    # Viral Topic Title (Large, 58pt bold)
+    title_text = topic.strip()
+    if len(title_text) > 90:
+        title_text = title_text[:87] + "..."
+    font_title = get_font(58, bold=True)
+    max_title_w = 920
+    title_x = (canvas_w - max_title_w) // 2
+    title_y = by + 85
+    draw_wrapped_text(draw, title_text, font_title, title_x, title_y, max_title_w, TEXT_PRIMARY, line_spacing=12, align="center", max_lines=3)
+    
+    # Center Graphic (Render scene visual at progress 1.0)
+    target_scene = None
+    if timeline and isinstance(timeline, dict) and "scenes" in timeline:
+        for sc in timeline["scenes"]:
+            if sc.get("visual_type") in ["architecture_flow", "code_terminal", "sql_table", "split_comparison", "benchmark_chart"]:
+                target_scene = sc
+                break
+        if not target_scene and len(timeline["scenes"]) > 0:
+            target_scene = timeline["scenes"][0]
+            
+    if not target_scene:
+        target_scene = {
+            "visual_type": "architecture_flow",
+            "visual_data": {
+                "badge": "SYSTEM DESIGN",
+                "title": topic[:40],
+                "nodes": [
+                    {"id": "src", "label": "Client / Ingestion", "sub": "Requests & Traffic", "color": "#38BDF8"},
+                    {"id": "eng", "label": "Core Engine", "sub": "Zero-Downtime Pipeline", "color": "#FBBF24"},
+                    {"id": "dst", "label": "Distributed Store", "sub": "HA Cluster & Cache", "color": "#34D399"}
+                ]
+            }
+        }
+        
+    v_type = target_scene.get("visual_type", "architecture_flow")
+    v_data = target_scene.get("visual_data", {})
+    
+    if v_type == "split_comparison":
+        _render_split_comparison(draw, v_data, 1.0)
+    elif v_type == "benchmark_chart":
+        _render_benchmark_chart(draw, v_data, 1.0)
+    elif v_type == "circular_hub_mesh":
+        _render_circular_hub_mesh(draw, v_data, 1.0)
+    elif v_type == "metric_gauge_hud":
+        _render_metric_gauge_hud(draw, v_data, 1.0)
+    elif v_type == "data_structure_memory":
+        _render_data_structure_memory(draw, v_data, 1.0)
+    elif v_type == "sql_table":
+        _render_sql_table(draw, v_data, 1.0)
+    elif v_type == "code_terminal":
+        _render_code_terminal(draw, v_data, 1.0)
+    elif v_type == "alert_diagram":
+        _render_alert_diagram(draw, v_data, 1.0)
+    elif v_type == "architecture_flow":
+        _render_architecture_flow(draw, v_data, 1.0)
+    else:
+        _render_concept_cards(draw, v_data, 1.0)
+        
+    # Bottom Viral Callout Card (y = 1540 to y = 1780)
+    card_w = 940
+    card_h = 240
+    cx = (canvas_w - card_w) // 2
+    cy = 1540
+    
+    draw.rounded_rectangle((cx - 2, cy - 2, cx + card_w + 2, cy + card_h + 2), radius=32, fill=(56, 189, 248, 50))
+    draw.rounded_rectangle((cx, cy, cx + card_w, cy + card_h), radius=30, fill=(15, 23, 42, 245), outline=NEON_CYAN, width=3)
+    
+    tag_font = get_font(26, bold=True)
+    draw.text((cx + 50, cy + 30), "🔥 100% PRODUCTION ARCHITECTURE", fill=NEON_AMBER, font=tag_font)
+    
+    hook_font = get_font(38, bold=True)
+    draw_wrapped_text(draw, "Explain Like a Staff Engineer • Zero Fluff", hook_font, cx + 50, cy + 72, 840, TEXT_PRIMARY, max_lines=1)
+    
+    ch_font = get_font(30, bold=True)
+    draw.text((cx + 50, cy + 145), f"🎬 Follow {watermark} for Daily Tech Reels", fill=NEON_CYAN, font=ch_font)
+    
+    if output_path is None:
+        output_path = OUTPUT_DIR / f"thumbnail_9x16_{int(time.time())}.png"
+        
+    im.save(output_path, "PNG", quality=98)
+    return output_path
