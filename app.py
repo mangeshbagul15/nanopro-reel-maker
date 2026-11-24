@@ -8,23 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-import importlib
-import core.config
-import core.director
-import core.voice
-import core.animator
-import core.subtitles
-import core.renderer
-import core.uploader
-
-importlib.reload(core.config)
-importlib.reload(core.director)
-importlib.reload(core.voice)
-importlib.reload(core.animator)
-importlib.reload(core.subtitles)
-importlib.reload(core.renderer)
-importlib.reload(core.uploader)
-
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS
 from core.director import generate_timeline
 from core.voice import generate_voiceover, DEFAULT_VOICE
