@@ -2,7 +2,7 @@ import math
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
 from PIL import Image, ImageDraw, ImageFont
-from core.config import VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, FONTS_DIR, FORMAT_SPECS
+from core.config import VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, FONTS_DIR
 
 # Premium Cyber-Tech Color Palette
 COLOR_BG_DARK = (11, 15, 25)
@@ -100,12 +100,11 @@ def render_scene_frames(
     scene: Dict[str, Any],
     scene_idx: int,
     total_scenes: int = 4,
-    engine_style: str = "hybrid_modern",
-    format_ratio: str = "9:16"
+    engine_style: str = "hybrid_modern"
 ) -> List[Path]:
     """
     Renders high-octane 2D frames across 10+ rich motion-graphics visual engines,
-    strictly adhering to the user-selected Visual Engine & Style and Target Aspect Ratio (9:16, 16:9, 1:1).
+    strictly adhering to the user-selected Visual Engine & Style.
     """
     duration = max(1.5, float(scene.get("duration", 5.0)))
     total_frames = max(15, round(duration * VIDEO_FPS))
@@ -146,10 +145,7 @@ def render_scene_frames(
 
     frame_paths = []
     
-    spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
-    canvas_w = spec.get("width", VIDEO_WIDTH)
-    canvas_h = spec.get("height", VIDEO_HEIGHT)
-    base_canvas = Image.new("RGB", (canvas_w, canvas_h), COLOR_BG_DARK)
+    base_canvas = Image.new("RGB", (VIDEO_WIDTH, VIDEO_HEIGHT), COLOR_BG_DARK)
     
     for f in range(total_frames):
         progress = f / max(1, total_frames - 1)
@@ -494,23 +490,18 @@ def _render_data_structure_memory(draw: ImageDraw.Draw, data: Dict[str, Any], pr
 # 6. SQL TABLE
 # =========================================================================
 def _render_sql_table(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    topic_title = data.get("title") or "Query Execution"
-    code = data.get("code_snippet") or data.get("query") or data.get("sql") or data.get("code")
-    if not code:
-        tbl_name = topic_title.lower().replace(" ", "_")[:14]
-        code = f"SELECT id, metric_val, DENSE_RANK() OVER (ORDER BY metric_val DESC) FROM {tbl_name};"
-        
+    code = data.get("code_snippet") or data.get("query") or data.get("sql") or data.get("code") or "SELECT emp_id, salary, DENSE_RANK() OVER (ORDER BY salary DESC) FROM emp;"
     table_data = data.get("table_data") or data.get("table") or data.get("dataset") or {}
     headers = table_data.get("headers") or table_data.get("columns") or table_data.get("cols")
     rows = table_data.get("rows") or table_data.get("data")
     if not headers:
-        headers = ["ID", "ENTITY", "VALUE", "RANK"]
+        headers = ["EMP_ID", "NAME", "SALARY", "DENSE_RANK"]
     if not rows:
         rows = [
-            ["101", f"{topic_title[:8]} A", "120,000", "1"],
-            ["102", f"{topic_title[:8]} B", "95,000", "2"],
-            ["103", f"{topic_title[:8]} C", "95,000", "2"],
-            ["104", f"{topic_title[:8]} D", "80,000", "3"]
+            ["101", "Alice", "120,000", "1"],
+            ["102", "Bob", "95,000", "2"],
+            ["103", "Charlie", "95,000", "2"],
+            ["104", "Diana", "80,000", "3"]
         ]
     
     qx, qy, qw, qh = 70, 440, 940, 140
@@ -555,15 +546,7 @@ def _render_code_terminal(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
             if out_text:
                 raw_code += f"\n\n{out_text}"
     if not raw_code:
-        topic_title = data.get("title") or "Technical Implementation"
-        raw_code = (
-            f"# Execution Logic: {topic_title}\n"
-            f"async def execute_task(ctx):\n"
-            f"    # Real-time state synchronization\n"
-            f"    cluster = await init_active_pipeline()\n"
-            f"    result = cluster.sync_event(ctx)\n"
-            f"    return {{'status': 200, 'synced': True}}"
-        )
+        raw_code = "def pipeline_sync(event):\n    # Zero-copy memory mapped stream\n    return broker.append_log(event, acks='all')"
     lines = raw_code.split("\n")
     
     tx, ty, tw, th = 70, 460, 940, 750
@@ -640,11 +623,10 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
     raw_nodes = data.get("nodes") or data.get("stages") or data.get("steps") or data.get("services") or data.get("pipeline") or []
     default_colors = ["#38BDF8", "#FBBF24", "#34D399", "#A855F7"]
     if not raw_nodes:
-        topic_title = data.get("title") or "System Architecture"
         raw_nodes = [
-            {"label": "Client Ingestion Layer", "sub": "Incoming Requests & Routing", "color": "#38BDF8"},
-            {"label": f"{topic_title[:24]}", "sub": "Core Engine & State Sync", "color": "#FBBF24"},
-            {"label": "Target Database Cluster", "sub": "Distributed Persistent Storage", "color": "#34D399"}
+            {"label": "Client Ingestion Layer", "sub": "Incoming Requests & Payloads", "color": "#38BDF8"},
+            {"label": "Core Processing Engine", "sub": "Distributed CDC Execution", "color": "#FBBF24"},
+            {"label": "Target Database Cluster", "sub": "High-Throughput Storage & CDN", "color": "#34D399"}
         ]
     nodes = []
     for idx, n in enumerate(raw_nodes[:4]):
@@ -701,9 +683,8 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
 def _render_concept_cards(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
     raw_bullets = data.get("bullets") or data.get("points") or data.get("key_points") or data.get("features") or data.get("concepts") or []
     if not raw_bullets:
-        topic_title = data.get("title") or "Key System Architecture"
         raw_bullets = [
-            f"{topic_title}: Core execution and distributed state replication",
+            "Distributed Event Streaming: Real-time low-latency log replication",
             "Zero Production Downtime: Continuous transaction sync without row locks",
             "High-Availability Failover: Multi-AZ automated disaster recovery"
         ]
