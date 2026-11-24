@@ -1,7 +1,7 @@
 import json
 import re
 from typing import Dict, Any, Optional, List
-from core.config import GEMINI_API_KEY, GROQ_API_KEY
+from core.config import GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, MISTRAL_API_KEY
 
 SYSTEM_PROMPT = """You are an elite Tech Content Director and Visual Storyteller for viral 9:16 vertical tech videos and reels (inspired by Fireship and ByteByteGo).
 Your mission is to analyze any technical topic and autonomously design a realistic, topic-accurate, deeply engaging storyboard blueprint JSON.
@@ -311,10 +311,13 @@ def generate_timeline(
             client = genai.Client(api_key=GEMINI_API_KEY)
             
             models_to_try = [
-                "gemini-2.0-flash",
+                "gemini-3.1-flash-lite",
+                "gemini-3.1-flash-lite-preview",
+                "gemini-flash-lite-latest",
                 "gemini-flash-latest",
                 "gemini-3-flash-preview",
-                "gemini-3.1-flash-lite-preview"
+                "gemini-3.5-flash",
+                "gemini-3.8-flash"
             ]
             
             for model_name in models_to_try:
@@ -350,7 +353,7 @@ def generate_timeline(
         try:
             from groq import Groq
             g_client = Groq(api_key=GROQ_API_KEY)
-            for g_model in ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]:
+            for g_model in ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]:
                 try:
                     g_res = g_client.chat.completions.create(
                         model=g_model,
@@ -379,6 +382,50 @@ def generate_timeline(
                     continue
         except Exception as e:
             last_errors.append(f"Groq client error: {e}")
+
+    # 3. Third-Tier Fail-Safe: OpenRouter
+    if OPENROUTER_API_KEY:
+        try:
+            import requests
+            or_models = ["meta-llama/llama-3.3-70b-instruct", "deepseek/deepseek-chat"]
+            for or_model in or_models:
+                try:
+                    r = requests.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": or_model,
+                            "messages": [
+                                {"role": "system", "content": SYSTEM_PROMPT},
+                                {"role": "user", "content": user_prompt}
+                            ],
+                            "temperature": 0.7
+                        },
+                        timeout=30
+                    )
+                    if r.status_code == 200:
+                        res_json = r.json()
+                        raw_text = res_json["choices"][0]["message"]["content"].strip()
+                        clean_json = _extract_json(raw_text)
+                        if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
+                            clean_json = _enforce_engine_style(clean_json, engine_style, topic)
+                            clean_json["meta_director"] = {
+                                "model_used": f"openrouter/{or_model}",
+                                "engine_style": engine_style,
+                                "custom_style_prompt": custom_style_prompt,
+                                "duration_mode": duration_mode,
+                                "topic": topic,
+                                "voice": voice,
+                                "format_ratio": format_ratio
+                            }
+                            return clean_json
+                except Exception as e:
+                    last_errors.append(f"openrouter/{or_model}: {str(e)[:120]}")
+        except Exception as e:
+            last_errors.append(f"OpenRouter client error: {e}")
 
     err_summary = "; ".join(last_errors) if last_errors else "No valid API keys configured."
     raise RuntimeError(f"Failed to generate video timeline from AI Director. Details: {err_summary}")
@@ -565,7 +612,7 @@ Return ONLY a valid JSON array of 6 objects matching this schema:
   {{"title": "💡 Crash Course Title 6", "category": "Quick Explainer"}}
 ]
 """
-            for m in ["gemini-2.0-flash", "gemini-flash-latest", "gemini-3-flash-preview"]:
+            for m in ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"]:
                 try:
                     res = client.models.generate_content(model=m, contents=prompt)
                     raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""
@@ -656,7 +703,7 @@ Return ONLY a valid JSON object matching this schema:
   ]
 }}
 """
-            for m in ["gemini-2.0-flash", "gemini-flash-latest", "gemini-3-flash-preview"]:
+            for m in ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"]:
                 try:
                     res = client.models.generate_content(model=m, contents=prompt)
                     raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""

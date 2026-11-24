@@ -19,7 +19,7 @@ for mod_name in list(sys.modules.keys()):
 
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles
-from core.voice import generate_voiceover, DEFAULT_VOICE
+from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS
 from core.animator import render_scene_frames, generate_thumbnail_9_16
 from core.subtitles import generate_ass_subtitles
 from core.renderer import render_final_reel
@@ -86,22 +86,75 @@ with st.sidebar:
         value=DEFAULT_WATERMARK,
         help="Channel watermark displayed in the corner of every video frame and thumbnail."
     )
-    voice_option = st.selectbox(
-        "Voice Persona (TTS)",
-        [
-            ("hi-IN-MadhurNeural", "🇮🇳 Madhur (Hindi / Hinglish Tech Authority - Male)"),
-            ("hi-IN-SwaraNeural", "🇮🇳 Swara (Hindi / Hinglish Conversational - Female)"),
-            ("en-IN-PrabhatNeural", "🇮🇳 Prabhat (Crisp Indian Tech English - Male)"),
-            ("en-IN-NeerjaExpressiveNeural", "🇮🇳 Neerja (Expressive Hinglish / Indian Tech - Female)"),
-            ("mr-IN-ManoharNeural", "🇮🇳 Manohar (Marathi Tech Authority - Male)"),
-            ("mr-IN-AarohiNeural", "🇮🇳 Aarohi (Marathi Conversational - Female)"),
-            ("en-US-ChristopherNeural", "🇺🇸 Christopher (Calm Tech Authority - US Male)"),
-            ("en-US-GuyNeural", "🇺🇸 Guy (Conversational American - US Male)"),
-            ("en-US-JennyNeural", "🇺🇸 Jenny (Engaging Female Tech - US Female)"),
-            ("en-GB-RyanNeural", "🇬🇧 Ryan (Crisp British Tech - UK Male)")
-        ],
-        format_func=lambda x: x[1]
+    st.markdown("---")
+    st.markdown("### 🎙️ Voice & TTS Engine")
+    voice_provider = st.radio(
+        "Select Voice Engine Provider:",
+        ["ElevenLabs AI (Ultra-Realistic)", "Microsoft Edge-TTS (Free & Fast)"],
+        index=0,
+        help="ElevenLabs provides studio-quality realistic human cadence. Edge-TTS is completely free and fast."
     )
+
+    if voice_provider == "ElevenLabs AI (Ultra-Realistic)":
+        el_usage = get_elevenlabs_usage()
+        st.caption(f"💳 **Free Tier Usage:** `{el_usage['character_count']}` / `{el_usage['character_limit']}` credits used ({el_usage['remaining']} remaining)")
+        st.progress(min(1.0, max(0.01, el_usage["percent_used"] / 100)))
+        st.caption("⚡ **Credit Conservation Active:** Audio is cached locally by hash, so repeated generations consume 0 credits.")
+
+        elevenlabs_model_choice = st.selectbox(
+            "ElevenLabs Voice Model",
+            [
+                ("eleven_flash_v2_5", "⚡ Eleven Flash v2.5 (Fastest & Emotive • 50% fewer credits [Recommended])"),
+                ("eleven_multilingual_v2", "🎭 Eleven Multilingual v2 (Emotionally rich delivery for dramatic performances)"),
+                ("eleven_turbo_v2_5", "🚀 Eleven Turbo v2.5 (Our best model for real-time and agents)")
+            ],
+            format_func=lambda x: x[1],
+            help="Choose the ElevenLabs model. Flash v2.5 is fastest and uses 50% fewer credits."
+        )
+        elevenlabs_model_id = elevenlabs_model_choice[0]
+
+        elevenlabs_voice_choice = st.selectbox(
+            "ElevenLabs Voice Persona",
+            [
+                ("elevenlabs:pNInz6obpgDQGcFmaJgB", "🎙️ Adam (Deep, Tech Authority Narration - Male) [Recommended]"),
+                ("elevenlabs:21m00Tcm4TlvDq8ikWAM", "🎙️ Rachel (Conversational & Engaging Tech - Female)"),
+                ("elevenlabs:IKne3meq5aSn9XLyUdCD", "🎙️ Charlie (Deep, Confident & Energetic - Male)"),
+                ("elevenlabs:JBFqnCBsd6RMkjVDRZzb", "🎙️ George (Warm, Captivating Storyteller - Male)"),
+                ("elevenlabs:EXAVITQu4vr4xnSDxMaL", "🎙️ Sarah (Mature, Reassuring, Confident - Female)"),
+                ("elevenlabs:FGY2WhTYpPnrIDTdsKH5", "🎙️ Laura (Enthusiast, Quirky Tech Attitude - Female)"),
+                ("elevenlabs:CwhRBWXzGAHq8TQ4Fs17", "🎙️ Roger (Laid-Back, Casual, Resonant - Male)"),
+                ("elevenlabs:N2lVS1w4EtoT3dr4eOWO", "🎙️ Callum (Husky Dynamic Narrator - Male)"),
+                ("custom", "✍️ Custom Voice ID (Enter your own Voice ID)")
+            ],
+            format_func=lambda x: x[1]
+        )
+        if elevenlabs_voice_choice[0] == "custom":
+            custom_vid = st.text_input("Enter ElevenLabs Voice ID:", placeholder="e.g. pNInz6obpgDQGcFmaJgB")
+            chosen_voice = f"elevenlabs:{custom_vid.strip()}" if custom_vid.strip() else "elevenlabs:pNInz6obpgDQGcFmaJgB"
+            voice_label = f"ElevenLabs Custom ({custom_vid.strip()})"
+        else:
+            chosen_voice = elevenlabs_voice_choice[0]
+            voice_label = elevenlabs_voice_choice[1]
+    else:
+        elevenlabs_model_id = "eleven_flash_v2_5"
+        edge_voice_choice = st.selectbox(
+            "Edge-TTS Voice Persona",
+            [
+                ("hi-IN-MadhurNeural", "🇮🇳 Madhur (Hindi / Hinglish Tech Authority - Male)"),
+                ("hi-IN-SwaraNeural", "🇮🇳 Swara (Hindi / Hinglish Conversational - Female)"),
+                ("en-IN-PrabhatNeural", "🇮🇳 Prabhat (Crisp Indian Tech English - Male)"),
+                ("en-IN-NeerjaExpressiveNeural", "🇮🇳 Neerja (Expressive Hinglish / Indian Tech - Female)"),
+                ("mr-IN-ManoharNeural", "🇮🇳 Manohar (Marathi Tech Authority - Male)"),
+                ("mr-IN-AarohiNeural", "🇮🇳 Aarohi (Marathi Conversational - Female)"),
+                ("en-US-ChristopherNeural", "🇺🇸 Christopher (Calm Tech Authority - US Male)"),
+                ("en-US-GuyNeural", "🇺🇸 Guy (Conversational American - US Male)"),
+                ("en-US-JennyNeural", "🇺🇸 Jenny (Engaging Female Tech - US Female)"),
+                ("en-GB-RyanNeural", "🇬🇧 Ryan (Crisp British Tech - UK Male)")
+            ],
+            format_func=lambda x: x[1]
+        )
+        chosen_voice = edge_voice_choice[0]
+        voice_label = edge_voice_choice[1]
     
     aspect_ratio = st.selectbox(
         "Format",
@@ -180,7 +233,8 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🚀 Engine Status")
-    st.success("🟢 Google Gemini 3 Flash: Ready")
+    st.success("🟢 Google Gemini Flash: Ready")
+    st.success("🟢 ElevenLabs AI Voice: Connected (10k Free Tier)")
     st.success("🟢 Groq Whisper Large v3: Ready")
     st.success("🟢 2D Canvas Engine: Ready")
     st.success("🟢 FFmpeg Encoder: Ready")
@@ -341,7 +395,7 @@ with tab_create:
                 engine_style=visual_engine[0],
                 duration_mode=duration_option[0],
                 custom_style_prompt=custom_style_prompt,
-                voice=voice_option[0],
+                voice=chosen_voice,
                 format_ratio=aspect_ratio[0]
             )
             
@@ -352,7 +406,11 @@ with tab_create:
             status_box.info("🎙️ Synthesizing conversational voiceover & microsecond word timestamps...")
             progress_bar.progress(35)
             scenes = timeline.get("scenes", [])
-            audio_path, word_timestamps, aligned_scenes = generate_voiceover(scenes, voice=voice_option[0])
+            audio_path, word_timestamps, aligned_scenes = generate_voiceover(
+                scenes,
+                voice=chosen_voice,
+                elevenlabs_model=elevenlabs_model_id
+            )
 
             with st.expander("🔊 Audio & Word Timestamps", expanded=False):
                 st.audio(str(audio_path))
@@ -526,8 +584,8 @@ with tab_create:
                        - **Duration Strategy:** `{duration_option[1]}` (Planned {len(aligned_scenes)} scenes without artificial 60s cutoff)
                     
                     2. **🎙️ Step 2 — Text-to-Speech & Microsecond Alignment:**
-                       - **Voice Persona (TTS):** `{voice_option[1]}` (`{voice_option[0]}`)
-                       - **Speech Engine:** Microsoft Edge-TTS (Per-scene exact millisecond synthesis)
+                       - **Voice Persona (TTS):** `{voice_label}` (`{chosen_voice}`)
+                       - **Speech Engine:** `{"ElevenLabs (" + elevenlabs_model_id + ")" if chosen_voice.startswith("elevenlabs:") else "Microsoft Edge-TTS"}`
                        - **Audio Alignment API:** `Groq Whisper Large v3` (`whisper-large-v3`)
                        - **Total Aligned Words:** `{len(word_timestamps)}` words aligned with 0% drift across all scenes.
 
@@ -606,7 +664,7 @@ with tab_create:
                 with st.expander("🤖 Tech Stack & API Architecture Matrix", expanded=False):
                     st.table([
                         {"Pipeline Layer": "AI Director & Storyboard", "API / Provider": "Google AI Studio", "Model / Spec": "gemini-3-flash-preview", "Status": "Active 🟢"},
-                        {"Pipeline Layer": "Text-to-Speech (TTS)", "API / Provider": "Microsoft Edge-TTS", "Model / Spec": str(voice_option[0]), "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Text-to-Speech (TTS)", "API / Provider": "ElevenLabs AI" if chosen_voice.startswith("elevenlabs:") else "Microsoft Edge-TTS", "Model / Spec": str(elevenlabs_model_id if chosen_voice.startswith("elevenlabs:") else chosen_voice), "Status": "Active 🟢"},
                         {"Pipeline Layer": "Audio Alignment", "API / Provider": "Groq Cloud API", "Model / Spec": "whisper-large-v3 (Word-Level)", "Status": "Active 🟢"},
                         {"Pipeline Layer": "Visual Graphics Engine", "API / Provider": "Python Pillow (PIL)", "Model / Spec": f"{FORMAT_SPECS[aspect_ratio[0]]['width']}x{FORMAT_SPECS[aspect_ratio[0]]['height']} ({aspect_ratio[0]}) @ {VIDEO_FPS} FPS", "Status": "Active 🟢"},
                         {"Pipeline Layer": "Video Stitcher & Encoder", "API / Provider": "FFmpeg Engine", "Model / Spec": "Hardware MF 8Mbps / libx264 CRF 18", "Status": "Active 🟢"},

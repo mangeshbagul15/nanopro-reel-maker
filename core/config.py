@@ -35,6 +35,7 @@ GROQ_API_KEY = _get_env_or_secret("GROQ_API_KEY")
 OPENROUTER_API_KEY = _get_env_or_secret("OPENROUTER_API_KEY")
 MISTRAL_API_KEY = _get_env_or_secret("MISTRAL_API_KEY")
 EDEN_AI_KEY = _get_env_or_secret("EDEN_AI_KEY")
+ELEVENLABS_API_KEY = _get_env_or_secret("ELEVENLABS_API_KEY")
 
 # Cloudflare R2
 CF_ACCOUNT_ID = _get_env_or_secret("CLOUDFLARE_ACCOUNT_ID")

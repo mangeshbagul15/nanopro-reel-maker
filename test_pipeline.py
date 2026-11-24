@@ -17,9 +17,10 @@ from core.config import OUTPUT_DIR
 def run_smoke_test():
     print("=== STARTING SMOKE TEST FOR NANOPRO REEL MAKER ===")
     
-    # 1. Test Director with Hindi/Hinglish Voice Persona, sql_deepdive Engine, and 9:16 Format
+    # 1. Test Director with ElevenLabs Ultra-Realistic Voice, sql_deepdive Engine, and 9:16 Format
     topic = "SQL DENSE_RANK vs RANK with duplicate salaries"
-    voice = "hi-IN-MadhurNeural"
+    voice = "elevenlabs:pNInz6obpgDQGcFmaJgB" # Adam
+    elevenlabs_model = "eleven_flash_v2_5"
     engine_style = "sql_deepdive"
     duration_mode = "short"
     format_ratio = "9:16"
@@ -37,9 +38,13 @@ def run_smoke_test():
     print(f"Generated {len(scenes)} scenes.")
     assert len(scenes) > 0, "No scenes generated!"
 
-    # 2. Test Voice & Whisper with Hindi/Hinglish TTS
-    print(f"\n[2/5] Synthesizing Voice ({voice}) & Extracting Whisper Timestamps...")
-    audio_path, word_timestamps, aligned_scenes = generate_voiceover(scenes, voice=voice)
+    # 2. Test ElevenLabs Voice & Groq Whisper Alignment
+    print(f"\n[2/5] Synthesizing ElevenLabs Voice ({voice}, Model: {elevenlabs_model}) & Extracting Timestamps...")
+    audio_path, word_timestamps, aligned_scenes = generate_voiceover(
+        scenes,
+        voice=voice,
+        elevenlabs_model=elevenlabs_model
+    )
     print(f"Audio Path: {audio_path} (exists: {audio_path.exists()})")
     print(f"Total Spoken Words Extracted: {len(word_timestamps)}")
     assert len(word_timestamps) > 0, "No word timestamps returned!"
