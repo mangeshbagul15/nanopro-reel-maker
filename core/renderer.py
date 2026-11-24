@@ -78,10 +78,12 @@ def render_final_reel(
             for frame in sc_frames:
                 safe_path = str(frame.resolve()).replace("\\", "/")
                 f.write(f"file '{safe_path}'\n")
-                f.write(f"duration {1.0 / VIDEO_FPS:.4f}\n")
-        # Repeat last frame once for concat demuxer end boundary
+                f.write(f"duration {1.0 / VIDEO_FPS:.6f}\n")
+        # Hold last frame to cleanly cover audio without premature cutoff
         if frames:
             last_frame_path = str(frames[-1].resolve()).replace("\\", "/")
+            f.write(f"file '{last_frame_path}'\n")
+            f.write("duration 1.0\n")
             f.write(f"file '{last_frame_path}'\n")
 
     bgm_path = SFX_DIR / "lofi_cyber_bgm.wav"
@@ -121,7 +123,7 @@ def render_final_reel(
         cmd.extend(["-filter_complex", ";".join(filter_parts)])
     cmd.extend(["-map", video_map, "-map", audio_map])
     cmd.extend(encoder_args)
-    cmd.extend(["-c:a", "aac", "-b:a", "192k", "-shortest", str(final_output_path.resolve())])
+    cmd.extend(["-r", str(VIDEO_FPS), "-c:a", "aac", "-b:a", "192k", "-shortest", str(final_output_path.resolve())])
 
     try:
         _run_ffmpeg(cmd)

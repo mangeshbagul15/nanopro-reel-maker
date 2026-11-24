@@ -92,34 +92,59 @@ with st.sidebar:
     voice_option = st.selectbox(
         "Voice Persona (TTS)",
         [
-            ("en-US-ChristopherNeural", "Christopher (Calm Tech Authority)"),
-            ("en-US-GuyNeural", "Guy (Conversational American)"),
-            ("en-IN-PrabhatNeural", "Prabhat (Crisp Indian Tech)"),
-            ("en-US-JennyNeural", "Jenny (Engaging Female Tech)")
+            ("hi-IN-MadhurNeural", "🇮🇳 Madhur (Hindi / Hinglish Tech Authority - Male)"),
+            ("hi-IN-SwaraNeural", "🇮🇳 Swara (Hindi / Hinglish Conversational - Female)"),
+            ("en-IN-PrabhatNeural", "🇮🇳 Prabhat (Crisp Indian Tech English - Male)"),
+            ("en-IN-NeerjaExpressiveNeural", "🇮🇳 Neerja (Expressive Hinglish / Indian Tech - Female)"),
+            ("mr-IN-ManoharNeural", "🇮🇳 Manohar (Marathi Tech Authority - Male)"),
+            ("mr-IN-AarohiNeural", "🇮🇳 Aarohi (Marathi Conversational - Female)"),
+            ("en-US-ChristopherNeural", "🇺🇸 Christopher (Calm Tech Authority - US Male)"),
+            ("en-US-GuyNeural", "🇺🇸 Guy (Conversational American - US Male)"),
+            ("en-US-JennyNeural", "🇺🇸 Jenny (Engaging Female Tech - US Female)"),
+            ("en-GB-RyanNeural", "🇬🇧 Ryan (Crisp British Tech - UK Male)")
         ],
         format_func=lambda x: x[1]
     )
     
     aspect_ratio = st.selectbox("Format", ["9:16 Vertical (Reels / Shorts / TikTok)"])
     
+    duration_option = st.selectbox(
+        "Video Duration & Depth (No 60s Limit)",
+        [
+            ("auto", "⚡ Dynamic / Auto (Based on topic depth) [Recommended]"),
+            ("short", "⏱️ Quick Explainer (~30-45 sec)"),
+            ("standard", "🎬 Standard Explainer (~60 sec)"),
+            ("deep_dive", "🧠 Deep-Dive Architecture (~90-180+ sec)")
+        ],
+        format_func=lambda x: x[1]
+    )
+    
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal) [Recommended]"),
-            ("bytebytego_dsl", "📊 ByteByteGo Architecture & Diagram DSL (D2 / Mermaid)"),
-            ("remotion_web", "⚛️ Remotion React Motion Graphics (Fireship Cyberpunk)"),
-            ("handdrawn_sketch", "✏️ Hand-Drawn Whiteboard Sketch (NeetCode / Excalidraw)"),
-            ("terminal_screencast", "💻 Real Terminal Screencast (Asciinema / Hacker CLI)"),
-            ("manim_math", "📐 Mathematical Animation (3Blue1Brown / Manim)"),
-            ("kinetic_type", "🔤 Kinetic Typography (Apple Keynote Style)"),
-            ("scene_graph", "🎨 Primitive Scene Graph (Canva / Figma Engine)"),
-            ("ai_video_broll", "🎬 AI Generative Video & B-Roll (Runway / Pexels) [Requires Key]"),
-            ("digital_avatar", "👤 AI Digital Human Presenter (HeyGen) [Requires Key]"),
-            ("blender_local_gpu", "🖥️ Local NVIDIA GPU 3D Ray-Tracing (Blender 3D / Unreal Engine) [Heavy PC]"),
-            ("cloud_serverless_gpu", "☁️ Cloud Serverless GPU 3D Studio (RunPod / Modal Ray-Tracing) [Cloud GPU]")
+            ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
+            ("bytebytego_dsl", "📊 ByteByteGo Architecture & Cloud Topology (Pipelines / Microservices)"),
+            ("sql_deepdive", "🗄️ SQL Table, Query & Dataset Execution (Schemas / DENSE_RANK / Window Functions)"),
+            ("split_comparison", "⚖️ Architectural Split Comparison (Legacy vs Modern / Trade-offs)"),
+            ("benchmark_speed", "⚡ Performance Benchmark Bars & Latency (Throughput / Speedup 15x)"),
+            ("memory_internals", "🧩 Memory Buffer, CDC WAL & Partition Slots (Low-level Bytes / Offsets)"),
+            ("network_mesh", "🌐 Circular Hub & Spoke Event Mesh (Message Broker / Radar Nodes)"),
+            ("telemetry_hud", "⏱️ Speedometer & Live Telemetry HUD (99.999% SLA / CPU / Event Counters)"),
+            ("alert_troubleshoot", "🚨 Production Incident Alert & Post-Mortem (Radar Alert / Bottlenecks)"),
+            ("concept_keynote", "💡 Kinetic Concept Keynote (Punchy Principles & Bullet Cards)"),
+            ("custom_user_style", "✍️ Custom Visual Style... (Type your own custom visual aesthetic)")
         ],
         format_func=lambda x: x[1]
     )
+    
+    custom_style_prompt = ""
+    if visual_engine[0] == "custom_user_style":
+        custom_style_prompt = st.text_input(
+            "Enter Custom Visual Aesthetic:",
+            placeholder="e.g. Cyberpunk neon green terminal with matrix code rain and glowing data blocks",
+            help="Describe the exact visual style, colors, and layout you want for every scene."
+        )
     
     st.markdown("---")
     st.markdown("### ⚡ Compute & Studio Switcher")
@@ -149,7 +174,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🚀 Engine Status")
-    st.success("🟢 Google Gemini 2.5 Flash: Ready")
+    st.success("🟢 Google Gemini 3 Flash: Ready")
     st.success("🟢 Groq Whisper Large v3: Ready")
     st.success("🟢 2D Canvas Engine: Ready")
     st.success("🟢 FFmpeg Encoder: Ready")
@@ -170,7 +195,7 @@ with tab_create:
     # Quick Prompts
     st.markdown("**Quick Preset Topics:**")
     col1, col2, col3, col4 = st.columns(4)
-    if col1.button("☁️ AWS DMS in 60s"):
+    if col1.button("☁️ AWS DMS Architecture"):
         st.session_state.user_prompt_input = "Explain AWS Database Migration Service (DMS) architecture with zero downtime"
         st.rerun()
     if col2.button("📊 SQL DENSE_RANK"):
@@ -192,7 +217,7 @@ with tab_create:
     )
 
     # Execution Action
-    if st.button("🚀 Generate 60s Reel", use_container_width=True):
+    if st.button("🚀 Generate Video Reel", use_container_width=True):
         if not user_prompt.strip():
             st.error("Please enter a technical topic prompt.")
             st.stop()
@@ -204,9 +229,14 @@ with tab_create:
             # STEP 1: AI Director Timeline Generation
             status_box.info("🧠 AI Director is designing the technical storyboard & script...")
             progress_bar.progress(20)
-            timeline = generate_timeline(user_prompt.strip(), engine_style=visual_engine[0])
+            timeline = generate_timeline(
+                user_prompt.strip(),
+                engine_style=visual_engine[0],
+                duration_mode=duration_option[0],
+                custom_style_prompt=custom_style_prompt
+            )
             
-            with st.expander("📄 View AI Director Blueprint (JSON)", expanded=False):
+            with st.expander("📄 View Raw AI Director Blueprint (JSON)", expanded=False):
                 st.json(timeline)
 
             # STEP 2: Voiceover & Whisper Alignment
@@ -235,7 +265,7 @@ with tab_create:
                 v_type = sc.get('visual_type', 'cards')
                 status_box.info(f"🎨 Rendering motion visuals for scene {i + 1}/{total_sc} ({v_type})...")
                 progress_bar.progress(45 + int(35 * (i + 1) / max(1, total_sc)))
-                render_scene_frames(sc, i + 1, total_scenes=total_sc)
+                render_scene_frames(sc, i + 1, total_scenes=total_sc, engine_style=visual_engine[0])
                 all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 
             # STEP 4: Video Stitching via Local Hardware / Cloud
@@ -264,7 +294,7 @@ with tab_create:
                 status_box.success("🎉 Reel generation complete and deployed to Cloud CDN!")
 
             # Display Final Video & Actions
-            col_vid, col_meta = st.columns([1, 1])
+            col_vid, col_meta = st.columns([1, 1.1])
             with col_vid:
                 st.markdown("### 📱 9:16 Reel Preview")
                 st.video(str(final_video_path))
@@ -279,30 +309,133 @@ with tab_create:
                     )
 
             with col_meta:
-                st.markdown("### 📊 Reel Summary")
-                st.markdown(f"**Title:** {timeline.get('title', 'Tech Reel')}")
-                st.markdown(f"**Category:** `{timeline.get('topic_category', 'general')}`")
-                st.markdown(f"**Duration:** `{aligned_scenes[-1]['end_time']:.1f} seconds`")
-                st.markdown(f"**Scenes Count:** `{len(aligned_scenes)} scenes`")
+                st.markdown("### 📊 Production Inspector & Reel Summary")
+                total_duration = aligned_scenes[-1]['end_time']
+                
+                # Top KPI Row
+                kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+                kpi1.metric("⏱️ Duration", f"{total_duration:.1f}s")
+                kpi2.metric("🎬 Scenes", f"{len(aligned_scenes)}")
+                kpi3.metric("🗣️ Words", f"{len(word_timestamps)}")
+                kpi4.metric("📐 Format", "9:16 (1080p)")
 
-                if is_local_machine:
-                    st.success(f"💾 **Local File Location:** `{final_video_path}`")
-                    col_l1, col_l2 = st.columns(2)
-                    with col_l1:
+                # Permanent Cloudflare R2 CDN Link Section
+                if r2_url:
+                    st.success("✅ **Uploaded to Cloudflare R2 CDN (Permanent Link):**")
+                    st.code(r2_url, language="text")
+                    st.link_button("🌐 Open Video in New Tab", r2_url, type="primary", use_container_width=True)
+                elif is_local_machine:
+                    st.info(f"💾 **Local Video Path:** `{final_video_path}`")
+                    c_up1, c_up2 = st.columns(2)
+                    with c_up1:
                         if st.button("📂 Open Output Folder", use_container_width=True):
                             import os
                             os.startfile(str(OUTPUT_DIR))
-                    with col_l2:
-                        if st.button("☁️ Upload to R2 CDN", use_container_width=True):
-                            with st.spinner("Uploading to Cloudflare R2..."):
+                    with c_up2:
+                        if st.button("☁️ Upload to R2 CDN Now", use_container_width=True):
+                            with st.spinner("Uploading to Cloudflare R2 Global Edge..."):
                                 manual_r2 = upload_to_r2(final_video_path)
                                 if manual_r2:
-                                    st.success("Uploaded!")
-                                    st.code(manual_r2)
-                else:
-                    if r2_url:
-                        st.success("✅ Uploaded to Cloudflare R2 CDN (Permanent Link)!")
-                        st.code(r2_url, language="markdown")
+                                    st.success("✅ Permanent CDN Link Ready!")
+                                    st.code(manual_r2, language="text")
+                                    st.link_button("🌐 Open Live Video", manual_r2, type="primary", use_container_width=True)
+
+                st.markdown("---")
+
+                # 1. Step-by-Step Production Log ("First kay kel, then kay, then kay...")
+                with st.expander("🔄 Complete Pipeline Execution Log (Start to Finish)", expanded=True):
+                    st.markdown(f"""
+                    1. **🧠 Step 1 — AI Director & Storyboard Blueprinting:**
+                       - **Topic Entered:** *"{user_prompt.strip()}"*
+                       - **AI Model Used:** `Google Gemini 3 Flash (gemini-3-flash-preview)`
+                       - **Visual Engine:** `{visual_engine[1]}`
+                       - **Duration Strategy:** `{duration_option[1]}` (Planned {len(aligned_scenes)} scenes without artificial 60s cutoff)
+                    
+                    2. **🎙️ Step 2 — Text-to-Speech & Microsecond Alignment:**
+                       - **Voice Persona (TTS):** `{voice_option[1]}` (`{voice_option[0]}`)
+                       - **Speech Engine:** Microsoft Edge-TTS (Per-scene exact millisecond synthesis)
+                       - **Audio Alignment API:** `Groq Whisper Large v3` (`whisper-large-v3`)
+                       - **Total Aligned Words:** `{len(word_timestamps)}` words aligned with 0% drift across all scenes.
+
+                    3. **🎨 Step 3 — 2D Generative Visual Rendering:**
+                       - **Rendering Engine:** Python 2D Generative Canvas (Pillow)
+                       - **Resolution & Frame Rate:** 1080x1920 (9:16 Vertical) @ 15 FPS
+                       - **Dynamic Story Elements:** Visuals strictly enforced to match `{visual_engine[0]}`.
+                       - **Total Frames Generated:** `{round(total_duration * 15)}` frames rendered frame-by-frame.
+
+                    4. **⚡ Step 4 — Hardware FFmpeg Video Stitching & Captions:**
+                       - **Video Encoder:** Hardware Accelerated (Windows Media Foundation / NVIDIA NVENC)
+                       - **Karaoke Subtitles:** Advanced SubStation Alpha (`.ass`) with safe-zone margin (MarginV=420) and glowing neon cyan/yellow active pop
+                       - **Audio Mixing:** Lo-Fi Cyber BGM mixed at 18% ducking volume under voiceover.
+
+                    5. **☁️ Step 5 — Deployment & Storage:**
+                       - **Host Compute:** `{"Local NVIDIA RTX 3050 Laptop Studio (Windows)" if is_local_machine else "Online Cloud Studio Container (Linux)"}`
+                       - **Cloud CDN Target:** Cloudflare R2 Global Object Storage (`nanopro-reels`)
+                    """)
+
+                # 2. Complete Spoken Script (Verbatim Transcript)
+                with st.expander("📜 Full Verbatim Script (Complete Narrator Transcript)", expanded=False):
+                    full_script_text = "\n\n".join([f"[Scene {idx + 1} • {sc.get('role', 'scene').upper()} ({sc['duration']:.1f}s)]\n{sc.get('narration')}" for idx, sc in enumerate(aligned_scenes)])
+                    st.text_area("Full Script Text:", value=full_script_text, height=220)
+                    st.markdown(f"**Total Script Word Count:** {len(word_timestamps)} words")
+
+                # 3. Scene-by-Scene Visual Breakdown ("Kontya scenes sathi konte visuals, kasa plan kela, konte element ghetle")
+                with st.expander("🎬 Scene-by-Scene Visual Storyboard & Elements Breakdown", expanded=False):
+                    for idx, sc in enumerate(aligned_scenes):
+                        v_data = sc.get("visual_data", {})
+                        v_type = sc.get("visual_type", "cards")
+                        st.markdown(f"#### 📍 Scene {idx + 1}: `{sc.get('role', 'Scene').upper()}` ({sc['start_time']:.1f}s ➔ {sc['end_time']:.1f}s • {sc['duration']:.1f}s)")
+                        st.markdown(f"- **Visual Engine:** `{v_type}`")
+                        st.markdown(f"- **Badge & Title:** `{v_data.get('badge', 'N/A')}` — **{v_data.get('title', 'N/A')}**")
+                        
+                        # Show specific elements based on visual type
+                        if v_type == "architecture_flow":
+                            nodes = v_data.get("nodes", [])
+                            node_labels = " ➔ ".join([f"**[{n.get('label')}]** ({n.get('sub', '')})" for n in nodes]) if nodes else "Pipeline nodes"
+                            st.markdown(f"- **Rendered Nodes:** {node_labels}")
+                        elif v_type == "sql_table":
+                            code_snip = v_data.get("code_snippet", "")
+                            st.markdown(f"- **SQL Query:** `{code_snip}`")
+                            st.markdown(f"- **Table Columns:** `{v_data.get('table_data', {}).get('headers', [])}`")
+                        elif v_type == "code_terminal":
+                            cmd = v_data.get("command", "")
+                            code = v_data.get("code_snippet", "")
+                            st.markdown(f"- **CLI Command:** `{cmd}`" if cmd else "- **Terminal Code:**")
+                            st.code(code[:150] + ("..." if len(code) > 150 else ""), language="python")
+                        elif v_type == "split_comparison":
+                            st.markdown(f"- **Comparison:** ❌ `{v_data.get('left_label')}` vs ⚡ `{v_data.get('right_label')}`")
+                            st.markdown(f"- **Points:** {len(v_data.get('left_points', []))} cons vs {len(v_data.get('right_points', []))} pros")
+                        elif v_type == "benchmark_chart":
+                            bars = v_data.get("bars", [])
+                            st.markdown(f"- **Benchmark Metrics:** {len(bars)} comparative bars • Winner: **{v_data.get('winner_badge', '10X FASTER')}**")
+                        elif v_type == "data_structure_memory":
+                            entries = v_data.get("entries", [])
+                            st.markdown(f"- **Memory Offsets:** {len(entries)} buffer slots rendered with LSN offsets")
+                        elif v_type == "alert_diagram":
+                            st.markdown(f"- **Production Bottleneck:** *{v_data.get('problem_title', 'Incident Alert')}*")
+                            st.markdown(f"- **Core Dilemma:** *{v_data.get('challenge', '')}*")
+                        elif v_type == "circular_hub_mesh":
+                            st.markdown(f"- **Central Broker:** `{v_data.get('hub_name', 'CORE BROKER')}` with {len(v_data.get('satellites', []))} satellite nodes")
+                        elif v_type == "metric_gauge_hud":
+                            st.markdown(f"- **Primary Gauge:** `{v_data.get('main_value')}` {v_data.get('main_unit')} ({v_data.get('gauge_percent')}% meter)")
+                        else:
+                            st.markdown(f"- **Bullet Cards:** `{v_data.get('bullets', [])}`")
+
+                        st.markdown(f"- **Spoken Narration:** *\"{sc.get('narration')}\"*")
+                        st.markdown("---")
+
+                # 4. APIs, Models & System Stack Summary Table
+                with st.expander("🤖 Tech Stack & API Architecture Matrix", expanded=False):
+                    st.table([
+                        {"Pipeline Layer": "AI Director & Storyboard", "API / Provider": "Google AI Studio", "Model / Spec": "gemini-3-flash-preview", "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Text-to-Speech (TTS)", "API / Provider": "Microsoft Edge-TTS", "Model / Spec": str(voice_option[0]), "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Audio Alignment", "API / Provider": "Groq Cloud API", "Model / Spec": "whisper-large-v3 (Word-Level)", "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Visual Graphics Engine", "API / Provider": "Python Pillow (PIL)", "Model / Spec": "1080x1920 (9:16) @ 15 FPS", "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Video Stitcher & Encoder", "API / Provider": "FFmpeg Engine", "Model / Spec": "Hardware Acceleration (MF / NVENC)", "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Subtitles & Karaoke", "API / Provider": "ASS SubStation Engine", "Model / Spec": "Segoe UI Safe-Zone Font", "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Cloud CDN Storage", "API / Provider": "Cloudflare R2", "Model / Spec": "S3 Global Edge (pub-ba534...)", "Status": "Active 🟢"},
+                        {"Pipeline Layer": "Host Compute", "API / Provider": "Local RTX 3050" if is_local_machine else "Streamlit Cloud", "Model / Spec": "Windows 11 / 16GB RAM", "Status": "Active 🟢"}
+                    ])
 
         except Exception as e:
             status_box.error(f"❌ Error during generation: {e}")

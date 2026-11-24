@@ -96,12 +96,18 @@ def draw_wrapped_text(
 
     return cur_y - y
 
-def render_scene_frames(scene: Dict[str, Any], scene_idx: int, total_scenes: int = 4) -> List[Path]:
+def render_scene_frames(
+    scene: Dict[str, Any],
+    scene_idx: int,
+    total_scenes: int = 4,
+    engine_style: str = "hybrid_modern"
+) -> List[Path]:
     """
-    Renders high-octane 2D frames across 8+ rich motion-graphics visual engines.
+    Renders high-octane 2D frames across 10+ rich motion-graphics visual engines,
+    strictly adhering to the user-selected Visual Engine & Style.
     """
-    duration = max(2.0, float(scene.get("duration", 5.0)))
-    total_frames = int(duration * VIDEO_FPS)
+    duration = max(1.5, float(scene.get("duration", 5.0)))
+    total_frames = max(15, round(duration * VIDEO_FPS))
     
     scene_frames_dir = OUTPUT_DIR / f"scene_{scene_idx:02d}_frames"
     if scene_frames_dir.exists():
@@ -114,6 +120,29 @@ def render_scene_frames(scene: Dict[str, Any], scene_idx: int, total_scenes: int
     
     visual_type = scene.get("visual_type", "concept_cards")
     visual_data = scene.get("visual_data", {})
+
+    # Strict Visual Engine enforcement matching the user's selected dropdown choice
+    if engine_style == "terminal_screencast" and visual_type != "code_terminal":
+        visual_type = "code_terminal"
+    elif engine_style == "sql_deepdive" and visual_type != "sql_table":
+        visual_type = "sql_table"
+    elif engine_style == "bytebytego_dsl" and visual_type not in ["architecture_flow", "circular_hub_mesh"]:
+        visual_type = "architecture_flow"
+    elif engine_style == "split_comparison" and visual_type != "split_comparison":
+        visual_type = "split_comparison"
+    elif engine_style == "benchmark_speed" and visual_type not in ["benchmark_chart", "metric_gauge_hud"]:
+        visual_type = "benchmark_chart"
+    elif engine_style == "memory_internals" and visual_type != "data_structure_memory":
+        visual_type = "data_structure_memory"
+    elif engine_style == "network_mesh" and visual_type != "circular_hub_mesh":
+        visual_type = "circular_hub_mesh"
+    elif engine_style == "telemetry_hud" and visual_type != "metric_gauge_hud":
+        visual_type = "metric_gauge_hud"
+    elif engine_style == "alert_troubleshoot" and visual_type != "alert_diagram":
+        visual_type = "alert_diagram"
+    elif engine_style == "concept_keynote" and visual_type != "concept_cards":
+        visual_type = "concept_cards"
+
     frame_paths = []
     
     base_canvas = Image.new("RGB", (VIDEO_WIDTH, VIDEO_HEIGHT), COLOR_BG_DARK)
@@ -469,16 +498,19 @@ def _render_data_structure_memory(draw: ImageDraw.Draw, data: Dict[str, Any], pr
 # 6. SQL TABLE
 # =========================================================================
 def _render_sql_table(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    table_data = data.get("table_data", {
-        "headers": ["partition", "offset", "payload", "status"],
-        "rows": [
-            ["P-0", "009142", "Order_Created", "ACK"],
-            ["P-1", "009143", "Payment_Done", "ACK"],
-            ["P-2", "009144", "Inventory_Sync", "ACK"],
-            ["P-0", "009145", "Dispatch_Ready", "LIVE"]
+    code = data.get("code_snippet") or data.get("query") or data.get("sql") or data.get("code") or "SELECT emp_id, salary, DENSE_RANK() OVER (ORDER BY salary DESC) FROM emp;"
+    table_data = data.get("table_data") or data.get("table") or data.get("dataset") or {}
+    headers = table_data.get("headers") or table_data.get("columns") or table_data.get("cols")
+    rows = table_data.get("rows") or table_data.get("data")
+    if not headers:
+        headers = ["EMP_ID", "NAME", "SALARY", "DENSE_RANK"]
+    if not rows:
+        rows = [
+            ["101", "Alice", "120,000", "1"],
+            ["102", "Bob", "95,000", "2"],
+            ["103", "Charlie", "95,000", "2"],
+            ["104", "Diana", "80,000", "3"]
         ]
-    })
-    code = data.get("code_snippet", "topic.produce(key=user_id, value=event, acks='all')")
     
     qx, qy, qw, qh = 70, 440, 940, 140
     draw.rounded_rectangle((qx, qy, qx + qw, qy + qh), radius=20, fill=CARD_BG, outline=NEON_PURPLE, width=3)
@@ -596,34 +628,53 @@ def _render_alert_diagram(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
 # 9. ARCHITECTURE PIPELINE FLOW
 # =========================================================================
 def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    nodes = data.get("nodes") or data.get("stages") or data.get("steps") or data.get("services") or [
-        {"id": "src", "label": "Client / Ingestion Layer", "sub": "Incoming Requests & Payloads", "color": "#38BDF8"},
-        {"id": "eng", "label": "Processing & Business Engine", "sub": "Distributed Core Execution", "color": "#FBBF24"},
-        {"id": "tgt", "label": "Persistence & Output Target", "sub": "High-Throughput Storage & CDN", "color": "#34D399"}
-    ]
-    
-    font_title = get_font(36, bold=True)
-    font_sub = get_font(26)
-    node_w, node_h = 860, 180
+    raw_nodes = data.get("nodes") or data.get("stages") or data.get("steps") or data.get("services") or data.get("pipeline") or []
+    default_colors = ["#38BDF8", "#FBBF24", "#34D399", "#A855F7"]
+    if not raw_nodes:
+        raw_nodes = [
+            {"label": "Client Ingestion Layer", "sub": "Incoming Requests & Payloads", "color": "#38BDF8"},
+            {"label": "Core Processing Engine", "sub": "Distributed CDC Execution", "color": "#FBBF24"},
+            {"label": "Target Database Cluster", "sub": "High-Throughput Storage & CDN", "color": "#34D399"}
+        ]
+    nodes = []
+    for idx, n in enumerate(raw_nodes[:4]):
+        if isinstance(n, str):
+            nodes.append({"label": n, "sub": "Service Component", "color": default_colors[idx % len(default_colors)]})
+        elif isinstance(n, dict):
+            nodes.append({
+                "label": n.get("label") or n.get("name") or n.get("title") or f"Stage {idx+1}",
+                "sub": n.get("sub") or n.get("description") or n.get("type") or "Cloud Service",
+                "color": n.get("color") or default_colors[idx % len(default_colors)]
+            })
+
+    font_title = get_font(34, bold=True)
+    font_sub = get_font(24)
+    node_w = 860
     center_x = (VIDEO_WIDTH - node_w) // 2
-    start_y = 440
-    gap = 250
+    
+    n_count = len(nodes)
+    if n_count <= 2:
+        node_h, gap, start_y = 200, 310, 480
+    elif n_count == 3:
+        node_h, gap, start_y = 170, 240, 440
+    else:
+        node_h, gap, start_y = 135, 180, 405
     
     node_coords = []
-    for i, node in enumerate(nodes[:3]):
+    for i, node in enumerate(nodes):
         ny = start_y + (i * gap)
         node_coords.append((center_x + node_w // 2, ny + node_h // 2))
         color_hex = node.get("color", "#38BDF8")
         accent_rgb = _hex_to_rgb(color_hex)
         
-        draw.rounded_rectangle((center_x, ny, center_x + node_w, ny + node_h), radius=24, fill=CARD_BG, outline=accent_rgb, width=3)
-        draw.ellipse((center_x + 35, ny + 65, center_x + 85, ny + 115), fill=accent_rgb)
+        draw.rounded_rectangle((center_x, ny, center_x + node_w, ny + node_h), radius=22, fill=CARD_BG, outline=accent_rgb, width=3)
+        draw.ellipse((center_x + 35, ny + (node_h - 45) // 2, center_x + 80, ny + (node_h + 45) // 2), fill=accent_rgb)
         
-        draw_wrapped_text(draw, node.get("label", ""), font_title, center_x + 105, ny + 35, 710, TEXT_PRIMARY, max_lines=1)
-        sub_text = node.get("sub") or node.get("type") or "Cloud Service"
+        draw_wrapped_text(draw, node.get("label", ""), font_title, center_x + 100, ny + 20, 720, TEXT_PRIMARY, max_lines=1)
+        sub_text = node.get("sub") or "Cloud Service"
         if isinstance(sub_text, str):
             sub_text = sub_text.title()
-        draw_wrapped_text(draw, sub_text, font_sub, center_x + 105, ny + 92, 710, TEXT_MUTED, max_lines=2)
+        draw_wrapped_text(draw, sub_text, font_sub, center_x + 100, ny + 68, 720, TEXT_MUTED, max_lines=2)
 
     for i in range(len(node_coords) - 1):
         x1, y1 = node_coords[i]
@@ -638,11 +689,13 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
 # 10. CONCEPT COMPARISON CARDS
 # =========================================================================
 def _render_concept_cards(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    raw_bullets = data.get("bullets", [
-        "Zero-Copy Memory Streaming",
-        "OS PageCache Kernel Level Buffering",
-        "Append-Only Sequential Storage"
-    ])
+    raw_bullets = data.get("bullets") or data.get("points") or data.get("key_points") or data.get("features") or data.get("concepts") or []
+    if not raw_bullets:
+        raw_bullets = [
+            "Distributed Event Streaming: Real-time low-latency log replication",
+            "Zero Production Downtime: Continuous transaction sync without row locks",
+            "High-Availability Failover: Multi-AZ automated disaster recovery"
+        ]
     font_head = get_font(34, bold=True)
     font_sub = get_font(26)
     card_w = 940

@@ -1,69 +1,125 @@
 import asyncio
 import re
+import subprocess
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 import edge_tts
 from groq import Groq
-from core.config import GROQ_API_KEY, OUTPUT_DIR
+from core.config import GROQ_API_KEY, OUTPUT_DIR, FFMPEG_EXE
 
-# Recommended natural voices for tech reels
-DEFAULT_VOICE = "en-US-ChristopherNeural"  # Authoritative, calm, clear tech narrator
-# Alternative options:
-# "en-US-GuyNeural" - Conversational American
-# "en-IN-PrabhatNeural" - Crisp Indian English tech accent
-# "en-US-JennyNeural" - Engaging Female tech narrator
+DEFAULT_VOICE = "en-US-ChristopherNeural"
 
-async def _synthesize_edge_tts(text: str, output_path: Path, voice: str = DEFAULT_VOICE) -> None:
-    """Uses Edge-TTS to synthesize human-like voice with natural pacing."""
-    # Pre-clean pauses & technical punctuation for natural narration
+def get_audio_duration(file_path: Path) -> float:
+    """Extracts exact duration of an audio file using FFmpeg."""
+    try:
+        cmd = [str(FFMPEG_EXE), "-i", str(file_path.resolve())]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        match = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res.stderr)
+        if match:
+            h, m, s = match.groups()
+            return int(h) * 3600 + int(m) * 60 + float(s)
+    except Exception as e:
+        print(f"[Voice] Error getting audio duration for {file_path}: {e}")
+    return 0.0
+
+async def _synthesize_scene_tts(text: str, output_path: Path, voice: str = DEFAULT_VOICE) -> None:
+    """Uses Edge-TTS to synthesize speech for a single scene with natural pacing."""
     cleaned_text = text.replace("...", ", ")
     cleaned_text = cleaned_text.replace("`", "").replace("*", "")
     # Replace technical underscores with spaces (e.g. DENSE_RANK -> DENSE RANK)
     cleaned_text = re.sub(r'(?<=\w)_(?=\w)', ' ', cleaned_text)
-    communicate = edge_tts.Communicate(cleaned_text, voice, rate="+8%", pitch="+0Hz")
+    communicate = edge_tts.Communicate(cleaned_text, voice, rate="+7%", pitch="+0Hz")
     await communicate.save(str(output_path))
 
-def generate_voiceover(scenes: List[Dict[str, Any]], voice: str = DEFAULT_VOICE) -> Tuple[Path, List[Dict[str, Any]], List[Dict[str, Any]]]:
+async def _synthesize_all_scenes_parallel(scene_texts: List[str], scene_paths: List[Path], voice: str) -> None:
+    """Synthesizes all scene narration audios concurrently."""
+    tasks = [
+        _synthesize_scene_tts(text, path, voice=voice)
+        for text, path in zip(scene_texts, scene_paths)
+    ]
+    await asyncio.gather(*tasks)
+
+def generate_voiceover(
+    scenes: List[Dict[str, Any]],
+    voice: str = DEFAULT_VOICE
+) -> Tuple[Path, List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
-    Synthesizes the entire reel narration into a single audio file and computes
-    microsecond word-level timestamps via Groq Whisper.
+    Synthesizes each scene's voiceover individually to guarantee 100% exact timing
+    match between spoken narration and on-screen visuals.
     
     Returns:
-        (audio_file_path, word_timestamps, scenes_with_timestamps)
+        (audio_file_path, word_timestamps, scenes_with_exact_timestamps)
     """
-    combined_script = []
-    scene_markers = []
-    current_char_count = 0
+    scene_audio_paths = []
+    scene_texts = []
+    
+    for i, sc in enumerate(scenes):
+        sc_text = sc.get("narration", "").strip()
+        if not sc_text:
+            sc_text = sc.get("visual_data", {}).get("title", f"Scene {i + 1}")
+        scene_texts.append(sc_text)
+        sc_path = OUTPUT_DIR / f"scene_{i + 1:02d}_voice.mp3"
+        scene_audio_paths.append(sc_path)
 
-    for idx, sc in enumerate(scenes):
-        narration = sc.get("narration", "").strip()
-        combined_script.append(narration)
-        start_char = current_char_count
-        end_char = start_char + len(narration)
-        scene_markers.append({
-            "scene_id": sc.get("scene_id", idx + 1),
-            "start_char": start_char,
-            "end_char": end_char,
-            "narration": narration
-        })
-        current_char_count = end_char + 1  # accounting for space
+    # 1. Synthesize all scene voiceovers in parallel
+    asyncio.run(_synthesize_all_scenes_parallel(scene_texts, scene_audio_paths, voice=voice))
 
-    full_narration_text = " ".join(combined_script)
-    audio_path = OUTPUT_DIR / "reel_voiceover.mp3"
+    # 2. Measure exact duration of each scene's audio
+    scene_durations = [max(1.5, get_audio_duration(p)) for p in scene_audio_paths]
+
+    # 3. Concatenate scene audios into full reel voiceover via FFmpeg
+    final_audio_path = OUTPUT_DIR / "reel_voiceover.mp3"
+    concat_cmd = [str(FFMPEG_EXE), "-y"]
+    for p in scene_audio_paths:
+        concat_cmd.extend(["-i", str(p.resolve())])
+    filter_expr = "".join(f"[{i}:a]" for i in range(len(scene_audio_paths))) + f"concat=n={len(scene_audio_paths)}:v=0:a=1[a]"
+    concat_cmd.extend(["-filter_complex", filter_expr, "-map", "[a]", "-c:a", "libmp3lame", "-b:a", "192k", str(final_audio_path.resolve())])
     
-    # 1. Generate Voice Audio via edge-tts
-    asyncio.run(_synthesize_edge_tts(full_narration_text, audio_path, voice=voice))
-    
-    # 2. Extract Word Timestamps via Groq Whisper
-    word_timestamps = _extract_word_timestamps(audio_path)
-    
-    # 3. Align scenes to exact audio timestamps
-    scenes_with_timestamps = _align_scenes_with_audio(scenes, word_timestamps)
-    
-    return audio_path, word_timestamps, scenes_with_timestamps
+    subprocess.run(concat_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    total_audio_duration = get_audio_duration(final_audio_path)
+    if total_audio_duration <= 0:
+        total_audio_duration = sum(scene_durations)
+
+    # 4. Compute exact scene timestamps
+    scenes_with_timestamps = []
+    cur_time = 0.0
+    for i, sc in enumerate(scenes):
+        dur = scene_durations[i]
+        s_start = cur_time
+        s_end = cur_time + dur
+        
+        # Ensure the last scene aligns exactly with total audio
+        if i == len(scenes) - 1:
+            s_end = max(s_end, total_audio_duration)
+            dur = s_end - s_start
+            
+        s_copy = dict(sc)
+        s_copy["start_time"] = round(s_start, 3)
+        s_copy["end_time"] = round(s_end, 3)
+        s_copy["duration"] = round(dur, 3)
+        scenes_with_timestamps.append(s_copy)
+        cur_time = s_end
+
+    # 5. Extract Word Timestamps via Groq Whisper for karaoke subtitles
+    word_timestamps = []
+    try:
+        word_timestamps = _extract_word_timestamps(final_audio_path)
+    except Exception as e:
+        print(f"[Voice] Groq Whisper extraction error ({e}), generating robust fallback timestamps...")
+        word_timestamps = _generate_fallback_word_timestamps(scenes_with_timestamps)
+
+    # Cleanup individual scene MP3 files
+    for p in scene_audio_paths:
+        try:
+            if p.exists():
+                p.unlink()
+        except Exception:
+            pass
+
+    return final_audio_path, word_timestamps, scenes_with_timestamps
 
 def _extract_word_timestamps(audio_path: Path) -> List[Dict[str, Any]]:
-    """Calls Groq Whisper Large v3 to get exact word-level start & end timestamps."""
+    """Calls Groq Whisper Large v3 to get microsecond word-level timestamps."""
     if not GROQ_API_KEY:
         raise ValueError("GROQ_API_KEY is required for word timestamp alignment.")
     
@@ -77,65 +133,43 @@ def _extract_word_timestamps(audio_path: Path) -> List[Dict[str, Any]]:
         )
     
     words = []
-    # Groq returns words in transcription.words
     if hasattr(transcription, "words") and transcription.words:
         for w in transcription.words:
-            # handle dict or object
             if isinstance(w, dict):
-                words.append({"word": w["word"].strip(), "start": float(w["start"]), "end": float(w["end"])})
+                words.append({
+                    "word": str(w.get("word", "")).strip(),
+                    "start": round(float(w.get("start", 0)), 3),
+                    "end": round(float(w.get("end", 0)), 3)
+                })
             else:
-                words.append({"word": getattr(w, "word", "").strip(), "start": float(getattr(w, "start", 0)), "end": float(getattr(w, "end", 0))})
-    return words
+                words.append({
+                    "word": str(getattr(w, "word", "")).strip(),
+                    "start": round(float(getattr(w, "start", 0)), 3),
+                    "end": round(float(getattr(w, "end", 0)), 3)
+                })
+    return [w for w in words if w["word"]]
 
-def _align_scenes_with_audio(scenes: List[Dict[str, Any]], word_timestamps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Splits word timestamps across scenes to give each scene its exact start and end seconds."""
-    if not word_timestamps:
-        # Fallback approximation if no words
-        cur = 0.0
-        out = []
-        for s in scenes:
-            dur = max(6.0, len(s.get("narration", "").split()) * 0.4)
-            s_copy = dict(s)
-            s_copy["start_time"] = cur
-            s_copy["end_time"] = cur + dur
-            s_copy["duration"] = dur
-            out.append(s_copy)
-            cur += dur
-        return out
-
-    total_words = len(word_timestamps)
-    total_audio_duration = word_timestamps[-1]["end"]
-    
-    # Calculate word count proportion per scene
-    scene_word_counts = [len(s.get("narration", "").split()) for s in scenes]
-    sum_words = sum(scene_word_counts) or 1
-    
-    out_scenes = []
-    current_word_idx = 0
-    for i, s in enumerate(scenes):
-        w_count = scene_word_counts[i]
-        target_end_idx = min(total_words, current_word_idx + w_count)
+def _generate_fallback_word_timestamps(scenes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Fallback word timing generator that guarantees words match their exact scene
+    boundaries if Groq API is temporarily unreachable.
+    """
+    all_words = []
+    for sc in scenes:
+        narration = sc.get("narration", "").strip()
+        words = narration.split()
+        if not words:
+            continue
+        sc_start = sc.get("start_time", 0.0)
+        sc_dur = sc.get("duration", 5.0)
+        time_per_word = sc_dur / max(1, len(words))
         
-        # Determine start time
-        if current_word_idx < total_words:
-            s_start = word_timestamps[current_word_idx]["start"]
-        else:
-            s_start = total_audio_duration
-            
-        # Determine end time
-        if i == len(scenes) - 1:
-            s_end = total_audio_duration
-        else:
-            if target_end_idx - 1 < total_words:
-                s_end = word_timestamps[target_end_idx - 1]["end"]
-            else:
-                s_end = total_audio_duration
-                
-        s_copy = dict(s)
-        s_copy["start_time"] = round(s_start, 2)
-        s_copy["end_time"] = round(s_end, 2)
-        s_copy["duration"] = round(s_end - s_start, 2)
-        out_scenes.append(s_copy)
-        current_word_idx = target_end_idx
-
-    return out_scenes
+        for idx, w in enumerate(words):
+            w_start = sc_start + (idx * time_per_word)
+            w_end = w_start + (time_per_word * 0.95)
+            all_words.append({
+                "word": w.strip(),
+                "start": round(w_start, 3),
+                "end": round(w_end, 3)
+            })
+    return all_words

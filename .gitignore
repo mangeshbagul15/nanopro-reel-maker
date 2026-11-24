@@ -19,6 +19,8 @@ output/
 
 # Streamlit
 .streamlit/
+scratch_inspect.py
+*.code-workspace
 
 # OS generated files
 .DS_Store

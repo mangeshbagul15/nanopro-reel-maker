@@ -6,4 +6,4 @@ echo   🎬 Starting NanoPro Reel Maker with NVIDIA RTX 3050 GPU...
 echo ================================================================
 timeout /t 2 >nul
 start http://localhost:8501
-streamlit run app.py
+python -m streamlit run app.py

@@ -40,7 +40,7 @@ def run_smoke_test():
     # For fast smoke test, let's render frames for each scene
     for i, sc in enumerate(aligned_scenes):
         print(f"  Rendering Scene {i+1}: {sc.get('visual_type')} ({sc.get('duration')}s)...")
-        render_scene_frames(sc, i + 1)
+        render_scene_frames(sc, i + 1, total_scenes=len(aligned_scenes), engine_style=timeline.get("meta_director", {}).get("engine_style", "hybrid_modern"))
         all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i+1:02d}_frames")
 
     # 4. Test Subtitles
