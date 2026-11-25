@@ -10,6 +10,7 @@ from core.config import ASSETS_DIR
 from core.layouts_domain_220 import DOMAIN_220_LAYOUTS, render_domain_220_or_grammar
 from core.layouts_it_sdlc import IT_SDLC_35_LAYOUTS, render_it_sdlc_layout
 from core.layouts_pro import EXTRA_32_LAYOUTS, render_pro_layout
+from core.mesh_shader_engine import draw_procedural_3d_mesh
 from core.palette_engine import resolve_studio_world
 from core.shapes_3d import ALL_50_SHAPES, ALL_100_SHAPES, ALL_145_SHAPES, draw_3d_shape, draw_vector_glyph, infer_3d_shape
 from core.svg_engine import ICON_ALIASES, fetch_iconify_svg, prepare_generative_svg_layers, prepare_keyframed_svg_layers
@@ -1108,10 +1109,26 @@ def _render_svg_scene(stage: StudioStage, data: Dict[str, Any], progress: float,
     svg_code = str(data.get("svg") or data.get("svg_code") or "").strip()
     layer_objs = prepare_keyframed_svg_layers(svg_code, width=880, height=840) if svg_code else []
     if not layer_objs:
-        if data.get("nodes"):
+        if data.get("entries"):
+            _render_memory_lanes(stage, data, progress, world)
+        elif data.get("bars"):
+            _render_benchmark_3d(stage, data, progress, world)
+        elif data.get("left_points") or data.get("right_points"):
+            _render_iso_comparison(stage, data, progress, world)
+        elif data.get("alerts") or data.get("problem_title") or data.get("challenge"):
+            _render_incident_radar(stage, data, progress, world)
+        elif data.get("table_data"):
+            _render_sql_or_diff_or_api(stage, data, progress, world, mode="sql")
+        elif data.get("code_snippet") or data.get("command"):
+            _render_terminal_studio(stage, data, progress, world)
+        elif data.get("main_value") or data.get("telemetry"):
+            _render_radial_gauge(stage, data, progress, world)
+        elif data.get("satellites"):
+            _render_node_graph(stage, data, progress, world)
+        elif data.get("nodes") or data.get("steps") or data.get("stages"):
             _render_iso_architecture(stage, data, progress, world)
         else:
-            _render_kinetic_statement(stage, data, progress, world)
+            _render_custom_scene(stage, data, progress, world)
         return
 
     caption = str(data.get("caption") or data.get("summary") or "").strip()
