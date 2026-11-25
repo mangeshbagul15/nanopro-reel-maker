@@ -245,7 +245,7 @@ def resolve_studio_world(
         return STUDIO_WORLDS["sapphire_3d"]
     if t == "senior_hinglish_mentor":
         return STUDIO_WORLDS["sapphire_3d"]
-    if t == "mentor_storyteller":
+    if t in ("mentor_storyteller", "trusted_dost_guide"):
         return STUDIO_WORLDS["emerald_matrix"]
     if topic:
         return generate_hsl_world(topic, mode="dark")

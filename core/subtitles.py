@@ -347,13 +347,26 @@ def generate_ass_subtitles(
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
     ]
 
-    # Filter out standalone punctuation tokens (e.g. ",", ".", "!") before chunking
+    # Filter out standalone punctuation tokens & enforce smooth non-zero, non-overlapping timestamps
     filtered_words = []
     for w in word_timestamps:
-        raw = w.get("word", "").strip()
+        raw = str(w.get("word", "")).strip()
         cleaned = "".join(ch for ch in raw if ch.isalnum())
         if cleaned:
-            filtered_words.append(w)
+            w_copy = dict(w)
+            w_copy["start"] = max(0.0, float(w.get("start", 0.0)))
+            w_copy["end"] = max(w_copy["start"] + 0.08, float(w.get("end", w_copy["start"] + 0.12)))
+            filtered_words.append(w_copy)
+
+    filtered_words.sort(key=lambda item: item["start"])
+    for idx_w in range(len(filtered_words) - 1):
+        cur_w = filtered_words[idx_w]
+        nxt_w = filtered_words[idx_w + 1]
+        if nxt_w["start"] < cur_w["start"] + 0.05:
+            nxt_w["start"] = cur_w["start"] + 0.05
+            nxt_w["end"] = max(nxt_w["start"] + 0.08, nxt_w["end"])
+        if cur_w["end"] > nxt_w["start"]:
+            cur_w["end"] = nxt_w["start"]
 
     # Intelligent chunking: 1 word for long tech words (>= 8 chars), 2 words for short words
     i = 0
@@ -382,6 +395,7 @@ def generate_ass_subtitles(
 
     # Highlight color (ASS BGR hex) & kinetic pop scale per tone
     tone_styles = {
+        "trusted_dost_guide": (r"\c&H0099D334&\fscx112\fscy112", "trusted_emerald_warm"),
         "senior_hinglish_mentor": (r"\c&H00F8BD38&\fscx110\fscy110", "mentor_cyan_emphasis"),
         "youth_friend_turbo": (r"\c&H002BF6FF&\fscx116\fscy116", "turbo_youth_pop"),
         "mentor_storyteller": (r"\c&H0099D334&\fscx112\fscy112", "mentor_emerald"),
@@ -419,6 +433,8 @@ def generate_ass_subtitles(
                 # Enforce pure ASCII Roman Hinglish / English (zero Devanagari characters in karaoke)
                 clean_w = w["word"].upper().strip()
                 clean_w = clean_w.replace("—", "-").replace("–", "-").replace("’", "'").replace("“", '"').replace("”", '"')
+                # Escape ASS override braces/backslashes so literal symbols never vanish
+                clean_w = clean_w.replace("{", "(").replace("}", ")").replace("\\", "/")
                 clean_w = "".join(ch for ch in clean_w if 32 <= ord(ch) <= 126)
                 if not clean_w:
                     continue

@@ -110,6 +110,12 @@ VOICE_CATALOG = {
 
 # Dynamic Voice Parameters tailored to chosen Delivery Tone (ElevenLabs + Edge-TTS Prosody)
 TONE_VOICE_SETTINGS = {
+    "trusted_dost_guide": {
+        "stability": 0.44,
+        "similarity_boost": 0.80,
+        "style": 0.42,
+        "use_speaker_boost": True
+    },
     "senior_hinglish_mentor": {
         "stability": 0.48,
         "similarity_boost": 0.82,
@@ -161,6 +167,7 @@ TONE_VOICE_SETTINGS = {
 }
 
 EDGE_TTS_PROSODY = {
+    "trusted_dost_guide": {"rate": "+10%", "pitch": "+2Hz"},
     "senior_hinglish_mentor": {"rate": "+8%", "pitch": "-1Hz"},
     "youth_friend_turbo": {"rate": "+24%", "pitch": "+3Hz"},
     "mentor_storyteller": {"rate": "+7%", "pitch": "+2Hz"},
@@ -546,7 +553,7 @@ def _synthesize_elevenlabs_sync(
         print("[Voice] ElevenLabs API key missing, skipping ElevenLabs.")
         return False
 
-    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("senior_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller", "dramatic_performance")))
+    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("trusted_dost_guide", "senior_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller", "dramatic_performance")))
     if not cleaned_text:
         return False
 
@@ -619,7 +626,7 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     splits along pause cues, applies per-phrase curiosity/excitement inflection, and inserts
     genuine 300ms breathing silence between phrases via FFmpeg.
     """
-    preserve = (tone in ("senior_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
+    preserve = (tone in ("trusted_dost_guide", "senior_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
     cleaned_text = _clean_tts_text(text, preserve_pauses=preserve)
     if not cleaned_text:
         return False
@@ -627,7 +634,7 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+8%", "pitch": "+0Hz"})
     rate = prosody["rate"]
     pitch = prosody["pitch"]
-    pause_sec = "0.22" if tone == "youth_friend_turbo" else ("0.28" if tone == "senior_hinglish_mentor" else "0.30")
+    pause_sec = "0.22" if tone == "youth_friend_turbo" else ("0.26" if tone == "trusted_dost_guide" else ("0.28" if tone == "senior_hinglish_mentor" else "0.30"))
 
     beats = _split_pause_beats(cleaned_text, max_beats=4) if preserve else [cleaned_text]
     if len(beats) > 1:
@@ -641,6 +648,14 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
                         b_rate, b_pitch = "+26%", "+4Hz"
                     elif len(beat_txt) <= 36:
                         b_rate, b_pitch = "+18%", "+3Hz"
+                    else:
+                        b_rate, b_pitch = rate, pitch
+                elif tone == "trusted_dost_guide":
+                    lower_bt = beat_txt.lower()
+                    if any(kw in lower_bt for kw in ("worry", "tension", "help", "easy", "relax", "simple", "saath")):
+                        b_rate, b_pitch = "+7%", "+1Hz"
+                    elif beat_txt.endswith("?") or any(kw in lower_bt for kw in ("secret", "shortcut", "magic", "imagine", "vision")):
+                        b_rate, b_pitch = "+11%", "+3Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
                 elif tone == "senior_hinglish_mentor":
@@ -806,8 +821,11 @@ def generate_voiceover(
         _synthesize_single_scene(text, p, voice=voice, elevenlabs_model=elevenlabs_model, tone=sc_tone, allow_elevenlabs=allow_elevenlabs)
         _ensure_valid_audio(p)
 
-    # 2. Measure exact duration of each scene's audio
-    scene_durations = [max(1.5, get_audio_duration(p)) for p in scene_audio_paths]
+    # 2. Measure exact duration of each scene's audio (never inflate short audio so subsequent scenes stay 100% synced)
+    scene_durations = []
+    for p in scene_audio_paths:
+        d_val = get_audio_duration(p)
+        scene_durations.append(d_val if d_val > 0.05 else 1.5)
 
     # 3. Concatenate scene audios into full reel voiceover via FFmpeg
     final_audio_path = OUTPUT_DIR / "reel_voiceover.mp3"
@@ -856,10 +874,25 @@ def generate_voiceover(
         print(f"[Voice] Groq Whisper extraction notice ({e}), generating robust fallback timestamps...")
         word_timestamps = []
 
-    expected_word_cnt = sum(len(re.sub(r'\[pause\]', ' ', t, flags=re.IGNORECASE).split()) for t in scene_texts)
-    if len(word_timestamps) < max(3, int(expected_word_cnt * 0.45)):
-        print(f"[Voice] Whisper alignment sparse ({len(word_timestamps)}/{expected_word_cnt}), using scene-exact word alignment...")
+    expected_word_cnt = sum(len(re.sub(r'\[pause\]', ' ', (sc.get("narration_hinglish") or sc.get("narration") or ""), flags=re.IGNORECASE).split()) for sc in scenes_with_timestamps)
+    if len(word_timestamps) < max(3, int(expected_word_cnt * 0.72)):
+        print(f"[Voice] Whisper alignment incomplete ({len(word_timestamps)}/{expected_word_cnt}), using scene-exact word alignment...")
         word_timestamps = _generate_fallback_word_timestamps(scenes_with_timestamps)
+    else:
+        # Per-scene completeness guard: if Whisper dropped >30% words in any specific scene, heal that scene cleanly
+        healed_words: List[Dict[str, Any]] = []
+        for sc in scenes_with_timestamps:
+            st_t = float(sc.get("start_time", 0.0))
+            en_t = float(sc.get("end_time", 0.0))
+            sc_script = re.sub(r'\[pause\]', ' ', (sc.get("narration_hinglish") or sc.get("narration") or ""), flags=re.IGNORECASE).strip()
+            sc_exp = len([w for w in sc_script.split() if any(ch.isalnum() for ch in w)])
+            sc_ws = [w for w in word_timestamps if st_t - 0.12 <= float(w.get("start", 0.0)) < en_t - 0.02]
+            if sc_exp >= 4 and len(sc_ws) < int(sc_exp * 0.68):
+                healed_words.extend(_generate_fallback_word_timestamps([sc]))
+            else:
+                healed_words.extend(sc_ws)
+        if len(healed_words) >= len(word_timestamps):
+            word_timestamps = healed_words
 
     from core.subtitles import normalize_hinglish_subtitle_words
     word_timestamps = normalize_hinglish_subtitle_words(word_timestamps, aligned_scenes=scenes_with_timestamps)

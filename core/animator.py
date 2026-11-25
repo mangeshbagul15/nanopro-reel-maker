@@ -31,6 +31,7 @@ ACCENT_THEMES = {
 
 
 TONE_THEME_MAP = {
+    "trusted_dost_guide": "emerald_matrix",
     "senior_hinglish_mentor": "indigo_cyan",
     "youth_friend_turbo": "cyber_cyan",
     "mentor_storyteller": "emerald_matrix",

@@ -526,6 +526,13 @@ ENGINE_STYLE_DIRECTIVES = {
 }
 
 TONE_DIRECTIVES = {
+    "trusted_dost_guide": (
+        "TRUSTED DOST, HAPPY CURIOUS HINGLISH & PEACEFUL GUIDE MANDATE: "
+        "Speak with a happy, deeply human, curious Hinglish voice — like a trusted best friend (`dost / yaar`), peaceful mentor, and supportive problem solver who genuinely understands the viewer's confusion and reassures them ('Don't worry yaar, tension bilkul mat lo — main hoon na, chal saath mein samajhte hain!').\n"
+        "1. 00:00 CLEVER SECRET / SHORTCUT HOOK: Open Scene 1 immediately with an exciting, curious secret or smart engineering shortcut ('Ek chhota sa secret shortcut bataun jo 90% log miss kar dete hain?... [pause]').\n"
+        "2. NATURAL Q&A CLARITY CHECKS: Check concept clarity through natural, conversational friend-like Q&A ('Wait... ab socho agar 10,000 requests ek saath aayein toh kya hoga? [pause] Simple hai dost — yahan ek smart trick kaam aati hai!').\n"
+        "3. ENJOYABLE VISIONARY FLOW + PROGRESSIVE VISUAL SYNC: Build an uplifting, enjoyable, visionary momentum from curiosity -> clarity -> mastery. Populate rich progressive cards/flows/diagrams and 4 exact `choreography.triggers` per scene so visuals light up in tight lockstep with your words. Set each scene's `scene_tone` to `trusted_dost_guide`."
+    ),
     "senior_hinglish_mentor": (
         "SENIOR HINGLISH MENTOR & TECHNICAL STORYTELLER MANDATE: "
         "Adopt a warm, clear, conversational Hinglish persona with a confident senior-engineer/mentor vibe and natural crisp English tech terms (`latency`, `throughput`, `race condition`, `index`, `cache invalidation`, `trade-off`). "
@@ -638,11 +645,11 @@ def generate_timeline(
             "ALSO include `\"narration_hinglish\"` on every scene with the exact natural Roman Minglish/Hinglish version of `narration` (e.g., 'Mitrano, aaj aapan pahnar aahot ki Database Migration Zero Downtime sobat kase chalte...') for karaoke captions! "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
-    elif tone == "senior_hinglish_mentor":
+    elif tone in ("senior_hinglish_mentor", "trusted_dost_guide"):
         lang_directive = (
-            "LANGUAGE & DIALECT MANDATE (Senior Hinglish Mentor): Write the spoken `narration` in warm, clear conversational Hinglish "
-            "using clean LATIN / ROMAN letters mixed naturally with crisp English technical terms "
-            "(e.g., 'Socho zara... interview mein agar koi pooche ki cache stampede kaise rokte hain, toh 90% log ek trap mein phaste hain...'). "
+            f"LANGUAGE & DIALECT MANDATE ({tone}): Write the spoken `narration` in warm, clear, deeply human conversational Hinglish "
+            "using clean LATIN / ROMAN letters mixed naturally with crisp English technical terms and ASCII numbers "
+            "(e.g., 'Socho zara yaar... don't worry, is complex concept ko 30 seconds mein crystal clear banate hain!'). "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
     elif voice == "en-IN-PrabhatNeural":
