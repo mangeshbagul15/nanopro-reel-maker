@@ -35,7 +35,7 @@ def generate_ass_subtitles(
         margin_v = 420
 
     # Light-mode canvas needs solid dark pill / heavier outline so white+yellow karaoke text pops cleanly
-    is_light_canvas = (str(art_style).lower().strip() == "light_whiteboard")
+    is_light_canvas = (str(art_style).lower().strip() in ("light_whiteboard", "studio_white"))
     border_style = 3 if is_light_canvas else 1
     outline_px = 12 if is_light_canvas else 5
     back_col = "&HC80F172A" if is_light_canvas else "&H90000000"

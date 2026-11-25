@@ -264,6 +264,18 @@ Output a single valid JSON object matching this structure:
 """
 
 ENGINE_STYLE_DIRECTIVES = {
+    "cinematic_studio": (
+        "CINEMATIC 2.5D ISOMETRIC & MOTION STUDIO MODE (ULTRA PRO): "
+        "Design premium 3D isometric motion graphics with spring-eased reveals, cubic Bezier energy curves, and glassmorphic depth! "
+        "1. CHOOSE AN ART STYLE (`art_style`) matching the subject: `editorial_dark` (velvet studio spotlights), `blueprint_grid` (3D sapphire CAD), `light_whiteboard` (sunlit studio white), or `neon_fireship` (high-drama crimson/amber).\n"
+        "2. USE RICH STRUCTURED VISUALS:\n"
+        "   - For pipelines, workflows, system internals & architecture: use `iso_architecture` (or `custom_scene` with a `flow_chain` block) providing 3-4 concise `nodes` (`{\"label\", \"sub\", \"shape\": \"box\"|\"stack\"|\"cylinder\"}`) and `edges` labels (1-3 words each).\n"
+        "   - For A-vs-B trade-offs: use `iso_comparison` (`left_label`, `right_label`, `left_points`, `right_points`, `neutral_mode`, `show_vs`).\n"
+        "   - For hooks, multi-point cards, metrics, stats & summaries: use `custom_scene` with `blocks` (`big_stat` with `value`, `question_card`, `pills`, `flow_chain`, `list_cards`, `banner`, `code`).\n"
+        "   - For code walkthroughs: use `terminal_studio` (`code_snippet`, `output`).\n"
+        "   - For closing punchlines / CTAs: use `kinetic_statement` (`kicker`, `statement`, `highlight_word`, `bottom_tags`).\n"
+        "3. ZERO HARDCODED FILLER: Never invent fake metrics or canned headings. Always populate `scene_tone` and `choreography.triggers` (4 spoken keywords)."
+    ),
     "auto_dynamic": (
         "AI AUTONOMOUS VISUAL & STORYBOARD COMPOSER MODE (ZERO HARDCODED TEMPLATES): "
         "Every topic and custom script MUST feel visually unique in composition, typography, color world, and layout! "
@@ -684,8 +696,8 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 sc["visual_type"] = target_type
                 current_vtype = target_type
 
-        # Anti-Repetition Safety in auto_dynamic: if Scene 1 defaulted to alert_diagram on non-outage topics, use custom_scene
-        if engine_style == "auto_dynamic" and idx == 0 and current_vtype == "alert_diagram":
+        # Anti-Repetition Safety in auto/studio modes: if Scene 1 defaulted to alert_diagram on non-outage topics, use custom_scene
+        if engine_style in ["auto_dynamic", "cinematic_studio"] and idx == 0 and current_vtype == "alert_diagram":
             topic_l = topic.lower()
             outage_kw = ["crash", "outage", "down", "lock", "deadlock", "incident", "failure", "oom"]
             if not any(kw in topic_l for kw in outage_kw):
@@ -700,7 +712,7 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
 
         # Ensure required data structures are present and rich for the active visual_type
         title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
-        default_badge = "" if engine_style in ["auto_dynamic", "hybrid_modern"] else engine_style.replace("_", " ").upper()
+        default_badge = "" if engine_style in ["auto_dynamic", "cinematic_studio", "hybrid_modern"] else engine_style.replace("_", " ").upper()
         badge = v_data.get("badge") or default_badge
         v_data["title"] = title
         v_data["badge"] = badge

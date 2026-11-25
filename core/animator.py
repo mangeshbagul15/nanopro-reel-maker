@@ -438,7 +438,19 @@ def render_scene_frames(
     """
     duration = max(1.5, float(scene.get("duration", 5.0)))
     total_frames = max(15, round(duration * VIDEO_FPS))
-    
+
+    if engine_style == "cinematic_studio":
+        from core.cinematic_engine import render_cinematic_scene_frames
+        return render_cinematic_scene_frames(
+            scene=scene,
+            scene_idx=scene_idx,
+            total_scenes=total_scenes,
+            format_ratio=format_ratio,
+            watermark=watermark,
+            scene_words=scene_words,
+            tone=tone,
+        )
+
     scene_frames_dir = OUTPUT_DIR / f"scene_{scene_idx:02d}_frames"
     if scene_frames_dir.exists():
         for old_f in scene_frames_dir.glob("frame_*.*"):
@@ -2487,6 +2499,56 @@ def generate_thumbnail_9_16(
     canvas_w = 1080
     canvas_h = 1920
     art_style = str(timeline.get("art_style", "editorial_dark")) if isinstance(timeline, dict) else "editorial_dark"
+    if visual_engine == "cinematic_studio":
+        from core.cinematic_engine import (
+            StudioStage,
+            _build_volumetric_studio_bg,
+            _dispatch_cinematic,
+            _draw_studio_header,
+            _draw_wrapped_text as _cin_wrap,
+            _get_font as _cin_font,
+            _resolve_world,
+        )
+        world = _resolve_world(art_style, timeline.get("scenes", [{}])[0].get("scene_tone", "staff_engineer") if isinstance(timeline, dict) else "staff_engineer")
+        bg = _build_volumetric_studio_bg(canvas_w, canvas_h, world)
+        stage = StudioStage(canvas_w, canvas_h, world)
+        c_accent = world["cyan"]
+        badge_text = str(timeline["scenes"][0].get("visual_data", {}).get("badge", "")) if (isinstance(timeline, dict) and timeline.get("scenes")) else ""
+        _draw_studio_header(stage, badge_text, topic.strip()[:85], c_accent)
+        t_sc = None
+        if isinstance(timeline, dict) and timeline.get("scenes"):
+            for sc in timeline["scenes"]:
+                if sc.get("visual_type") in ["iso_architecture", "iso_comparison", "custom_scene", "architecture_flow", "split_comparison", "terminal_studio", "code_terminal"]:
+                    t_sc = sc
+                    break
+            if not t_sc:
+                t_sc = timeline["scenes"][0]
+        if t_sc:
+            _dispatch_cinematic(stage, t_sc.get("visual_type", "custom_scene"), t_sc.get("visual_data", {}), 1.0)
+        card_w, card_h = 940, 150
+        cx, cy = (canvas_w - card_w) // 2, 1600
+        stage.draw_glass_card((cx, cy, cx + card_w, cy + card_h), c_accent, radius=26, alpha_mul=1.0, active=True)
+        _cin_wrap(stage.draw, str(timeline.get("hook_headline") or topic.strip())[:70] if isinstance(timeline, dict) else topic.strip()[:70], _cin_font(34, bold=True), cx + 40, cy + 28, card_w - 80, world["text"], align="center", max_lines=1)
+        if watermark:
+            _cin_wrap(stage.draw, watermark, _cin_font(26, bold=True), cx + 40, cy + 84, card_w - 80, c_accent, align="center", max_lines=1)
+        im_out = stage.composite_onto(bg)
+        chrome = ImageDraw.Draw(im_out, "RGBA")
+        _draw_story_progress_bar(chrome, total_scenes=4, current_scene=1, progress=0.25, canvas_w=canvas_w, accent=c_accent)
+        if watermark:
+            wm_font = _cin_font(23, bold=True)
+            wt = watermark.strip()
+            wbb = wm_font.getbbox(wt)
+            bw = (wbb[2] - wbb[0]) + 46
+            bx, by = canvas_w - bw - 36, 44
+            wfill = (255, 255, 255, 234) if world["is_light"] else (15, 23, 42, 218)
+            chrome.rounded_rectangle((bx, by, bx + bw, by + 38), radius=19, fill=wfill, outline=(*c_accent, 185), width=2)
+            chrome.ellipse((bx + 14, by + 15, bx + 22, by + 23), fill=c_accent)
+            chrome.text((bx + 30, by + 6), wt, fill=world["text"], font=wm_font)
+        if output_path is None:
+            output_path = OUTPUT_DIR / f"thumbnail_9x16_{int(time.time())}.png"
+        im_out.convert("RGB").save(output_path, "PNG", quality=98)
+        return output_path
+
     im, theme_cfg = _build_themed_canvas(canvas_w, canvas_h, "cyber_cyan", art_style=art_style)
     pal = _ACTIVE_PAL
     draw = ImageDraw.Draw(im, "RGBA")

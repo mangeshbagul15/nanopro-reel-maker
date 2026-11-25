@@ -216,6 +216,7 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
+            ("cinematic_studio", "🎬 Cinematic 2.5D Isometric & Motion Studio (3D Stacks, Bezier Glow, Spring Physics) [Ultra Pro]"),
             ("auto_dynamic", "⚡ Dynamic / Auto (AI Decides Visuals, Progressive Flow & Voice Choreography) [Recommended]"),
             ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
@@ -233,7 +234,7 @@ with st.sidebar:
         ],
         format_func=lambda x: x[1],
         key="visual_engine_select",
-        help="In Dynamic / Auto mode, the AI Director autonomously decides the best per-scene visual layout, Progressive Reveal steps, Audio-Visual Sync triggers, and Animated Node-and-Edge Traversal based on your topic and voiceover."
+        help="Cinematic 2.5D Studio uses volumetric spotlights, extruded 3D isometric blocks, cubic Bezier energy curves, spring slide-in physics, and optical bloom. Dynamic / Auto uses fast flat vector layouts."
     )
     
     custom_style_prompt = ""
