@@ -264,6 +264,37 @@ Output a single valid JSON object matching this structure:
 """
 
 ENGINE_STYLE_DIRECTIVES = {
+    "studio_300_domain": (
+        "UNLIMITED STUDIO MAX + ZERO-TEMPLATE HYBRID ENGINE (OPTION 1 + OPTION 2 COMBINED — 320+ DOMAIN LAYOUTS + DIAGRAM GRAMMAR + CUSTOM WEBGL/HTML5 + AI <svg>): "
+        "Mix bespoke zero-template scenes (`web_scene`, `svg_scene`, `spatial_canvas`) AND specialized 320+ Domain Layouts + Composable Diagram Grammar (`grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`) across every scene!\n"
+        "1. COLOR WORLDS: Any of 46 curated worlds OR `#HEX` / `visual_data.palette: {\"stops\":[\"#...\",\"#...\"],\"mode\":\"dark\"|\"light\"}`.\n"
+        "2. BACKDROP, TRANSITION & TEXT FX: Vary `backdrop` (18 styles), `transition` (12 styles), and `text_fx` (14 styles) per scene.\n"
+        "3. USE CUSTOM CODE OR 320+ DOMAIN LAYOUTS:\n"
+        "   - Zero-Template Custom: `web_scene` (`visual_data.html` interactive HTML5/CSS3/Canvas3D + `window.__setStudioProgress(p,t,e)`), `svg_scene` (custom `<svg>` + `svg_animations`), `spatial_canvas`.\n"
+        "   - 320+ Domain Layouts across DSA (`consistent_hashing_ring`, `b_plus_tree_pages`, `lsm_tree_compaction`, `bloom_filter_bits`), Distributed (`raft_leader_election`, `cap_theorem_triangle`, `circuit_breaker_states`, `rate_limiter_token_bucket`), OS/Hardware (`virtual_memory_paging`, `epoll_event_loop`, `cuda_gpu_warp_grid`), Security (`oauth2_pkce_flow`, `tls_13_handshake`, `passkey_webauthn_fido2`), Web (`http1_vs_http2_vs_http3`, `webrtc_ice_stun_turn`), AI (`transformer_multihead_attn`, `lora_qlora_adapters`, `mcp_tool_protocol`, `multi_agent_supervisor`), Networking/Data/SDLC (`osi_7_layers`, `client_server_cluster`, `medallion_lakehouse`, `etl_elt_pipeline`, `sdlc_cycle_wheel`, `cicd_pipeline_stages`), Cloud (`k8s_control_plane`, `docker_overlayfs_layers`, `iceberg_snapshot_manifest`).\n"
+        "   - Diagram Grammar: `grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`, `grammar:tree:3`, `grammar:slots:5`.\n"
+        "   - 145 3D Shapes (`laptop`, `desktop`, `mobile`, `router`, `network_switch`, `hub`, `server_rack`, `torus_3d`, `dna_helix`, etc.) + 160+ auto-extruded Iconify SVGs (`python`, `java`, `spark`, `kafka`, `aws_s3`, `kubernetes`, etc.).\n"
+        "4. Populate `scene_tone` & 4 `choreography.triggers` per scene."
+    ),
+    "pure_zero_template": (
+        "PURE ZERO-TEMPLATE AI CODE-AS-VIDEO ENGINE (OPTION 1 — STRICTLY ∞ CUSTOM DESIGNS, NO FIXED TEMPLATES): "
+        "CRITICAL RULE: NEVER repeat generic fixed layout cards! For EVERY scene, generate bespoke visuals uniquely crafted for the topic:\n"
+        "1. PREFERRED `visual_type=\"web_scene\"`: Write crisp self-contained `visual_data.html` (`1080x1920`, `overflow:hidden`) using rich HTML5 + CSS3 + Canvas 2D/3D WebGL + inline SVG + spring keyframe motion synchronized to `window.__setStudioProgress = function(p, curTime, energy) { ... }` (where `p` goes `0.0 -> 1.0`, leaving bottom 280px clean for subtitles).\n"
+        "2. ALTERNATE `visual_type=\"svg_scene\"`: Write a full bespoke `<svg viewBox=\"0 0 880 840\">` illustration with `<g id=\"stage_1\">`..`<g id=\"stage_6\">` + `svg_animations` (`scale_from`, `rotate_deg`, `float_amp`, `pulse`).\n"
+        "3. ALTERNATE `visual_type=\"spatial_canvas\"`: Compose freeform normalized `elements` (`0..1000`) + Bezier `connections` + 3D-extruded Iconify SVGs.\n"
+        "4. Set distinct `art_style` (46 worlds / `#HEX`), `backdrop`, `transition`, `text_fx`, `scene_tone`, and 4 `choreography.triggers`."
+    ),
+    "studio_domain_library": (
+        "DOMAIN LAYOUT LIBRARY PRO (OPTION 2 — 320+ SPECIALIZED DOMAIN LAYOUTS + DIAGRAM GRAMMAR): "
+        "Select the most technically authentic specialized layout from the **320+ Domain Library** (never repeat the same layout twice in one reel!):\n"
+        "- Algorithms & DSA: `binary_search_trace`, `two_pointers_window`, `sliding_window_buffer`, `quicksort_partition`, `heap_priority_tree`, `trie_prefix_tree`, `bloom_filter_bits`, `lru_cache_eviction`, `consistent_hashing_ring`, `merkle_tree_proof`.\n"
+        "- Databases & Storage: `b_plus_tree_pages`, `lsm_tree_compaction`, `write_ahead_log_wal`, `mvcc_snapshot_versions`, `two_phase_commit_2pc`, `saga_orchestration`, `sharding_hash_range`, `hnsw_vector_graph`, `columnar_parquet_blocks`.\n"
+        "- Distributed Systems: `raft_leader_election`, `paxos_quorum_rounds`, `cap_theorem_triangle`, `circuit_breaker_states`, `rate_limiter_token_bucket`, `idempotency_key_store`, `outbox_pattern_cdc`, `backpressure_reactive`.\n"
+        "- OS, Security, Web, AI & Cloud: `virtual_memory_paging`, `epoll_event_loop`, `ebpf_kernel_hooks`, `oauth2_pkce_flow`, `tls_13_handshake`, `passkey_webauthn_fido2`, `http1_vs_http2_vs_http3`, `webrtc_ice_stun_turn`, `transformer_multihead_attn`, `lora_qlora_adapters`, `mcp_tool_protocol`, `k8s_control_plane`, `docker_overlayfs_layers`, `iceberg_snapshot_manifest`.\n"
+        "- Networking, Data Eng, Hardware & SDLC: `client_server_cluster`, `osi_7_layers`, `hardware_rack_diagram`, `vpc_subnet_topology`, `medallion_lakehouse`, `etl_elt_pipeline`, `cdc_debezium_flow`, `sdlc_cycle_wheel`, `cicd_pipeline_stages`, `agile_sprint_board`, `test_pyramid_qa`.\n"
+        "- Also supports Composable Grammar `grammar:grid:3x2` / `grammar:flow:5` / `grammar:ring:6` + all 145 3D shapes (`laptop`, `desktop`, `mobile`, `router`, `network_switch`, `hub`, `server_rack`) + 200k+ 3D SVGs.\n"
+        "- Vary 46 `art_style` worlds / `#HEX`, 18 `backdrop`s, 12 `transition`s, 14 `text_fx`. Populate `scene_tone` & 4 `choreography.triggers`."
+    ),
     "cinematic_studio": (
         "CINEMATIC 2.5D/3D STUDIO MAX MODE (100+ LAYOUTS, 145+ 3D SHAPES & 200k+ 3D SVGS): "
         "Combine 46+ studio palettes + Infinite HSL/Gradient colors, 100+ dedicated layouts + Spatial Composer + Keyframe AI <svg>, 145 3D Shapes & Meshes, 168 Glyphs, 200k+ 3D-Extruded Iconify SVGs, 18 Procedural Backdrops, 12 Transitions & 14 Text FX!\n"
@@ -693,7 +724,8 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
     # Deterministically pick a fresh visual art_style from topic hash if AI omitted one
     art_styles = ["light_whiteboard", "editorial_dark", "blueprint_grid", "neon_fireship"]
     raw_art = str(timeline.get("art_style") or "").strip()
-    if engine_style in ("cinematic_studio", "dual_generative"):
+    _STUDIO_SET = ("studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative")
+    if engine_style in _STUDIO_SET:
         from core.palette_engine import STUDIO_WORLDS
         if raw_art and (raw_art.lower() in STUDIO_WORLDS or raw_art.lower() in art_styles or raw_art.startswith("#") or raw_art.lower().startswith("hue:") or raw_art.lower() in ("dynamic_hsl", "procedural", "hsl")):
             topic_art_style = raw_art
@@ -730,8 +762,19 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 sc["visual_type"] = target_type
                 current_vtype = target_type
 
+        if engine_style == "pure_zero_template" and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
+            if v_data.get("html") or v_data.get("web_code"):
+                current_vtype = "web_scene"
+            elif v_data.get("svg") or v_data.get("svg_code"):
+                current_vtype = "svg_scene"
+            elif v_data.get("elements") or v_data.get("zones"):
+                current_vtype = "spatial_canvas"
+            else:
+                current_vtype = "web_scene"
+            sc["visual_type"] = current_vtype
+
         # Anti-Repetition Safety in auto/studio modes: if Scene 1 defaulted to alert_diagram on non-outage topics, use custom_scene
-        if engine_style in ["auto_dynamic", "cinematic_studio", "dual_generative"] and idx == 0 and current_vtype == "alert_diagram":
+        if engine_style in ["auto_dynamic", "studio_300_domain", "studio_domain_library", "cinematic_studio", "dual_generative"] and idx == 0 and current_vtype == "alert_diagram":
             topic_l = topic.lower()
             outage_kw = ["crash", "outage", "down", "lock", "deadlock", "incident", "failure", "oom"]
             if not any(kw in topic_l for kw in outage_kw):
@@ -746,7 +789,7 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
 
         # Ensure required data structures are present and rich for the active visual_type
         title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
-        default_badge = "" if engine_style in ["auto_dynamic", "cinematic_studio", "dual_generative", "hybrid_modern"] else engine_style.replace("_", " ").upper()
+        default_badge = "" if engine_style in ["auto_dynamic", "studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative", "hybrid_modern"] else engine_style.replace("_", " ").upper()
         badge = v_data.get("badge") or default_badge
         v_data["title"] = title
         v_data["badge"] = badge

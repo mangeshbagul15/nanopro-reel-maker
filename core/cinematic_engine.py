@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 
 from core.config import DEFAULT_WATERMARK, FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from core.layouts_pro import ALL_TEXT_FX, ALL_TRANSITIONS, apply_scene_transition, draw_kinetic_text
+from core.layouts_domain_220 import DOMAIN_220_LAYOUTS
 from core.layouts_studio import (
     ALL_STUDIO_LAYOUTS,
     StudioStage,
@@ -32,6 +33,7 @@ __all__ = [
     "ALL_TRANSITIONS",
     "ALL_TEXT_FX",
     "ALL_STUDIO_LAYOUTS",
+    "DOMAIN_220_LAYOUTS",
     "ICON_ALIASES",
     "STUDIO_WORLDS",
     "VECTOR_GLYPHS",

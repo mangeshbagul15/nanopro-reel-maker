@@ -18,6 +18,7 @@ _RELOAD_ORDER = [
     "core.shapes_3d",
     "core.layouts_pro",
     "core.layouts_it_sdlc",
+    "core.layouts_domain_220",
     "core.layouts_studio",
     "core.web_generative_engine",
     "core.cinematic_engine",
@@ -235,9 +236,12 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("dual_generative", "⚡ Zero-Limit Generative Studio (Playwright WebGL/Three.js + 100 Layouts, 145 Shapes, IT/Data/SDLC) [Max]"),
-            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (100 Layouts, 145 Shapes, 168 Glyphs, 200k+ 3D Lang/IT SVGs) [Pro]"),
-            ("auto_dynamic", "⚡ Dynamic / Auto (AI Decides Visuals, Progressive Flow & Voice Choreography) [Recommended]"),
+            ("studio_300_domain", "🎨 Both Combined: 320+ Domain Layouts + Diagram Grammar + Zero-Template WebGL/SVG [Recommended]"),
+            ("pure_zero_template", "♾️ Option 1: Pure Zero-Template AI Code Engine (Custom HTML5 / Three.js / Animated <svg> — ∞)"),
+            ("studio_domain_library", "📚 Option 2: 320+ Curated Domain Layout Library (DSA, DB, OS, Cloud, Data, Network, SDLC)"),
+            ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
+            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (46 Worlds, 320+ Layouts, 145 Shapes, 200k+ 3D SVGs)"),
+            ("auto_dynamic", "⚡ Dynamic / Auto (AI Decides Visuals, Progressive Flow & Voice Choreography)"),
             ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
             ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
@@ -254,9 +258,60 @@ with st.sidebar:
         ],
         format_func=lambda x: x[1],
         key="visual_engine_select",
-        help="Includes 100+ Dedicated Layouts (IT/Hardware, Networking, Data Engineering, SDLC, AI/ML, Charts, UI Mockups), 145 3D Shapes (Mobile, Laptop, Desktop, Server, Hub, Switch, Router, 3D Meshes), 168 Glyphs, 160+ Lang/Tool/Cloud Iconify Aliases (200k+ 3D-Extruded SVGs), 18 Procedural Backdrops, 12 Transitions, 14 Text FX, 46+ HSL Worlds & Local Playwright WebGL."
+        help="Switch seamlessly between Option 1 (Pure Zero-Template Custom HTML5/Three.js/Animated <svg>), Option 2 (320+ Domain Layouts across Algorithms, DB Internals, Distributed Systems, OS, Security, Web, AI, Cloud, Networking, Data Engineering & SDLC + Diagram Grammar), OR Both Combined!"
     )
-    
+
+    manual_layout_choice = "auto"
+    manual_world_choice = "auto"
+    manual_backdrop_choice = "auto"
+    manual_transition_choice = "auto"
+    manual_text_fx_choice = "auto"
+    if visual_engine[0] in ("studio_300_domain", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio"):
+        with st.expander("🎛️ Manual Studio Overrides (Layout / Theme / FX)", expanded=False):
+            from core.cinematic_engine import (
+                ALL_BACKDROPS,
+                ALL_STUDIO_LAYOUTS,
+                ALL_TEXT_FX,
+                ALL_TRANSITIONS,
+                STUDIO_WORLDS,
+            )
+            layout_opts = ["auto", "web_scene", "svg_scene", "spatial_canvas", "grammar:flow:5", "grammar:grid:3x2", "grammar:ring:6"] + list(ALL_STUDIO_LAYOUTS)
+            # deduplicate preserving order
+            layout_opts = list(dict.fromkeys(layout_opts))
+            manual_layout_choice = st.selectbox(
+                f"Manual Scene Layout ({len(ALL_STUDIO_LAYOUTS)} Named + Grammar + ∞ Web/SVG)",
+                layout_opts,
+                format_func=lambda v: "🤖 AI Auto-Select (Recommended)" if v == "auto" else v,
+                key="manual_layout_override",
+            )
+            world_opts = ["auto", "custom_hex"] + list(STUDIO_WORLDS.keys())
+            manual_world_choice = st.selectbox(
+                f"Color World ({len(STUDIO_WORLDS)} Curated + Custom #HEX)",
+                world_opts,
+                format_func=lambda v: "🤖 AI Auto-Select" if v == "auto" else ("🎨 Custom #HEX Color..." if v == "custom_hex" else v),
+                key="manual_world_override",
+            )
+            if manual_world_choice == "custom_hex":
+                manual_world_choice = st.text_input("Custom #HEX Seed", value="#38BDF8", key="manual_hex_input")
+            manual_backdrop_choice = st.selectbox(
+                f"Backdrop Shader ({len(ALL_BACKDROPS)} Styles, No Floor Jali)",
+                ["auto"] + list(ALL_BACKDROPS),
+                format_func=lambda v: "🤖 AI Auto-Select" if v == "auto" else v,
+                key="manual_backdrop_override",
+            )
+            manual_transition_choice = st.selectbox(
+                f"Scene Transition ({len(ALL_TRANSITIONS)} FX)",
+                ["auto"] + list(ALL_TRANSITIONS),
+                format_func=lambda v: "🤖 AI Auto-Select" if v == "auto" else v,
+                key="manual_transition_override",
+            )
+            manual_text_fx_choice = st.selectbox(
+                f"Kinetic Text FX ({len(ALL_TEXT_FX)} Styles)",
+                ["auto"] + list(ALL_TEXT_FX),
+                format_func=lambda v: "🤖 AI Auto-Select" if v == "auto" else v,
+                key="manual_textfx_override",
+            )
+
     custom_style_prompt = ""
     if visual_engine[0] == "custom_user_style":
         custom_style_prompt = st.text_input(
@@ -264,6 +319,8 @@ with st.sidebar:
             placeholder="e.g. Cyberpunk neon green terminal with matrix code rain and glowing data blocks",
             help="Describe the exact visual style, colors, and layout you want for every scene."
         )
+    elif manual_layout_choice != "auto":
+        custom_style_prompt = f"Use layout '{manual_layout_choice}' across visuals where appropriate."
     
     st.markdown("---")
     st.markdown("### ⚡ Compute & Studio Switcher")
@@ -505,6 +562,22 @@ with tab_create:
                     pass
 
             for i, sc in enumerate(aligned_scenes):
+                if manual_world_choice != "auto":
+                    sc["art_style"] = manual_world_choice
+                    sc.setdefault("visual_data", {})["art_style"] = manual_world_choice
+                    if isinstance(timeline, dict) and i == 0:
+                        timeline["art_style"] = manual_world_choice
+                if manual_layout_choice != "auto":
+                    sc["visual_type"] = manual_layout_choice
+                if manual_backdrop_choice != "auto":
+                    sc["backdrop"] = manual_backdrop_choice
+                    sc.setdefault("visual_data", {})["backdrop"] = manual_backdrop_choice
+                if manual_transition_choice != "auto":
+                    sc["transition"] = manual_transition_choice
+                    sc.setdefault("visual_data", {})["transition"] = manual_transition_choice
+                if manual_text_fx_choice != "auto":
+                    sc["text_fx"] = manual_text_fx_choice
+                    sc.setdefault("visual_data", {})["text_fx"] = manual_text_fx_choice
                 v_type = sc.get('visual_type', 'cards')
                 status_box.info(f"🎨 Rendering visuals for scene {i + 1}/{total_sc} with watermark ({channel_watermark})...")
                 progress_bar.progress(40 + int(35 * (i + 1) / max(1, total_sc)))

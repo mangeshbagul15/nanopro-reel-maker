@@ -176,27 +176,44 @@ window.__setStudioProgress(0, 0, 0.5);
 </script></body></html>"""
 
 
+_STUDIO_HELPER_SCRIPT = """<script>
+window.STUDIO_FX = {
+  easeOutCubic: (t) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3),
+  easeOutBack: (t) => { const x = Math.max(0, Math.min(1, t)), c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); },
+  gate: (p, idx, total) => Math.max(0, Math.min(1, (p - (idx / Math.max(1, total)) * 0.6) / 0.25)),
+};
+</script>"""
+
+
 def _wrap_custom_html(raw_html: str, width: int, height: int) -> str:
     txt = str(raw_html or "").strip()
     if "<html" in txt.lower():
-        if "__setStudioProgress" not in txt:
+        out = txt.replace("</head>", _STUDIO_HELPER_SCRIPT + "</head>", 1) if "</head>" in txt else (_STUDIO_HELPER_SCRIPT + txt)
+        if "__setStudioProgress" not in out:
             hook = """<script>
-window.__setStudioProgress=window.__setStudioProgress||function(p){
+window.__setStudioProgress=window.__setStudioProgress||function(p,curTime,energy){
   document.documentElement.style.setProperty('--p', p);
   document.querySelectorAll('[data-stage]').forEach((el,i)=>{
     const th=Number(el.getAttribute('data-stage')||i+1)/6;
-    el.style.opacity=p>=th?1:Math.max(0,(p-th+0.18)/0.18);
+    const vis=p>=th?1:Math.max(0,(p-th+0.18)/0.18);
+    el.style.opacity=vis;
+    el.style.transform=`translateY(${(1-vis)*22}px) scale(${0.95+0.05*vis})`;
   });
 };</script></body>"""
-            return txt.replace("</body>", hook)
-        return txt
+            return out.replace("</body>", hook)
+        return out
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
+{_STUDIO_HELPER_SCRIPT}
 <style>html,body{{margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;background:#070B16;color:#F8FAFC;font-family:Inter,'Segoe UI',sans-serif;}}</style>
 </head><body>{txt}
 <script>
 window.__setStudioProgress=window.__setStudioProgress||function(p){{
   document.documentElement.style.setProperty('--p', p);
+  document.querySelectorAll('[data-stage]').forEach((el,i)=>{{
+    const th=Number(el.getAttribute('data-stage')||i+1)/6;
+    el.style.opacity=p>=th?1:Math.max(0,(p-th+0.18)/0.18);
+  }});
 }};
 </script></body></html>"""
 

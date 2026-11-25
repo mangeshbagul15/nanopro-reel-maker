@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from core.config import ASSETS_DIR
+from core.layouts_domain_220 import DOMAIN_220_LAYOUTS, render_domain_220_or_grammar
 from core.layouts_it_sdlc import IT_SDLC_35_LAYOUTS, render_it_sdlc_layout
 from core.layouts_pro import EXTRA_32_LAYOUTS, render_pro_layout
 from core.palette_engine import resolve_studio_world
@@ -1817,7 +1818,7 @@ ALL_STUDIO_LAYOUTS: Tuple[str, ...] = (
     "sequence_diagram", "er_schema", "state_machine", "git_branch_tree", "flamegraph_perf",
     "queue_workers", "load_balancer_fanout", "cache_hit_miss", "code_diff_split", "api_request_response",
     "venn_overlap", "funnel_metrics", "stat_grid_2x2", "latency_waterfall", "tree_hierarchy",
-) + EXTRA_32_LAYOUTS + IT_SDLC_35_LAYOUTS
+) + EXTRA_32_LAYOUTS + IT_SDLC_35_LAYOUTS + DOMAIN_220_LAYOUTS
 
 _PRO_HELPERS: Dict[str, Any] = {
     "_get_font": _get_font,
@@ -1846,6 +1847,8 @@ def dispatch_studio_layout(
         pass
     elif render_it_sdlc_layout(stage, l, d, progress, world, _PRO_HELPERS):
         pass
+    elif render_domain_220_or_grammar(stage, l, d, progress, world, _PRO_HELPERS):
+        pass
     elif l in ("custom_scene", "custom", "cards", "concept_cards"):
         _render_custom_scene(stage, d, progress, world)
     elif l in ("iso_architecture", "architecture", "architecture_flow", "pipeline", "flow"):
@@ -1860,7 +1863,7 @@ def dispatch_studio_layout(
         _render_kinetic_statement(stage, d, progress, world)
     elif l in ("spatial_canvas", "spatial", "freeform", "composer"):
         _render_spatial_canvas(stage, d, progress, world)
-    elif l in ("svg_scene", "generative_svg", "svg"):
+    elif l in ("svg_scene", "generative_svg", "svg", "web_scene", "webgl_scene", "html_scene"):
         _render_svg_scene(stage, d, progress, world)
     elif l in ("layer_stack_3d", "stack_3d", "layers"):
         _render_layer_stack_3d(stage, d, progress, world)

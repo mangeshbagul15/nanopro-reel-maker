@@ -440,8 +440,10 @@ def render_scene_frames(
     duration = max(1.5, float(scene.get("duration", 5.0)))
     total_frames = max(15, round(duration * VIDEO_FPS))
 
-    if engine_style in ("cinematic_studio", "dual_generative"):
-        if engine_style == "dual_generative" or scene.get("visual_type") in ("web_scene", "webgl_scene", "html_scene"):
+    _STUDIO_MODES = ("studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative")
+    if engine_style in _STUDIO_MODES:
+        use_web = (engine_style in ("pure_zero_template", "dual_generative")) or (scene.get("visual_type") in ("web_scene", "webgl_scene", "html_scene")) or bool((scene.get("visual_data") or {}).get("html"))
+        if use_web:
             from core.web_generative_engine import render_web_generative_frames
             web_res = render_web_generative_frames(
                 scene=scene, scene_idx=scene_idx, total_scenes=total_scenes,
@@ -2508,7 +2510,7 @@ def generate_thumbnail_9_16(
     canvas_w = 1080
     canvas_h = 1920
     art_style = str(timeline.get("art_style", "editorial_dark")) if isinstance(timeline, dict) else "editorial_dark"
-    if visual_engine in ("cinematic_studio", "dual_generative"):
+    if visual_engine in ("studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative"):
         from core.cinematic_engine import (
             StudioStage,
             _build_volumetric_studio_bg,
