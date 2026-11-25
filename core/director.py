@@ -559,12 +559,15 @@ def generate_timeline(
     
     last_errors = []
 
-    # 1. Primary: High-speed Gemini Models (with JSON mode + resilient model rotation + brief transient retry)
+    # 1. Primary: High-speed Gemini Models (v1beta for preview/latest aliases + JSON mode + transient retry)
     if GEMINI_API_KEY:
         try:
             import time
             from google import genai
-            client = genai.Client(api_key=GEMINI_API_KEY)
+            try:
+                client = genai.Client(api_key=GEMINI_API_KEY, http_options={"api_version": "v1beta"})
+            except Exception:
+                client = genai.Client(api_key=GEMINI_API_KEY)
 
             models_to_try = [
                 "gemini-3.5-flash-lite",
@@ -617,14 +620,14 @@ def generate_timeline(
         except Exception as e:
             last_errors.append(f"Gemini client error: {e}")
 
-    # 2. Resilient Secondary Fallback: Groq Ultra-Fast LLM
+    # 2. Resilient Secondary Fallback: Groq Ultra-Fast LLM (high max_tokens so reasoning models never truncate)
     if GROQ_API_KEY:
         try:
             from groq import Groq
             g_client = Groq(api_key=GROQ_API_KEY)
             groq_candidates = [
-                ("openai/gpt-oss-120b", True),
                 ("openai/gpt-oss-120b", False),
+                ("openai/gpt-oss-120b", True),
                 ("qwen/qwen3.8-27b", False),
                 ("openai/gpt-oss-20b", False),
             ]
@@ -634,9 +637,10 @@ def generate_timeline(
                         "model": g_model,
                         "messages": [
                             {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": user_prompt}
+                            {"role": "user", "content": f"{user_prompt}\nReturn ONLY valid JSON."}
                         ],
-                        "temperature": 0.7,
+                        "temperature": 0.6,
+                        "max_tokens": 8192,
                     }
                     if use_json_mode:
                         req_kw["response_format"] = {"type": "json_object"}
@@ -662,11 +666,16 @@ def generate_timeline(
         except Exception as e:
             last_errors.append(f"Groq client error: {e}")
 
-    # 3. Third-Tier Fail-Safe: OpenRouter
+    # 3. Third-Tier Fail-Safe: OpenRouter Free Tier Models (0 credits required)
     if OPENROUTER_API_KEY:
         try:
             import requests
-            or_models = ["meta-llama/llama-3.3-70b-instruct", "deepseek/deepseek-chat"]
+            or_models = [
+                "google/gemma-4-31b-it:free",
+                "nvidia/nemotron-3-ultra-550b-a55b:free",
+                "baidu/ernie-5.5-flash-preview:free",
+                "nvidia/nemotron-3.5-lightning:free",
+            ]
             for or_model in or_models:
                 try:
                     r = requests.post(
@@ -679,15 +688,17 @@ def generate_timeline(
                             "model": or_model,
                             "messages": [
                                 {"role": "system", "content": SYSTEM_PROMPT},
-                                {"role": "user", "content": user_prompt}
+                                {"role": "user", "content": f"{user_prompt}\nReturn ONLY valid JSON."}
                             ],
-                            "temperature": 0.7
+                            "temperature": 0.6,
+                            "max_tokens": 6144,
                         },
                         timeout=30
                     )
                     if r.status_code == 200:
                         res_json = r.json()
-                        raw_text = res_json["choices"][0]["message"]["content"].strip()
+                        msg = res_json["choices"][0]["message"]
+                        raw_text = (msg.get("content") or msg.get("reasoning") or "").strip()
                         clean_json = _extract_json(raw_text)
                         if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
                             clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
@@ -701,7 +712,7 @@ def generate_timeline(
                                 "format_ratio": format_ratio
                             }
                             return clean_json
-                        last_errors.append(f"openrouter/{or_model}: invalid JSON")
+                        last_errors.append(f"openrouter/{or_model}: invalid JSON ({len(raw_text)} chars)")
                     else:
                         last_errors.append(f"openrouter/{or_model}: HTTP {r.status_code}")
                 except Exception as e:
@@ -709,8 +720,28 @@ def generate_timeline(
         except Exception as e:
             last_errors.append(f"OpenRouter client error: {e}")
 
-    err_summary = "; ".join(last_errors) if last_errors else "No valid API keys configured."
-    raise RuntimeError(f"Failed to generate video timeline from AI Director. Details: {err_summary}")
+    # 4. Tier-4 Emergency Deterministic Storyboard (prevents crash when all external LLM APIs hit 503 simultaneously)
+    print(f"[Director] All external LLMs unavailable ({'; '.join(last_errors)[:240]}). Using deterministic storyboard composer...")
+    fallback_tl = _build_emergency_fallback_timeline(
+        topic=topic,
+        tone=tone,
+        engine_style=engine_style,
+        duration_mode=duration_mode,
+        voice=voice,
+        format_ratio=format_ratio,
+    )
+    fallback_tl = _enforce_engine_style(fallback_tl, engine_style, topic, tone=tone, format_ratio=format_ratio)
+    fallback_tl["meta_director"] = {
+        "model_used": "emergency_deterministic_composer",
+        "engine_style": engine_style,
+        "custom_style_prompt": custom_style_prompt,
+        "duration_mode": duration_mode,
+        "topic": topic,
+        "voice": voice,
+        "format_ratio": format_ratio,
+        "upstream_errors": last_errors[:6],
+    }
+    return fallback_tl
 
 def _synthesize_bespoke_web_scenes(
     scenes: List[Dict[str, Any]],
@@ -1214,11 +1245,167 @@ Return ONLY a valid JSON array of 6 objects matching this schema:
         {"title": f"💡 Zero-Fluff 60s Visual Guide to {safe_topic}", "category": "Quick Explainer"}
     ]
 
+def _salvage_scenes_from_truncated_json(text: str, topic_hint: str = "") -> Dict[str, Any]:
+    """Recovers complete scene objects from truncated LLM JSON when output cut off mid-response."""
+    m = re.search(r'"scenes"\s*:\s*\[', text)
+    if not m:
+        return {}
+    decoder = json.JSONDecoder(strict=False)
+    idx = m.end()
+    n = len(text)
+    scenes: List[Dict[str, Any]] = []
+    while idx < n:
+        while idx < n and text[idx] in " \t\r\n,":
+            idx += 1
+        if idx >= n or text[idx] == "]":
+            break
+        if text[idx] != "{":
+            nxt = text.find("{", idx)
+            if nxt == -1:
+                break
+            idx = nxt
+        try:
+            obj, end_idx = decoder.raw_decode(text, idx)
+            if isinstance(obj, dict) and (obj.get("narration") or obj.get("visual_data") or obj.get("visual_type")):
+                scenes.append(obj)
+            idx = end_idx
+        except Exception:
+            break
+    if not scenes:
+        return {}
+    title_m = re.search(r'"title"\s*:\s*"([^"]+)"', text)
+    style_m = re.search(r'"art_style"\s*:\s*"([^"]+)"', text)
+    return {
+        "title": title_m.group(1) if title_m else (topic_hint or "Tech Deep Dive"),
+        "art_style": style_m.group(1) if style_m else "sapphire_3d",
+        "scenes": scenes,
+    }
+
+
+def _build_emergency_fallback_timeline(
+    topic: str,
+    tone: str = "senior_hinglish_mentor",
+    engine_style: str = "studio_domain_library",
+    duration_mode: str = "auto",
+    voice: str = "en-IN-PrabhatNeural|hinglish",
+    format_ratio: str = "9:16",
+) -> Dict[str, Any]:
+    """Deterministic multi-scene storyboard used only if every external LLM API fails simultaneously."""
+    clean_topic = (topic or "System Design Architecture").strip()[:70]
+    scene_tone = tone if tone != "auto_dynamic" else "senior_hinglish_mentor"
+    is_marathi = voice.startswith("mr-") or voice.endswith("|mr")
+    is_hindi = voice.startswith("hi-") or voice.endswith("|hi")
+
+    if is_marathi:
+        narrs = [
+            (f"मित्रांनो, {clean_topic} मध्ये 90% engineers एका common trap मध्ये अडकतात... [pause] ते कसे टाळायचे?", f"Mitrano, {clean_topic} madhe 90% engineers eka common trap madhe adaktat... [pause] te kase talayche?"),
+            (f"{clean_topic} चे core architecture 3 simple steps मध्ये काम करते — request routing, state sync, आणि fast execution.", f"{clean_topic} che core architecture 3 simple steps madhe kaam karte — request routing, state sync, ani fast execution."),
+            (f"Pan trade-off लक्षात ठेवा: latency 50% कमी होते, पण edge cases साठी proper limits सेट करा.", f"Pan trade-off lakshat theva: latency 50% kami hote, pan edge cases saathi proper limits set kara."),
+            (f"ही reel save करा आणि comment मध्ये तुमचा next topic सांगा!", f"Hi reel save kara ani comment madhe tumcha next topic sanga!"),
+        ]
+    elif is_hindi:
+        narrs = [
+            (f"Interview में 90% लोग {clean_topic} के एक simple question में फंस जाते हैं... [pause] आइए reason समझते हैं।", f"Interview mein 90% log {clean_topic} ke ek simple question mein phans jaate hain... [pause] aaiye reason samajhte hain."),
+            (f"{clean_topic} की architecture 3 clear stages में चलती है — fast ingestion, core engine processing, और reliable storage sync.", f"{clean_topic} ki architecture 3 clear stages mein chalti hai — fast ingestion, core engine processing, aur reliable storage sync."),
+            (f"Real trade-off ये है कि latency 10x कम होती है, लेकिन production edge cases के लिए retry और limits ज़रूरी हैं।", f"Real trade-off yeh hai ki latency 10x kam hoti hai, lekin production edge cases ke liye retry aur limits zaroori hain."),
+            (f"इस reel को save करें और next interview topic comment करें!", f"Is reel ko save karein aur next interview topic comment karein!"),
+        ]
+    else:
+        narrs = [
+            (f"90% engineers hit a hidden bottleneck in {clean_topic}... [pause] let's see why systems freeze under load.", ""),
+            (f"{clean_topic} works in 3 clean stages: request routing, in-memory processing, and resilient state sync.", ""),
+            (f"The real trade-off: latency drops by 10x, while proper backpressure and limits protect edge cases.", ""),
+            (f"Save this breakdown for your next interview and comment your next topic below!", ""),
+        ]
+
+    scenes = [
+        {
+            "scene_id": 1,
+            "role": "hook",
+            "scene_tone": scene_tone,
+            "narration": narrs[0][0],
+            **({"narration_hinglish": narrs[0][1]} if narrs[0][1] else {}),
+            "visual_type": "hero_hook",
+            "visual_data": {
+                "badge": "INTERVIEW TRAP",
+                "title": clean_topic,
+                "question": f"Why does {clean_topic} fail at scale?",
+                "left_pill": "Naive Approach",
+                "right_pill": "Production Pattern",
+                "stat_badge": "90% Candidates Miss This",
+            },
+        },
+        {
+            "scene_id": 2,
+            "role": "architecture",
+            "scene_tone": scene_tone,
+            "narration": narrs[1][0],
+            **({"narration_hinglish": narrs[1][1]} if narrs[1][1] else {}),
+            "visual_type": "architecture_flow",
+            "visual_data": {
+                "badge": "SYSTEM TOPOLOGY",
+                "title": f"{clean_topic} Pipeline",
+                "nodes": [
+                    {"id": "in", "label": "Client Requests", "sub": "Ingress & Validation", "color": "#38BDF8"},
+                    {"id": "core", "label": f"{clean_topic[:18]} Core", "sub": "Fast State Engine", "color": "#FBBF24"},
+                    {"id": "out", "label": "Persistent Store", "sub": "Consistent Output", "color": "#34D399"},
+                ],
+            },
+        },
+        {
+            "scene_id": 3,
+            "role": "tradeoff",
+            "scene_tone": scene_tone,
+            "narration": narrs[2][0],
+            **({"narration_hinglish": narrs[2][1]} if narrs[2][1] else {}),
+            "visual_type": "split_comparison",
+            "visual_data": {
+                "badge": "TRADE-OFFS & FIX",
+                "title": "Latency vs Reliability",
+                "left_label": "UNOPTIMIZED",
+                "left_points": ["Blocking contention", "High tail latency", "Cascade failures"],
+                "right_label": "PRODUCTION FIX",
+                "right_points": ["10x lower latency", "Bounded queues", "Graceful fallback"],
+            },
+        },
+        {
+            "scene_id": 4,
+            "role": "cta",
+            "scene_tone": scene_tone,
+            "narration": narrs[3][0],
+            **({"narration_hinglish": narrs[3][1]} if narrs[3][1] else {}),
+            "visual_type": "concept_cards",
+            "visual_data": {
+                "badge": "KEY TAKEAWAYS",
+                "title": f"{clean_topic} Checklist",
+                "bullets": [
+                    "Measure bottlenecks before optimizing",
+                    "Guard edge cases with explicit limits",
+                ],
+                "footer_cta": "Save • Share • Comment Next Topic",
+            },
+        },
+    ]
+    if duration_mode == "short":
+        scenes = scenes[:3]
+    return {
+        "title": clean_topic,
+        "topic_category": "system_design",
+        "art_style": "sapphire_3d",
+        "scenes": scenes,
+    }
+
+
 def _extract_json(text: str) -> Dict[str, Any]:
-    """Extracts a JSON object reliably from raw or markdown/reasoning-wrapped LLM output."""
+    """Extracts a JSON object reliably from raw, reasoning-wrapped, or truncated LLM output."""
     if not text:
         return {}
     cleaned = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.IGNORECASE).strip()
+    # Handle unclosed <think> if model hit output limit before </think>, keeping any JSON portion after it
+    if "<think>" in cleaned.lower() and "</think>" not in cleaned.lower():
+        brace_after = cleaned.find('{"')
+        if brace_after != -1:
+            cleaned = cleaned[brace_after:]
 
     candidates: List[str] = []
     # 1. Outermost braces (immune to inner triple backticks inside code_snippet fields)
@@ -1237,18 +1424,22 @@ def _extract_json(text: str) -> Dict[str, Any]:
         for strict_flag in (True, False):
             try:
                 parsed = json.loads(cand, strict=strict_flag)
-                if isinstance(parsed, dict):
+                if isinstance(parsed, dict) and parsed:
                     return parsed
             except Exception:
                 pass
-        # Trailing-comma cleanup retry
         no_trailing = re.sub(r",\s*([}\]])", r"\1", cand)
         try:
             parsed = json.loads(no_trailing, strict=False)
-            if isinstance(parsed, dict):
+            if isinstance(parsed, dict) and parsed:
                 return parsed
         except Exception:
             pass
+
+    # 3. Truncated JSON scene recovery (salvages completed scenes from 2k-6k char partial outputs)
+    salvaged = _salvage_scenes_from_truncated_json(cleaned)
+    if salvaged and salvaged.get("scenes"):
+        return salvaged
     return {}
 
 def generate_viral_meta(
