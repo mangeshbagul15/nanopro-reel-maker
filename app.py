@@ -37,7 +37,7 @@ for mod_name in list(sys.modules.keys()):
             pass
 
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
-from core.director import generate_timeline, generate_viral_meta, generate_video_titles
+from core.director import generate_timeline, generate_viral_meta, generate_video_titles, load_visual_history, reset_visual_history
 from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS, VOICE_CATALOG
 from core.animator import render_scene_frames, generate_thumbnail_9_16
 from core.subtitles import generate_ass_subtitles
@@ -313,6 +313,14 @@ with st.sidebar:
                 format_func=lambda v: "🤖 AI Auto-Select" if v == "auto" else v,
                 key="manual_textfx_override",
             )
+            if "visual_gen_history" not in st.session_state:
+                st.session_state["visual_gen_history"] = load_visual_history()
+            _vh_cnt = int(st.session_state["visual_gen_history"].get("run_count", 0))
+            _vh_c1, _vh_c2 = st.columns([2, 1])
+            _vh_c1.caption(f"🎨 **Anti-Repeat History:** `{_vh_cnt}` runs tracked")
+            if _vh_c2.button("🔄 Reset", key="reset_vis_hist_btn", help="Clear saved layout/style history"):
+                reset_visual_history(st.session_state["visual_gen_history"])
+                st.rerun()
 
     custom_style_prompt = ""
     if visual_engine[0] == "custom_user_style":
@@ -588,6 +596,9 @@ with tab_create:
             if custom_script_override.strip():
                 full_prompt += f"\n\nEXPLICIT USER SCRIPT OVERRIDE (MANDATORY: Follow these exact scene narrations):\n{custom_script_override.strip()}"
 
+            if "visual_gen_history" not in st.session_state:
+                st.session_state["visual_gen_history"] = load_visual_history()
+
             timeline = generate_timeline(
                 full_prompt,
                 tone=chosen_tone,
@@ -595,7 +606,8 @@ with tab_create:
                 duration_mode=duration_option[0],
                 custom_style_prompt=custom_style_prompt,
                 voice=chosen_voice,
-                format_ratio=aspect_ratio[0]
+                format_ratio=aspect_ratio[0],
+                visual_history=st.session_state["visual_gen_history"],
             )
             
             with st.expander("📄 View Raw AI Director Blueprint (JSON)", expanded=False):

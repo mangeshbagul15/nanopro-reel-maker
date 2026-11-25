@@ -1,7 +1,132 @@
 import json
 import re
 from typing import Dict, Any, Optional, List, Tuple
-from core.config import GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, MISTRAL_API_KEY
+from core.config import GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, MISTRAL_API_KEY, OUTPUT_DIR
+
+VISUAL_HISTORY_PATH = OUTPUT_DIR / "visual_history.json"
+
+# Compatible geometry families across ALL_STUDIO_LAYOUTS (for non-repeating Option 2 & Combined rotation)
+_DIVERSE_LAYOUT_FAMILIES: Dict[str, Tuple[str, ...]] = {
+    "hook": (
+        "hero_hook", "custom_scene", "cap_theorem_triangle", "incident_radar", "alert_diagram",
+        "kinetic_statement", "grammar:grid:2x2", "checklist_scorecard", "pacelc_tradeoff", "venn_overlap",
+    ),
+    "flow": (
+        "architecture_flow", "iso_architecture", "cdc_debezium_flow", "etl_elt_pipeline", "outbox_pattern_cdc",
+        "saga_orchestration", "step_timeline", "roadmap_wave", "cicd_pipeline_stages", "sequence_diagram",
+        "lsm_tree_compaction", "write_ahead_log_wal", "rate_limiter_token_bucket", "idempotency_key_store",
+        "strangler_fig_migration", "event_sourcing_snapshots", "grammar:flow:4", "grammar:slots:4",
+    ),
+    "hub": (
+        "circular_hub_mesh", "node_graph", "consistent_hashing_ring", "raft_leader_election",
+        "circuit_breaker_states", "epoll_event_loop", "gossip_protocol_cluster", "sdlc_cycle_wheel",
+        "sharding_hash_range", "hexagonal_ports_adapters", "radar_spider", "grammar:ring:5",
+    ),
+    "tiers": (
+        "layer_stack_3d", "pyramid_hierarchy", "l1_l2_l3_cache_tiers", "osi_7_layers", "medallion_lakehouse",
+        "docker_cgroups_namespaces", "hnsw_vector_graph", "clean_architecture_rings", "tree_hierarchy",
+        "b_plus_tree_pages", "merkle_tree_proof", "grammar:tiers:4", "grammar:tree:3",
+    ),
+    "compare": (
+        "split_comparison", "iso_comparison", "code_diff_split", "hybrid_merge", "pacelc_tradeoff",
+        "process_thread_context", "index_seek_vs_scan", "dma_zero_copy_io", "matrix_2x2",
+        "monolith_modular_vs_micro", "bfs_dfs_traversal", "venn_overlap",
+    ),
+    "metrics": (
+        "benchmark_chart", "benchmark_3d", "metric_gauge_hud", "radial_gauge", "latency_waterfall",
+        "flamegraph_perf", "funnel_metrics", "stat_grid_2x2", "line_area_chart", "donut_3d",
+    ),
+    "code": (
+        "code_terminal", "terminal_studio", "sql_table", "sql_studio", "data_structure_memory",
+        "memory_lanes", "api_request_response", "er_schema", "columnar_parquet_blocks",
+        "isolation_levels_matrix", "jwt_header_payload_sig",
+    ),
+    "summary": (
+        "concept_cards", "checklist_scorecard", "kinetic_statement", "hybrid_merge",
+        "step_timeline", "grammar:grid:2x2", "pyramid_hierarchy", "rfc_adr_decision_log",
+    ),
+}
+
+_LAYOUT_TO_FAMILY: Dict[str, str] = {
+    ly: fam for fam, group in _DIVERSE_LAYOUT_FAMILIES.items() for ly in group
+}
+
+
+def load_visual_history(session_history: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Loads recent visual generation history from session and disk so consecutive clicks vary completely."""
+    base: Dict[str, Any] = {
+        "run_count": 0,
+        "recent_art_styles": [],
+        "recent_visual_types": [],
+        "recent_backdrops": [],
+        "recent_transitions": [],
+        "recent_text_fx": [],
+    }
+    if VISUAL_HISTORY_PATH.exists():
+        try:
+            loaded = json.loads(VISUAL_HISTORY_PATH.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                for k in base:
+                    if k in loaded:
+                        base[k] = loaded[k]
+        except Exception:
+            pass
+    if isinstance(session_history, dict) and session_history:
+        if int(session_history.get("run_count", 0)) >= int(base.get("run_count", 0)):
+            for k in base:
+                if k in session_history:
+                    base[k] = list(session_history[k]) if isinstance(base[k], list) else session_history[k]
+    return base
+
+
+def _save_visual_history(
+    hist: Dict[str, Any],
+    timeline: Dict[str, Any],
+    session_history: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Records the newly generated art_style, visual_types, backdrops, transitions, and text_fx into history."""
+    updated = dict(hist)
+    updated["run_count"] = int(updated.get("run_count", 0)) + 1
+
+    def _push_unique(key: str, items: List[str], cap: int) -> None:
+        cur = [x for x in (updated.get(key) or []) if isinstance(x, str) and x]
+        for it in items:
+            if not it:
+                continue
+            cur = [x for x in cur if x != it]
+            cur.append(it)
+        updated[key] = cur[-cap:]
+
+    scenes = timeline.get("scenes") or []
+    _push_unique("recent_art_styles", [str(timeline.get("art_style") or "")], 14)
+    _push_unique(
+        "recent_visual_types",
+        [str((sc.get("visual_data") or {}).get("_intent") or sc.get("visual_type") or "") for sc in scenes if isinstance(sc, dict)],
+        28,
+    )
+    _push_unique("recent_backdrops", [str(sc.get("backdrop") or "") for sc in scenes if isinstance(sc, dict)], 12)
+    _push_unique("recent_transitions", [str(sc.get("transition") or "") for sc in scenes if isinstance(sc, dict)], 10)
+    _push_unique("recent_text_fx", [str(sc.get("text_fx") or "") for sc in scenes if isinstance(sc, dict)], 10)
+
+    if isinstance(session_history, dict):
+        session_history.clear()
+        session_history.update(updated)
+    try:
+        VISUAL_HISTORY_PATH.write_text(json.dumps(updated, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+    return updated
+
+
+def reset_visual_history(session_history: Optional[Dict[str, Any]] = None) -> None:
+    """Clears persisted visual layout history."""
+    if isinstance(session_history, dict):
+        session_history.clear()
+    try:
+        if VISUAL_HISTORY_PATH.exists():
+            VISUAL_HISTORY_PATH.unlink()
+    except Exception:
+        pass
 
 SYSTEM_PROMPT = """You are an elite Tech Content Director and Visual Storyteller for viral 9:16 vertical tech videos and reels (inspired by Fireship and ByteByteGo).
 Your mission is to analyze any technical topic and autonomously design a realistic, topic-accurate, deeply engaging storyboard blueprint JSON.
@@ -467,12 +592,20 @@ def generate_timeline(
     duration_mode: str = "auto",
     custom_style_prompt: str = "",
     voice: str = "en-US-ChristopherNeural",
-    format_ratio: str = "9:16"
+    format_ratio: str = "9:16",
+    visual_history: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Generates a structured video timeline blueprint using Gemini models with full AI autonomy,
-    strictly adapted to the chosen Visual Engine, Voice Persona (Language/Dialect), Format and Duration.
+    Generates a structured video timeline blueprint using Gemini/Groq/OpenRouter models,
+    maintaining persistent visual history for Option 1, Option 2, and Combined engines so
+    every click produces distinct layouts, palettes, shaders, and compositions.
     """
+    hist = load_visual_history(visual_history)
+    run_num = int(hist.get("run_count", 0)) + 1
+    _DIVERSE_ENGINES = (
+        "studio_domain_library", "pure_zero_template", "studio_300_domain",
+        "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern",
+    )
     if engine_style == "custom_user_style" and custom_style_prompt.strip():
         style_directive = (
             f"MANDATORY CUSTOM STYLE DIRECTIVE: The user explicitly requested this custom visual aesthetic: "
@@ -542,6 +675,41 @@ def generate_timeline(
         "Keep English terms natural and conversational like authentic Hinglish / spoken tech speech."
     )
 
+    variety_directive = ""
+    if engine_style in _DIVERSE_ENGINES:
+        avoid_arts = hist.get("recent_art_styles") or []
+        avoid_vtypes = hist.get("recent_visual_types") or []
+        avoid_bds = hist.get("recent_backdrops") or []
+        from core.palette_engine import STUDIO_WORLDS
+        fresh_worlds = [w for w in STUDIO_WORLDS.keys() if w not in avoid_arts[-10:]] or list(STUDIO_WORLDS.keys())
+        suggested_world = fresh_worlds[(run_num * 3 + abs(hash(topic.strip().lower()))) % len(fresh_worlds)]
+        # Rotate curated layout suggestions across runs so LLM sees completely fresh templates every click
+        all_candidates = [ly for grp in _DIVERSE_LAYOUT_FAMILIES.values() for ly in grp if ly not in avoid_vtypes[-14:]]
+        if len(all_candidates) < 10:
+            all_candidates = [ly for grp in _DIVERSE_LAYOUT_FAMILIES.values() for ly in grp]
+        rot_offset = (run_num * 7) % max(1, len(all_candidates))
+        fresh_layout_picks = (all_candidates[rot_offset:] + all_candidates[:rot_offset])[:14]
+        web_paradigms = [
+            "Asymmetric Bento Grid + Flowing SVG Bezier Comets",
+            "3D Isometric Floating Orbit + Glowing Radar Waves",
+            "Split Interactive Code Terminal + Live Bar Telemetry",
+            "Neon Blueprint Schematic + Concentric Layer Stack",
+            "Kinetic Timeline Stepper + Dual Matrix Quadrant",
+            "Particle Physics Network Hub + Live Memory Offsets",
+        ]
+        chosen_paradigm = web_paradigms[run_num % len(web_paradigms)]
+        variety_directive = (
+            f"\nFRESH VISUAL VARIATION MANDATE (Generation Run #{run_num} — ZERO REPETITION):\n"
+            f"- The user clicked Generate again and expects a COMPLETELY DIFFERENT visual composition, layout geometry, palette, and motion feel from prior videos.\n"
+            f"- Use fresh `art_style`: `\"{suggested_world}\"` (AVOID repeating recent styles: {avoid_arts[-8:]}).\n"
+            + (
+                f"- AVOID reusing recent visual_types {avoid_vtypes[-12:]}! Prefer fresh layouts from this rotation: {fresh_layout_picks}.\n"
+                if engine_style in ("studio_domain_library", "studio_300_domain")
+                else f"- Design bespoke `web_scene` compositions inspired by `{chosen_paradigm}` and completely avoid recent intents {avoid_vtypes[-8:]}.\n"
+            )
+            + f"- AVOID repeating recent backdrops {avoid_bds[-6:]}; pick distinct `backdrop`, `transition`, and `text_fx` per scene.\n"
+        )
+
     user_prompt = (
         f"Topic: '{topic}'.\n"
         f"{tone_directive}\n"
@@ -551,7 +719,8 @@ def generate_timeline(
         f"{english_tech_num_rule}\n"
         f"{format_directive}\n"
         f"Target Depth / Duration: {dur_guidance}\n"
-        f"{style_directive}\n\n"
+        f"{style_directive}\n"
+        f"{variety_directive}\n"
         f"MANDATORY REQUIREMENT: For EVERY scene, make sure the visual_data fields (node labels, schemas, table rows, code snippet, bullet points, metrics) "
         f"EXACTLY match and illustrate what the narrator is speaking in that scene's narration. Never use generic or unrelated placeholders.\n"
         f"Autonomously design the complete storyboard blueprint JSON now."
@@ -565,7 +734,7 @@ def generate_timeline(
             import time
             from google import genai
             try:
-                client = genai.Client(api_key=GEMINI_API_KEY, http_options={"api_version": "v1beta"})
+                client = genai.Client(api_key=GEMINI_API_KEY, http_options={"api_version": "v1beta", "timeout": 12000})
             except Exception:
                 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -582,8 +751,10 @@ def generate_timeline(
                 "gemma-4-26b-a4b-it",
             ]
 
+            consec_transient = 0
             for model_name in models_to_try:
-                attempts = 2 if model_name in ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite") else 1
+                attempts = 2 if model_name == "gemini-3.5-flash-lite" else 1
+                hit_transient = False
                 for attempt in range(attempts):
                     try:
                         req_kwargs = {
@@ -596,7 +767,8 @@ def generate_timeline(
                         raw_text = response.text.strip() if getattr(response, "text", None) else ""
                         clean_json = _extract_json(raw_text)
                         if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
+                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num)
+                            _save_visual_history(hist, clean_json, session_history=visual_history)
                             clean_json["meta_director"] = {
                                 "model_used": model_name,
                                 "engine_style": engine_style,
@@ -604,19 +776,29 @@ def generate_timeline(
                                 "duration_mode": duration_mode,
                                 "topic": topic,
                                 "voice": voice,
-                                "format_ratio": format_ratio
+                                "format_ratio": format_ratio,
+                                "variation_run": run_num,
                             }
                             return clean_json
                         last_errors.append(f"{model_name}: invalid/empty JSON ({len(raw_text)} chars)")
+                        consec_transient = 0
                         break
                     except Exception as e:
                         err_str = str(e)
-                        if attempt + 1 < attempts and ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str):
-                            time.sleep(1.2)
+                        is_transient = ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str)
+                        if attempt + 1 < attempts and is_transient:
+                            time.sleep(0.8)
                             continue
                         print(f"[Director] Model {model_name} error: {err_str[:120]}")
                         last_errors.append(f"{model_name}: {err_str[:120]}")
+                        hit_transient = is_transient
                         break
+                if hit_transient:
+                    consec_transient += 1
+                    if consec_transient >= 3:
+                        break
+                else:
+                    consec_transient = 0
         except Exception as e:
             last_errors.append(f"Gemini client error: {e}")
 
@@ -641,6 +823,7 @@ def generate_timeline(
                         ],
                         "temperature": 0.6,
                         "max_tokens": 8192,
+                        "timeout": 18,
                     }
                     if use_json_mode:
                         req_kw["response_format"] = {"type": "json_object"}
@@ -648,7 +831,8 @@ def generate_timeline(
                     raw_text = (g_res.choices[0].message.content or "").strip() if g_res.choices else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
+                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num)
+                        _save_visual_history(hist, clean_json, session_history=visual_history)
                         clean_json["meta_director"] = {
                             "model_used": f"groq/{g_model}",
                             "engine_style": engine_style,
@@ -656,7 +840,8 @@ def generate_timeline(
                             "duration_mode": duration_mode,
                             "topic": topic,
                             "voice": voice,
-                            "format_ratio": format_ratio
+                            "format_ratio": format_ratio,
+                            "variation_run": run_num,
                         }
                         return clean_json
                     last_errors.append(f"groq/{g_model}(json={use_json_mode}): empty/unparsed ({len(raw_text)} chars)")
@@ -701,7 +886,8 @@ def generate_timeline(
                         raw_text = (msg.get("content") or msg.get("reasoning") or "").strip()
                         clean_json = _extract_json(raw_text)
                         if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
+                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num)
+                            _save_visual_history(hist, clean_json, session_history=visual_history)
                             clean_json["meta_director"] = {
                                 "model_used": f"openrouter/{or_model}",
                                 "engine_style": engine_style,
@@ -709,7 +895,8 @@ def generate_timeline(
                                 "duration_mode": duration_mode,
                                 "topic": topic,
                                 "voice": voice,
-                                "format_ratio": format_ratio
+                                "format_ratio": format_ratio,
+                                "variation_run": run_num,
                             }
                             return clean_json
                         last_errors.append(f"openrouter/{or_model}: invalid JSON ({len(raw_text)} chars)")
@@ -730,7 +917,8 @@ def generate_timeline(
         voice=voice,
         format_ratio=format_ratio,
     )
-    fallback_tl = _enforce_engine_style(fallback_tl, engine_style, topic, tone=tone, format_ratio=format_ratio)
+    fallback_tl = _enforce_engine_style(fallback_tl, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num)
+    _save_visual_history(hist, fallback_tl, session_history=visual_history)
     fallback_tl["meta_director"] = {
         "model_used": "emergency_deterministic_composer",
         "engine_style": engine_style,
@@ -739,6 +927,7 @@ def generate_timeline(
         "topic": topic,
         "voice": voice,
         "format_ratio": format_ratio,
+        "variation_run": run_num,
         "upstream_errors": last_errors[:6],
     }
     return fallback_tl
@@ -747,12 +936,13 @@ def _synthesize_bespoke_web_scenes(
     scenes: List[Dict[str, Any]],
     topic: str,
     format_ratio: str = "9:16",
+    run_num: int = 1,
 ) -> None:
     """
     Parallel Zero-Template Code-as-Video Enricher (Option 1 + Both Combined):
     Asks Gemini/Groq to author bespoke interactive HTML5 + Canvas/SVG motion code for scenes
-    marked `web_scene` that lack custom HTML. Falls back seamlessly to multi-archetype 3D Canvas
-    synthesizer if any request fails or times out.
+    marked `web_scene` that lack custom HTML. Rotates visual paradigms by `run_num` so
+    every click produces a genuinely new layout composition.
     """
     from core.config import FORMAT_SPECS
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
@@ -774,16 +964,28 @@ def _synthesize_bespoke_web_scenes(
         "Animated System Architecture Flow (connected service boxes, animated flowing SVG Bezier data packets, live labels)",
         "Low-level Memory/Buffer/Terminal Inspector OR Live Telemetry Stream (animated hex/log rows scanning live)",
         "Before-vs-After Benchmark Arena OR Switchover Timeline (animated bar chart, speedup badge, checklist cards)",
+        "3D Isometric Floating Orbit Topology (concentric rings, rotating orbital satellites, live glowing edge pulses)",
+        "Asymmetric Bento Metric & Code Grid (2x2 glowing stat tiles + live mini terminal trace + arrow connectors)",
+    ]
+    layout_flavors = [
+        "Asymmetric Bento Grid with frosted glass cards and neon corner accents",
+        "Vertical Orbital Node-Link Graph with glowing curved SVG Bezier packet trails",
+        "Split Top-vs-Bottom Blueprint Schematic with animated CAD gridlines and metric callouts",
+        "Floating 3D Isometric Layer Stack with progressive z-depth reveal cards",
+        "Cyber Command Console with live scrolling event log + radial SVG arc meter",
+        "Horizontal Milestone Stepper Rail with expanding detail drawers and live badges",
     ]
 
     def _gen_one(item: Tuple[int, Dict[str, Any]]) -> Tuple[int, str]:
         idx, sc = item
         vd = sc.get("visual_data") or {}
         narr = str(sc.get("narration") or "")
-        hint = archetype_hints[idx % len(archetype_hints)]
+        hint = archetype_hints[(idx + run_num) % len(archetype_hints)]
+        flavor = layout_flavors[(idx * 2 + run_num) % len(layout_flavors)]
         compact_vd = {k: v for k, v in vd.items() if k not in ("html", "web_code", "svg", "svg_code")}
         prompt = f"""Build ONE self-contained interactive HTML5 motion-graphic scene (`<!DOCTYPE html>...</html>`) for a {w}x{h} tech video frame.
 Topic: {topic}
+Variation Seed #{run_num} Visual Paradigm: {flavor}
 Scene {idx + 1} Role ({sc.get('role', 'explain')}): {hint}
 Spoken Narration: "{narr}"
 Scene Data: {json.dumps(compact_vd, ensure_ascii=False)[:900]}
@@ -793,15 +995,18 @@ STRICT ENGINEERING & LAYOUT RULES:
 2. TOP 100px is reserved for system HUD (do NOT draw header nav bars/watermarks there). BOTTOM {sub_safe}px MUST BE 100% EMPTY (no text boxes, no subtitles, no narration captions at bottom — ASS subtitles render there!).
 3. Define `window.__setStudioProgress = function(p, curTime, energy) {{ ... }}` cleanly with ZERO errors for ANY `p` in `0.0..1.0`! Animate SVG paths (`stroke-dashoffset`), glowing packets, counters, cards, or 2D/3D Canvas shapes driven strictly by `p` (never `requestAnimationFrame` alone, because Chromium captures frames by calling `__setStudioProgress(p)`).
 4. Zero CDN `<script src>` dependencies (pure inline HTML/CSS/SVG/Canvas JS only so offline rendering is 100% deterministic).
-5. Visual text must strictly match THIS scene's topic/narration in crisp English — NEVER generic labels or filler.
+5. Visual text must strictly match THIS scene's topic/narration in crisp English — NEVER generic labels or filler. Make the visual layout distinctly reflect `{flavor}`.
 Output ONLY the raw HTML starting with <!DOCTYPE html> and ending with </html>."""
 
         html_out = ""
         if GEMINI_API_KEY:
             try:
                 from google import genai
-                client = genai.Client(api_key=GEMINI_API_KEY)
-                for m in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]:
+                try:
+                    client = genai.Client(api_key=GEMINI_API_KEY, http_options={"api_version": "v1beta", "timeout": 12000})
+                except Exception:
+                    client = genai.Client(api_key=GEMINI_API_KEY)
+                for m in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]:
                     try:
                         res = client.models.generate_content(model=m, contents=prompt)
                         raw = str(getattr(res, "text", "") or "").strip()
@@ -835,17 +1040,61 @@ Output ONLY the raw HTML starting with <!DOCTYPE html> and ending with </html>."
 
     try:
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        with ThreadPoolExecutor(max_workers=min(4, len(targets))) as pool:
+        pool = ThreadPoolExecutor(max_workers=min(4, len(targets)))
+        try:
             futs = [pool.submit(_gen_one, t) for t in targets[:6]]
-            for fut in as_completed(futs, timeout=22):
+            for fut in as_completed(futs, timeout=20):
                 try:
                     idx, h_code = fut.result(timeout=1)
                     if h_code:
                         scenes[idx].setdefault("visual_data", {})["html"] = h_code
                 except Exception:
                     continue
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
     except Exception:
         pass
+
+
+def _mirror_items_for_domain_layout(v_data: Dict[str, Any], sc: Dict[str, Any], title: str) -> None:
+    """Ensures any rotated 320+ Domain / Grammar layout has structured `items` grounded in the scene data."""
+    if v_data.get("items") or v_data.get("nodes") or v_data.get("steps") or v_data.get("stages"):
+        return
+    mirrored: List[Dict[str, Any]] = []
+    if v_data.get("satellites"):
+        for s in v_data["satellites"][:5]:
+            mirrored.append({"name": s.get("name", ""), "sub": s.get("role", ""), "color": s.get("color", "")})
+    elif v_data.get("left_points") or v_data.get("right_points"):
+        lp = v_data.get("left_points") or []
+        rp = v_data.get("right_points") or []
+        for pt in lp[:2]:
+            mirrored.append({"name": str(pt), "sub": str(v_data.get("left_label") or "Legacy"), "color": "#F43F5E"})
+        for pt in rp[:2]:
+            mirrored.append({"name": str(pt), "sub": str(v_data.get("right_label") or "Modern"), "color": "#34D399"})
+    elif v_data.get("bars"):
+        for b in v_data["bars"][:4]:
+            mirrored.append({"name": f"{b.get('label', '')}: {b.get('display', b.get('value', ''))}", "sub": "Benchmark", "color": b.get("color", "")})
+    elif v_data.get("entries"):
+        for e in v_data["entries"][:4]:
+            mirrored.append({"name": f"{e.get('op', '')} ({e.get('address', '')})", "sub": f"{e.get('table', '')} • {e.get('status', '')}"})
+    elif v_data.get("bullets"):
+        for b in v_data["bullets"][:4]:
+            mirrored.append({"name": str(b), "sub": ""})
+    elif v_data.get("blocks"):
+        for blk in v_data["blocks"]:
+            if not isinstance(blk, dict):
+                continue
+            for it in (blk.get("items") or blk.get("nodes") or []):
+                if isinstance(it, dict):
+                    mirrored.append({"name": str(it.get("title") or it.get("name") or ""), "sub": str(it.get("desc") or it.get("sub") or "")})
+                elif isinstance(it, str):
+                    mirrored.append({"name": it, "sub": ""})
+            if blk.get("text") and len(mirrored) < 4:
+                mirrored.append({"name": str(blk["text"])[:48], "sub": str(blk.get("eyebrow") or "")})
+    if not mirrored:
+        sents = [s.strip() for s in re.split(r"[.!?\n]+", str(sc.get("narration") or "")) if len(s.strip()) > 6][:4]
+        mirrored = [{"name": s[:44], "sub": title[:28]} for s in sents] or [{"name": title[:40], "sub": "Architecture"}]
+    v_data["items"] = mirrored[:5]
 
 
 def _enforce_engine_style(
@@ -854,10 +1103,13 @@ def _enforce_engine_style(
     topic: str,
     tone: str = "auto_dynamic",
     format_ratio: str = "9:16",
+    visual_history: Optional[Dict[str, Any]] = None,
+    run_num: int = 1,
 ) -> Dict[str, Any]:
     """
     Guarantees that every scene in the timeline strictly adheres to the user-selected Visual Engine & Style,
-    adapting visual_type, scene_tone, backdrop/transition variety, and populating rich topic-specific visual_data fields.
+    adapting visual_type, scene_tone, backdrop/transition variety, and rotating away from prior runs'
+    visuals when history is maintained (Option 1, Option 2, and Both Combined).
     """
     if not timeline or "scenes" not in timeline:
         return timeline
@@ -927,21 +1179,37 @@ def _enforce_engine_style(
         "custom_canvas": "custom_scene",
     }
 
-    # Deterministically pick a fresh visual art_style from topic hash if AI omitted one
+    # Pick a fresh visual art_style, avoiding prior runs in diverse engines
+    hist = visual_history or {}
+    recent_arts = set((hist.get("recent_art_styles") or [])[-10:])
+    recent_vtypes = set((hist.get("recent_visual_types") or [])[-16:])
+    recent_bds = set((hist.get("recent_backdrops") or [])[-6:])
+    recent_trs = set((hist.get("recent_transitions") or [])[-5:])
+    recent_tfxs = set((hist.get("recent_text_fx") or [])[-5:])
+    is_diverse_engine = engine_style in (
+        "studio_domain_library", "pure_zero_template", "studio_300_domain",
+        "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern",
+    )
+
     art_styles = ["light_whiteboard", "editorial_dark", "blueprint_grid", "neon_fireship"]
     raw_art = str(timeline.get("art_style") or "").strip()
     _STUDIO_SET = ("studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative")
     if engine_style in _STUDIO_SET:
         from core.palette_engine import STUDIO_WORLDS
-        if raw_art and (raw_art.lower() in STUDIO_WORLDS or raw_art.lower() in art_styles or raw_art.startswith("#") or raw_art.lower().startswith("hue:") or raw_art.lower() in ("dynamic_hsl", "procedural", "hsl")):
+        studio_pool = list(STUDIO_WORLDS.keys())
+        if is_diverse_engine and (not raw_art or raw_art.lower() in recent_arts or raw_art.lower() not in STUDIO_WORLDS):
+            fresh_pool = [w for w in studio_pool if w not in recent_arts] or studio_pool
+            topic_art_style = fresh_pool[(run_num * 5 + abs(hash(topic.strip().lower()))) % len(fresh_pool)]
+        elif raw_art and (raw_art.lower() in STUDIO_WORLDS or raw_art.lower() in art_styles or raw_art.startswith("#") or raw_art.lower().startswith("hue:") or raw_art.lower() in ("dynamic_hsl", "procedural", "hsl")):
             topic_art_style = raw_art
         else:
-            studio_pool = list(STUDIO_WORLDS.keys())
-            topic_art_style = studio_pool[abs(hash(topic.strip().lower())) % len(studio_pool)]
+            topic_art_style = studio_pool[(run_num * 3 + abs(hash(topic.strip().lower()))) % len(studio_pool)]
     else:
-        topic_art_style = raw_art or art_styles[abs(hash(topic.strip().lower())) % len(art_styles)]
-        if topic_art_style not in art_styles:
-            topic_art_style = art_styles[0]
+        if not raw_art or raw_art not in art_styles or raw_art in recent_arts:
+            fresh_std = [a for a in art_styles if a not in recent_arts] or art_styles
+            topic_art_style = fresh_std[(run_num + abs(hash(topic.strip().lower()))) % len(fresh_std)]
+        else:
+            topic_art_style = raw_art
     timeline["art_style"] = topic_art_style
 
     if engine_style in _STUDIO_SET:
@@ -952,6 +1220,7 @@ def _enforce_engine_style(
 
     role_tone_defaults = ["fireship_octane", "staff_engineer", "dramatic_performance", "interview_prep", "conversational_casual"]
     used_vtypes: set = set()
+    used_bds_local: set = set()
     for idx, sc in enumerate(scenes):
         if tone != "auto_dynamic":
             sc["scene_tone"] = tone
@@ -959,21 +1228,41 @@ def _enforce_engine_style(
             sc["scene_tone"] = role_tone_defaults[idx % len(role_tone_defaults)]
 
         v_data = sc.get("visual_data", {})
-        if not v_data.get("art_style"):
-            v_data["art_style"] = topic_art_style
+        v_data["art_style"] = topic_art_style
         if engine_style in _STUDIO_SET and ALL_BACKDROPS:
-            if not v_data.get("backdrop") and not sc.get("backdrop"):
-                bd = ALL_BACKDROPS[(idx * 3 + abs(hash(topic))) % len(ALL_BACKDROPS)]
-                sc["backdrop"] = bd
-                v_data["backdrop"] = bd
-            if not v_data.get("transition") and not sc.get("transition"):
-                tr = ALL_TRANSITIONS[(idx * 2 + 1) % len(ALL_TRANSITIONS)]
-                sc["transition"] = tr
-                v_data["transition"] = tr
-            if not v_data.get("text_fx") and not sc.get("text_fx"):
-                tfx = ALL_TEXT_FX[(idx * 3 + 2) % len(ALL_TEXT_FX)]
-                sc["text_fx"] = tfx
-                v_data["text_fx"] = tfx
+            cur_bd = str(v_data.get("backdrop") or sc.get("backdrop") or "").lower().strip()
+            if is_diverse_engine and (not cur_bd or cur_bd in recent_bds or cur_bd in used_bds_local):
+                bd_pool = [b for b in ALL_BACKDROPS if b not in recent_bds and b not in used_bds_local] or list(ALL_BACKDROPS)
+                bd = bd_pool[(idx * 3 + run_num * 5 + abs(hash(topic))) % len(bd_pool)]
+            elif cur_bd in ALL_BACKDROPS:
+                bd = cur_bd
+            else:
+                bd = ALL_BACKDROPS[(idx * 3 + run_num * 5 + abs(hash(topic))) % len(ALL_BACKDROPS)]
+            sc["backdrop"] = bd
+            v_data["backdrop"] = bd
+            used_bds_local.add(bd)
+
+            cur_tr = str(v_data.get("transition") or sc.get("transition") or "").lower().strip()
+            if is_diverse_engine and (not cur_tr or cur_tr in recent_trs):
+                tr_pool = [t for t in ALL_TRANSITIONS if t not in recent_trs] or list(ALL_TRANSITIONS)
+                tr = tr_pool[(idx * 2 + run_num * 3) % len(tr_pool)]
+            elif cur_tr in ALL_TRANSITIONS:
+                tr = cur_tr
+            else:
+                tr = ALL_TRANSITIONS[(idx * 2 + 1 + run_num) % len(ALL_TRANSITIONS)]
+            sc["transition"] = tr
+            v_data["transition"] = tr
+
+            cur_tfx = str(v_data.get("text_fx") or sc.get("text_fx") or "").lower().strip()
+            if is_diverse_engine and (not cur_tfx or cur_tfx in recent_tfxs):
+                tfx_pool = [t for t in ALL_TEXT_FX if t not in recent_tfxs] or list(ALL_TEXT_FX)
+                tfx = tfx_pool[(idx * 3 + run_num * 2) % len(tfx_pool)]
+            elif cur_tfx in ALL_TEXT_FX:
+                tfx = cur_tfx
+            else:
+                tfx = ALL_TEXT_FX[(idx * 3 + 2 + run_num) % len(ALL_TEXT_FX)]
+            sc["text_fx"] = tfx
+            v_data["text_fx"] = tfx
 
         raw_vtype = str(sc.get("visual_type", "custom_scene")).lower().strip()
         current_vtype = vtype_aliases.get(raw_vtype, raw_vtype)
@@ -1002,6 +1291,38 @@ def _enforce_engine_style(
                         {"block": "question_card", "text": q_title, "stage": 1},
                         {"block": "banner", "text": v_data.get("challenge") or sc.get("narration", "")[:70], "tone": "highlight", "stage": 2}
                     ]
+
+        # Rotate away from recently used or intra-reel repeated visual_types across all multi-layout engines
+        if is_diverse_engine and engine_style != "pure_zero_template":
+            needs_swap = (current_vtype in recent_vtypes) or (current_vtype in used_vtypes)
+            if needs_swap and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
+                fam = _LAYOUT_TO_FAMILY.get(current_vtype)
+                if not fam:
+                    role_l = str(sc.get("role") or "").lower()
+                    fam = "hook" if idx == 0 else ("compare" if "trade" in role_l or "vs" in role_l else ("summary" if idx == len(scenes) - 1 else "flow"))
+                if engine_style in _STUDIO_SET:
+                    fam_pool = _DIVERSE_LAYOUT_FAMILIES.get(fam, _DIVERSE_LAYOUT_FAMILIES["flow"])
+                else:
+                    # Non-studio modular animator engines (auto_dynamic / hybrid_modern)
+                    modular_pool = {
+                        "hook": ("hero_hook", "custom_scene", "alert_diagram", "kinetic_statement"),
+                        "flow": ("architecture_flow", "step_timeline", "all_in_one_tech_canvas", "circular_hub_mesh"),
+                        "hub": ("circular_hub_mesh", "architecture_flow", "all_in_one_tech_canvas"),
+                        "tiers": ("step_timeline", "architecture_flow", "concept_cards"),
+                        "compare": ("split_comparison", "hybrid_merge", "benchmark_chart"),
+                        "metrics": ("benchmark_chart", "metric_gauge_hud", "split_comparison"),
+                        "code": ("code_terminal", "sql_table", "data_structure_memory"),
+                        "summary": ("concept_cards", "kinetic_statement", "hybrid_merge", "step_timeline"),
+                    }
+                    fam_pool = modular_pool.get(fam, modular_pool["flow"])
+                fresh_fam = [ly for ly in fam_pool if ly not in recent_vtypes and ly not in used_vtypes]
+                if not fresh_fam:
+                    fresh_fam = [ly for ly in fam_pool if ly not in used_vtypes] or list(fam_pool)
+                new_vtype = fresh_fam[(run_num * 3 + idx) % len(fresh_fam)]
+                if new_vtype != current_vtype:
+                    current_vtype = new_vtype
+                    sc["visual_type"] = new_vtype
+                    _mirror_items_for_domain_layout(v_data, sc, str(v_data.get("title") or topic[:40]))
 
         # Ensure required data structures are present and rich for the active visual_type
         title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
@@ -1163,9 +1484,15 @@ def _enforce_engine_style(
             v_data["arrow3_label"] = v_data.get("arrow3_label") or "State Write"
             v_data["arrow4_label"] = v_data.get("arrow4_label") or "Event Sync"
 
+        v_data["_variation_seed"] = run_num
         if engine_style == "pure_zero_template" and current_vtype not in ("svg_scene", "spatial_canvas"):
             v_data.setdefault("_intent", current_vtype)
             sc["visual_type"] = "web_scene"
+        elif engine_style == "studio_300_domain" and (idx + run_num) % max(2, len(scenes)) == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
+            # Both Combined: rotate which scene renders as bespoke Option 1 web_scene vs Option 2 domain layouts
+            v_data.setdefault("_intent", current_vtype)
+            sc["visual_type"] = "web_scene"
+            used_vtypes.add(current_vtype)
         else:
             used_vtypes.add(sc["visual_type"])
 
@@ -1191,7 +1518,7 @@ def _enforce_engine_style(
             }
 
     if engine_style in ("pure_zero_template", "dual_generative", "studio_300_domain"):
-        _synthesize_bespoke_web_scenes(scenes, topic, format_ratio=format_ratio)
+        _synthesize_bespoke_web_scenes(scenes, topic, format_ratio=format_ratio, run_num=run_num)
 
     return timeline
 

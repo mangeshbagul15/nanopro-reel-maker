@@ -206,7 +206,8 @@ def _extract_structured_scene_payload(scene: Dict[str, Any], scene_idx: int) -> 
         if not cards:
             cards.append({"title": title, "sub": topic or "Technical Breakdown", "tag": "01", "val": ""})
 
-    # Choose genuinely distinct archetype per scene content & index
+    var_seed = int(vd.get("_variation_seed") or 0)
+    # Choose genuinely distinct archetype per scene content, index, & variation seed
     if entries:
         archetype = "memory_wal"
     elif bars:
@@ -222,12 +223,11 @@ def _extract_structured_scene_payload(scene: Dict[str, Any], scene_idx: int) -> 
     elif vd.get("satellites") or "mesh" in vtype or "hub" in vtype:
         archetype = "hub_mesh"
     elif "flow" in vtype or "pipeline" in vtype or "cdc" in vtype or len(cards) >= 3:
-        # Rotate cleanly between volumetric pipeline, 3D orbital bento, and topology radar across scenes!
         cycle = ("pipeline_3d", "hub_mesh", "bento_layers", "orbit_nodes")
-        archetype = cycle[(scene_idx - 1) % len(cycle)]
+        archetype = cycle[(scene_idx - 1 + var_seed) % len(cycle)]
     else:
         cycle = ("bento_layers", "orbit_nodes", "pipeline_3d", "hub_mesh")
-        archetype = cycle[(scene_idx - 1) % len(cycle)]
+        archetype = cycle[(scene_idx - 1 + var_seed) % len(cycle)]
 
     return {
         "title": title,
