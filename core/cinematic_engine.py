@@ -1397,7 +1397,11 @@ def render_cinematic_scene_frames(
 
     badge = str(visual_data.get("badge") or "")
     title = str(visual_data.get("title") or "")
-    accent = world["amber"] if effective_tone == "interview_prep" else (world["rose"] if effective_tone == "dramatic_performance" else world["cyan"])
+    accent = (
+        world["emerald"] if effective_tone == "mentor_storyteller"
+        else (world["amber"] if effective_tone == "interview_prep"
+              else (world["rose"] if effective_tone == "dramatic_performance" else world["cyan"]))
+    )
 
     # Deterministic ambient depth particles (22 bokeh orbs drifting gently upward)
     particles = [

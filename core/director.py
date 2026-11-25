@@ -359,6 +359,13 @@ ENGINE_STYLE_DIRECTIVES = {
 }
 
 TONE_DIRECTIVES = {
+    "mentor_storyteller": (
+        "STUDENT-BOND MENTOR & EXCITING STORYTELLING MANDATE: Speak directly to one curious student like their favorite energetic mentor — warm, simple, electric, and deeply intuitive! "
+        "1. SIMPLE HUMAN LANGUAGE: Zero stiff textbook jargon. Explain concepts with everyday relatable analogies and speak directly ('you', 'socho zara', 'लक्षात घ्या') as if sitting right beside the listener. "
+        "2. INTENTIONAL BREATH PAUSES (`...` / `[pause]`): Build curiosity, then insert 1-2 short natural breathing pauses (`...`) RIGHT BEFORE revealing the core twist or 'aha!' insight so the learner absorbs why it matters before hearing the answer (e.g., 'Wait... why did everything freeze? [pause] Look closely—every user was waiting on a single lock!'). "
+        "3. INFECTIOUS EXCITEMENT & BONDING: Sound genuinely excited when the concept clicks ('Boom—latency drops 10x!', 'And here is the magic part!'). Keep sentences rhythmic, punchy, and human. "
+        "Set each scene's `scene_tone` to `mentor_storyteller` and compose engaging progressive visuals (`custom_scene`, `iso_architecture`, `step_timeline`, `kinetic_statement`)."
+    ),
     "auto_dynamic": (
         "DYNAMIC PER-SCENE TONE & VOICE CHOREOGRAPHY (RECOMMENDED): "
         "Dynamically shift emotional tone & pacing across the video storyboard: "

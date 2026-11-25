@@ -100,6 +100,12 @@ VOICE_CATALOG = {
 
 # Dynamic Voice Parameters tailored to chosen Delivery Tone (ElevenLabs + Edge-TTS Prosody)
 TONE_VOICE_SETTINGS = {
+    "mentor_storyteller": {
+        "stability": 0.34,
+        "similarity_boost": 0.80,
+        "style": 0.48,
+        "use_speaker_boost": True
+    },
     "dramatic_performance": {
         "stability": 0.32,
         "similarity_boost": 0.82,
@@ -133,6 +139,7 @@ TONE_VOICE_SETTINGS = {
 }
 
 EDGE_TTS_PROSODY = {
+    "mentor_storyteller": {"rate": "+7%", "pitch": "+2Hz"},
     "fireship_octane": {"rate": "+16%", "pitch": "+2Hz"},
     "dramatic_performance": {"rate": "-4%", "pitch": "-4Hz"},
     "staff_engineer": {"rate": "+4%", "pitch": "-2Hz"},
@@ -193,15 +200,32 @@ def get_audio_duration(file_path: Path) -> float:
         print(f"[Voice] Error getting audio duration for {file_path}: {e}")
     return 0.0
 
-def _clean_tts_text(text: str) -> str:
-    """Cleans script text for natural speech synthesis and removes technical clutter."""
-    cleaned = text.replace("...", ", ")
+def _clean_tts_text(text: str, preserve_pauses: bool = False) -> str:
+    """Cleans script text for natural speech synthesis and handles explicit pause tokens."""
+    if preserve_pauses:
+        cleaned = re.sub(r'\[pause\]', ' ... ', text, flags=re.IGNORECASE)
+    else:
+        cleaned = re.sub(r'\[pause\]', ', ', text, flags=re.IGNORECASE)
+        cleaned = cleaned.replace("...", ", ")
     cleaned = cleaned.replace("`", "").replace("*", "").replace("#", "")
     # Replace technical underscores with spaces (e.g. DENSE_RANK -> DENSE RANK)
     cleaned = re.sub(r'(?<=\w)_(?=\w)', ' ', cleaned)
     # Remove excessive whitespace
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
+
+
+def _split_pause_beats(text: str, max_beats: int = 4) -> List[str]:
+    """Splits narration along explicit pause cues ('...' or '[pause]') for natural breathing cadence."""
+    normalized = re.sub(r'\[pause\]', ' ... ', text, flags=re.IGNORECASE)
+    raw_parts = [p.strip() for p in re.split(r'\s*\.{3,}\s*', normalized) if p and any(ch.isalnum() for ch in p)]
+    if len(raw_parts) <= 1:
+        return [re.sub(r'\s+', ' ', normalized).strip()]
+    if len(raw_parts) > max_beats:
+        merged = raw_parts[:max_beats - 1]
+        merged.append(", ".join(raw_parts[max_beats - 1:]))
+        return merged
+    return raw_parts
 
 def _get_cache_path(text: str, voice: str, model_id: str, tone: str = "conversational_casual") -> Path:
     """Generates a unique deterministic cache file path based on text, voice, model, and tone."""
@@ -226,7 +250,7 @@ def _synthesize_elevenlabs_sync(
         print("[Voice] ElevenLabs API key missing, skipping ElevenLabs.")
         return False
 
-    cleaned_text = _clean_tts_text(text)
+    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("mentor_storyteller", "dramatic_performance")))
     if not cleaned_text:
         return False
 
@@ -281,18 +305,87 @@ def _synthesize_elevenlabs_sync(
         return False
 
 async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, tone: str = "conversational_casual") -> bool:
-    """Synthesizes speech using Microsoft Edge-TTS with tone-matched rate & pitch prosody."""
-    cleaned_text = _clean_tts_text(text)
+    """
+    Synthesizes speech using Microsoft Edge-TTS with tone-matched rate & pitch prosody.
+    When explicit pause beats ('...' / '[pause]') exist or tone is 'mentor_storyteller',
+    splits along pause cues, applies per-phrase curiosity/excitement inflection, and inserts
+    genuine 300ms breathing silence between phrases via FFmpeg.
+    """
+    preserve = (tone == "mentor_storyteller") or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
+    cleaned_text = _clean_tts_text(text, preserve_pauses=preserve)
     if not cleaned_text:
         return False
 
-    prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+9%", "pitch": "+0Hz"})
+    prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+8%", "pitch": "+0Hz"})
     rate = prosody["rate"]
     pitch = prosody["pitch"]
 
+    beats = _split_pause_beats(cleaned_text, max_beats=4) if preserve else [cleaned_text]
+    if len(beats) > 1:
+        beat_files: List[Path] = []
+        try:
+            for bi, beat_txt in enumerate(beats):
+                if tone == "mentor_storyteller":
+                    if beat_txt.endswith("?"):
+                        b_rate, b_pitch = "+6%", "+3Hz"
+                    elif "!" in beat_txt or any(kw in beat_txt.lower() for kw in ("boom", "magic", "secret", "finally", "exactly")):
+                        b_rate, b_pitch = "+11%", "+4Hz"
+                    elif len(beat_txt) <= 38:
+                        b_rate, b_pitch = "+4%", "+2Hz"
+                    else:
+                        b_rate, b_pitch = rate, pitch
+                else:
+                    b_rate, b_pitch = rate, pitch
+
+                bp = output_path.parent / f"{output_path.stem}_beat{bi}.mp3"
+                ok = False
+                for _ in range(2):
+                    try:
+                        comm = edge_tts.Communicate(beat_txt, voice, rate=b_rate, pitch=b_pitch)
+                        await comm.save(str(bp))
+                        if bp.exists() and bp.stat().st_size > 400:
+                            ok = True
+                            break
+                    except Exception:
+                        await asyncio.sleep(0.3)
+                if not ok:
+                    beat_files = []
+                    break
+                beat_files.append(bp)
+
+            if len(beat_files) > 1:
+                cmd = [str(FFMPEG_EXE), "-y"]
+                for bp in beat_files:
+                    cmd.extend(["-i", str(bp.resolve())])
+                cmd.extend(["-f", "lavfi", "-t", "0.30", "-i", "anullsrc=r=44100:cl=stereo"])
+                sil_idx = len(beat_files)
+                parts = []
+                seq = []
+                for idx in range(len(beat_files)):
+                    parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo[b{idx}]")
+                    seq.append(f"[b{idx}]")
+                    if idx < len(beat_files) - 1:
+                        parts.append(f"[{sil_idx}:a]atrim=0:0.30[p{idx}]")
+                        seq.append(f"[p{idx}]")
+                filt = ";".join(parts) + ";" + "".join(seq) + f"concat=n={len(seq)}:v=0:a=1[outa]"
+                cmd.extend(["-filter_complex", filt, "-map", "[outa]", "-c:a", "libmp3lame", "-b:a", "192k", str(output_path.resolve())])
+                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+                if res.returncode == 0 and output_path.exists() and output_path.stat().st_size > 1000:
+                    return True
+        except Exception as e:
+            print(f"[Voice] Multi-beat pause stitch notice ({e}), falling back cleanly...")
+        finally:
+            for bp in beat_files:
+                try:
+                    if bp.exists():
+                        bp.unlink()
+                except Exception:
+                    pass
+
+    plain_text = _clean_tts_text(text, preserve_pauses=False)
     for attempt in range(3):
         try:
-            communicate = edge_tts.Communicate(cleaned_text, voice, rate=rate, pitch=pitch)
+            communicate = edge_tts.Communicate(plain_text, voice, rate=rate, pitch=pitch)
             await communicate.save(str(output_path))
             if output_path.exists() and output_path.stat().st_size > 1000:
                 return True
@@ -422,7 +515,7 @@ def generate_voiceover(
 
     # 5. Extract Word Timestamps via Groq Whisper for karaoke subtitles
     # Pass original script excerpt as prompt hint so Hinglish/English tech spellings (RAG, JSON, SQL, Fine-Tuning) stay exact
-    combined_prompt = " ".join(scene_texts)[:750]
+    combined_prompt = re.sub(r'\[pause\]', ' ', " ".join(scene_texts), flags=re.IGNORECASE)[:750]
     word_timestamps = []
     try:
         word_timestamps = _extract_word_timestamps(final_audio_path, prompt_hint=combined_prompt)
@@ -481,7 +574,7 @@ def _generate_fallback_word_timestamps(scenes: List[Dict[str, Any]]) -> List[Dic
     """
     all_words = []
     for sc in scenes:
-        narration = sc.get("narration", "").strip()
+        narration = re.sub(r'\[pause\]', ' ', sc.get("narration", ""), flags=re.IGNORECASE).strip()
         words = narration.split()
         if not words:
             continue

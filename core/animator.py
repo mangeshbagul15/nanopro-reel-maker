@@ -30,6 +30,7 @@ ACCENT_THEMES = {
 
 
 TONE_THEME_MAP = {
+    "mentor_storyteller": "emerald_matrix",
     "fireship_octane": "cyber_cyan",
     "dramatic_performance": "crimson_alert",
     "staff_engineer": "indigo_cyan",
