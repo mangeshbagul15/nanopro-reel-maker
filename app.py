@@ -110,6 +110,7 @@ with st.sidebar:
     tone_option = st.selectbox(
         "Script Tone & Emotion",
         [
+            ("youth_friend_turbo", "🚀 Youth Dost & Fast Hype Explainer (Fast Voice, Q&A Detailer, Ad/Story Punch & Turbo Visual Sync)"),
             ("mentor_storyteller", "🌟 Student Mentor & Storyteller (Simple Words, Natural Pauses & High Excitement) [Ultra Pro]"),
             ("auto_dynamic", "⚡ Dynamic / Auto (AI Adapts Voice, Pace, Emotion & Visuals Per Scene) [Recommended]"),
             ("fireship_octane", "🔥 High-Octane & Punchy (Fireship Speed, Kinetic Energy & Neon Pop)"),

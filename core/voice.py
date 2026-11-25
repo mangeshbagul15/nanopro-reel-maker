@@ -110,6 +110,12 @@ VOICE_CATALOG = {
 
 # Dynamic Voice Parameters tailored to chosen Delivery Tone (ElevenLabs + Edge-TTS Prosody)
 TONE_VOICE_SETTINGS = {
+    "youth_friend_turbo": {
+        "stability": 0.28,
+        "similarity_boost": 0.78,
+        "style": 0.62,
+        "use_speaker_boost": True
+    },
     "mentor_storyteller": {
         "stability": 0.34,
         "similarity_boost": 0.80,
@@ -149,6 +155,7 @@ TONE_VOICE_SETTINGS = {
 }
 
 EDGE_TTS_PROSODY = {
+    "youth_friend_turbo": {"rate": "+24%", "pitch": "+3Hz"},
     "mentor_storyteller": {"rate": "+7%", "pitch": "+2Hz"},
     "fireship_octane": {"rate": "+16%", "pitch": "+2Hz"},
     "dramatic_performance": {"rate": "-4%", "pitch": "-4Hz"},
@@ -260,7 +267,7 @@ def _synthesize_elevenlabs_sync(
         print("[Voice] ElevenLabs API key missing, skipping ElevenLabs.")
         return False
 
-    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("mentor_storyteller", "dramatic_performance")))
+    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("youth_friend_turbo", "mentor_storyteller", "dramatic_performance")))
     if not cleaned_text:
         return False
 
@@ -300,9 +307,21 @@ def _synthesize_elevenlabs_sync(
         res = requests.post(url, json=payload, headers=headers, timeout=25)
         if res.status_code == 200 and len(res.content) > 1000:
             output_path.write_bytes(res.content)
-            # Save to cache
+            if tone == "youth_friend_turbo":
+                fast_tmp = output_path.with_suffix(".fast.mp3")
+                try:
+                    t_res = subprocess.run(
+                        [str(FFMPEG_EXE), "-y", "-i", str(output_path.resolve()), "-filter:a", "atempo=1.16", "-c:a", "libmp3lame", "-b:a", "192k", str(fast_tmp.resolve())],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20,
+                    )
+                    if t_res.returncode == 0 and fast_tmp.exists() and fast_tmp.stat().st_size > 1000:
+                        shutil.move(str(fast_tmp), str(output_path))
+                except Exception:
+                    if fast_tmp.exists():
+                        fast_tmp.unlink()
+            # Save final processed audio to cache
             try:
-                cache_path.write_bytes(res.content)
+                shutil.copyfile(output_path, cache_path)
             except Exception:
                 pass
             print(f"[Voice] ✅ ElevenLabs synthesized scene ({model_id}, tone: {tone}, {len(cleaned_text)} chars)")
@@ -321,7 +340,7 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     splits along pause cues, applies per-phrase curiosity/excitement inflection, and inserts
     genuine 300ms breathing silence between phrases via FFmpeg.
     """
-    preserve = (tone == "mentor_storyteller") or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
+    preserve = (tone in ("youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
     cleaned_text = _clean_tts_text(text, preserve_pauses=preserve)
     if not cleaned_text:
         return False
@@ -329,13 +348,23 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+8%", "pitch": "+0Hz"})
     rate = prosody["rate"]
     pitch = prosody["pitch"]
+    pause_sec = "0.22" if tone == "youth_friend_turbo" else "0.30"
 
     beats = _split_pause_beats(cleaned_text, max_beats=4) if preserve else [cleaned_text]
     if len(beats) > 1:
         beat_files: List[Path] = []
         try:
             for bi, beat_txt in enumerate(beats):
-                if tone == "mentor_storyteller":
+                if tone == "youth_friend_turbo":
+                    if beat_txt.endswith("?"):
+                        b_rate, b_pitch = "+19%", "+4Hz"
+                    elif "!" in beat_txt or any(kw in beat_txt.lower() for kw in ("boom", "magic", "secret", "finally", "exactly", "zero", "yaar", "dost", "bro", "wait")):
+                        b_rate, b_pitch = "+26%", "+4Hz"
+                    elif len(beat_txt) <= 36:
+                        b_rate, b_pitch = "+18%", "+3Hz"
+                    else:
+                        b_rate, b_pitch = rate, pitch
+                elif tone == "mentor_storyteller":
                     if beat_txt.endswith("?"):
                         b_rate, b_pitch = "+6%", "+3Hz"
                     elif "!" in beat_txt or any(kw in beat_txt.lower() for kw in ("boom", "magic", "secret", "finally", "exactly")):
@@ -367,15 +396,18 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
                 cmd = [str(FFMPEG_EXE), "-y"]
                 for bp in beat_files:
                     cmd.extend(["-i", str(bp.resolve())])
-                cmd.extend(["-f", "lavfi", "-t", "0.30", "-i", "anullsrc=r=44100:cl=stereo"])
+                cmd.extend(["-f", "lavfi", "-t", pause_sec, "-i", "anullsrc=r=44100:cl=stereo"])
                 sil_idx = len(beat_files)
                 parts = []
                 seq = []
                 for idx in range(len(beat_files)):
-                    parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo[b{idx}]")
+                    if tone == "youth_friend_turbo":
+                        parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo,silenceremove=start_periods=1:start_silence=0.02:start_threshold=-42dB,areverse,silenceremove=start_periods=1:start_silence=0.02:start_threshold=-42dB,areverse[b{idx}]")
+                    else:
+                        parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo[b{idx}]")
                     seq.append(f"[b{idx}]")
                     if idx < len(beat_files) - 1:
-                        parts.append(f"[{sil_idx}:a]atrim=0:0.30[p{idx}]")
+                        parts.append(f"[{sil_idx}:a]atrim=0:{pause_sec}[p{idx}]")
                         seq.append(f"[p{idx}]")
                 filt = ";".join(parts) + ";" + "".join(seq) + f"concat=n={len(seq)}:v=0:a=1[outa]"
                 cmd.extend(["-filter_complex", filt, "-map", "[outa]", "-c:a", "libmp3lame", "-b:a", "192k", str(output_path.resolve())])
@@ -531,6 +563,11 @@ def generate_voiceover(
         word_timestamps = _extract_word_timestamps(final_audio_path, prompt_hint=combined_prompt)
     except Exception as e:
         print(f"[Voice] Groq Whisper extraction notice ({e}), generating robust fallback timestamps...")
+        word_timestamps = []
+
+    expected_word_cnt = sum(len(re.sub(r'\[pause\]', ' ', t, flags=re.IGNORECASE).split()) for t in scene_texts)
+    if len(word_timestamps) < max(3, int(expected_word_cnt * 0.45)):
+        print(f"[Voice] Whisper alignment sparse ({len(word_timestamps)}/{expected_word_cnt}), using scene-exact word alignment...")
         word_timestamps = _generate_fallback_word_timestamps(scenes_with_timestamps)
 
     # Cleanup individual scene MP3 files

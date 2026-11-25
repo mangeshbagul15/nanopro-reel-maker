@@ -121,6 +121,8 @@ def _voice_progress(
     scene_words: List[Dict[str, Any]] = None,
     anchors: List[Tuple[float, float]] = None,
 ) -> float:
+    if frame_idx <= 0:
+        return 0.0
     linear_p = frame_idx / max(1, total_frames - 1)
     if not scene_words:
         return linear_p
@@ -136,7 +138,13 @@ def _voice_progress(
     cur_t = sc_start + (linear_p * duration)
     spoken = sum(1 for w in scene_words if float(w.get("start", 0.0)) <= cur_t)
     word_p = spoken / max(1, len(scene_words))
-    return _clamp01(0.55 * choreo_p + 0.30 * word_p + 0.15 * linear_p)
+    # Voice-speed adaptive velocity: faster narration automatically accelerates visual builds & ensures full completion
+    wps = len(scene_words) / max(0.5, duration)
+    pace_boost = max(1.0, min(1.42, wps / 2.55))
+    blended = 0.50 * choreo_p + 0.35 * word_p + 0.15 * linear_p
+    if linear_p >= 0.92:
+        return 1.0
+    return _clamp01(blended * pace_boost)
 
 
 def _build_volumetric_studio_bg(w: int, h: int, world: Dict[str, Any], style: str = "subtle_grid", progress: float = 0.0) -> Image.Image:
@@ -304,7 +312,12 @@ def render_cinematic_scene_frames(
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
         raw_p = _voice_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
-        progress = min(1.0, raw_p * 1.10) if effective_tone == "fireship_octane" else raw_p
+        if effective_tone == "youth_friend_turbo":
+            progress = 1.0 if linear_p >= 0.88 else min(1.0, (raw_p ** 0.76) * 1.18)
+        elif effective_tone == "fireship_octane":
+            progress = 1.0 if linear_p >= 0.92 else min(1.0, raw_p * 1.12)
+        else:
+            progress = raw_p
         cur_time = sc_start + (linear_p * duration)
         t_alpha = _fade_transition_alpha(linear_p)
 

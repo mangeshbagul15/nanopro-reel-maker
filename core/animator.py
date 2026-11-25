@@ -30,6 +30,7 @@ ACCENT_THEMES = {
 
 
 TONE_THEME_MAP = {
+    "youth_friend_turbo": "cyber_cyan",
     "mentor_storyteller": "emerald_matrix",
     "fireship_octane": "cyber_cyan",
     "dramatic_performance": "crimson_alert",
@@ -419,7 +420,13 @@ def _compute_voice_synced_progress(
     cur_time = sc_start + (linear_p * duration)
     spoken_count = sum(1 for w in scene_words if float(w.get("start", 0.0)) <= cur_time)
     word_p = spoken_count / max(1, len(scene_words))
-    return min(1.0, max(0.0, 0.55 * choreo_p + 0.30 * word_p + 0.15 * linear_p))
+    # Voice-speed adaptive multiplier: faster speaking rate (WPM) drives faster, snappy visual sync
+    wps = len(scene_words) / max(0.5, duration)
+    pace_boost = max(1.0, min(1.38, wps / 2.6))
+    blended = 0.50 * choreo_p + 0.35 * word_p + 0.15 * linear_p
+    if linear_p >= 0.94:
+        return 1.0
+    return min(1.0, max(0.0, blended * pace_boost))
 
 
 def render_scene_frames(
@@ -524,9 +531,11 @@ def render_scene_frames(
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
         raw_p = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
-        # Tone-matched reveal snap: Fireship snaps faster, Dramatic eases in with suspense
-        if effective_tone == "fireship_octane":
-            progress = min(1.0, raw_p * 1.12)
+        # Tone-matched reveal snap: Youth Turbo & Fireship snap faster and complete cleanly before scene end
+        if effective_tone == "youth_friend_turbo":
+            progress = min(1.0, 1.0 if linear_p >= 0.90 else pow(raw_p, 0.78) * 1.18)
+        elif effective_tone == "fireship_octane":
+            progress = min(1.0, 1.0 if linear_p >= 0.93 else raw_p * 1.12)
         elif effective_tone == "dramatic_performance":
             progress = pow(raw_p, 1.08)
         else:

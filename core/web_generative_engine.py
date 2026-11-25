@@ -760,18 +760,32 @@ def render_web_generative_frames(
             if page_errors or (body_len or 0) < 2:
                 page.set_content(fallback_html, wait_until="domcontentloaded", timeout=10000)
 
+        wps = (len(scene_words) / max(0.5, duration)) if scene_words else 2.5
+        pace_boost = max(1.0, min(1.42, wps / 2.55))
+
         for f in range(total_frames):
             lin_p = f / max(1, total_frames - 1)
             cur_t = sc_start + lin_p * duration
             energy = 0.55
+            word_p = lin_p
             if scene_words:
+                spoken = 0
                 for w in scene_words:
                     ws = float(w.get("start", 0.0))
                     we = float(w.get("end", ws + 0.25))
+                    if ws <= cur_t:
+                        spoken += 1
                     if ws <= cur_t <= we:
                         energy = 0.95
-                        break
-            page.evaluate(f"if (window.__setStudioProgress) window.__setStudioProgress({lin_p:.5f}, {cur_t:.4f}, {energy:.3f});")
+                word_p = spoken / max(1, len(scene_words))
+            raw_p = min(1.0, (0.65 * word_p + 0.35 * lin_p) * pace_boost)
+            if effective_tone == "youth_friend_turbo":
+                eff_p = 1.0 if lin_p >= 0.88 else min(1.0, (raw_p ** 0.76) * 1.18)
+            elif effective_tone == "fireship_octane":
+                eff_p = 1.0 if lin_p >= 0.92 else min(1.0, raw_p * 1.12)
+            else:
+                eff_p = 1.0 if lin_p >= 0.95 else raw_p
+            page.evaluate(f"if (window.__setStudioProgress) window.__setStudioProgress({eff_p:.5f}, {cur_t:.4f}, {energy:.3f});")
             fpath = scene_frames_dir / f"frame_{f:04d}.jpg"
             page.screenshot(path=str(fpath), type="jpeg", quality=88)
             frame_paths.append(fpath)

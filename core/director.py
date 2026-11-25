@@ -401,6 +401,14 @@ ENGINE_STYLE_DIRECTIVES = {
 }
 
 TONE_DIRECTIVES = {
+    "youth_friend_turbo": (
+        "YOUTH DOST, FAST HYPE AD/STORYTELLING & HIGH-DENSITY Q&A EXPLAINER MANDATE (ULTRA-FAST + COMPLETE): "
+        "Speak like a super-smart, high-energy young best friend (`dost / yaar / bro`) pitching an addictive tech thriller or viral product ad to a smart friend — rapid, crystal clear, hilarious/relatable, and packed with dense real engineering depth in MINIMUM time!\n"
+        "1. FRIENDLY YOUTH Q&A + DETAILER FLOW IN EVERY SCENE: Open scenes with a sharp intelligent question ('Arre yaar, think—why did 10,000 checkouts crash at once?', 'Wait... how does AWS replicate 50GB with zero lag?'), hit a crisp natural breath pause ('...' or '[pause]'), then deliver the punchy answer + real deep internals (`WAL`, `lsn`, exact latency ms, tradeoffs) without wasting a single filler word!\n"
+        "2. HIGH CONTENT DENSITY IN LESS TIME: Pack maximum actionable value, real metrics, commands, and sharp analogies per sentence (tight, punchy 8-14 word sentences with zero boring fluff!). Every scene + voice line must finish its complete point crisply.\n"
+        "3. RICH VISUAL MATCHING FOR TURBO SYNC: Populate 4-5 rich structured visual items (`nodes`, `stages`, `bars`, `entries`, `bullets`) + 4 exact `choreography.triggers` matching spoken punchwords so on-screen 3D visuals flash & build in tight lockstep with your fast delivery!\n"
+        "Set each scene's `scene_tone` to `youth_friend_turbo`."
+    ),
     "mentor_storyteller": (
         "STUDENT-BOND MENTOR & EXCITING STORYTELLING MANDATE: Speak directly to one curious student like their favorite energetic mentor — warm, simple, electric, and deeply intuitive! "
         "1. SIMPLE HUMAN LANGUAGE: Zero stiff textbook jargon. Explain concepts with everyday relatable analogies and speak directly ('you', 'socho zara', 'लक्षात घ्या') as if sitting right beside the listener. "
