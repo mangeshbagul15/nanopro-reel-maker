@@ -2670,57 +2670,68 @@ def generate_thumbnail_9_16(
         topic=clean_topic,
     )
 
-    c_pri = tuple(world["cyan"][:3])
-    # Monochrome/neutral hierarchy + ONE unified accent (zero mixed/clashing multi-color glows or borders)
-    is_light = bool(world.get("is_light", False))
-    c_muted_ui = (100, 116, 139) if is_light else (148, 163, 184)
-    c_card_border = (203, 213, 225, 220) if is_light else (51, 65, 85, 200)
-    c_soft_tint = (
-        max(0, min(255, int(c_pri[0] * 0.72 + (255 if is_light else 20) * 0.28))),
-        max(0, min(255, int(c_pri[1] * 0.72 + (255 if is_light else 20) * 0.28))),
-        max(0, min(255, int(c_pri[2] * 0.72 + (255 if is_light else 20) * 0.28))),
-    )
+    # Dedicated clean studio thumbnail palette: deep neutral slate canvas + crisp white type + single Sky/Royal Blue accent
+    # Never pulls random neon/pink/purple/lime worlds or multi-color background spotlights.
+    c_pri = (56, 189, 248)        # Crisp Sky Blue (#38BDF8)
+    c_btn = (37, 99, 235)         # Rich Royal Blue CTA (#2563EB) with crisp white text
+    c_muted_ui = (148, 163, 184)  # Neutral Slate Muted (#94A3B8)
+    c_soft_tint = (125, 211, 252) # Soft Sky Highlight (#7DD3FC)
+    c_card_bg = (17, 24, 39, 242)
+    c_card_alt = (22, 31, 48, 245)
+    c_card_border = (48, 62, 88, 210)
+    is_light = False
+
     thumb_world = dict(world)
     thumb_world.update({
-        "bg_top": (248, 250, 252) if is_light else (10, 15, 28),
-        "bg_bot": (238, 242, 247) if is_light else (6, 10, 20),
-        "spot_a": c_pri,
-        "spot_b": c_pri,
-        "spot_c": c_pri,
+        "is_light": False,
+        "bg_top": (11, 16, 29),
+        "bg_bot": (8, 12, 22),
+        "spot_a": (15, 23, 42),
+        "spot_b": (15, 23, 42),
+        "spot_c": (15, 23, 42),
+        "grid_col": (30, 41, 59),
+        "text": (248, 250, 252),
+        "muted": c_muted_ui,
         "cyan": c_pri,
         "purple": c_soft_tint,
         "emerald": c_pri,
         "amber": c_pri,
         "rose": c_pri,
-        "card_bg": (255, 255, 255, 244) if is_light else (17, 24, 39, 240),
-        "card_alt": (241, 245, 249, 244) if is_light else (23, 32, 50, 242),
+        "card_bg": c_card_bg,
+        "card_layer": (13, 19, 33, 230),
+        "card_alt": c_card_alt,
         "border": c_card_border,
+        "glass_rim": (148, 163, 184, 52),
+        "shadow_col": (2, 4, 10, 180),
     })
-    c_hex = f"#{c_pri[0]:02x}{c_pri[1]:02x}{c_pri[2]:02x}"
+    c_hex = "#38BDF8"
 
-    # Clean, uniform architectural backdrop (subtle single-tone grid, zero multi-color blotches)
-    bg = render_procedural_backdrop(canvas_w, canvas_h, thumb_world, style="subtle_grid", progress=0.0).convert("RGBA")
+    # Pure clean dark-slate vertical canvas with crisp minimal grid (ZERO colored blotches or spotlight gradients)
+    bg = Image.new("RGBA", (canvas_w, canvas_h), (10, 14, 26, 255))
+    bg_draw = ImageDraw.Draw(bg, "RGBA")
+    for gy in range(0, canvas_h, 64):
+        bg_draw.line((0, gy, canvas_w, gy), fill=(30, 41, 59, 42), width=1)
+    for gx in range(0, canvas_w, 64):
+        bg_draw.line((gx, 0, gx, canvas_h), fill=(30, 41, 59, 42), width=1)
 
     stage = StudioStage(canvas_w, canvas_h, thumb_world)
-    # Single clean centered radial aura matching primary accent (never multi-color corner blobs)
-    stage.add_glow_orb(540, 880, 460, c_pri, alpha=38)
 
     category_label, matched_icons = _infer_thumb_category_and_icons(clean_topic, timeline=timeline)
 
-    # 1. Top Creator Chrome (y=52..106 — clean neutral cards + unified accent)
+    # 1. Top Creator Chrome (y=52..104 — clean neutral slate pills, zero neon borders)
     cat_font = _cin_font(22, bold=True)
     cat_txt = category_label
     cat_w = int(stage.draw.textlength(cat_txt, font=cat_font)) + 66
-    stage.draw_glass_card((56, 52, 56 + cat_w, 104), radius=26, accent_col=c_pri, active=False, elev=6)
+    stage.draw_glass_card((56, 52, 56 + cat_w, 104), radius=26, accent_col=None, active=False, elev=6)
     stage.draw.ellipse((76, 72, 88, 84), fill=c_pri)
-    stage.draw.text((98, 65), cat_txt, fill=c_pri, font=cat_font)
+    stage.draw.text((98, 65), cat_txt, fill=thumb_world["text"], font=cat_font)
 
     if watermark and watermark.strip():
         wt = watermark.strip()
         wm_font = _cin_font(22, bold=True)
         wm_w = int(stage.draw.textlength(wt, font=wm_font)) + 52
         wx0 = canvas_w - wm_w - 56
-        stage.draw_glass_card((wx0, 52, wx0 + wm_w, 104), radius=26, accent_col=c_pri, active=False, elev=6)
+        stage.draw_glass_card((wx0, 52, wx0 + wm_w, 104), radius=26, accent_col=None, active=False, elev=6)
         stage.draw.ellipse((wx0 + 18, 72, wx0 + 30, 84), fill=c_pri)
         stage.draw.text((wx0 + 38, 65), wt, fill=thumb_world["text"], font=wm_font)
 
@@ -2740,13 +2751,12 @@ def generate_thumbnail_9_16(
         lw = stage.draw.textlength(ln, font=h_font)
         lx = int((canvas_w - lw) / 2.0)
         is_accent_line = (len(h_lines) > 1 and li == len(h_lines) - 1) or bool(re.search(r"\b\d+[%xmsKMB]?\b", ln))
-        t_col = c_pri if (is_accent_line and not is_light) else thumb_world["text"]
-        if not is_light:
-            stage.draw.text((lx + 2, hy + 4), ln, fill=(4, 8, 18, 190), font=h_font)
+        t_col = c_pri if is_accent_line else thumb_world["text"]
+        stage.draw.text((lx + 2, hy + 4), ln, fill=(4, 8, 18, 190), font=h_font)
         stage.draw.text((lx, hy), ln, fill=t_col, font=h_font)
         hy += lh
 
-    # Sub-hook curiosity pill cleanly below headline (clean neutral glass pill)
+    # Sub-hook curiosity pill cleanly below headline
     sub_hook = ""
     if isinstance(timeline, dict) and timeline.get("scenes"):
         for sc in timeline["scenes"]:
@@ -2769,24 +2779,23 @@ def generate_thumbnail_9_16(
     sub_font = _cin_font(27, bold=True)
     sub_w = min(950, int(stage.draw.textlength(sub_hook, font=sub_font)) + 64)
     sx0 = (canvas_w - sub_w) // 2
-    stage.draw_glass_card((sx0, sub_y, sx0 + sub_w, sub_y + 62), radius=31, accent_col=c_pri, active=False, elev=8)
-    _cin_wrap(stage.draw, (sx0 + 24, sub_y + 15), sub_hook, sub_font, c_muted_ui if is_light else (226, 232, 240), sub_w - 48, align="center", max_lines=1)
+    stage.draw_glass_card((sx0, sub_y, sx0 + sub_w, sub_y + 62), radius=31, accent_col=None, active=False, elev=8)
+    _cin_wrap(stage.draw, (sx0 + 24, sub_y + 15), sub_hook, sub_font, (226, 232, 240), sub_w - 48, align="center", max_lines=1)
 
-    # 3. Framed Centerpiece Visual Showcase Card (x=56..1024, y=542..1492 — consistent clean borders)
+    # 3. Framed Centerpiece Visual Showcase Card (x=56..1024, y=542..1492 — crisp neutral border)
     box_x0, box_y0, box_x1, box_y1 = 56, 542, 1024, 1492
-    stage.draw_glass_card((box_x0, box_y0, box_x1, box_y1), radius=34, accent_col=c_pri, active=True, elev=14, layered=False)
-    # Minimal uniform window chrome dots
+    stage.draw_glass_card((box_x0, box_y0, box_x1, box_y1), radius=34, accent_col=None, active=False, elev=14, layered=False)
     for di in range(3):
         dx = box_x0 + 34 + di * 22
-        stage.draw.ellipse((dx, box_y0 + 22, dx + 12, box_y0 + 34), fill=c_pri if di == 0 else (*c_muted_ui, 130))
+        stage.draw.ellipse((dx, box_y0 + 22, dx + 12, box_y0 + 34), fill=c_pri if di == 0 else (71, 85, 105, 190))
     win_lbl_font = _cin_font(19, bold=True, mono=True)
     best_sc = _pick_best_thumb_scene(timeline) if isinstance(timeline, dict) else None
     win_label = (str((best_sc or {}).get("visual_type") or "VISUAL ARCHITECTURE").replace("_", " ").upper())[:34]
     stage.draw.text((box_x0 + 114, box_y0 + 17), f"// {win_label}", fill=c_muted_ui, font=win_lbl_font)
-    stage.draw.line((box_x0 + 24, box_y0 + 54, box_x1 - 24, box_y0 + 54), fill=(*c_pri, 48), width=2)
+    stage.draw.line((box_x0 + 24, box_y0 + 54, box_x1 - 24, box_y0 + 54), fill=(51, 65, 85, 160), width=2)
 
     if best_sc is not None:
-        # Render centerpiece diagram into unified single-accent world (strip clashing rainbow per-node colors)
+        # Render centerpiece diagram into unified clean slate+blue world
         import copy
         clean_vd = copy.deepcopy(best_sc.get("visual_data") or {})
         for list_k in ("nodes", "satellites", "bars", "items", "steps", "stages"):
@@ -2813,22 +2822,19 @@ def generate_thumbnail_9_16(
         py = box_y0 + 62 + ((box_y1 - box_y0 - 70) - nh) // 2
         stage.fg.alpha_composite(resized, (px, py))
     else:
-        # Standalone Cover Poster Centerpiece: Clean single-accent 3D mesh, icons, and unified pillar cards
-        draw_procedural_3d_mesh(stage, 540, 770, 155, "geodesic_sphere", c_pri, progress=0.65, active=True, alpha_mul=0.65, secondary_color=c_soft_tint)
+        # Standalone Cover Poster Centerpiece: clean sky-blue icons/mesh + neutral slate cards
+        draw_procedural_3d_mesh(stage, 540, 770, 150, "geodesic_sphere", c_pri, progress=0.65, active=False, alpha_mul=0.45, secondary_color=c_soft_tint)
 
         icon_positions = [(250, 770), (540, 770), (830, 770)]
-        stage.add_glow_line([(295, 770), (785, 770)], c_pri, width=8, alpha=75)
-        stage.draw.line((295, 770, 785, 770), fill=(*c_pri, 165), width=3)
+        stage.draw.line((295, 770, 785, 770), fill=(56, 189, 248, 120), width=3)
         for ii, (ix, iy) in enumerate(icon_positions):
-            stage.add_glow_orb(ix, iy, 96, c_pri, alpha=58)
-            stage.draw_glass_card((ix - 82, iy - 82, ix + 82, iy + 82), radius=28, accent_col=c_pri, active=(ii == 1), elev=10)
+            stage.draw_glass_card((ix - 82, iy - 82, ix + 82, iy + 82), radius=28, accent_col=None, active=False, elev=10)
             ext_icon = fetch_3d_extruded_svg(matched_icons[ii], size_px=92, tint_hex=c_hex, depth=10, tint_rgb=c_pri)
             if ext_icon is not None:
                 stage.fg.alpha_composite(ext_icon, (ix - ext_icon.width // 2, iy - ext_icon.height // 2))
             else:
-                draw_procedural_3d_mesh(stage, ix, iy, 46, ("torus_3d", "atom_orbit", "cube_cluster_3d")[ii], c_pri, progress=0.75, active=True)
+                draw_procedural_3d_mesh(stage, ix, iy, 46, ("torus_3d", "atom_orbit", "cube_cluster_3d")[ii], c_pri, progress=0.75, active=False)
 
-        # 3 crisp topic value cards — uniform clean neutral glass + single accent (zero mixed rainbow colors)
         short_topic = clean_topic if len(clean_topic) <= 26 else clean_topic[:26].rsplit(" ", 1)[0].rstrip(" ,:-")
         pillar_specs = [
             ("01", "CORE PROBLEM & TRAP", f"Why standard {short_topic} patterns break at scale"),
@@ -2837,17 +2843,18 @@ def generate_thumbnail_9_16(
         ]
         card_y = 955
         for num_s, p_title, p_desc in pillar_specs:
-            stage.draw_glass_card((box_x0 + 38, card_y, box_x1 - 38, card_y + 150), radius=22, accent_col=c_pri, active=False, elev=8)
-            stage.draw.rounded_rectangle((box_x0 + 58, card_y + 34, box_x0 + 132, card_y + 108), radius=18, fill=(*c_pri, 34), outline=(*c_pri, 195), width=2)
+            stage.draw_glass_card((box_x0 + 38, card_y, box_x1 - 38, card_y + 150), radius=22, accent_col=None, active=False, elev=8)
+            stage.draw.rounded_rectangle((box_x0 + 58, card_y + 34, box_x0 + 132, card_y + 108), radius=18, fill=(56, 189, 248, 28), outline=(56, 189, 248, 165), width=2)
             stage.draw.text((box_x0 + 76, card_y + 52), num_s, fill=c_pri, font=_cin_font(32, bold=True, mono=True))
             stage.draw.text((box_x0 + 158, card_y + 30), p_title, fill=c_pri, font=_cin_font(22, bold=True))
             _cin_wrap(stage.draw, (box_x0 + 158, card_y + 66), p_desc, _cin_font(25, bold=False), thumb_world["text"], box_x1 - box_x0 - 220, max_lines=2)
             card_y += 170
 
-    # 4. Bottom Safe-Zone Value Strip & Watch CTA (y=1532..1722 — clean neutral + unified accent)
-    stage.draw_glass_card((56, 1532, 1024, 1722), radius=30, accent_col=c_pri, active=False, elev=12)
+    # 4. Bottom Safe-Zone Value Strip & Crisp Royal-Blue CTA (y=1532..1722)
+    stage.draw_glass_card((56, 1532, 1024, 1722), radius=30, accent_col=None, active=False, elev=12)
+    chip_cat = "AI Engineering" if category_label.upper() in ("AI", "AI ENGINEERING") else category_label.title()
     chips = [
-        category_label.title(),
+        chip_cat,
         "Step-by-Step Visuals",
         "Real Trade-offs",
     ]
@@ -2856,7 +2863,7 @@ def generate_thumbnail_9_16(
     total_cw = sum(chip_ws) + 18 * (len(chips) - 1)
     ch_x = (canvas_w - total_cw) // 2
     for ch_txt, cw in zip(chips, chip_ws):
-        stage.draw.rounded_rectangle((ch_x, 1554, ch_x + cw, 1604), radius=25, fill=(*c_pri, 22), outline=(*c_pri, 120), width=2)
+        stage.draw.rounded_rectangle((ch_x, 1554, ch_x + cw, 1604), radius=25, fill=(30, 41, 59, 220), outline=(71, 85, 105, 180), width=2)
         stage.draw.ellipse((ch_x + 18, 1574, ch_x + 28, 1584), fill=c_pri)
         stage.draw.text((ch_x + 36, 1566), ch_txt, fill=thumb_world["text"], font=chip_font)
         ch_x += cw + 18
@@ -2865,8 +2872,8 @@ def generate_thumbnail_9_16(
     cta_font = _cin_font(26, bold=True)
     cta_w = min(880, int(stage.draw.textlength(cta_text, font=cta_font)) + 104)
     cta_x = (canvas_w - cta_w) // 2
-    stage.draw.rounded_rectangle((cta_x, 1628, cta_x + cta_w, 1696), radius=34, fill=(*c_pri, 240))
-    cta_txt_col = (10, 15, 28) if not is_light else (255, 255, 255)
+    stage.draw.rounded_rectangle((cta_x, 1628, cta_x + cta_w, 1696), radius=34, fill=(*c_btn, 255))
+    cta_txt_col = (255, 255, 255)
     tri_x = cta_x + 34
     stage.draw.polygon([(tri_x, 1650), (tri_x, 1674), (tri_x + 20, 1662)], fill=cta_txt_col)
     _cin_wrap(stage.draw, (cta_x + 58, 1646), cta_text, cta_font, cta_txt_col, cta_w - 80, align="center", max_lines=1)
