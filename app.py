@@ -107,15 +107,16 @@ with st.sidebar:
     voice_provider = st.radio(
         "Select Voice Engine Provider:",
         ["ElevenLabs AI (Ultra-Realistic)", "Microsoft Edge-TTS (Free & Fast)"],
-        index=0,
-        help="ElevenLabs provides studio-quality realistic human cadence with emotional performance. Edge-TTS is completely free and fast."
+        index=1,
+        key="voice_provider_radio",
+        help="Microsoft Edge-TTS is 100% free & unlimited (recommended for testing). Switch to ElevenLabs AI when you want ultra-realistic studio voice."
     )
 
     # Gender filter pills (safe fallback for older Streamlit versions)
     if hasattr(st, "pills"):
-        gender_filter = st.pills("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], default="All")
+        gender_filter = st.pills("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], default="All", key="gender_filter_pills")
     else:
-        gender_filter = st.radio("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], index=0, horizontal=True)
+        gender_filter = st.radio("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], index=0, horizontal=True, key="gender_filter_pills")
     g_filter_key = "all" if (not gender_filter or gender_filter == "All") else ("male" if "Male" in gender_filter else "female")
 
     if voice_provider == "ElevenLabs AI (Ultra-Realistic)":
@@ -158,6 +159,7 @@ with st.sidebar:
             voice_label = elevenlabs_voice_choice[1]
     else:
         elevenlabs_model_id = "eleven_flash_v2_5"
+        st.success("🆓 **Edge-TTS Active:** 100% Free & Unlimited (0 ElevenLabs Credits Used)")
         available_edge_voices = VOICE_CATALOG.get("edge_tts", [])
         if g_filter_key != "all":
             available_edge_voices = [v for v in available_edge_voices if v.get("gender") == g_filter_key]
@@ -439,7 +441,8 @@ with tab_create:
                 scenes,
                 voice=chosen_voice,
                 elevenlabs_model=elevenlabs_model_id,
-                tone=chosen_tone
+                tone=chosen_tone,
+                allow_elevenlabs=(voice_provider == "ElevenLabs AI (Ultra-Realistic)")
             )
 
             with st.expander("🔊 Audio & Word Timestamps", expanded=False):

@@ -278,15 +278,15 @@ def _synthesize_single_scene(
     output_path: Path,
     voice: str,
     elevenlabs_model: str = DEFAULT_ELEVENLABS_MODEL,
-    tone: str = "conversational_casual"
+    tone: str = "conversational_casual",
+    allow_elevenlabs: bool = True
 ) -> None:
     """
     Synthesizes speech for a single scene:
-    - If voice starts with 'elevenlabs:', uses ElevenLabs API with tone-calibrated emotion.
-    - If ElevenLabs fails (e.g. quota limit reached), falls back to Edge-TTS.
-    - If voice is standard Edge-TTS, uses Edge-TTS.
+    - Only calls ElevenLabs API if allow_elevenlabs=True AND voice starts with 'elevenlabs:'.
+    - Otherwise strictly uses Microsoft Edge-TTS (0 ElevenLabs credits consumed).
     """
-    is_elevenlabs = voice.startswith("elevenlabs:")
+    is_elevenlabs = allow_elevenlabs and voice.startswith("elevenlabs:")
     
     if is_elevenlabs:
         voice_id = voice.split("elevenlabs:", 1)[1].strip()
@@ -294,13 +294,14 @@ def _synthesize_single_scene(
         if success:
             return
         print("[Voice] Falling back to high-fidelity Edge-TTS for this scene...")
-        # Fallback voice
         fallback_voice = "en-US-ChristopherNeural"
         asyncio.run(_synthesize_edge_tts_scene(text, output_path, fallback_voice))
         return
 
-    # Standard Edge-TTS path
+    # Standard Edge-TTS path (never consumes ElevenLabs credits)
     clean_voice = voice.replace("edge:", "")
+    if clean_voice.startswith("elevenlabs:"):
+        clean_voice = "en-US-ChristopherNeural"
     asyncio.run(_synthesize_edge_tts_scene(text, output_path, clean_voice))
 
 def _ensure_valid_audio(path: Path) -> None:
@@ -320,7 +321,8 @@ def generate_voiceover(
     scenes: List[Dict[str, Any]],
     voice: str = DEFAULT_VOICE,
     elevenlabs_model: str = DEFAULT_ELEVENLABS_MODEL,
-    tone: str = "conversational_casual"
+    tone: str = "conversational_casual",
+    allow_elevenlabs: bool = True
 ) -> Tuple[Path, List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Synthesizes each scene's voiceover individually to guarantee 100% exact timing
@@ -343,7 +345,7 @@ def generate_voiceover(
 
     # 1. Synthesize all scene voiceovers
     for i, (text, p) in enumerate(zip(scene_texts, scene_audio_paths)):
-        _synthesize_single_scene(text, p, voice=voice, elevenlabs_model=elevenlabs_model, tone=tone)
+        _synthesize_single_scene(text, p, voice=voice, elevenlabs_model=elevenlabs_model, tone=tone, allow_elevenlabs=allow_elevenlabs)
         _ensure_valid_audio(p)
 
     # 2. Measure exact duration of each scene's audio
