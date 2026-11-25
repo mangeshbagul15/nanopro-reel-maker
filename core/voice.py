@@ -83,17 +83,27 @@ VOICE_CATALOG = {
         {"id": "elevenlabs:SAz9YHcvj6GT2YYXdXww", "name": "River", "gender": "neutral", "lang": "english", "accent": "American", "tag": "Relaxed, Neutral & Informative", "label": "🇺🇸 River (Relaxed & Neutral - US)"}
     ],
     "edge_tts": [
-        # Male
-        {"id": "hi-IN-MadhurNeural", "name": "Madhur", "gender": "male", "lang": "hindi", "accent": "Indian", "tag": "Hindi / Hinglish Tech Authority", "label": "🇮🇳 Madhur (Hindi / Hinglish Tech - Male)"},
-        {"id": "en-IN-PrabhatNeural", "name": "Prabhat", "gender": "male", "lang": "english", "accent": "Indian", "tag": "Crisp Indian Tech English", "label": "🇮🇳 Prabhat (Indian Tech English - Male)"},
+        # Hindi & Hinglish Male (Verified Live Synthesis)
+        {"id": "hi-IN-MadhurNeural", "name": "Madhur", "gender": "male", "lang": "hindi", "accent": "Indian", "tag": "Native Hindi / Hinglish Tech", "label": "🇮🇳 Madhur — Native Hindi / Hinglish Tech (Male)"},
+        {"id": "en-US-AndrewMultilingualNeural|hi", "name": "Andrew Multilingual (Hindi/EN)", "gender": "male", "lang": "hindi", "accent": "Multilingual", "tag": "Warm Confident Hindi/Hinglish", "label": "🎙️ Andrew — Warm Mentor Multilingual Hindi/EN (Male)"},
+        {"id": "en-US-BrianMultilingualNeural|hi", "name": "Brian Multilingual (Hindi/EN)", "gender": "male", "lang": "hindi", "accent": "Multilingual", "tag": "Friendly Storyteller Hindi/EN", "label": "🎙️ Brian — Friendly Storyteller Multilingual Hindi/EN (Male)"},
+        {"id": "en-IN-PrabhatNeural|hinglish", "name": "Prabhat (Indian Hinglish)", "gender": "male", "lang": "hindi", "accent": "Indian", "tag": "Indian Accent Hinglish", "label": "🇮🇳 Prabhat — Indian Accent Hinglish (Male)"},
+        {"id": "fr-FR-RemyMultilingualNeural|hi", "name": "Remy Multilingual (Hindi/EN)", "gender": "male", "lang": "hindi", "accent": "Multilingual", "tag": "Expressive Multilingual Hindi/EN", "label": "🎙️ Remy — Expressive Multilingual Hindi/EN (Male)"},
+        # Hindi & Hinglish Female (Verified Live Synthesis)
+        {"id": "hi-IN-SwaraNeural", "name": "Swara", "gender": "female", "lang": "hindi", "accent": "Indian", "tag": "Native Hindi / Hinglish", "label": "🇮🇳 Swara — Native Hindi / Hinglish Conversational (Female)"},
+        {"id": "en-US-AvaMultilingualNeural|hi", "name": "Ava Multilingual (Hindi/EN)", "gender": "female", "lang": "hindi", "accent": "Multilingual", "tag": "Caring Expressive Hindi/EN", "label": "🎙️ Ava — Caring Expressive Multilingual Hindi/EN (Female)"},
+        {"id": "en-US-EmmaMultilingualNeural|hi", "name": "Emma Multilingual (Hindi/EN)", "gender": "female", "lang": "hindi", "accent": "Multilingual", "tag": "Cheerful Conversational Hindi/EN", "label": "🎙️ Emma — Cheerful Clear Multilingual Hindi/EN (Female)"},
+        {"id": "en-IN-NeerjaExpressiveNeural|hinglish", "name": "Neerja Expressive (Indian Hinglish)", "gender": "female", "lang": "hindi", "accent": "Indian", "tag": "Expressive Indian Hinglish", "label": "🇮🇳 Neerja Expressive — Expressive Indian Hinglish (Female)"},
+        {"id": "en-IN-NeerjaNeural|hinglish", "name": "Neerja (Indian Hinglish)", "gender": "female", "lang": "hindi", "accent": "Indian", "tag": "Crisp Educator Hinglish", "label": "🇮🇳 Neerja — Crisp Educator Indian Hinglish (Female)"},
+        {"id": "fr-FR-VivienneMultilingualNeural|hi", "name": "Vivienne Multilingual (Hindi/EN)", "gender": "female", "lang": "hindi", "accent": "Multilingual", "tag": "Bright Multilingual Hindi/EN", "label": "🎙️ Vivienne — Bright Multilingual Hindi/EN (Female)"},
+        # Marathi Male & Female
         {"id": "mr-IN-ManoharNeural", "name": "Manohar", "gender": "male", "lang": "marathi", "accent": "Indian", "tag": "Marathi Tech Authority", "label": "🇮🇳 Manohar (Marathi Tech - Male)"},
+        {"id": "mr-IN-AarohiNeural", "name": "Aarohi", "gender": "female", "lang": "marathi", "accent": "Indian", "tag": "Marathi Conversational", "label": "🇮🇳 Aarohi (Marathi - Female)"},
+        # English Male & Female
+        {"id": "en-IN-PrabhatNeural", "name": "Prabhat", "gender": "male", "lang": "english", "accent": "Indian", "tag": "Crisp Indian Tech English", "label": "🇮🇳 Prabhat (Indian Tech English - Male)"},
         {"id": "en-US-ChristopherNeural", "name": "Christopher", "gender": "male", "lang": "english", "accent": "American", "tag": "Calm Tech Authority", "label": "🇺🇸 Christopher (Calm Tech - US Male)"},
         {"id": "en-US-GuyNeural", "name": "Guy", "gender": "male", "lang": "english", "accent": "American", "tag": "Conversational American", "label": "🇺🇸 Guy (Conversational - US Male)"},
         {"id": "en-GB-RyanNeural", "name": "Ryan", "gender": "male", "lang": "english", "accent": "British", "tag": "Crisp British Tech", "label": "🇬🇧 Ryan (Crisp British - UK Male)"},
-        # Female
-        {"id": "hi-IN-SwaraNeural", "name": "Swara", "gender": "female", "lang": "hindi", "accent": "Indian", "tag": "Hindi / Hinglish Conversational", "label": "🇮🇳 Swara (Hindi / Hinglish - Female)"},
-        {"id": "en-IN-NeerjaExpressiveNeural", "name": "Neerja", "gender": "female", "lang": "hindi", "accent": "Indian", "tag": "Expressive Hinglish / Tech", "label": "🇮🇳 Neerja (Expressive Hinglish - Female)"},
-        {"id": "mr-IN-AarohiNeural", "name": "Aarohi", "gender": "female", "lang": "marathi", "accent": "Indian", "tag": "Marathi Conversational", "label": "🇮🇳 Aarohi (Marathi - Female)"},
         {"id": "en-US-JennyNeural", "name": "Jenny", "gender": "female", "lang": "english", "accent": "American", "tag": "Engaging Female Tech", "label": "🇺🇸 Jenny (Engaging Female - US Female)"}
     ]
 }
@@ -427,7 +437,7 @@ def _synthesize_single_scene(
         return
 
     # Standard Edge-TTS path (never consumes ElevenLabs credits)
-    clean_voice = voice.replace("edge:", "")
+    clean_voice = voice.replace("edge:", "").split("|", 1)[0].strip()
     if clean_voice.startswith("elevenlabs:"):
         clean_voice = "en-US-ChristopherNeural"
     asyncio.run(_synthesize_edge_tts_scene(text, output_path, clean_voice, tone=tone))

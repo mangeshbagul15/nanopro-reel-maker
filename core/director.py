@@ -421,7 +421,14 @@ def generate_timeline(
         style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["auto_dynamic"])
     
     # 1. Language & Dialect based on the selected Voice Persona
-    if voice.startswith("hi-") or voice == "en-IN-NeerjaExpressiveNeural" or voice.endswith("|hi"):
+    if voice.endswith("|hinglish") or voice == "en-IN-NeerjaExpressiveNeural":
+        lang_directive = (
+            "LANGUAGE & DIALECT MANDATE: The user explicitly selected an Indian-accent Hinglish voice persona (`en-IN`). "
+            "You MUST write the spoken `narration` in natural, punchy conversational Hinglish strictly using LATIN / ROMAN letters mixed with English tech terms "
+            "(e.g., 'Socho zara... aapke paas 1 million records hain, bina index ke query freeze ho jaati hai!'). "
+            "Do NOT use Devanagari characters for this voice so pronunciation stays 100% fluent. Keep all on-screen visual_data in crisp English!"
+        )
+    elif voice.startswith("hi-") or voice.endswith("|hi"):
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: The user explicitly selected a Hindi / Hinglish voice persona. "
             "You MUST write the spoken `narration` in natural, conversational Hindi-English using Devanagari for Hindi words "
