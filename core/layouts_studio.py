@@ -7,9 +7,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from core.config import ASSETS_DIR
+from core.layouts_it_sdlc import IT_SDLC_35_LAYOUTS, render_it_sdlc_layout
 from core.layouts_pro import EXTRA_32_LAYOUTS, render_pro_layout
 from core.palette_engine import resolve_studio_world
-from core.shapes_3d import ALL_50_SHAPES, ALL_100_SHAPES, draw_3d_shape, draw_vector_glyph, infer_3d_shape
+from core.shapes_3d import ALL_50_SHAPES, ALL_100_SHAPES, ALL_145_SHAPES, draw_3d_shape, draw_vector_glyph, infer_3d_shape
 from core.svg_engine import ICON_ALIASES, fetch_iconify_svg, prepare_generative_svg_layers, prepare_keyframed_svg_layers
 
 # Stage safe geometry inside 1080x1920 vertical frame
@@ -482,7 +483,7 @@ def _draw_node_visual(
         ic_spec = shp_spec
     icon_img = _resolve_iconify_if_any(ic_spec, color, size_px=max(72, int(rx * 1.9))) if ic_spec else None
 
-    if shp_spec in ALL_100_SHAPES:
+    if shp_spec in ALL_145_SHAPES:
         final_shp = shp_spec
     else:
         final_shp = infer_3d_shape(f"{label} {shp_spec} {ic_spec}", fallback="box")
@@ -1816,7 +1817,7 @@ ALL_STUDIO_LAYOUTS: Tuple[str, ...] = (
     "sequence_diagram", "er_schema", "state_machine", "git_branch_tree", "flamegraph_perf",
     "queue_workers", "load_balancer_fanout", "cache_hit_miss", "code_diff_split", "api_request_response",
     "venn_overlap", "funnel_metrics", "stat_grid_2x2", "latency_waterfall", "tree_hierarchy",
-) + EXTRA_32_LAYOUTS
+) + EXTRA_32_LAYOUTS + IT_SDLC_35_LAYOUTS
 
 _PRO_HELPERS: Dict[str, Any] = {
     "_get_font": _get_font,
@@ -1842,6 +1843,8 @@ def dispatch_studio_layout(
     l = str(layout or "custom_scene").lower().strip()
     d = data or {}
     if render_pro_layout(stage, l, d, progress, world, _PRO_HELPERS):
+        pass
+    elif render_it_sdlc_layout(stage, l, d, progress, world, _PRO_HELPERS):
         pass
     elif l in ("custom_scene", "custom", "cards", "concept_cards"):
         _render_custom_scene(stage, d, progress, world)

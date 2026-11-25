@@ -19,18 +19,20 @@ from core.layouts_studio import (
 )
 from core.mesh_shader_engine import ALL_3D_MESHES, ALL_BACKDROPS, draw_procedural_3d_mesh, render_procedural_backdrop
 from core.palette_engine import STUDIO_WORLDS, generate_hsl_world, resolve_studio_world
-from core.shapes_3d import ALL_50_SHAPES, ALL_100_SHAPES, VECTOR_GLYPHS, draw_3d_shape, draw_vector_glyph, infer_3d_shape
-from core.svg_engine import fetch_3d_extruded_svg, fetch_iconify_svg, prepare_generative_svg_layers, prepare_keyframed_svg_layers
+from core.shapes_3d import ALL_50_SHAPES, ALL_100_SHAPES, ALL_145_SHAPES, VECTOR_GLYPHS, draw_3d_shape, draw_vector_glyph, infer_3d_shape
+from core.svg_engine import ICON_ALIASES, fetch_3d_extruded_svg, fetch_iconify_svg, prepare_generative_svg_layers, prepare_keyframed_svg_layers
 from core.web_generative_engine import detect_web_engine, is_web_engine_available, render_web_generative_frames
 
 __all__ = [
     "ALL_50_SHAPES",
     "ALL_100_SHAPES",
+    "ALL_145_SHAPES",
     "ALL_3D_MESHES",
     "ALL_BACKDROPS",
     "ALL_TRANSITIONS",
     "ALL_TEXT_FX",
     "ALL_STUDIO_LAYOUTS",
+    "ICON_ALIASES",
     "STUDIO_WORLDS",
     "VECTOR_GLYPHS",
     "StudioStage",

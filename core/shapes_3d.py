@@ -13,7 +13,7 @@ def _with_alpha(col: Tuple[int, ...], alpha_mul: float) -> Tuple[int, int, int, 
 
 
 # =========================================================================
-# 124 CRISP PATH-DRIVEN DEVELOPER, AI, MATH, SCIENCE & UI VECTOR ICONS
+# 168 CRISP VECTOR ICONS (IT, Hardware, Networking, Data Eng, SDLC, Langs, AI)
 # =========================================================================
 VECTOR_GLYPHS: Dict[str, List[Tuple[Any, ...]]] = {
     "check": [("P", [(-0.52, 0.02), (-0.12, 0.44), (0.58, -0.40)])],
@@ -80,7 +80,6 @@ VECTOR_GLYPHS: Dict[str, List[Tuple[Any, ...]]] = {
     "plug": [("L", -0.22, -0.54, -0.22, -0.20), ("L", 0.22, -0.54, 0.22, -0.20), ("R", -0.38, -0.20, 0.38, 0.24), ("L", 0, 0.24, 0, 0.58)],
     "magnet": [("A", 0, -0.08, 0.42, 0, 180), ("L", -0.42, -0.46, -0.42, -0.08), ("L", 0.42, -0.46, 0.42, -0.08)],
     "dashboard": [("R", -0.54, -0.54, -0.06, -0.06), ("R", 0.06, -0.54, 0.54, 0.12), ("R", -0.54, 0.06, -0.06, 0.54), ("R", 0.06, 0.24, 0.54, 0.54)],
-    # +60 Additional Crisp Vector Icons (AI, Math, Science, Finance, Security, Media, UI)
     "arrow_left": [("L", 0.52, 0, -0.48, 0), ("P", [(-0.14, -0.34), (-0.52, 0), (-0.14, 0.34)])],
     "pause": [("R", -0.36, -0.46, -0.12, 0.46), ("R", 0.12, -0.46, 0.36, 0.46)],
     "stop": [("R", -0.42, -0.42, 0.42, 0.42)],
@@ -141,6 +140,51 @@ VECTOR_GLYPHS: Dict[str, List[Tuple[Any, ...]]] = {
     "radar_scan": [("C", 0, 0, 0.54), ("C", 0, 0, 0.26), ("L", 0, 0, 0.40, -0.38)],
     "hourglass": [("P", [(-0.40, -0.52), (0.40, -0.52), (-0.40, 0.52), (0.40, 0.52), (-0.40, -0.52)])],
     "scale": [("L", -0.52, -0.12, 0.52, -0.12), ("L", 0, -0.42, 0, 0.48), ("L", -0.30, 0.48, 0.30, 0.48), ("P", [(-0.52, -0.12), (-0.64, 0.20), (-0.40, 0.20), (-0.52, -0.12)]), ("P", [(0.52, -0.12), (0.40, 0.20), (0.64, 0.20), (0.52, -0.12)])],
+    # +44 Dedicated IT Devices, Hardware, Networking, Data Engineering & SDLC Glyphs
+    "laptop": [("R", -0.48, -0.44, 0.48, 0.14), ("P", [(-0.62, 0.44), (-0.48, 0.14), (0.48, 0.14), (0.62, 0.44), (-0.62, 0.44)])],
+    "desktop": [("R", -0.58, -0.48, 0.22, 0.22), ("R", 0.30, -0.46, 0.60, 0.46), ("L", -0.18, 0.22, -0.18, 0.48), ("L", -0.38, 0.48, 0.02, 0.48)],
+    "tablet": [("R", -0.42, -0.54, 0.42, 0.54), ("C", 0, 0.40, 0.06)],
+    "smartwatch": [("R", -0.28, -0.32, 0.28, 0.32), ("L", -0.14, -0.54, 0.14, -0.54), ("L", -0.14, 0.54, 0.14, 0.54)],
+    "printer": [("R", -0.52, -0.16, 0.52, 0.28), ("R", -0.30, -0.50, 0.30, -0.16), ("R", -0.30, 0.16, 0.30, 0.52)],
+    "webcam": [("C", 0, -0.08, 0.38), ("C", 0, -0.08, 0.14), ("L", -0.30, 0.48, 0.30, 0.48), ("L", 0, 0.30, 0, 0.48)],
+    "headset": [("A", 0, 0.02, 0.46, 180, 360), ("R", -0.56, 0.0, -0.34, 0.38), ("R", 0.34, 0.0, 0.56, 0.38)],
+    "usb_drive": [("R", -0.24, -0.22, 0.24, 0.54), ("R", -0.16, -0.54, 0.16, -0.22)],
+    "ssd": [("R", -0.46, -0.52, 0.46, 0.34), ("L", -0.28, 0.50, 0.28, 0.50), ("L", -0.32, -0.20, 0.14, -0.20)],
+    "router_wifi": [("R", -0.56, 0.08, 0.56, 0.46), ("L", -0.32, 0.08, -0.32, -0.42), ("L", 0.32, 0.08, 0.32, -0.42), ("C", -0.24, 0.27, 0.05), ("C", 0.0, 0.27, 0.05)],
+    "switch_ports": [("R", -0.60, -0.24, 0.60, 0.24), ("R", -0.46, -0.08, -0.32, 0.10), ("R", -0.20, -0.08, -0.06, 0.10), ("R", 0.06, -0.08, 0.20, 0.10), ("R", 0.32, -0.08, 0.46, 0.10)],
+    "hub_star": [("C", 0, 0, 0.18), ("C", 0, -0.48, 0.10), ("C", -0.44, 0.32, 0.10), ("C", 0.44, 0.32, 0.10), ("L", 0, -0.18, 0, -0.38), ("L", -0.14, 0.10, -0.34, 0.24), ("L", 0.14, 0.10, 0.34, 0.24)],
+    "firewall_brick": [("R", -0.56, -0.44, 0.56, 0.44), ("L", -0.56, -0.14, 0.56, -0.14), ("L", -0.56, 0.14, 0.56, 0.14), ("L", 0, -0.44, 0, -0.14), ("L", -0.22, -0.14, -0.22, 0.14), ("L", 0.22, 0.14, 0.22, 0.44)],
+    "ethernet": [("R", -0.42, -0.46, 0.42, 0.26), ("L", -0.20, -0.46, -0.20, -0.20), ("L", 0, -0.46, 0, -0.20), ("L", 0.20, -0.46, 0.20, -0.20), ("L", 0, 0.26, 0, 0.58)],
+    "patch_panel": [("R", -0.58, -0.36, 0.58, 0.36), ("L", -0.42, -0.10, 0.42, -0.10), ("L", -0.42, 0.14, 0.42, 0.14)],
+    "fiber_cable": [("A", -0.24, 0.0, 0.36, 120, 300), ("A", 0.24, 0.0, 0.36, -60, 120), ("L", -0.56, 0, 0.56, 0)],
+    "satellite_dish": [("A", -0.18, 0.18, 0.56, 225, 360), ("L", -0.18, 0.18, 0.32, -32), ("L", -0.44, 0.52, 0.18, 0.52)],
+    "cell_tower": [("L", 0, -0.52, -0.28, 0.54), ("L", 0, -0.52, 0.28, 0.54), ("L", -0.16, 0.10, 0.16, 0.10), ("A", 0, -0.42, 0.36, 210, 330)],
+    "dns_server": [("C", 0, -0.16, 0.36), ("R", -0.48, 0.30, 0.48, 0.58), ("C", -0.26, 0.44, 0.06)],
+    "vpn_tunnel": [("A", 0, 0.10, 0.54, 180, 360), ("A", 0, 0.10, 0.28, 180, 360), ("L", -0.54, 0.10, 0.54, 0.10)],
+    "load_balance": [("L", -0.54, 0, -0.12, 0), ("P", [(-0.12, 0), (0.46, -0.38)]), ("P", [(-0.12, 0), (0.46, 0.38)]), ("C", 0.50, -0.38, 0.10), ("C", 0.50, 0.38, 0.10)],
+    "subnet_box": [("R", -0.56, -0.52, 0.56, 0.52), ("R", -0.34, -0.28, 0.0, 0.06), ("R", 0.08, 0.08, 0.42, 0.42)],
+    "vlan_ring": [("C", -0.20, 0.0, 0.34), ("C", 0.20, 0.0, 0.34)],
+    "data_pipe": [("L", -0.58, -0.22, 0.58, -0.22), ("L", -0.58, 0.22, 0.58, 0.22), ("P", [(-0.12, -0.10), (0.14, 0), (-0.12, 0.10)])],
+    "data_lake": [("A", -0.34, 0.24, 0.22, 0, 180), ("A", 0.12, 0.24, 0.24, 0, 180), ("A", 0, -0.40, 0.42, 180, 360), ("L", -0.42, -0.16, -0.42, 0.22), ("L", 0.42, -0.16, 0.42, 0.22)],
+    "lakehouse": [("P", [(-0.52, -0.12), (0, -0.54), (0.52, -0.12)]), ("L", -0.42, -0.12, -0.42, 0.44), ("L", 0.42, -0.12, 0.42, 0.44), ("A", 0, 0.44, 0.42, 0, 180)],
+    "spark_star": [("P", [(0, -0.60), (0.16, -0.16), (0.60, 0), (0.16, 0.16), (0, 0.60), (-0.16, 0.16), (-0.60, 0), (-0.16, -0.16), (0, -0.60)])],
+    "kafka_stream": [("C", 0, -0.44, 0.14), ("C", 0, 0.44, 0.14), ("C", 0.44, 0.0, 0.14), ("C", -0.32, 0.0, 0.18), ("L", -0.14, 0, 0.30, 0)],
+    "warehouse": [("P", [(-0.56, -0.14), (0, -0.56), (0.56, -0.14), (0.56, 0.50), (-0.56, 0.50), (-0.56, -0.14)]), ("R", -0.26, 0.06, 0.26, 0.50)],
+    "schema_rel": [("R", -0.56, -0.48, -0.12, 0.12), ("R", 0.12, -0.12, 0.56, 0.48), ("L", -0.12, -0.18, 0.12, 0.18)],
+    "dag_nodes": [("C", -0.42, -0.36, 0.14), ("C", 0.42, -0.36, 0.14), ("C", 0.0, 0.40, 0.16), ("L", -0.32, -0.24, -0.08, 0.26), ("L", 0.32, -0.24, 0.08, 0.26)],
+    "sdlc_cycle": [("A", 0, 0, 0.50, 25, 330), ("P", [(0.36, -0.48), (0.54, -0.16), (0.20, -0.18)]), ("C", 0, 0, 0.16)],
+    "ci_rocket": [("L", -0.48, 0.48, 0.48, -0.48), ("P", [(0.08, -0.48), (0.48, -0.48), (0.48, -0.08)])],
+    "unit_test": [("R", -0.52, -0.52, 0.52, 0.52), ("P", [(-0.26, 0.02), (-0.06, 0.24), (0.30, -0.22)])],
+    "code_review": [("C", -0.22, -0.20, 0.24), ("C", 0.26, 0.24, 0.22), ("L", -0.04, -0.02, 0.10, 0.10)],
+    "release_tag": [("P", [(-0.50, -0.48), (0.04, -0.48), (0.52, 0.0), (0.0, 0.52), (-0.48, 0.04), (-0.50, -0.48)])],
+    "rollback": [("A", 0, 0.08, 0.46, 180, 30), ("P", [(-0.48, -0.32), (-0.52, 0.08), (-0.16, 0.02)])],
+    "k8s_wheel": [("C", 0, 0, 0.48), ("C", 0, 0, 0.16), ("L", 0, -0.58, 0, 0.58), ("L", -0.54, -0.20, 0.54, 0.20), ("L", -0.54, 0.20, 0.54, -0.20)],
+    "container_pod": [("P", [(0, -0.56), (0.52, -0.28), (0, 0), (-0.52, -0.28), (0, -0.56)]), ("R", -0.44, -0.06, 0.44, 0.52)],
+    "git_pr": [("C", -0.34, -0.36, 0.12), ("C", -0.34, 0.36, 0.12), ("C", 0.36, 0.36, 0.12), ("L", -0.34, -0.24, -0.34, 0.24), ("P", [(-0.20, -0.36), (0.36, -0.36), (0.36, 0.24)])],
+    "api_plug": [("R", -0.48, -0.24, 0.48, 0.24), ("L", -0.24, -0.52, -0.24, -0.24), ("L", 0.24, -0.52, 0.24, -0.24), ("L", 0, 0.24, 0, 0.56)],
+    "sdk_box": [("R", -0.50, -0.50, 0.50, 0.50), ("P", [(-0.24, -0.14), (0, -0.36), (0.24, -0.14)]), ("L", -0.24, 0.18, 0.24, 0.18)],
+    "blade_rack": [("R", -0.54, -0.54, 0.54, 0.54), ("L", -0.54, -0.18, 0.54, -0.18), ("L", -0.54, 0.18, 0.54, 0.18), ("C", 0.32, -0.36, 0.05), ("C", 0.32, 0.0, 0.05), ("C", 0.32, 0.36, 0.05)],
+    "ups_power": [("R", -0.44, -0.56, 0.44, 0.56), ("P", [(0.08, -0.32), (-0.18, 0.02), (0.04, 0.02), (-0.08, 0.36), (0.20, 0.0), (-0.02, 0.0)])],
 }
 
 
@@ -162,7 +206,7 @@ def draw_vector_glyph(
     if with_badge:
         stage.draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=_with_alpha((*color[:3], 42), eff_a), outline=c, width=3)
     k = str(kind or "check").lower().strip()
-    alias = {"warning": "warn", "fast": "bolt", "speed": "bolt", "flash": "bolt", "zap": "bolt", "storage": "db", "database": "db", "sql": "db", "postgres": "db", "api": "code", "dev": "code", "rag": "search", "query": "search", "metric": "chart", "bar": "chart", "sec": "shield", "security": "shield"}
+    alias = {"warning": "warn", "fast": "bolt", "speed": "bolt", "flash": "bolt", "zap": "bolt", "storage": "db", "database": "db", "sql": "db", "postgres": "db", "api": "code", "dev": "code", "rag": "search", "query": "search", "metric": "chart", "bar": "chart", "sec": "shield", "security": "shield", "pc": "desktop", "workstation": "desktop", "router": "router_wifi", "switch": "switch_ports", "hub": "hub_star", "firewall": "firewall_brick"}
     k = alias.get(k, k)
 
     ops = VECTOR_GLYPHS.get(k, VECTOR_GLYPHS["check"])
@@ -188,7 +232,7 @@ def draw_vector_glyph(
 
 
 # =========================================================================
-# 105 PROCEDURAL & PEDESTAL 3D SHAPES + 200k+ 3D-EXTRUDED SVG SPRITES
+# 145 3D SHAPES: TRUE HARDWARE MODELS + 3D CAMERA MESHES + PEDESTALS + 200K SVGs
 # =========================================================================
 ALL_50_SHAPES: Tuple[str, ...] = (
     "box", "stack", "cylinder", "sphere", "hexagon", "pyramid", "diamond", "cloud",
@@ -213,20 +257,31 @@ EXTRA_55_SHAPES: Tuple[str, ...] = (
     "power_core", "satellite_link", "cloud_mesh", "vault_safe", "ledger_chain", "gpu_rack", "tpu_pod",
 )
 
+IT_NETWORK_DATA_SDLC_40_SHAPES: Tuple[str, ...] = (
+    # Dedicated 3D Physical Hardware & Networking Devices
+    "laptop", "desktop", "tablet", "network_switch", "hub", "firewall_wall", "ssd_nvme", "rack_cabinet",
+    "smartwatch", "printer", "webcam", "headset", "usb_drive", "ethernet_port", "patch_panel", "fiber_cable",
+    "cell_tower", "dns_server", "vpn_tunnel", "subnet_zone", "vlan_ring", "ups_battery",
+    # Data Engineering & Big Data Shapes
+    "data_pipe", "data_lake", "lakehouse", "spark_engine", "kafka_broker", "warehouse_3d", "schema_table", "dag_pipeline",
+    # SDLC, CI/CD, Languages & Cloud Shapes
+    "sdlc_wheel", "ci_runner", "unit_test_cube", "pr_merge", "release_tag_3d", "rollback_gate", "k8s_pod_mesh", "api_plug_3d", "sdk_module", "blade_server",
+)
+
 ALL_100_SHAPES: Tuple[str, ...] = ALL_50_SHAPES + EXTRA_55_SHAPES
+ALL_145_SHAPES: Tuple[str, ...] = ALL_50_SHAPES + EXTRA_55_SHAPES + IT_NETWORK_DATA_SDLC_40_SHAPES
 
 _PEDESTAL_SHAPES: Dict[str, Tuple[str, str]] = {
-    "server_rack": ("stack", "server"), "lock": ("hexagon", "lock"), "key": ("diamond", "key"),
-    "globe": ("sphere", "globe"), "router": ("box", "wifi"), "queue": ("stack", "sync"),
+    "lock": ("hexagon", "lock"), "key": ("diamond", "key"), "globe": ("sphere", "globe"), "queue": ("stack", "sync"),
     "rocket": ("hexagon", "rocket"), "bolt_3d": ("diamond", "bolt"), "document": ("box", "file"),
     "terminal_box": ("box", "terminal"), "bell": ("hexagon", "bell"), "clock": ("sphere", "clock"),
     "magnifier": ("hexagon", "search"), "container": ("box", "layers"), "bridge": ("box", "link"),
-    "brain_node": ("sphere", "brain"), "database_cluster": ("cylinder", "db"), "load_balancer": ("diamond", "network"),
-    "cdn_edge": ("cloud", "globe"), "antenna": ("pyramid", "wifi"), "monitor": ("box", "monitor"),
-    "mobile": ("hexagon", "mobile"), "folder": ("box", "folder"), "code_cube": ("box", "code"),
-    "plug": ("hexagon", "plug"), "battery": ("cylinder", "battery"), "gauge_dial": ("sphere", "chart"),
-    "magnet": ("hexagon", "magnet"), "layers_wafer": ("stack", "layers"), "gate_xor": ("diamond", "branch"),
-    "packet_envelope": ("box", "arrow_right"), "scale_balance": ("pyramid", "scale"), "trophy": ("hexagon", "trophy"),
+    "brain_node": ("sphere", "brain"), "database_cluster": ("cylinder", "db"), "load_balancer": ("diamond", "load_balance"),
+    "cdn_edge": ("cloud", "globe"), "antenna": ("pyramid", "wifi"), "monitor": ("desktop", "monitor"),
+    "folder": ("box", "folder"), "code_cube": ("box", "code"), "plug": ("hexagon", "plug"),
+    "battery": ("cylinder", "battery"), "gauge_dial": ("sphere", "chart"), "magnet": ("hexagon", "magnet"),
+    "layers_wafer": ("stack", "layers"), "gate_xor": ("diamond", "branch"), "packet_envelope": ("box", "arrow_right"),
+    "scale_balance": ("pyramid", "scale"), "trophy": ("hexagon", "trophy"),
     "microservice": ("hexagon", "grid"), "wallet_3d": ("box", "wallet"), "bank_vault": ("box", "bank"),
     "shopping_cart": ("box", "cart"), "package_3d": ("box", "package"), "truck_delivery": ("box", "truck"),
     "pin_beacon": ("pyramid", "map_pin"), "anchor_node": ("hexagon", "anchor"), "crown_vip": ("hexagon", "crown"),
@@ -239,32 +294,68 @@ _PEDESTAL_SHAPES: Dict[str, Tuple[str, str]] = {
     "video_stream": ("box", "video"), "music_wave": ("sphere", "music"), "mail_relay": ("box", "mail"),
     "chat_node": ("hexagon", "message"), "send_packet": ("diamond", "send"), "bot_agent": ("bot", "bot_head"),
     "flask_lab": ("pyramid", "flask"), "microscope_bio": ("hexagon", "microscope"), "shield_zero": ("shield", "lock"),
-    "usb_plug": ("box", "plug"), "power_core": ("sphere", "bolt"), "satellite_link": ("sphere", "wifi"),
+    "usb_plug": ("box", "plug"), "power_core": ("sphere", "bolt"), "satellite_link": ("sphere", "satellite_dish"),
     "cloud_mesh": ("cloud", "network"), "vault_safe": ("box", "lock"), "ledger_chain": ("stack", "link"),
     "gpu_rack": ("chip", "cpu"), "tpu_pod": ("chip", "sparkles"),
+    "smartwatch": ("hexagon", "smartwatch"), "printer": ("box", "printer"), "webcam": ("sphere", "webcam"),
+    "headset": ("hexagon", "headset"), "usb_drive": ("ssd_nvme", "usb_drive"), "ethernet_port": ("network_switch", "ethernet"),
+    "patch_panel": ("network_switch", "patch_panel"), "fiber_cable": ("torus", "fiber_cable"),
+    "cell_tower": ("pyramid", "cell_tower"), "dns_server": ("cylinder", "dns_server"), "vpn_tunnel": ("shield", "vpn_tunnel"),
+    "subnet_zone": ("hexagon", "subnet_box"), "vlan_ring": ("torus", "vlan_ring"), "ups_battery": ("rack_cabinet", "ups_power"),
+    "data_pipe": ("cylinder", "data_pipe"), "data_lake": ("cylinder", "data_lake"), "lakehouse": ("pyramid", "lakehouse"),
+    "spark_engine": ("diamond", "spark_star"), "kafka_broker": ("stack", "kafka_stream"), "warehouse_3d": ("stack", "warehouse"),
+    "schema_table": ("box", "schema_rel"), "dag_pipeline": ("hexagon", "dag_nodes"),
+    "sdlc_wheel": ("torus", "sdlc_cycle"), "ci_runner": ("hexagon", "ci_rocket"), "unit_test_cube": ("box", "unit_test"),
+    "pr_merge": ("diamond", "git_pr"), "release_tag_3d": ("hexagon", "release_tag"), "rollback_gate": ("shield", "rollback"),
+    "k8s_pod_mesh": ("container", "k8s_wheel"), "api_plug_3d": ("hexagon", "api_plug"), "sdk_module": ("box", "sdk_box"), "blade_server": ("server_rack", "blade_rack"),
 }
 
 
 def infer_3d_shape(label: str, fallback: str = "box") -> str:
     low = str(label or "").lower()
     checks = [
+        (("laptop", "macbook", "notebook"), "laptop"),
+        (("desktop", "pc", "workstation", "imac"), "desktop"),
+        (("mobile", "phone", "iphone", "android"), "mobile"),
+        (("tablet", "ipad"), "tablet"),
+        (("router", "wifi", "gateway"), "router"),
+        (("switch", "l2", "l3 switch", "ethernet"), "network_switch"),
+        (("hub", "repeater", "mesh"), "hub"),
+        (("firewall", "waf", "dmz"), "firewall_wall"),
+        (("nvme", "ssd", "disk", "storage"), "ssd_nvme"),
+        (("rack", "cabinet", "datacenter"), "rack_cabinet"),
+        (("server", "host", "node", "ec2", "vm"), "server_rack"),
+        (("lakehouse", "medallion", "bronze", "silver", "gold"), "lakehouse"),
+        (("lake", "s3", "bucket", "parquet", "iceberg"), "data_lake"),
+        (("warehouse", "snowflake", "bigquery", "redshift", "clickhouse"), "warehouse_3d"),
+        (("kafka", "pulsar", "kinesis", "pubsub"), "kafka_broker"),
+        (("spark", "flink", "beam", "transform", "dbt"), "spark_engine"),
+        (("airflow", "dagster", "prefect", "dag", "etl", "elt", "pipeline"), "dag_pipeline"),
+        (("sdlc", "lifecycle", "agile", "sprint"), "sdlc_wheel"),
+        (("ci/cd", "ci", "cd", "jenkins", "actions", "deploy"), "ci_runner"),
+        (("test", "qa", "pytest", "playwright", "jest"), "unit_test_cube"),
+        (("git", "commit", "branch", "pr", "pull request"), "pr_merge"),
         (("db", "database", "vector", "sql", "pg", "redis", "store", "cache", "index", "table"), "cylinder"),
-        (("cluster", "replica", "shard"), "database_cluster"), (("cloud", "aws", "gcp", "azure", "vpc", "saas"), "cloud"),
-        (("cdn", "edge", "cloudflare"), "cdn_edge"), (("auth", "sec", "soc", "guard", "firewall", "siem", "jwt", "vault", "trust"), "shield"),
-        (("lock", "encrypt", "tls", "ssl", "secret"), "lock"), (("key", "token", "oauth"), "key"),
-        (("ai", "llm", "gpt", "agent", "bot"), "bot"), (("brain", "neural", "reasoning"), "brain_node"),
-        (("dna", "gene", "bio"), "dna_helix"), (("atom", "quantum", "physics"), "atom_orbit"),
+        (("cloud", "aws", "gcp", "azure", "vpc", "saas"), "cloud"),
+        (("cdn", "edge", "cloudflare"), "cdn_edge"),
+        (("auth", "sec", "soc", "guard", "siem", "jwt", "vault", "trust"), "shield"),
+        (("lock", "encrypt", "tls", "ssl", "secret"), "lock"),
+        (("key", "token", "oauth"), "key"),
+        (("ai", "llm", "gpt", "agent", "bot"), "bot"),
+        (("brain", "neural", "reasoning"), "brain_node"),
+        (("dna", "gene", "bio"), "dna_helix"),
+        (("atom", "quantum", "physics"), "atom_orbit"),
         (("cpu", "gpu", "chip", "kernel", "embed", "tokenizer", "inference", "wasm"), "chip"),
-        (("s3", "bucket", "lake", "parquet", "blob"), "bucket"), (("k8s", "kube", "docker", "pod", "container"), "container"),
-        (("microservice", "hexagon", "mesh"), "hexagon"), (("rack", "server", "host", "node"), "server_rack"),
-        (("stack", "layer", "rag", "fine-tuning"), "layers_wafer"), (("queue", "kafka", "rabbit", "sqs", "stream", "broker"), "queue"),
-        (("balancer", "gateway", "proxy", "ingress"), "load_balancer"), (("router", "switch", "dns"), "router"),
-        (("search", "retrieve", "query"), "magnifier"), (("code", "python", "script", "fn", "lambda"), "code_cube"),
-        (("terminal", "cli", "bash", "shell"), "terminal_box"), (("funnel", "filter", "triage"), "funnel"),
-        (("pyramid", "hierarchy", "tier"), "pyramid"), (("rocket", "deploy", "launch", "fast"), "rocket"),
-        (("globe", "region", "multi-region", "world"), "globe"), (("latency", "timer", "timeout", "ttl"), "clock"),
-        (("alert", "alarm", "notify", "webhook"), "bell"), (("cron", "worker", "job", "engine"), "gear"),
-        (("torus", "ring", "loop"), "torus_3d"), (("hub", "core", "network"), "geodesic_sphere"),
+        (("k8s", "kube", "docker", "pod", "container"), "k8s_pod_mesh"),
+        (("balancer", "proxy", "ingress"), "load_balancer"),
+        (("search", "retrieve", "query"), "magnifier"),
+        (("code", "python", "java", "script", "fn", "lambda"), "code_cube"),
+        (("terminal", "cli", "bash", "shell"), "terminal_box"),
+        (("funnel", "filter", "triage"), "funnel"),
+        (("rocket", "fast"), "rocket"),
+        (("globe", "region", "world"), "globe"),
+        (("cron", "worker", "job", "engine"), "gear"),
+        (("torus", "ring", "loop"), "torus_3d"),
     ]
     for kws, shp in checks:
         if any(k in low for k in kws):
@@ -294,6 +385,8 @@ def draw_3d_shape(
     bob = int(round(math.sin(progress * math.pi * 4.0 + phase) * 4.5)) if active else 0
     cy_live = cy + bob
     shp = str(shape or "box").lower().strip()
+    if shp == "switch":
+        shp = "network_switch"
 
     stage.add_shadow_ellipse((cx - rx - 8, cy + depth + 6, cx + rx + 8, cy + depth + ry + 18), alpha_mul * 0.85)
     if active:
@@ -306,8 +399,9 @@ def draw_3d_shape(
     right_col = _with_alpha((max(10, int(r * 0.34)), max(14, int(g * 0.36)), max(20, int(b * 0.42)), 252), eff_a)
     wire_col = _with_alpha((min(255, r + 95), min(255, g + 95), min(255, b + 95), 245 if active else 175), eff_a)
     dark_core = _with_alpha((14, 21, 38, 250), eff_a)
+    em_led = _with_alpha(stage.world.get("emerald", (16, 185, 129)), eff_a)
+    am_led = _with_alpha(stage.world.get("amber", (245, 158, 11)), eff_a)
 
-    # 200,000+ Real 3D-Extruded Iconify SVG sprites hovering over glowing 3D rings
     if icon_img is not None:
         ped_y = cy_live + depth // 2 + 6
         stage.draw.ellipse((cx - rx, ped_y, cx + rx, ped_y + ry), fill=left_col, outline=wire_col, width=2)
@@ -323,7 +417,6 @@ def draw_3d_shape(
         stage.fg.alpha_composite(ic_final, (cx - ic_final.width // 2, cy_live - ic_final.height // 3))
         return
 
-    # Check True NumPy 3D Perspective Camera Mesh first
     if shp in ALL_3D_MESHES:
         draw_procedural_3d_mesh(stage, cx, cy_live + depth // 4, max(rx, depth), shp, color, progress=progress, active=active, alpha_mul=alpha_mul)
         return
@@ -332,7 +425,88 @@ def draw_3d_shape(
     if shp in _PEDESTAL_SHAPES:
         shp, pedestal_glyph = _PEDESTAL_SHAPES[shp]
 
-    if shp == "cylinder":
+    # --- BESPOKE 3D PHYSICAL IT & NETWORKING HARDWARE GEOMETRIES ---
+    if shp == "laptop":
+        w_b, h_b = int(rx * 0.92), max(18, int(depth * 0.72))
+        scr = [(cx - int(w_b * 0.78), cy_live - h_b), (cx + int(w_b * 0.78), cy_live - h_b), (cx + int(w_b * 0.78), cy_live + 4), (cx - int(w_b * 0.78), cy_live + 4)]
+        stage.draw.polygon(scr, fill=dark_core, outline=wire_col, width=3)
+        stage.draw.rounded_rectangle((cx - int(w_b * 0.64), cy_live - h_b + 6, cx + int(w_b * 0.64), cy_live - 2), radius=4, fill=left_col)
+        deck = [(cx - int(w_b * 0.78), cy_live + 4), (cx + int(w_b * 0.78), cy_live + 4), (cx + w_b, cy_live + ry + 10), (cx - w_b, cy_live + ry + 10)]
+        stage.draw.polygon(deck, fill=top_col, outline=wire_col, width=2)
+        stage.draw.line((cx - int(w_b * 0.55), cy_live + 11, cx + int(w_b * 0.55), cy_live + 11), fill=dark_core, width=3)
+    elif shp == "desktop":
+        mw = int(rx * 0.72)
+        stage.draw.rounded_rectangle((cx - rx, cy_live - ry - 8, cx + int(rx * 0.34), cy_live + depth // 2 + 2), radius=6, fill=dark_core, outline=wire_col, width=3)
+        stage.draw.rounded_rectangle((cx - rx + 5, cy_live - ry - 3, cx + int(rx * 0.34) - 5, cy_live + depth // 2 - 4), radius=4, fill=left_col)
+        stage.draw.line((cx - mw // 2, cy_live + depth // 2 + 2, cx - mw // 2, cy_live + depth), fill=wire_col, width=4)
+        stage.draw.line((cx - rx // 2, cy_live + depth, cx, cy_live + depth), fill=wire_col, width=3)
+        # Side PC Tower in 3D
+        stage.draw.rounded_rectangle((cx + int(rx * 0.44), cy_live - ry, cx + rx, cy_live + depth + 4), radius=6, fill=right_col, outline=wire_col, width=2)
+        stage.draw.ellipse((cx + int(rx * 0.68), cy_live - ry + 8, cx + int(rx * 0.78), cy_live - ry + 16), fill=em_led)
+    elif shp in ("mobile", "tablet"):
+        bw = int(rx * (0.48 if shp == "mobile" else 0.74))
+        bh = int(depth + ry * 0.8)
+        stage.draw.rounded_rectangle((cx - bw, cy_live - ry // 2 - 6, cx + bw, cy_live + bh // 2 + 12), radius=10, fill=left_col, outline=wire_col, width=3)
+        stage.draw.rounded_rectangle((cx - bw + 5, cy_live - ry // 2 + 2, cx + bw - 5, cy_live + bh // 2 + 2), radius=6, fill=dark_core, outline=top_col, width=2)
+        stage.draw.line((cx - 8, cy_live + bh // 2 + 6, cx + 8, cy_live + bh // 2 + 6), fill=top_col, width=2)
+    elif shp == "router":
+        # 2 upright dual WiFi antennas + chamfered 3D body + LED dots
+        stage.draw.line((cx - rx // 2, cy_live, cx - rx // 2 - 4, cy_live - ry - 18), fill=wire_col, width=4)
+        stage.draw.line((cx + rx // 2, cy_live, cx + rx // 2 + 4, cy_live - ry - 18), fill=wire_col, width=4)
+        stage.draw.ellipse((cx - rx // 2 - 7, cy_live - ry - 22, cx - rx // 2 - 1, cy_live - ry - 16), fill=em_led)
+        stage.draw.ellipse((cx + rx // 2 + 1, cy_live - ry - 22, cx + rx // 2 + 7, cy_live - ry - 16), fill=em_led)
+        t_pts = [(cx, cy_live - ry // 2), (cx + rx, cy_live + 4), (cx, cy_live + ry // 2 + 4), (cx - rx, cy_live + 4)]
+        stage.draw.polygon(t_pts, fill=top_col, outline=wire_col, width=2)
+        stage.draw.rounded_rectangle((cx - rx, cy_live + 4, cx + rx, cy_live + depth // 2 + 18), radius=6, fill=left_col, outline=wire_col, width=2)
+        for li in range(-2, 3):
+            stage.draw.ellipse((cx + li * 10 - 2, cy_live + depth // 2 + 8, cx + li * 10 + 2, cy_live + depth // 2 + 12), fill=em_led if li % 2 == 0 else am_led)
+    elif shp == "network_switch":
+        sh = max(20, depth // 2 + 8)
+        t_pts = [(cx - int(rx * 0.85), cy_live - ry // 2), (cx + int(rx * 0.85), cy_live - ry // 2), (cx + rx, cy_live + 4), (cx - rx, cy_live + 4)]
+        stage.draw.polygon(t_pts, fill=top_col, outline=wire_col, width=2)
+        stage.draw.rounded_rectangle((cx - rx, cy_live + 4, cx + rx, cy_live + sh + 6), radius=5, fill=left_col, outline=wire_col, width=2)
+        n_ports = 5
+        pw = max(6, (rx * 2 - 22) // (n_ports * 2))
+        for pi in range(n_ports):
+            px = cx - rx + 12 + pi * ((rx * 2 - 24) // n_ports)
+            stage.draw.rectangle((px, cy_live + 11, px + pw + 3, cy_live + sh), fill=dark_core, outline=wire_col, width=1)
+            stage.draw.ellipse((px + 1, cy_live + 6, px + 5, cy_live + 10), fill=em_led if (pi + int(progress * 8)) % 3 else am_led)
+    elif shp == "hub":
+        hr, hry = int(rx * 0.92), int(ry * 1.05)
+        oct_t = [(cx + int(hr * math.cos(math.radians(a + 22.5))), cy_live + int(hry * math.sin(math.radians(a + 22.5)))) for a in range(0, 360, 45)]
+        d_h = max(14, depth // 2)
+        stage.draw.polygon([(p[0], p[1] + d_h) for p in oct_t], fill=right_col, outline=wire_col, width=2)
+        stage.draw.polygon(oct_t, fill=top_col, outline=wire_col, width=3)
+        stage.draw.ellipse((cx - 8, cy_live - 6, cx + 8, cy_live + 6), fill=em_led)
+        for p in oct_t[::2]:
+            stage.draw.line((cx, cy_live, p[0], p[1]), fill=wire_col, width=2)
+    elif shp in ("server_rack", "rack_cabinet"):
+        bw, top_y, bot_y = int(rx * 0.85), cy_live - ry // 2, cy_live + depth + 12
+        stage.draw.rounded_rectangle((cx - bw, top_y, cx + bw, bot_y), radius=8, fill=dark_core, outline=wire_col, width=3)
+        n_blades = 4
+        bh = max(8, (bot_y - top_y - 14) // n_blades)
+        for bi in range(n_blades):
+            y0 = top_y + 6 + bi * bh
+            stage.draw.rounded_rectangle((cx - bw + 6, y0, cx + bw - 6, y0 + bh - 3), radius=3, fill=left_col if bi % 2 == 0 else right_col, outline=wire_col, width=1)
+            stage.draw.ellipse((cx + bw - 16, y0 + bh // 2 - 3, cx + bw - 10, y0 + bh // 2 + 3), fill=em_led if (bi + int(progress * 6)) % 2 == 0 else am_led)
+    elif shp == "firewall_wall":
+        bw, top_y, bot_y = int(rx * 0.92), cy_live - ry // 2, cy_live + depth + 6
+        stage.draw.rounded_rectangle((cx - bw, top_y, cx + bw, bot_y), radius=6, fill=right_col, outline=wire_col, width=3)
+        rows_b = 3
+        rh_b = max(6, (bot_y - top_y) // rows_b)
+        for r_i in range(rows_b):
+            yy = top_y + r_i * rh_b
+            stage.draw.line((cx - bw, yy, cx + bw, yy), fill=top_col, width=2)
+            off = 0 if r_i % 2 == 0 else bw // 2
+            stage.draw.line((cx - bw // 2 + off, yy, cx - bw // 2 + off, min(bot_y, yy + rh_b)), fill=top_col, width=2)
+    elif shp == "ssd_nvme":
+        bw, bh = int(rx * 0.88), int(depth * 0.72)
+        stage.draw.rounded_rectangle((cx - bw, cy_live - bh // 2, cx + bw, cy_live + bh // 2 + 12), radius=7, fill=left_col, outline=wire_col, width=2)
+        stage.draw.rounded_rectangle((cx - bw + 8, cy_live - bh // 2 + 6, cx + int(bw * 0.4), cy_live + bh // 2 + 4), radius=4, fill=dark_core)
+        for gi in range(4):
+            gy = cy_live - bh // 2 + 6 + gi * max(4, bh // 4)
+            stage.draw.line((cx + int(bw * 0.65), gy, cx + bw - 2, gy), fill=am_led, width=3)
+    elif shp == "cylinder":
         stage.draw.rectangle((cx - rx, cy_live, cx + rx, cy_live + depth), fill=left_col, outline=wire_col, width=2)
         stage.draw.ellipse((cx - rx, cy_live + depth - ry, cx + rx, cy_live + depth + ry), fill=right_col, outline=wire_col, width=2)
         mid_y = cy_live + depth // 2
@@ -404,8 +578,8 @@ def draw_3d_shape(
         cw_c, mid_cy = int(rx * 0.78), cy_live + depth // 3
         for p_idx in range(-2, 3):
             py_p = mid_cy + p_idx * 11
-            stage.draw.line((cx - cw_c - 12, py_p, cx - cw_c, py_p), fill=_with_alpha(stage.world["amber"], eff_a), width=3)
-            stage.draw.line((cx + cw_c, py_p, cx + cw_c + 12, py_p), fill=_with_alpha(stage.world["amber"], eff_a), width=3)
+            stage.draw.line((cx - cw_c - 12, py_p, cx - cw_c, py_p), fill=am_led, width=3)
+            stage.draw.line((cx + cw_c, py_p, cx + cw_c + 12, py_p), fill=am_led, width=3)
         stage.draw.rounded_rectangle((cx - cw_c, mid_cy - cw_c, cx + cw_c, mid_cy + cw_c), radius=14, fill=dark_core, outline=wire_col, width=3)
         ic = int(cw_c * 0.54)
         stage.draw.rounded_rectangle((cx - ic, mid_cy - ic, cx + ic, mid_cy + ic), radius=8, fill=top_col, outline=wire_col, width=2)
@@ -425,7 +599,7 @@ def draw_3d_shape(
     elif shp == "bot":
         bw_t, mid_cy = int(rx * 0.78), cy_live + depth // 3
         stage.draw.line((cx, mid_cy - bw_t, cx, mid_cy - bw_t - 14), fill=wire_col, width=3)
-        stage.draw.ellipse((cx - 5, mid_cy - bw_t - 20, cx + 5, mid_cy - bw_t - 10), fill=_with_alpha(stage.world["amber"], eff_a))
+        stage.draw.ellipse((cx - 5, mid_cy - bw_t - 20, cx + 5, mid_cy - bw_t - 10), fill=am_led)
         stage.draw.rounded_rectangle((cx - bw_t, mid_cy - bw_t + 6, cx + bw_t, mid_cy + bw_t - 4), radius=18, fill=left_col, outline=wire_col, width=3)
         stage.draw.rounded_rectangle((cx - bw_t + 10, mid_cy - 14, cx + bw_t - 10, mid_cy + 12), radius=8, fill=dark_core, outline=wire_col, width=2)
         scan_x = cx - 12 + int(math.sin(progress * 6.0) * 14)

@@ -17,6 +17,7 @@ _RELOAD_ORDER = [
     "core.mesh_shader_engine",
     "core.shapes_3d",
     "core.layouts_pro",
+    "core.layouts_it_sdlc",
     "core.layouts_studio",
     "core.web_generative_engine",
     "core.cinematic_engine",
@@ -234,8 +235,8 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("dual_generative", "⚡ Zero-Limit Generative Studio (Playwright WebGL/Three.js/GSAP + 3D Mesh/Shader + Keyframe SVG) [Max]"),
-            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (46 Worlds, 65+ Layouts, 105 Shapes + 200k 3D SVGs, 18 Backdrops) [Pro]"),
+            ("dual_generative", "⚡ Zero-Limit Generative Studio (Playwright WebGL/Three.js + 100 Layouts, 145 Shapes, IT/Data/SDLC) [Max]"),
+            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (100 Layouts, 145 Shapes, 168 Glyphs, 200k+ 3D Lang/IT SVGs) [Pro]"),
             ("auto_dynamic", "⚡ Dynamic / Auto (AI Decides Visuals, Progressive Flow & Voice Choreography) [Recommended]"),
             ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
@@ -253,7 +254,7 @@ with st.sidebar:
         ],
         format_func=lambda x: x[1],
         key="visual_engine_select",
-        help="Dual Generative & Studio Max: 46 Worlds + Infinite Gradient/HSL, 65+ Layouts + Spatial Composer, 105 3D Shapes & True 3D Meshes + 200k+ 3D-Extruded SVGs, 124 Glyphs, 18 Procedural Backdrops, 12 Transitions, 14 Text FX, Keyframe AI <svg>, and Local Playwright WebGL/Three.js."
+        help="Includes 100+ Dedicated Layouts (IT/Hardware, Networking, Data Engineering, SDLC, AI/ML, Charts, UI Mockups), 145 3D Shapes (Mobile, Laptop, Desktop, Server, Hub, Switch, Router, 3D Meshes), 168 Glyphs, 160+ Lang/Tool/Cloud Iconify Aliases (200k+ 3D-Extruded SVGs), 18 Procedural Backdrops, 12 Transitions, 14 Text FX, 46+ HSL Worlds & Local Playwright WebGL."
     )
     
     custom_style_prompt = ""
