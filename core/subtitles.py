@@ -83,13 +83,20 @@ def generate_ass_subtitles(
 
             line_parts = []
             for j, w in enumerate(chunk):
-                raw_word = w["word"].upper().strip()
+                # Strip unsupported emojis/glyphs that render as tofu boxes (▯) in libass
+                clean_w = w["word"].upper().strip()
+                clean_w = clean_w.replace("—", "-").replace("–", "-").replace("’", "'").replace("“", '"').replace("”", '"')
+                clean_w = "".join(ch for ch in clean_w if 32 <= ord(ch) <= 126)
+                if not clean_w:
+                    continue
                 if j == w_idx:
                     # Highlight color (Glowing Neon Cyan: &H002BF6FF&) with 106% gentle pop
-                    line_parts.append(r"{\c&H002BF6FF&\fscx106\fscy106}" + raw_word + r"{\r}")
+                    line_parts.append(r"{\c&H002BF6FF&\fscx106\fscy106}" + clean_w + r"{\r}")
                 else:
-                    line_parts.append(r"{\c&H00FFFFFF&}" + raw_word)
+                    line_parts.append(r"{\c&H00FFFFFF&}" + clean_w)
 
+            if not line_parts:
+                continue
             dialogue_text = " ".join(line_parts)
             ass_content.append(
                 f"Dialogue: 0,{_format_ass_time(w_start)},{_format_ass_time(w_end)},ReelHighlight,,0,0,0,,{dialogue_text}"

@@ -143,6 +143,27 @@ Select the most appropriate visual_type for each scene from the following suppor
     ]
   }
 
+- "all_in_one_tech_canvas":
+  visual_data: {
+    "badge": "SYSTEM ARCHITECTURE",
+    "title": "Scene Specific Title",
+    "vpc_label": "CLOUD / SYSTEM BOUNDARY",
+    "comp1_label": "Primary Input / Client",
+    "comp1_sub": "Role in this scene",
+    "comp2_label": "AI / Reasoning / Secondary",
+    "comp2_sub": "Role in this scene",
+    "comp3_label": "Core Orchestrator / Bus",
+    "comp3_sub": "Role in this scene",
+    "comp4_label": "Primary Storage / DB",
+    "comp4_sub": "Role in this scene",
+    "comp5_label": "Target Output / Lake",
+    "comp5_sub": "Role in this scene",
+    "arrow1_label": "Step 1 Flow",
+    "arrow2_label": "Step 2 Flow",
+    "arrow3_label": "Step 3 Flow",
+    "arrow4_label": "Step 4 Flow"
+  }
+
 STRICT JSON OUTPUT FORMAT ONLY:
 Output a single valid JSON object matching this structure:
 {
@@ -600,17 +621,21 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 v_data["challenge"] = "How to achieve 100% availability without sacrificing latency?"
 
         elif current_vtype == "all_in_one_tech_canvas":
-            v_data["vpc_label"] = v_data.get("vpc_label") or f"AWS CLOUD VPC • {title.upper()[:24]}"
-            v_data["comp1_label"] = v_data.get("comp1_label") or "Python 3.12 Engine"
-            v_data["comp1_sub"] = v_data.get("comp1_sub") or "Ingestion & API Service"
-            v_data["comp2_label"] = v_data.get("comp2_label") or "AI Agent / LLM"
-            v_data["comp2_sub"] = v_data.get("comp2_sub") or "Transformer Reasoning"
-            v_data["comp3_label"] = v_data.get("comp3_label") or f"{title[:14]} Worker"
-            v_data["comp3_sub"] = v_data.get("comp3_sub") or "K8s Microservice Pods"
-            v_data["comp4_label"] = v_data.get("comp4_label") or "Aurora PostgreSQL"
-            v_data["comp4_sub"] = v_data.get("comp4_sub") or "Storage Cylinder (ACID)"
-            v_data["comp5_label"] = v_data.get("comp5_label") or "Amazon S3 Lake"
-            v_data["comp5_sub"] = v_data.get("comp5_sub") or "Parquet Analytics Store"
+            v_data["vpc_label"] = v_data.get("vpc_label") or f"SYSTEM ARCHITECTURE • {title.upper()[:24]}"
+            v_data["comp1_label"] = v_data.get("comp1_label") or "Client / Ingestion"
+            v_data["comp1_sub"] = v_data.get("comp1_sub") or "API & Request Layer"
+            v_data["comp2_label"] = v_data.get("comp2_label") or "AI / Compute Engine"
+            v_data["comp2_sub"] = v_data.get("comp2_sub") or "Processing & Logic"
+            v_data["comp3_label"] = v_data.get("comp3_label") or f"{title[:14]} Core"
+            v_data["comp3_sub"] = v_data.get("comp3_sub") or "Orchestrator / Broker"
+            v_data["comp4_label"] = v_data.get("comp4_label") or "Primary Database"
+            v_data["comp4_sub"] = v_data.get("comp4_sub") or "Transactional Store"
+            v_data["comp5_label"] = v_data.get("comp5_label") or "Target Sink / Cache"
+            v_data["comp5_sub"] = v_data.get("comp5_sub") or "Analytics / Output"
+            v_data["arrow1_label"] = v_data.get("arrow1_label") or "gRPC Stream"
+            v_data["arrow2_label"] = v_data.get("arrow2_label") or "Async Inference"
+            v_data["arrow3_label"] = v_data.get("arrow3_label") or "State Write"
+            v_data["arrow4_label"] = v_data.get("arrow4_label") or "Event Sync"
 
         sc["visual_data"] = v_data
 

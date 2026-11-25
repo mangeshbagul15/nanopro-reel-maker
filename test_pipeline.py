@@ -52,17 +52,21 @@ def run_smoke_test():
     print(f"Total Spoken Words Extracted: {len(word_timestamps)}")
     assert len(word_timestamps) > 0, "No word timestamps returned!"
 
-    # 3. Test 2D Animator (30 FPS, Sharp Quality)
+    # 3. Test 2D Animator (30 FPS, Sharp Quality, Voice-Synced Progressive Reveal)
     print(f"\n[3/5] Rendering 2D Dynamic Visual Frames (Format: {format_ratio})...")
     all_scene_frame_dirs = []
     for i, sc in enumerate(aligned_scenes):
         print(f"  Rendering Scene {i+1}: {sc.get('visual_type')} ({sc.get('duration')}s)...")
+        sc_start = float(sc.get("start_time", 0.0))
+        sc_end = float(sc.get("end_time", sc_start + float(sc.get("duration", 5.0))))
+        sc_words = [w for w in word_timestamps if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1]
         render_scene_frames(
             sc,
             i + 1,
             total_scenes=len(aligned_scenes),
             engine_style=engine_style,
-            format_ratio=format_ratio
+            format_ratio=format_ratio,
+            scene_words=sc_words
         )
         all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i+1:02d}_frames")
 

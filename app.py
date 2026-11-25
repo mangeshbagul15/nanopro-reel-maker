@@ -459,13 +459,21 @@ with tab_create:
                 v_type = sc.get('visual_type', 'cards')
                 status_box.info(f"🎨 Rendering visuals for scene {i + 1}/{total_sc} with watermark ({channel_watermark})...")
                 progress_bar.progress(40 + int(35 * (i + 1) / max(1, total_sc)))
+                sc_start = float(sc.get("start_time", 0.0))
+                sc_end = float(sc.get("end_time", sc_start + float(sc.get("duration", 5.0))))
+                sc_words = [
+                    w for w in word_timestamps
+                    if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1
+                ]
                 render_scene_frames(
                     sc,
                     i + 1,
                     total_scenes=total_sc,
                     engine_style=visual_engine[0],
                     format_ratio=aspect_ratio[0],
-                    watermark=channel_watermark
+                    watermark=channel_watermark,
+                    scene_words=sc_words,
+                    custom_style_prompt=custom_style_prompt
                 )
                 all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 
