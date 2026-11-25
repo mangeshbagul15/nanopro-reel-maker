@@ -489,7 +489,8 @@ with tab_create:
                 thumb_path = generate_thumbnail_9_16(
                     user_prompt.strip(),
                     watermark=channel_watermark,
-                    visual_engine=visual_engine[0]
+                    visual_engine=visual_engine[0],
+                    tone=chosen_tone,
                 )
                 st.success("🎉 9:16 Thumbnail generated successfully!")
                 c_th1, c_th2 = st.columns([1, 1.2])
@@ -693,7 +694,8 @@ with tab_create:
                 user_prompt.strip(),
                 timeline=timeline,
                 watermark=channel_watermark,
-                visual_engine=visual_engine[0]
+                visual_engine=visual_engine[0],
+                tone=chosen_tone,
             )
 
             # STEP 6: Generate Viral Description & Hashtags

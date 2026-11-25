@@ -1,6 +1,7 @@
 import math
+import re
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFont
 from core.config import VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, FONTS_DIR, FORMAT_SPECS, DEFAULT_WATERMARK
 
@@ -2505,124 +2506,349 @@ def _draw_watermark(
     draw.text((tx, ty), text, fill=txt_col, font=font_wm)
 
 
+def _infer_thumb_category_and_icons(topic: str, timeline: Any = None) -> Tuple[str, List[str]]:
+    """Infers a crisp cover category badge and matching Iconify icon keys from topic/timeline."""
+    tl = topic.lower()
+    cat_map = [
+        (("python", "gil", "thread", "async", "asyncio", "rust", "java", "go", "js", "typescript"), "CODE INTERNALS"),
+        (("sql", "postgres", "mysql", "database", "db", "index", "wal", "cdc", "dms", "mongo", "sharding"), "DATABASE ARCHITECTURE"),
+        (("redis", "cache", "kafka", "queue", "mq", "stream", "event", "microservice"), "DISTRIBUTED SYSTEMS"),
+        (("aws", "cloud", "k8s", "kubernetes", "docker", "terraform", "ci/cd", "devops", "s3"), "CLOUD & DEVOPS"),
+        (("rag", "llm", "ai", "agent", "vector", "transformer", "fine-tun", "ml"), "AI ENGINEERING"),
+        (("oauth", "jwt", "tls", "ssl", "security", "soc", "auth", "firewall", "zero trust"), "SECURITY & AUTH"),
+        (("http", "tcp", "dns", "cdn", "vpc", "network", "load balancer", "nginx"), "NETWORKING"),
+    ]
+    cat = ""
+    if isinstance(timeline, dict) and timeline.get("topic_category"):
+        cat = str(timeline["topic_category"]).replace("_", " ").upper()
+    if not cat or cat in ("GENERAL", "TECH"):
+        for kws, label in cat_map:
+            if any(k in tl for k in kws):
+                cat = label
+                break
+    if not cat:
+        cat = "SYSTEM DESIGN"
+
+    from core.svg_engine import ICON_ALIASES
+    matched_icons: List[str] = []
+    # Prefer longest alias matches first so aws_s3 beats aws when applicable
+    for alias in sorted(ICON_ALIASES.keys(), key=len, reverse=True):
+        clean_a = alias.replace("_", " ")
+        if re.search(rf"\b{re.escape(clean_a)}\b", tl) or re.search(rf"\b{re.escape(alias)}\b", tl):
+            if alias not in matched_icons:
+                matched_icons.append(alias)
+            if len(matched_icons) >= 3:
+                break
+    fallback_pool = ["cpu", "workflow", "rocket"]
+    for fb in fallback_pool:
+        if len(matched_icons) >= 3:
+            break
+        if fb not in matched_icons:
+            matched_icons.append(fb)
+    return cat, matched_icons
+
+
+def _pick_best_thumb_scene(timeline: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Picks the visually richest diagram/chart/code scene rather than always grabbing frame 0."""
+    scenes = timeline.get("scenes") if isinstance(timeline, dict) else None
+    if not scenes:
+        return None
+    priority_rank = {
+        "architecture_flow": 100,
+        "iso_architecture": 98,
+        "cdc_debezium_flow": 96,
+        "all_in_one_tech_canvas": 95,
+        "hybrid_merge": 92,
+        "benchmark_chart": 90,
+        "benchmark_3d": 90,
+        "split_comparison": 88,
+        "iso_comparison": 88,
+        "circular_hub_mesh": 86,
+        "metric_gauge_hud": 84,
+        "radial_gauge": 84,
+        "step_timeline": 82,
+        "layer_stack_3d": 80,
+        "code_terminal": 78,
+        "terminal_studio": 78,
+        "sql_table": 76,
+        "data_structure_memory": 74,
+        "hero_hook": 70,
+        "custom_scene": 66,
+    }
+    best_sc = None
+    best_score = -1
+    for idx, sc in enumerate(scenes):
+        if not isinstance(sc, dict):
+            continue
+        vt = str(sc.get("visual_type") or "").lower().strip()
+        if vt == "web_scene":
+            vt = str((sc.get("visual_data") or {}).get("_intent") or "architecture_flow").lower().strip()
+        score = priority_rank.get(vt, 60 if vt not in ("alert_diagram", "kinetic_statement") else 40)
+        # Prefer middle scenes slightly so the cover showcases the core architecture instead of Scene 1's opening alert
+        if idx > 0:
+            score += 4
+        if score > best_score:
+            best_score = score
+            sc_copy = dict(sc)
+            sc_copy["visual_type"] = vt
+            best_sc = sc_copy
+    return best_sc
+
+
+def _fit_cover_headline(draw: ImageDraw.ImageDraw, text: str, max_w: int, font_fn) -> Tuple[Any, List[str], int]:
+    """Selects the largest readable bold font (66 -> 48px) that fits headline cleanly in <= 3 lines."""
+    words = str(text or "").split()
+    for sz in (66, 60, 54, 48):
+        fnt = font_fn(sz, bold=True)
+        lines: List[str] = []
+        if words:
+            cur = words[0]
+            for w in words[1:]:
+                cand = f"{cur} {w}"
+                if draw.textlength(cand, font=fnt) <= max_w:
+                    cur = cand
+                else:
+                    lines.append(cur)
+                    cur = w
+            lines.append(cur)
+        if len(lines) <= 3:
+            return fnt, lines, sz
+    fnt = font_fn(46, bold=True)
+    # Hard fallback trim to 3 lines cleanly
+    lines = []
+    cur = words[0] if words else ""
+    for w in words[1:]:
+        cand = f"{cur} {w}"
+        if draw.textlength(cand, font=fnt) <= max_w:
+            cur = cand
+        else:
+            lines.append(cur)
+            cur = w
+            if len(lines) == 2:
+                break
+    if len(lines) < 3 and cur:
+        lines.append(cur)
+    return fnt, lines[:3], 46
+
+
 def generate_thumbnail_9_16(
     topic: str,
     timeline: Any = None,
     watermark: str = DEFAULT_WATERMARK,
     visual_engine: str = "hybrid_modern",
-    output_path: Any = None
+    output_path: Any = None,
+    tone: str = "auto_dynamic",
 ) -> Path:
     """
-    Generates a high-impact 1080x1920 (9:16) thumbnail image matching the reel's
-    art_style and centerpiece visual (supports custom_scene & all modular engines).
+    Generates a dedicated, high-CTR 1080x1920 (9:16) YouTube Shorts / Reels Cover Poster
+    with top category + watermark chrome, bold highlighted hero typography, a framed centerpiece
+    visual diagram/3D tech showcase, and a bottom safe-zone CTA strip (never a raw frame 0 screenshot).
     """
+    import hashlib
     import time
-    canvas_w = 1080
-    canvas_h = 1920
+    from core.cinematic_engine import (
+        StudioStage,
+        _draw_wrapped_text as _cin_wrap,
+        _get_font as _cin_font,
+        dispatch_studio_layout,
+        draw_procedural_3d_mesh,
+        fetch_3d_extruded_svg,
+        render_procedural_backdrop,
+        resolve_studio_world,
+    )
+
+    canvas_w, canvas_h = 1080, 1920
+    clean_topic = str(topic or "System Design Deep Dive").strip()
     art_style = str(timeline.get("art_style", "editorial_dark")) if isinstance(timeline, dict) else "editorial_dark"
-    if visual_engine in ("studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative"):
-        from core.cinematic_engine import (
-            StudioStage,
-            _build_volumetric_studio_bg,
-            _draw_studio_header,
-            _draw_wrapped_text as _cin_wrap,
-            _get_font as _cin_font,
-            dispatch_studio_layout,
-            resolve_studio_world,
-        )
-        sc0 = timeline.get("scenes", [{}])[0] if isinstance(timeline, dict) else {}
-        world = resolve_studio_world(
-            art_style=art_style,
-            tone=sc0.get("scene_tone", "staff_engineer") if isinstance(sc0, dict) else "staff_engineer",
-            visual_data=sc0.get("visual_data", {}) if isinstance(sc0, dict) else {},
-            topic=topic.strip(),
-        )
-        bg = _build_volumetric_studio_bg(canvas_w, canvas_h, world)
-        stage = StudioStage(canvas_w, canvas_h, world)
-        c_accent = world["cyan"]
-        badge_text = str(sc0.get("visual_data", {}).get("badge", "")) if isinstance(sc0, dict) else ""
-        _draw_studio_header(stage, badge_text, topic.strip()[:85], c_accent)
-        t_sc = None
-        preferred_thumb = {
-            "iso_architecture", "node_graph", "iso_comparison", "spatial_canvas", "svg_scene",
-            "layer_stack_3d", "matrix_2x2", "pyramid_hierarchy", "radial_gauge", "benchmark_3d",
-            "sequence_diagram", "er_schema", "custom_scene", "architecture_flow",
-            "split_comparison", "terminal_studio", "code_terminal",
-        }
-        if isinstance(timeline, dict) and timeline.get("scenes"):
-            for sc in timeline["scenes"]:
-                if sc.get("visual_type") in preferred_thumb:
-                    t_sc = sc
-                    break
-            if not t_sc:
-                t_sc = timeline["scenes"][0]
-        if t_sc:
-            dispatch_studio_layout(stage, t_sc.get("visual_type", "custom_scene"), t_sc.get("visual_data", {}), 1.0, world, topic=topic.strip())
-        card_w, card_h = 940, 150
-        cx, cy = (canvas_w - card_w) // 2, 1600
-        stage.draw_glass_card((cx, cy, cx + card_w, cy + card_h), radius=26, accent_col=c_accent, alpha_mul=1.0, active=True)
-        hook_txt = str(timeline.get("hook_headline") or topic.strip())[:70] if isinstance(timeline, dict) else topic.strip()[:70]
-        _cin_wrap(stage.draw, (cx + 40, cy + 28), hook_txt, _cin_font(34, bold=True), world["text"], card_w - 80, align="center", max_lines=1)
-        if watermark:
-            _cin_wrap(stage.draw, (cx + 40, cy + 84), watermark, _cin_font(26, bold=True), c_accent, card_w - 80, align="center", max_lines=1)
-        im_out = stage.composite_onto(bg)
-        chrome = ImageDraw.Draw(im_out, "RGBA")
-        _draw_story_progress_bar(chrome, total_scenes=4, current_scene=1, progress=0.25, canvas_w=canvas_w, accent=c_accent)
-        if watermark:
-            wm_font = _cin_font(23, bold=True)
-            wt = watermark.strip()
-            wbb = wm_font.getbbox(wt)
-            bw = (wbb[2] - wbb[0]) + 46
-            bx, by = canvas_w - bw - 36, 44
-            wfill = (255, 255, 255, 234) if world["is_light"] else (15, 23, 42, 218)
-            chrome.rounded_rectangle((bx, by, bx + bw, by + 38), radius=19, fill=wfill, outline=(*c_accent, 185), width=2)
-            chrome.ellipse((bx + 14, by + 15, bx + 22, by + 23), fill=c_accent)
-            chrome.text((bx + 30, by + 6), wt, fill=world["text"], font=wm_font)
-        if output_path is None:
-            output_path = OUTPUT_DIR / f"thumbnail_9x16_{int(time.time())}.png"
-        im_out.convert("RGB").save(output_path, "PNG", quality=98)
-        return output_path
+    sc0 = timeline.get("scenes", [{}])[0] if (isinstance(timeline, dict) and timeline.get("scenes")) else {}
+    eff_tone = (sc0.get("scene_tone") if isinstance(sc0, dict) else None) or (tone if tone != "auto_dynamic" else "staff_engineer")
+    world = resolve_studio_world(
+        art_style=art_style,
+        tone=eff_tone,
+        visual_data=sc0.get("visual_data", {}) if isinstance(sc0, dict) else {},
+        topic=clean_topic,
+    )
 
-    im, theme_cfg = _build_themed_canvas(canvas_w, canvas_h, "cyber_cyan", art_style=art_style)
-    pal = _ACTIVE_PAL
-    draw = ImageDraw.Draw(im, "RGBA")
-    accent = pal["accent"]
+    c_pri = tuple(world["cyan"][:3])
+    c_sec = tuple(world["purple"][:3])
+    c_acc = tuple(world["amber"][:3]) if eff_tone in ("interview_prep", "senior_hinglish_mentor", "dramatic_performance") else tuple(world["emerald"][:3])
+    c_hex = f"#{c_pri[0]:02x}{c_pri[1]:02x}{c_pri[2]:02x}"
 
-    # Top story progress bar & watermark
-    _draw_story_progress_bar(draw, total_scenes=4, current_scene=1, progress=0.25, canvas_w=canvas_w, accent=accent)
-    _draw_watermark(draw, canvas_w, canvas_h, watermark)
+    bd_pool = ("aurora_mesh", "hex_honeycomb", "topo_contours", "pcb_circuits")
+    bd_idx = int(hashlib.sha256(clean_topic.encode("utf-8")).hexdigest()[:4], 16) % len(bd_pool)
+    bg = render_procedural_backdrop(canvas_w, canvas_h, world, style=bd_pool[bd_idx], progress=0.45).convert("RGBA")
 
-    # Top category badge & headline
-    badge_text = ""
-    if timeline and isinstance(timeline, dict) and timeline.get("scenes"):
-        badge_text = str(timeline["scenes"][0].get("visual_data", {}).get("badge", ""))
-    _draw_header(draw, badge_text, topic.strip()[:85], accent=accent, art_style=art_style)
+    stage = StudioStage(canvas_w, canvas_h, world)
+    # Dramatic spotlight orbs behind hero title & centerpiece showcase
+    stage.add_glow_orb(540, 320, 420, c_pri, alpha=88)
+    stage.add_glow_orb(540, 1020, 480, c_sec, alpha=78)
+    stage.add_glow_orb(820, 1460, 260, c_acc, alpha=58)
 
-    # Centerpiece graphic (render scene visual at progress 1.0)
-    target_scene = None
-    if timeline and isinstance(timeline, dict) and timeline.get("scenes"):
+    category_label, matched_icons = _infer_thumb_category_and_icons(clean_topic, timeline=timeline)
+
+    # 1. Top Creator Chrome (y=52..106 — NO fake video progress bar!)
+    cat_font = _cin_font(22, bold=True)
+    cat_txt = category_label
+    cat_w = int(stage.draw.textlength(cat_txt, font=cat_font)) + 66
+    stage.draw_glass_card((56, 52, 56 + cat_w, 104), radius=26, accent_col=c_pri, active=True, elev=6)
+    stage.draw.ellipse((76, 72, 88, 84), fill=c_pri)
+    stage.draw.text((98, 65), cat_txt, fill=c_pri, font=cat_font)
+
+    if watermark and watermark.strip():
+        wt = watermark.strip()
+        wm_font = _cin_font(22, bold=True)
+        wm_w = int(stage.draw.textlength(wt, font=wm_font)) + 52
+        wx0 = canvas_w - wm_w - 56
+        stage.draw_glass_card((wx0, 52, wx0 + wm_w, 104), radius=26, accent_col=c_acc, active=True, elev=6)
+        stage.draw.ellipse((wx0 + 18, 72, wx0 + 30, 84), fill=c_acc)
+        stage.draw.text((wx0 + 38, 65), wt, fill=world["text"], font=wm_font)
+
+    # 2. High-Impact Cover Headline & Curiosity Sub-Hook (y=142..515)
+    raw_headline = ""
+    if isinstance(timeline, dict):
+        raw_headline = str(timeline.get("hook_headline") or timeline.get("title") or "").strip()
+    if not raw_headline:
+        raw_headline = clean_topic
+    if len(raw_headline) > 84:
+        raw_headline = raw_headline[:81].rsplit(" ", 1)[0] + "..."
+
+    h_font, h_lines, h_sz = _fit_cover_headline(stage.draw, raw_headline, 956, _cin_font)
+    lh = int(h_sz * 1.18)
+    hy = 148 if len(h_lines) >= 3 else (172 if len(h_lines) == 2 else 200)
+    for li, ln in enumerate(h_lines):
+        lw = stage.draw.textlength(ln, font=h_font)
+        lx = int((canvas_w - lw) / 2.0)
+        # Highlight last line (or line containing a number/%) with vibrant accent for feed pop
+        is_accent_line = (len(h_lines) > 1 and li == len(h_lines) - 1) or bool(re.search(r"\b\d+[%xmsKMB]?\b", ln))
+        t_col = c_pri if (is_accent_line and not world["is_light"]) else world["text"]
+        if not world["is_light"]:
+            stage.draw.text((lx + 2, hy + 4), ln, fill=(4, 8, 18, 190), font=h_font)
+        stage.draw.text((lx, hy), ln, fill=t_col, font=h_font)
+        hy += lh
+
+    # Sub-hook curiosity pill cleanly below headline (never duplicates headline)
+    sub_hook = ""
+    if isinstance(timeline, dict) and timeline.get("scenes"):
         for sc in timeline["scenes"]:
-            if sc.get("visual_type") in ["custom_scene", "architecture_flow", "code_terminal", "sql_table", "split_comparison", "benchmark_chart", "hero_hook"]:
-                target_scene = sc
+            vd = sc.get("visual_data") or {}
+            cand = str(vd.get("question") or vd.get("problem_title") or vd.get("kicker") or vd.get("title") or "").strip()
+            if cand and cand.lower() != raw_headline.lower():
+                sub_hook = cand
                 break
-        if not target_scene:
-            target_scene = timeline["scenes"][0]
+        if not sub_hook:
+            narr = re.sub(r"\[pause\]", " ", str(sc0.get("narration") or ""), flags=re.IGNORECASE).strip()
+            first_sent = re.split(r"[.!?]", narr)[0].strip()
+            if first_sent and first_sent.lower() != raw_headline.lower():
+                sub_hook = first_sent
+    if not sub_hook:
+        sub_hook = f"Architecture • Internals • Production Trade-offs"
+    if len(sub_hook) > 74:
+        sub_hook = sub_hook[:71].rsplit(" ", 1)[0] + "..."
 
-    if target_scene:
-        _dispatch_visual_renderer(draw, target_scene.get("visual_type", "custom_scene"), target_scene.get("visual_data", {}), 1.0)
+    sub_y = min(446, hy + 18)
+    sub_font = _cin_font(27, bold=True)
+    sub_w = min(950, int(stage.draw.textlength(sub_hook, font=sub_font)) + 64)
+    sx0 = (canvas_w - sub_w) // 2
+    stage.draw_glass_card((sx0, sub_y, sx0 + sub_w, sub_y + 62), radius=31, accent_col=c_sec, active=True, elev=8)
+    _cin_wrap(stage.draw, (sx0 + 24, sub_y + 15), sub_hook, sub_font, world["muted"] if world["is_light"] else (226, 232, 240), sub_w - 48, align="center", max_lines=1)
 
-    # Clean bottom channel footer card (zero canned slogans)
-    card_w = 940
-    card_h = 150
-    cx = (canvas_w - card_w) // 2
-    cy = 1600
-    draw.rounded_rectangle((cx, cy, cx + card_w, cy + card_h), radius=26, fill=pal["card_bg"], outline=accent, width=3)
-    draw_wrapped_text(draw, str(timeline.get("hook_headline") or topic.strip())[:70] if isinstance(timeline, dict) else topic.strip()[:70], get_font(34, bold=True), cx + 40, cy + 28, card_w - 80, pal["text"], align="center", max_lines=1)
-    if watermark:
-        draw_wrapped_text(draw, watermark, get_font(26, bold=True), cx + 40, cy + 84, card_w - 80, accent, align="center", max_lines=1)
+    # 3. Framed Centerpiece Visual Showcase Card (x=56..1024, y=542..1492)
+    box_x0, box_y0, box_x1, box_y1 = 56, 542, 1024, 1492
+    stage.draw_glass_card((box_x0, box_y0, box_x1, box_y1), radius=34, accent_col=c_pri, active=True, elev=16, layered=True)
+    # Subtle top window chrome dots inside showcase card
+    for di, dcol in enumerate((c_pri, c_sec, c_acc)):
+        dx = box_x0 + 34 + di * 22
+        stage.draw.ellipse((dx, box_y0 + 22, dx + 12, box_y0 + 34), fill=dcol)
+    win_lbl_font = _cin_font(19, bold=True, mono=True)
+    best_sc = _pick_best_thumb_scene(timeline) if isinstance(timeline, dict) else None
+    win_label = (str((best_sc or {}).get("visual_type") or "VISUAL ARCHITECTURE").replace("_", " ").upper())[:34]
+    stage.draw.text((box_x0 + 114, box_y0 + 17), f"// {win_label}", fill=world["muted"], font=win_lbl_font)
+    stage.draw.line((box_x0 + 24, box_y0 + 54, box_x1 - 24, box_y0 + 54), fill=(*c_pri, 58), width=2)
 
+    if best_sc is not None:
+        # Render chosen centerpiece diagram into an offscreen stage WITHOUT header, then frame inside Showcase Card
+        inner_stage = StudioStage(canvas_w, canvas_h, world)
+        dispatch_studio_layout(
+            inner_stage,
+            best_sc.get("visual_type", "architecture_flow"),
+            best_sc.get("visual_data", {}),
+            1.0,
+            world,
+            topic=clean_topic,
+        )
+        inner_rgba = inner_stage.composite_onto(None)
+        cropped = inner_rgba.crop((44, 308, 1036, 1420))
+        target_w, target_h = box_x1 - box_x0 - 44, box_y1 - box_y0 - 82
+        scale = min(target_w / cropped.width, target_h / cropped.height)
+        nw, nh = max(64, int(cropped.width * scale)), max(64, int(cropped.height * scale))
+        resized = cropped.resize((nw, nh), Image.Resampling.LANCZOS)
+        px = box_x0 + ((box_x1 - box_x0) - nw) // 2
+        py = box_y0 + 62 + ((box_y1 - box_y0 - 70) - nh) // 2
+        stage.fg.alpha_composite(resized, (px, py))
+    else:
+        # Standalone Cover Poster Centerpiece: 3D Mesh + 3D Extruded Tech Icons + 3-Pillar Breakdown Cards
+        draw_procedural_3d_mesh(stage, 540, 770, 155, "geodesic_sphere", c_pri, progress=0.65, active=True, alpha_mul=0.82, secondary_color=c_sec)
+
+        icon_positions = [(250, 770), (540, 770), (830, 770)]
+        stage.add_glow_line([(295, 770), (785, 770)], c_pri, width=10, alpha=110)
+        stage.draw.line((295, 770, 785, 770), fill=(*c_pri, 190), width=4)
+        for ii, (ix, iy) in enumerate(icon_positions):
+            ic_col = (c_pri, c_sec, c_acc)[ii % 3]
+            stage.add_glow_orb(ix, iy, 105, ic_col, alpha=110)
+            stage.draw_glass_card((ix - 82, iy - 82, ix + 82, iy + 82), radius=28, accent_col=ic_col, active=True, elev=12)
+            ext_icon = fetch_3d_extruded_svg(matched_icons[ii], size_px=92, tint_hex=c_hex, depth=10, tint_rgb=ic_col)
+            if ext_icon is not None:
+                stage.fg.alpha_composite(ext_icon, (ix - ext_icon.width // 2, iy - ext_icon.height // 2))
+            else:
+                draw_procedural_3d_mesh(stage, ix, iy, 46, ("torus_3d", "atom_orbit", "cube_cluster_3d")[ii], ic_col, progress=0.75, active=True)
+
+        # 3 crisp topic value cards inside the lower half of the Showcase Card (word-safe short label)
+        short_topic = clean_topic if len(clean_topic) <= 26 else clean_topic[:26].rsplit(" ", 1)[0].rstrip(" ,:-")
+        pillar_specs = [
+            ("01", "CORE PROBLEM & TRAP", f"Why standard {short_topic} patterns break at scale", c_pri),
+            ("02", "UNDER THE HOOD", "Step-by-step architecture, internals & key metrics", c_sec),
+            ("03", "PRODUCTION FIX & TRADE-OFFS", "Real engineering patterns used in high-scale systems", c_acc),
+        ]
+        card_y = 955
+        for num_s, p_title, p_desc, p_col in pillar_specs:
+            stage.draw_glass_card((box_x0 + 38, card_y, box_x1 - 38, card_y + 150), radius=22, accent_col=p_col, active=True, elev=8)
+            stage.draw.rounded_rectangle((box_x0 + 58, card_y + 34, box_x0 + 132, card_y + 108), radius=18, fill=(*p_col, 38), outline=(*p_col, 210), width=2)
+            stage.draw.text((box_x0 + 76, card_y + 52), num_s, fill=p_col, font=_cin_font(32, bold=True, mono=True))
+            stage.draw.text((box_x0 + 158, card_y + 30), p_title, fill=p_col, font=_cin_font(22, bold=True))
+            _cin_wrap(stage.draw, (box_x0 + 158, card_y + 66), p_desc, _cin_font(25, bold=False), world["text"], box_x1 - box_x0 - 220, max_lines=2)
+            card_y += 170
+
+    # 4. Bottom Safe-Zone Value Strip & Watch CTA (y=1532..1722 — above bottom Shorts/Reels UI!)
+    stage.draw_glass_card((56, 1532, 1024, 1722), radius=30, accent_col=c_acc, active=True, elev=12)
+    chips = [
+        category_label.title(),
+        "Step-by-Step Visuals",
+        "Real Trade-offs",
+    ]
+    chip_font = _cin_font(22, bold=True)
+    chip_ws = [int(stage.draw.textlength(ch, font=chip_font)) + 52 for ch in chips]
+    total_cw = sum(chip_ws) + 18 * (len(chips) - 1)
+    ch_x = (canvas_w - total_cw) // 2
+    for ci, (ch_txt, cw) in enumerate(zip(chips, chip_ws)):
+        ch_col = (c_pri, c_sec, c_acc)[ci % 3]
+        stage.draw.rounded_rectangle((ch_x, 1554, ch_x + cw, 1604), radius=25, fill=(*ch_col, 30), outline=(*ch_col, 160), width=2)
+        stage.draw.ellipse((ch_x + 18, 1574, ch_x + 28, 1584), fill=ch_col)
+        stage.draw.text((ch_x + 36, 1566), ch_txt, fill=world["text"], font=chip_font)
+        ch_x += cw + 18
+
+    cta_text = f"WATCH FULL BREAKDOWN   •   {watermark.strip()}" if watermark and watermark.strip() else "WATCH FULL BREAKDOWN"
+    cta_font = _cin_font(26, bold=True)
+    cta_w = min(880, int(stage.draw.textlength(cta_text, font=cta_font)) + 104)
+    cta_x = (canvas_w - cta_w) // 2
+    stage.draw.rounded_rectangle((cta_x, 1628, cta_x + cta_w, 1696), radius=34, fill=(*c_pri, 235))
+    cta_txt_col = (10, 15, 28) if not world["is_light"] else (255, 255, 255)
+    # Draw crisp native vector play triangle icon
+    tri_x = cta_x + 34
+    stage.draw.polygon([(tri_x, 1650), (tri_x, 1674), (tri_x + 20, 1662)], fill=cta_txt_col)
+    _cin_wrap(stage.draw, (cta_x + 58, 1646), cta_text, cta_font, cta_txt_col, cta_w - 80, align="center", max_lines=1)
+
+    im_out = stage.composite_onto(bg)
     if output_path is None:
         output_path = OUTPUT_DIR / f"thumbnail_9x16_{int(time.time())}.png"
-
-    im.save(output_path, "PNG", quality=98)
+    im_out.convert("RGB").save(output_path, "PNG", quality=98)
     return output_path
