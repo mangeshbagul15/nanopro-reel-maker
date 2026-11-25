@@ -1,6 +1,6 @@
 import colorsys
 import hashlib
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 def _hex_to_rgb(h: str, fallback: Tuple[int, int, int] = (56, 189, 248)) -> Tuple[int, int, int]:
@@ -25,13 +25,16 @@ def _make_dark_world(
     bg_hue: float = None,
     bg_sat: float = 0.45,
     bg_lit: float = 0.055,
+    third_hue: float = None,
 ) -> Dict[str, Any]:
     sh = (hue + 48.0) % 360.0 if sec_hue is None else sec_hue
+    th = (hue + 145.0) % 360.0 if third_hue is None else third_hue
     bh = hue if bg_hue is None else bg_hue
     bg_top = _hsl_rgb(bh, bg_sat, bg_lit)
-    bg_bot = _hsl_rgb((bh + 18.0) % 360.0, min(0.55, bg_sat + 0.06), min(0.12, bg_lit + 0.032))
+    bg_bot = _hsl_rgb((bh + 20.0) % 360.0, min(0.58, bg_sat + 0.06), min(0.13, bg_lit + 0.036))
     spot_a = _hsl_rgb(hue, sat, 0.58)
-    spot_b = _hsl_rgb(sh, min(0.92, sat), 0.60)
+    spot_b = _hsl_rgb(sh, min(0.94, sat), 0.60)
+    spot_c = _hsl_rgb(th, min(0.88, sat), 0.54)
     card_rgb = _hsl_rgb(bh, min(0.42, bg_sat), min(0.14, bg_lit + 0.055))
     layer_rgb = _hsl_rgb(bh, min(0.40, bg_sat), max(0.03, bg_lit + 0.02))
     alt_rgb = _hsl_rgb(bh, min(0.48, bg_sat + 0.05), min(0.20, bg_lit + 0.095))
@@ -41,13 +44,14 @@ def _make_dark_world(
         "bg_bot": bg_bot,
         "spot_a": spot_a,
         "spot_b": spot_b,
+        "spot_c": spot_c,
         "grid_col": _hsl_rgb(hue, 0.45, 0.55),
         "card_bg": (*card_rgb, 226),
         "card_layer": (*layer_rgb, 212),
         "card_alt": (*alt_rgb, 234),
-        "glass_rim": (255, 255, 255, 74),
-        "border": (*spot_a, 128),
-        "shadow_col": (2, 4, 10, 168),
+        "glass_rim": (255, 255, 255, 76),
+        "border": (*spot_a, 132),
+        "shadow_col": (2, 4, 10, 170),
         "text": (248, 250, 252),
         "muted": (158, 174, 198),
         "cyan": spot_a,
@@ -65,7 +69,7 @@ def _make_light_world(
 ) -> Dict[str, Any]:
     sh = (hue + 52.0) % 360.0 if sec_hue is None else sec_hue
     bg_top = tint_bg or _hsl_rgb(hue, 0.35, 0.97)
-    bg_bot = (max(210, bg_top[0] - 12), max(214, bg_top[1] - 10), max(220, bg_top[2] - 8))
+    bg_bot = (max(206, bg_top[0] - 12), max(210, bg_top[1] - 10), max(218, bg_top[2] - 8))
     pri = _hsl_rgb(hue, 0.86, 0.40)
     sec = _hsl_rgb(sh, 0.82, 0.44)
     return {
@@ -74,6 +78,7 @@ def _make_light_world(
         "bg_bot": bg_bot,
         "spot_a": _hsl_rgb(hue, 0.85, 0.52),
         "spot_b": _hsl_rgb(sh, 0.80, 0.58),
+        "spot_c": _hsl_rgb((hue + 140.0) % 360.0, 0.72, 0.52),
         "grid_col": (148, 163, 184),
         "card_bg": (255, 255, 255, 242),
         "card_layer": (max(200, bg_top[0] - 18), max(206, bg_top[1] - 16), max(216, bg_top[2] - 12), 235),
@@ -91,7 +96,7 @@ def _make_light_world(
     }
 
 
-# 25+ Curated Named Studio Color Worlds
+# 46 Curated Named Studio Color Worlds (Dark, Light, Cyberpunk, Editorial, Metallic, Pastel)
 STUDIO_WORLDS: Dict[str, Dict[str, Any]] = {
     "obsidian_studio": _make_dark_world(198, sec_hue=272, bg_hue=220, bg_sat=0.38, bg_lit=0.05),
     "sapphire_3d": _make_dark_world(192, sec_hue=238, bg_hue=215, bg_sat=0.62, bg_lit=0.065),
@@ -118,17 +123,50 @@ STUDIO_WORLDS: Dict[str, Dict[str, Any]] = {
     "forest_paper": _make_light_world(145, tint_bg=(243, 248, 243), sec_hue=36),
     "copper_rust": _make_dark_world(22, sec_hue=186, bg_hue=16, bg_sat=0.38, bg_lit=0.058),
     "slate_ivory": _make_light_world(218, tint_bg=(247, 247, 245), sec_hue=350),
+    "aurora_borealis": _make_dark_world(162, sat=0.90, sec_hue=278, bg_hue=205, bg_sat=0.58, bg_lit=0.05, third_hue=320),
+    "synthwave_84": _make_dark_world(302, sat=0.94, sec_hue=186, bg_hue=265, bg_sat=0.64, bg_lit=0.058, third_hue=44),
+    "quantum_indigo": _make_dark_world(236, sat=0.85, sec_hue=182, bg_hue=238, bg_sat=0.55, bg_lit=0.055),
+    "plasma_magenta": _make_dark_world(328, sat=0.92, sec_hue=252, bg_hue=315, bg_sat=0.48, bg_lit=0.05),
+    "deep_oceanic": _make_dark_world(194, sat=0.84, sec_hue=164, bg_hue=202, bg_sat=0.68, bg_lit=0.052),
+    "terracotta_warm": _make_dark_world(18, sat=0.80, sec_hue=42, bg_hue=12, bg_sat=0.36, bg_lit=0.068),
+    "ruby_velvet": _make_dark_world(352, sat=0.86, sec_hue=288, bg_hue=346, bg_sat=0.45, bg_lit=0.052),
+    "jade_imperial": _make_dark_world(160, sat=0.78, sec_hue=48, bg_hue=166, bg_sat=0.52, bg_lit=0.055),
+    "electric_citron": _make_dark_world(68, sat=0.92, sec_hue=178, bg_hue=90, bg_sat=0.32, bg_lit=0.05),
+    "titanium_silver": _make_dark_world(210, sat=0.28, sec_hue=192, bg_hue=215, bg_sat=0.14, bg_lit=0.085),
+    "sky_daylight": _make_light_world(204, tint_bg=(240, 247, 255), sec_hue=252),
+    "cream_notion": _make_light_world(34, tint_bg=(252, 249, 242), sec_hue=210),
+    "blush_quartz": _make_light_world(342, tint_bg=(254, 243, 247), sec_hue=268),
+    "glacier_frost": _make_light_world(188, tint_bg=(241, 250, 252), sec_hue=224),
+    "swiss_poster": _make_light_world(4, tint_bg=(248, 246, 242), sec_hue=220),
+    "pistachio_soft": _make_light_world(112, tint_bg=(243, 250, 241), sec_hue=196),
+    "matcha_minimal": _make_light_world(96, tint_bg=(245, 248, 238), sec_hue=28),
+    "midnight_gold": _make_dark_world(46, sat=0.92, sec_hue=280, bg_hue=230, bg_sat=0.36, bg_lit=0.048),
+    "biotech_teal": _make_dark_world(176, sat=0.90, sec_hue=96, bg_hue=188, bg_sat=0.56, bg_lit=0.048),
+    "solar_flare": _make_dark_world(26, sat=0.94, sec_hue=346, bg_hue=15, bg_sat=0.45, bg_lit=0.055),
+    "terminal_phosphor": _make_dark_world(132, sat=0.94, sec_hue=176, bg_hue=135, bg_sat=0.42, bg_lit=0.04),
 }
 
 
-def generate_hsl_world(seed_or_hex: str = "", mode: str = "auto", secondary_hex: str = "") -> Dict[str, Any]:
+def generate_hsl_world(
+    seed_or_hex: str = "",
+    mode: str = "auto",
+    secondary_hex: str = "",
+    stops: List[str] = None,
+) -> Dict[str, Any]:
     """
-    Unlimited Procedural HSL Color World Generator:
-    Accepts any #HEX, hue angle ('hue:210'), or freeform topic string to synthesize
-    a guaranteed-contrasted Light or Dark studio palette dynamically.
+    Unlimited Procedural HSL & Multi-Stop Gradient World Generator:
+    Accepts any #HEX, multi-stop list, hue angle ('hue:210'), or freeform topic string.
     """
+    if stops and len(stops) >= 2:
+        seed_or_hex = str(stops[0])
+        secondary_hex = str(stops[1])
+        third_hex = str(stops[2]) if len(stops) >= 3 else ""
+    else:
+        third_hex = ""
+
     raw = str(seed_or_hex or "nanopro").strip()
     sec_hue = None
+    third_hue = None
     if raw.startswith("#") and len(raw.lstrip("#")) == 6:
         r, g, b = _hex_to_rgb(raw)
         h_f, _, s_f = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
@@ -149,6 +187,10 @@ def generate_hsl_world(seed_or_hex: str = "", mode: str = "auto", secondary_hex:
         sr, sg, sb = _hex_to_rgb(secondary_hex)
         sh_f, _, _ = colorsys.rgb_to_hls(sr / 255.0, sg / 255.0, sb / 255.0)
         sec_hue = sh_f * 360.0
+    if third_hex and third_hex.startswith("#") and len(third_hex.lstrip("#")) == 6:
+        tr, tg, tb = _hex_to_rgb(third_hex)
+        th_f, _, _ = colorsys.rgb_to_hls(tr / 255.0, tg / 255.0, tb / 255.0)
+        third_hue = th_f * 360.0
 
     m = str(mode or "auto").lower().strip()
     if m == "auto":
@@ -157,7 +199,7 @@ def generate_hsl_world(seed_or_hex: str = "", mode: str = "auto", secondary_hex:
 
     if m == "light":
         return _make_light_world(hue, sec_hue=sec_hue)
-    return _make_dark_world(hue, sat=sat, sec_hue=sec_hue)
+    return _make_dark_world(hue, sat=sat, sec_hue=sec_hue, third_hue=third_hue)
 
 
 def resolve_studio_world(
@@ -166,18 +208,23 @@ def resolve_studio_world(
     visual_data: Dict[str, Any] = None,
     topic: str = "",
 ) -> Dict[str, Any]:
-    """Resolves either a curated studio world or infinite procedural HSL world."""
+    """Resolves either one of 46 curated studio worlds or an infinite procedural HSL/gradient world."""
     vd = visual_data or {}
     pal_spec = vd.get("palette")
-    if isinstance(pal_spec, dict) and (pal_spec.get("primary") or pal_spec.get("hue") or pal_spec.get("mode")):
+    if isinstance(pal_spec, dict) and (pal_spec.get("primary") or pal_spec.get("hue") or pal_spec.get("mode") or pal_spec.get("stops")):
         seed = str(pal_spec.get("primary") or (f"hue:{pal_spec['hue']}" if "hue" in pal_spec else topic or "custom"))
-        return generate_hsl_world(seed, mode=str(pal_spec.get("mode", "auto")), secondary_hex=str(pal_spec.get("secondary", "")))
+        return generate_hsl_world(
+            seed,
+            mode=str(pal_spec.get("mode", "auto")),
+            secondary_hex=str(pal_spec.get("secondary", "")),
+            stops=pal_spec.get("stops") if isinstance(pal_spec.get("stops"), list) else None,
+        )
 
     s = str(art_style or "").lower().strip()
     if s in STUDIO_WORLDS:
         return STUDIO_WORLDS[s]
-    if s.startswith("#") or s.startswith("hue:") or s in ("dynamic_hsl", "procedural", "hsl"):
-        return generate_hsl_world(s if s not in ("dynamic_hsl", "procedural", "hsl") else (topic or "dynamic"))
+    if s.startswith("#") or s.startswith("hue:") or s in ("dynamic_hsl", "procedural", "hsl", "gradient"):
+        return generate_hsl_world(s if s not in ("dynamic_hsl", "procedural", "hsl", "gradient") else (topic or "dynamic"))
     if s in ("light_whiteboard", "white"):
         return STUDIO_WORLDS["studio_white"]
     if s in ("blueprint_grid",):
@@ -185,8 +232,7 @@ def resolve_studio_world(
     if s in ("neon_fireship",):
         return STUDIO_WORLDS["neon_tokyo"]
     if s in ("editorial_dark",):
-        # Rotate cleanly among rich editorial dark studios when topic varies
-        dark_pool = ["obsidian_studio", "nordic_slate", "graphite_gold", "emerald_matrix", "violet_nebula", "arctic_ice"]
+        dark_pool = ["obsidian_studio", "nordic_slate", "graphite_gold", "emerald_matrix", "violet_nebula", "arctic_ice", "aurora_borealis", "quantum_indigo"]
         if topic:
             idx = int(hashlib.sha256(topic.encode("utf-8")).hexdigest()[:4], 16) % len(dark_pool)
             return STUDIO_WORLDS[dark_pool[idx]]

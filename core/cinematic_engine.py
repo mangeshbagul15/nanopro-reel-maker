@@ -2,10 +2,10 @@ import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 from PIL import Image, ImageDraw
 
 from core.config import DEFAULT_WATERMARK, FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
+from core.layouts_pro import ALL_TEXT_FX, ALL_TRANSITIONS, apply_scene_transition, draw_kinetic_text
 from core.layouts_studio import (
     ALL_STUDIO_LAYOUTS,
     StudioStage,
@@ -17,12 +17,19 @@ from core.layouts_studio import (
     _with_alpha,
     dispatch_studio_layout,
 )
+from core.mesh_shader_engine import ALL_3D_MESHES, ALL_BACKDROPS, draw_procedural_3d_mesh, render_procedural_backdrop
 from core.palette_engine import STUDIO_WORLDS, generate_hsl_world, resolve_studio_world
-from core.shapes_3d import ALL_50_SHAPES, VECTOR_GLYPHS, draw_3d_shape, draw_vector_glyph, infer_3d_shape
-from core.svg_engine import fetch_iconify_svg, prepare_generative_svg_layers
+from core.shapes_3d import ALL_50_SHAPES, ALL_100_SHAPES, VECTOR_GLYPHS, draw_3d_shape, draw_vector_glyph, infer_3d_shape
+from core.svg_engine import fetch_3d_extruded_svg, fetch_iconify_svg, prepare_generative_svg_layers, prepare_keyframed_svg_layers
+from core.web_generative_engine import detect_web_engine, is_web_engine_available, render_web_generative_frames
 
 __all__ = [
     "ALL_50_SHAPES",
+    "ALL_100_SHAPES",
+    "ALL_3D_MESHES",
+    "ALL_BACKDROPS",
+    "ALL_TRANSITIONS",
+    "ALL_TEXT_FX",
     "ALL_STUDIO_LAYOUTS",
     "STUDIO_WORLDS",
     "VECTOR_GLYPHS",
@@ -30,19 +37,30 @@ __all__ = [
     "generate_hsl_world",
     "resolve_studio_world",
     "fetch_iconify_svg",
+    "fetch_3d_extruded_svg",
     "prepare_generative_svg_layers",
+    "prepare_keyframed_svg_layers",
     "draw_3d_shape",
+    "draw_procedural_3d_mesh",
     "draw_vector_glyph",
     "infer_3d_shape",
     "dispatch_studio_layout",
     "_dispatch_cinematic",
+    "_resolve_world",
     "_build_volumetric_studio_bg",
+    "render_procedural_backdrop",
+    "apply_scene_transition",
+    "draw_kinetic_text",
     "_draw_studio_header",
     "_get_font",
     "_draw_wrapped_text",
     "_est_lines",
+    "is_web_engine_available",
+    "render_web_generative_frames",
     "render_cinematic_scene_frames",
 ]
+
+_ANIMATED_BACKDROPS = {"aurora_mesh", "plasma_wave", "glass_caustics", "topo_contours"}
 
 
 def _fade_transition_alpha(linear_p: float) -> float:
@@ -117,42 +135,9 @@ def _voice_progress(
     return _clamp01(0.55 * choreo_p + 0.30 * word_p + 0.15 * linear_p)
 
 
-def _build_volumetric_studio_bg(w: int, h: int, world: Dict[str, Any]) -> Image.Image:
-    """
-    NumPy-vectorized dark/light volumetric studio backdrop with radial spotlights
-    and ultra-subtle editorial coordinate backdrop (NO heavy bottom Tron mesh).
-    """
-    y = np.linspace(0.0, 1.0, h, dtype=np.float32)[:, None]
-    x = np.linspace(0.0, 1.0, w, dtype=np.float32)[None, :]
-
-    top = np.array(world["bg_top"], dtype=np.float32)[None, None, :]
-    bot = np.array(world["bg_bot"], dtype=np.float32)[None, None, :]
-    arr = top * (1.0 - y[..., None]) + bot * y[..., None]
-
-    d2_a = ((x - 0.50) * 1.15) ** 2 + ((y - 0.28) * 1.40) ** 2
-    spot_a_intensity = np.exp(-d2_a * 4.5)[..., None]
-    d2_b = ((x - 0.78) * 1.25) ** 2 + ((y - 0.72) * 1.35) ** 2
-    spot_b_intensity = np.exp(-d2_b * 5.0)[..., None]
-
-    spot_a = np.array(world["spot_a"], dtype=np.float32)[None, None, :]
-    spot_b = np.array(world["spot_b"], dtype=np.float32)[None, None, :]
-
-    if world["is_light"]:
-        arr = arr - 10.0 * spot_a_intensity + (spot_a - arr) * (spot_a_intensity * 0.08)
-        arr = arr + (spot_b - arr) * (spot_b_intensity * 0.05)
-    else:
-        arr = arr + spot_a * (spot_a_intensity * 0.14) + spot_b * (spot_b_intensity * 0.10)
-
-    grid_rgb = np.array(world["grid_col"], dtype=np.float32)[None, None, :]
-    step = 84
-    gx_mask = (np.arange(w)[None, :] % step == 0)
-    gy_mask = (np.arange(h)[:, None] % step == 0)
-    grid_mask = (gx_mask | gy_mask).astype(np.float32)
-    vignette = np.exp(-(((x - 0.5) * 1.55) ** 2 + ((y - 0.48) * 1.35) ** 2))
-    grid_alpha = (grid_mask * vignette * (0.045 if not world["is_light"] else 0.08))[..., None]
-    arr = arr * (1.0 - grid_alpha) + grid_rgb * grid_alpha
-
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB")
+def _build_volumetric_studio_bg(w: int, h: int, world: Dict[str, Any], style: str = "subtle_grid", progress: float = 0.0) -> Image.Image:
+    """Renders any of 18 Procedural Studio & Shader Backdrops cleanly without heavy floor jali."""
+    return render_procedural_backdrop(w, h, world, style=style, progress=progress)
 
 
 def _draw_voice_waveform(
@@ -197,8 +182,16 @@ def _draw_voice_waveform(
         draw.rounded_rectangle((x_b, base_mid - hh, x_b + 5, base_mid + hh), radius=2, fill=(*b_col, 235))
 
 
-def _draw_studio_header(stage: StudioStage, badge: str, title: str, accent: Tuple[int, int, int], callout: str = "") -> None:
-    """Draws Callout Badge pill + Neon Rim Light + Crisp Studio Title."""
+def _draw_studio_header(
+    stage: StudioStage,
+    badge: str,
+    title: str,
+    accent: Tuple[int, int, int],
+    callout: str = "",
+    text_fx: str = "clean_fade",
+    progress: float = 1.0,
+) -> None:
+    """Draws Callout Badge pill + Neon Rim Light + 14-FX Kinetic Studio Title."""
     w = stage.world
     lx = 68
     y_cur = 104
@@ -208,7 +201,7 @@ def _draw_studio_header(stage: StudioStage, badge: str, title: str, accent: Tupl
         bb = f_b.getbbox(badge_s)
         pw = min(860, (bb[2] - bb[0]) + 56)
         pill_box = (lx, y_cur, lx + pw, y_cur + 40)
-        stage.add_glow_box(pill_box, accent, radius=14, alpha=85)
+        stage.add_glow_box(pill_box, accent, radius=14, alpha=65)
         stage.draw.rounded_rectangle(
             pill_box, radius=14,
             fill=_with_alpha(w["card_alt"], stage.t_alpha),
@@ -220,9 +213,10 @@ def _draw_studio_header(stage: StudioStage, badge: str, title: str, accent: Tupl
         y_cur += 54
 
     if title:
-        _draw_wrapped_text(
-            stage.draw, (lx, y_cur), str(title), _get_font(46, bold=True),
-            _with_alpha(w["text"], stage.t_alpha), 940, line_gap=8, max_lines=2,
+        draw_kinetic_text(
+            stage, str(title), (lx, y_cur), 940, _get_font(46, bold=True),
+            accent, progress=progress, fx=text_fx, world=w,
+            _with_alpha_fn=_with_alpha, _draw_wrapped_fn=_draw_wrapped_text,
         )
 
 
@@ -243,9 +237,22 @@ def render_cinematic_scene_frames(
     tone: str = "auto_dynamic",
 ) -> List[Path]:
     """
-    Renders studio-grade 2.5D isometric & SVG frames across Unlimited HSL Color Worlds,
-    33+ Studio Layouts, Spatial Composer, AI Multi-Layer <svg>, 50 3D Shapes & 200k+ Iconify SVGs.
+    Studio Max Dual Generative Engine:
+    - Uses live Playwright WebGL/Three.js/HTML5 when `visual_type == "web_scene"` or `html` is provided locally;
+    - Otherwise renders 46+ Worlds + Infinite HSL, 65+ Studio Layouts, 105 3D Shapes + 200k+ 3D-Extruded SVGs,
+      124 Glyphs, 18 Procedural Backdrops/Shaders, 12 Transitions, 14 Text FX, and Keyframe Animated <svg> in pure Python.
     """
+    visual_type = str(scene.get("visual_type", "custom_scene")).lower().strip()
+    visual_data = scene.get("visual_data", {}) or {}
+
+    if (visual_type in ("web_scene", "webgl_scene", "html_scene") or visual_data.get("html")) and is_web_engine_available():
+        web_frames = render_web_generative_frames(
+            scene=scene, scene_idx=scene_idx, total_scenes=total_scenes,
+            format_ratio=format_ratio, watermark=watermark, scene_words=scene_words, tone=tone,
+        )
+        if web_frames:
+            return web_frames
+
     duration = max(1.5, float(scene.get("duration", 5.0)))
     total_frames = max(15, round(duration * VIDEO_FPS))
 
@@ -262,14 +269,17 @@ def render_cinematic_scene_frames(
     canvas_w = spec.get("width", VIDEO_WIDTH)
     canvas_h = spec.get("height", VIDEO_HEIGHT)
 
-    visual_type = scene.get("visual_type", "custom_scene")
-    visual_data = scene.get("visual_data", {}) or {}
     effective_tone = (scene.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
     art_style = str(visual_data.get("art_style") or scene.get("art_style") or "editorial_dark").strip()
     topic_seed = str(scene.get("topic") or visual_data.get("title") or "").strip()
     world = resolve_studio_world(art_style=art_style, tone=effective_tone, visual_data=visual_data, topic=topic_seed)
 
-    base_bg = _build_volumetric_studio_bg(canvas_w, canvas_h, world)
+    backdrop_style = str(visual_data.get("backdrop") or scene.get("backdrop") or ALL_BACKDROPS[(scene_idx - 1) % len(ALL_BACKDROPS)]).lower().strip()
+    transition_style = str(visual_data.get("transition") or scene.get("transition") or ALL_TRANSITIONS[(scene_idx - 1) % len(ALL_TRANSITIONS)]).lower().strip()
+    text_fx = str(visual_data.get("text_fx") or scene.get("text_fx") or "clean_fade").lower().strip()
+    is_live_shader_bg = backdrop_style in _ANIMATED_BACKDROPS
+
+    static_bg = None if is_live_shader_bg else render_procedural_backdrop(canvas_w, canvas_h, world, style=backdrop_style, progress=0.0)
     needs_aspect_fit = (canvas_w != VIDEO_WIDTH or canvas_h != VIDEO_HEIGHT)
     anchors = _build_anchors(duration, scene, scene_words)
     sc_start = float(scene.get("start_time", 0.0))
@@ -294,7 +304,11 @@ def render_cinematic_scene_frames(
         cur_time = sc_start + (linear_p * duration)
         t_alpha = _fade_transition_alpha(linear_p)
 
-        frame_bg = base_bg.copy()
+        if is_live_shader_bg:
+            frame_bg = render_procedural_backdrop(canvas_w, canvas_h, world, style=backdrop_style, progress=linear_p)
+        else:
+            frame_bg = static_bg.copy()
+
         p_draw = ImageDraw.Draw(frame_bg, "RGBA")
         for px0, py0, pr, pa in far_particles:
             py_live = int((py0 - linear_p * 70) % canvas_h)
@@ -309,25 +323,24 @@ def render_cinematic_scene_frames(
                 p_draw.polygon([(gx_live, gy_live - gr), (gx_live + gr, gy_live), (gx_live, gy_live + gr), (gx_live - gr, gy_live)], outline=(*accent, ga))
 
         if needs_aspect_fit:
-            stage = StudioStage(VIDEO_WIDTH, 1500, world, transition_alpha=t_alpha)
-            _draw_studio_header(stage, badge, title, accent, callout=callout)
+            stage = StudioStage(VIDEO_WIDTH, 1500, world, transition_alpha=1.0)
+            _draw_studio_header(stage, badge, title, accent, callout=callout, text_fx=text_fx, progress=progress)
             dispatch_studio_layout(stage, visual_type, visual_data, progress, world, topic=topic_seed)
 
             virtual_rgba = stage.composite_onto(None)
-            avail_h = canvas_h - 140
-            avail_w = canvas_w - 80
+            avail_h, avail_w = canvas_h - 140, canvas_w - 80
             scale = min(avail_w / VIDEO_WIDTH, avail_h / 1420.0)
-            nw = max(100, int(VIDEO_WIDTH * scale))
-            nh = max(100, int(1500 * scale))
+            nw, nh = max(100, int(VIDEO_WIDTH * scale)), max(100, int(1500 * scale))
             rs = virtual_rgba.resize((nw, nh), Image.Resampling.BILINEAR)
-            frame_rgba = frame_bg.convert("RGBA")
-            frame_rgba.alpha_composite(rs, ((canvas_w - nw) // 2, 42))
-            final_img = frame_rgba
+            full_stage = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+            full_stage.alpha_composite(rs, ((canvas_w - nw) // 2, 42))
+            final_img = apply_scene_transition(full_stage, frame_bg, transition_style, linear_p)
         else:
-            stage = StudioStage(VIDEO_WIDTH, VIDEO_HEIGHT, world, transition_alpha=t_alpha)
-            _draw_studio_header(stage, badge, title, accent, callout=callout)
+            stage = StudioStage(VIDEO_WIDTH, VIDEO_HEIGHT, world, transition_alpha=t_alpha if transition_style == "crossfade" else 1.0)
+            _draw_studio_header(stage, badge, title, accent, callout=callout, text_fx=text_fx, progress=progress)
             dispatch_studio_layout(stage, visual_type, visual_data, progress, world, topic=topic_seed)
-            final_img = stage.composite_onto(frame_bg)
+            stage_rgba = stage.composite_onto(None)
+            final_img = apply_scene_transition(stage_rgba, frame_bg, transition_style, linear_p)
 
         chrome = ImageDraw.Draw(final_img, "RGBA")
         track_col = (15, 23, 42, 32) if world["is_light"] else (255, 255, 255, 34)

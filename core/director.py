@@ -265,18 +265,23 @@ Output a single valid JSON object matching this structure:
 
 ENGINE_STYLE_DIRECTIVES = {
     "cinematic_studio": (
-        "CINEMATIC 2.5D ISOMETRIC & SVG MOTION STUDIO MODE (INFINITE PRO): "
-        "Design rich 2.5D motion graphics, architectural flows, interactive SVG scenes, and freeform spatial canvases with ZERO repetitive layouts! "
-        "1. UNLIMITED GENERATIVE COLOR (`art_style` & `palette`): Pick from 25 curated worlds (`obsidian_studio`, `sapphire_3d`, `studio_white`, `crimson_studio`, `emerald_matrix`, `amber_carbon`, `violet_nebula`, `warm_sand_light`, `mint_paper_light`, `arctic_ice`, `cyber_lime`, `midnight_rose`, `solarized_dark`, `nordic_slate`, `lavender_light`, `peach_editorial`, `cobalt_blueprint`, `graphite_gold`, `teal_abyss`, `coral_sunset`, `monochrome_ink`, `neon_tokyo`, `forest_paper`, `copper_rust`, `slate_ivory`), OR generate an infinite HSL palette with `art_style: \"#HEX\"` / `\"dynamic_hsl\"` / `visual_data.palette: {\"primary\":\"#...\",\"secondary\":\"#...\",\"mode\":\"dark\"|\"light\"}`.\n"
-        "2. 33+ DEDICATED SCENE LAYOUTS + SPATIAL COMPOSER + AI MULTI-LAYER <svg> (vary across scenes!):\n"
-        "   - Core: `iso_architecture` (`nodes`, `edges`), `node_graph` (`hub_name`, `satellites`), `iso_comparison` (`left_label`, `right_label`, `left_points`, `right_points`), `terminal_studio` (`code_snippet`, `output`), `kinetic_statement` (`kicker`, `statement`, `highlight_word`, `bottom_tags`), `custom_scene` (`blocks`: `big_stat`|`question_card`|`pills`|`flow_chain`|`list_cards`|`banner`|`code`).\n"
-        "   - `spatial_canvas` (Spatial Composer): `elements` (`[{\"id\",\"type\":\"card\"|\"shape\"|\"stat\"|\"code\"|\"svg_icon\",\"x\",\"y\",\"w\",\"h\" (0..1000),\"title\",\"sub\",\"shape\",\"icon\",\"value\"}]`) + `connections` (`[{\"from\",\"to\",\"label\"}]`).\n"
-        "   - `svg_scene` (AI Multi-Layer <svg>): `svg` (valid `<svg viewBox=\"0 0 880 840\">` with progressive `<g id=\"stage_1\">`..`<g id=\"stage_4\">` groups — rendered cleanly via Rust resvg_py!) + optional `caption`.\n"
-        "   - Specialized Diagrams: `layer_stack_3d`, `matrix_2x2`, `pyramid_hierarchy`, `funnel_metrics`, `sql_studio`, `benchmark_3d`, `radial_gauge`, `memory_lanes`, `roadmap_wave`, `checklist_scorecard`, `incident_radar`, `sequence_diagram`, `er_schema`, `state_machine`, `git_branch_tree`, `flamegraph_perf`, `latency_waterfall`, `queue_workers`, `load_balancer_fanout`, `cache_hit_miss`, `code_diff_split`, `api_request_response`, `venn_overlap`, `stat_grid_2x2`, `tree_hierarchy`.\n"
-        "3. ALL 50 3D SHAPES + 200,000+ ICONIFY SVG LOGOS + 60+ VECTOR ICONS:\n"
-        "   - `shape`: `box`, `stack`, `cylinder`, `sphere`, `hexagon`, `pyramid`, `diamond`, `cloud`, `shield`, `chip`, `bucket`, `gear`, `bot`, `server_rack`, `lock`, `key`, `globe`, `router`, `funnel`, `queue`, `rocket`, `bolt_3d`, `document`, `terminal_box`, `bell`, `clock`, `magnifier`, `container`, `bridge`, `brain_node`, `database_cluster`, `load_balancer`, `cdn_edge`, `antenna`, `monitor`, `mobile`, `folder`, `code_cube`, `plug`, `battery`, `gauge_dial`, `magnet`, `layers_wafer`, `prism_tri`, `torus`, `cube_cutout`, `gate_xor`, `packet_envelope`, `scale_balance`, `trophy`.\n"
-        "   - `icon`: Use 60+ crisp glyphs (`check`, `warn`, `bolt`, `lock`, `key`, `db`, `code`, `terminal`, `search`, `chart`, `cloud`, `cpu`, `network`, `shield`, `fire`, `clock`, `layers`, `filter`, `sparkles`, `rocket`, `webhook`, `branch`, etc.) OR ANY real brand/dev Iconify SVG ID (`logos:python`, `logos:kubernetes`, `logos:postgresql`, `logos:docker-icon`, `logos:aws`, `logos:redis`, `simple-icons:openai`, `lucide:shield-check`).\n"
-        "4. ZERO HARDCODED FILLER: Never invent fake numbers unless cited cleanly. Always populate `scene_tone` and `choreography.triggers` (4 spoken keywords)."
+        "CINEMATIC 2.5D/3D STUDIO MAX MODE (NO TEMPLATE LIMITS): "
+        "Combine 46+ studio palettes + Infinite HSL/Gradient colors, 65+ layouts + Spatial Composer + Animated Keyframe AI <svg> + 105 3D Shapes/Meshes + 200k+ 3D-Extruded Iconify SVGs + 18 Procedural Backdrops + 12 Transitions + 14 Text FX!\n"
+        "1. COLOR WORLD (`art_style` & `palette`): Pick any of 46 curated worlds (`obsidian_studio`, `aurora_borealis`, `synthwave_84`, `quantum_indigo`, `studio_white`, `cream_notion`, `terminal_phosphor`, etc.) OR any `#HEX` / `visual_data.palette: {\"stops\":[\"#...\",\"#...\"],\"mode\":\"dark\"|\"light\"}`.\n"
+        "2. PER-SCENE ATMOSPHERE & MOTION FX (vary across scenes!):\n"
+        "   - `backdrop`: `subtle_grid` | `aurora_mesh` | `pcb_circuits` | `topo_contours` | `hex_honeycomb` | `dot_matrix` | `starfield_cosmos` | `bokeh_cinema` | `concentric_radar` | `isometric_cubes_subtle` | `duotone_beam` | `paper_editorial` | `glass_caustics` | `plasma_wave` | `voronoi_cells` | `orbital_arcs` | `prism_rays` | `code_stream_subtle`.\n"
+        "   - `transition`: `crossfade` | `slide_up` | `slide_down` | `slide_left` | `slide_right` | `zoom_push` | `zoom_pull` | `wipe_reveal` | `iris_circle` | `curtain_split` | `parallax_pan` | `glitch_snap`.\n"
+        "   - `text_fx`: `clean_fade` | `word_pop` | `highlighter_brush` | `typewriter_cursor` | `gradient_shimmer` | `neon_underline` | `glitch_text` | `slide_reveal`.\n"
+        "3. 65+ LAYOUTS + SPATIAL COMPOSER + KEYFRAME AI <svg>:\n"
+        "   - `iso_architecture`, `node_graph`, `iso_comparison`, `terminal_studio`, `kinetic_statement`, `custom_scene`, `spatial_canvas`, `svg_scene` (supports `<g id='stage_1..6'>` + `svg_animations`: `[{\"target\":\"stage_1\",\"scale_from\":0.7,\"rotate_deg\":15,\"float_amp\":10,\"pulse\":true}]`), `layer_stack_3d`, `matrix_2x2`, `pyramid_hierarchy`, `funnel_metrics`, `sql_studio`, `benchmark_3d`, `radial_gauge`, `memory_lanes`, `roadmap_wave`, `checklist_scorecard`, `incident_radar`, `sequence_diagram`, `er_schema`, `state_machine`, `git_branch_tree`, `flamegraph_perf`, `latency_waterfall`, `queue_workers`, `load_balancer_fanout`, `cache_hit_miss`, `code_diff_split`, `api_request_response`, `venn_overlap`, `stat_grid_2x2`, `tree_hierarchy`, `neural_net_layers`, `attention_heatmap`, `embedding_cluster`, `rag_pipeline_3d`, `agent_loop_3d`, `token_prob_bars`, `mesh_3d_stage`, `line_area_chart`, `donut_3d`, `radar_spider`, `sankey_flow`, `candlestick_pro`, `heatmap_matrix`, `scatter_plot`, `confusion_matrix`, `mobile_app_mockup`, `browser_window`, `chat_thread_ai`, `notification_stack`, `kanban_board`, `pricing_tiers`, `quote_spotlight`, `split_screen_50_50`, `countdown_hero`, `mindmap_radial`, `timeline_gantt`, `equation_proof`, `before_after_slider`, `pros_cons_scale`, `atom_orbit_3d`, `dna_helix_3d`, `orbit_ecosystem`.\n"
+        "4. 105 3D SHAPES / TRUE 3D MESHES + 200k+ 3D-EXTRUDED SVGs + 124 GLYPHS:\n"
+        "   - True 3D camera meshes: `torus_3d`, `dna_helix`, `atom_orbit`, `geodesic_sphere`, `neural_lattice`, `terrain_wave_3d`, `bar_landscape_3d`, `cube_cluster_3d`, `vortex_spiral_3d`, `mobius_ring`, `icosahedron_3d`, `octahedron_3d`.\n"
+        "   - Brand/Emoji SVGs (auto-extruded into 3D!): `logos:python`, `logos:kubernetes`, `logos:aws`, `logos:postgresql`, `fluent-emoji-flat:rocket`, `lucide:brain-circuit`.\n"
+        "5. ZERO HARDCODED FILLER: Never invent fake numbers unless cited cleanly. Populate `scene_tone` & 4 `choreography.triggers`."
+    ),
+    "dual_generative": (
+        "ZERO-LIMIT DUAL GENERATIVE ENGINE (WEBGL / THREE.JS / HTML5 + 3D MESH / SHADER / KEYFRAME SVG): "
+        "You have ZERO template limits! Pick `web_scene` (`visual_data.html` with self-contained responsive HTML5 + CSS3 + Three.js/Canvas2D + `window.__setStudioProgress(p, curTime, energy)` hook at 1080x1920) OR mix with `svg_scene`, `mesh_3d_stage`, `spatial_canvas`, and all 65+ Studio Max layouts + 18 shader `backdrop`s + 12 `transition`s + 14 `text_fx` + 46 worlds / `#HEX`."
     ),
     "auto_dynamic": (
         "AI AUTONOMOUS VISUAL & STORYBOARD COMPOSER MODE (ZERO HARDCODED TEMPLATES): "
@@ -684,7 +689,7 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
     # Deterministically pick a fresh visual art_style from topic hash if AI omitted one
     art_styles = ["light_whiteboard", "editorial_dark", "blueprint_grid", "neon_fireship"]
     raw_art = str(timeline.get("art_style") or "").strip()
-    if engine_style == "cinematic_studio":
+    if engine_style in ("cinematic_studio", "dual_generative"):
         from core.palette_engine import STUDIO_WORLDS
         if raw_art and (raw_art.lower() in STUDIO_WORLDS or raw_art.lower() in art_styles or raw_art.startswith("#") or raw_art.lower().startswith("hue:") or raw_art.lower() in ("dynamic_hsl", "procedural", "hsl")):
             topic_art_style = raw_art
@@ -722,7 +727,7 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 current_vtype = target_type
 
         # Anti-Repetition Safety in auto/studio modes: if Scene 1 defaulted to alert_diagram on non-outage topics, use custom_scene
-        if engine_style in ["auto_dynamic", "cinematic_studio"] and idx == 0 and current_vtype == "alert_diagram":
+        if engine_style in ["auto_dynamic", "cinematic_studio", "dual_generative"] and idx == 0 and current_vtype == "alert_diagram":
             topic_l = topic.lower()
             outage_kw = ["crash", "outage", "down", "lock", "deadlock", "incident", "failure", "oom"]
             if not any(kw in topic_l for kw in outage_kw):
@@ -737,7 +742,7 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
 
         # Ensure required data structures are present and rich for the active visual_type
         title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
-        default_badge = "" if engine_style in ["auto_dynamic", "cinematic_studio", "hybrid_modern"] else engine_style.replace("_", " ").upper()
+        default_badge = "" if engine_style in ["auto_dynamic", "cinematic_studio", "dual_generative", "hybrid_modern"] else engine_style.replace("_", " ").upper()
         badge = v_data.get("badge") or default_badge
         v_data["title"] = title
         v_data["badge"] = badge

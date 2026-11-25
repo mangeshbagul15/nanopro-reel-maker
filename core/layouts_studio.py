@@ -7,9 +7,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from core.config import ASSETS_DIR
+from core.layouts_pro import EXTRA_32_LAYOUTS, render_pro_layout
 from core.palette_engine import resolve_studio_world
-from core.shapes_3d import ALL_50_SHAPES, draw_3d_shape, draw_vector_glyph, infer_3d_shape
-from core.svg_engine import ICON_ALIASES, fetch_iconify_svg, prepare_generative_svg_layers
+from core.shapes_3d import ALL_50_SHAPES, ALL_100_SHAPES, draw_3d_shape, draw_vector_glyph, infer_3d_shape
+from core.svg_engine import ICON_ALIASES, fetch_iconify_svg, prepare_generative_svg_layers, prepare_keyframed_svg_layers
 
 # Stage safe geometry inside 1080x1920 vertical frame
 STAGE_X0 = 64
@@ -481,7 +482,7 @@ def _draw_node_visual(
         ic_spec = shp_spec
     icon_img = _resolve_iconify_if_any(ic_spec, color, size_px=max(72, int(rx * 1.9))) if ic_spec else None
 
-    if shp_spec in ALL_50_SHAPES:
+    if shp_spec in ALL_100_SHAPES:
         final_shp = shp_spec
     else:
         final_shp = infer_3d_shape(f"{label} {shp_spec} {ic_spec}", fallback="box")
@@ -489,7 +490,7 @@ def _draw_node_visual(
     draw_3d_shape(
         stage, cx, cy, rx, ry, depth, color,
         alpha_mul=alpha_mul, shape=final_shp, active=active,
-        progress=progress, phase=phase, icon_img=icon_img,
+        progress=progress, phase=phase, icon_img=icon_img, extrude_3d=True,
     )
 
 
@@ -1028,13 +1029,12 @@ def _render_spatial_canvas(stage: StudioStage, data: Dict[str, Any], progress: f
 
 def _render_svg_scene(stage: StudioStage, data: Dict[str, Any], progress: float, world: Dict[str, Any]) -> None:
     """
-    AI Multi-Layer <svg> Renderer: pre-rasterizes `<svg>` stage layers via Rust resvg_py
-    and reveals each layer progressively with spring motion inside an illuminated studio frame.
+    AI Keyframe Multi-Layer <svg> Renderer: pre-rasterizes `<svg>` stage layers via Rust resvg_py
+    and drives per-layer scale, rotate, float, pulse & slide transforms smoothly at 30fps.
     """
     svg_code = str(data.get("svg") or data.get("svg_code") or "").strip()
-    layers = prepare_generative_svg_layers(svg_code, width=880, height=840) if svg_code else []
-    if not layers:
-        # Clean graceful fallback if SVG unavailable or invalid
+    layer_objs = prepare_keyframed_svg_layers(svg_code, width=880, height=840) if svg_code else []
+    if not layer_objs:
         if data.get("nodes"):
             _render_iso_architecture(stage, data, progress, world)
         else:
@@ -1047,20 +1047,52 @@ def _render_svg_scene(stage: StudioStage, data: Dict[str, Any], progress: float,
     g_frame = _ease_out_cubic(_clamp01(progress / 0.16))
     stage.draw_glass_card(frame_b, radius=28, accent_col=world["cyan"], alpha_mul=g_frame, active=True, layered=True)
 
-    n = len(layers)
-    ox = (1080 - layers[0].width) // 2
-    oy = frame_b[1] + (frame_h - layers[0].height) // 2
-    for i, lay in enumerate(layers):
+    anim_specs = {}
+    for a_item in (data.get("svg_animations") or []):
+        if isinstance(a_item, dict) and a_item.get("target"):
+            anim_specs[str(a_item["target"]).lower()] = a_item
+
+    n = len(layer_objs)
+    ox = (1080 - layer_objs[0]["image"].width) // 2
+    oy = frame_b[1] + (frame_h - layer_objs[0]["image"].height) // 2
+    for i, item in enumerate(layer_objs):
+        gid = str(item.get("id", f"stage_{i+1}")).lower()
+        lay = item["image"]
         g = _spring_gate(progress, i, n, 0.24)
         a_mul = _ease_out_cubic(g) * stage.t_alpha
         if a_mul <= 0.03:
             continue
-        dy = int((1.0 - _micro_bounce(g)) * 28)
+
+        spec = anim_specs.get(gid, {})
+        dy_enter = int((1.0 - _micro_bounce(g)) * 28)
+        float_amp = float(spec.get("float_amp", 6.0 if i == n - 1 else 0.0))
+        dy_float = int(math.sin(progress * math.pi * 4.0 + i) * float_amp)
+        dx_slide = int(float(spec.get("dx", 0.0)) * (1.0 - _ease_out_cubic(g)))
+        dy_slide = int(float(spec.get("dy", 0.0)) * (1.0 - _ease_out_cubic(g)))
+
         im = lay.copy()
+        rot_deg = float(spec.get("rotate_deg", 0.0)) * _ease_out_cubic(g)
+        if abs(rot_deg) > 0.2:
+            im = im.rotate(-rot_deg, resample=Image.Resampling.BILINEAR)
+
+        sc_from = float(spec.get("scale_from", 1.0))
+        sc_pulse = 0.04 * math.sin(progress * math.pi * 6.0) if spec.get("pulse") else 0.0
+        sc = (sc_from + (1.0 - sc_from) * _ease_out_cubic(g)) + sc_pulse
+        if abs(sc - 1.0) > 0.01:
+            nw, nh = max(32, int(im.width * sc)), max(32, int(im.height * sc))
+            im = im.resize((nw, nh), Image.Resampling.BILINEAR)
+            px = ox + (lay.width - nw) // 2 + dx_slide
+            py = oy + (lay.height - nh) // 2 + dy_enter + dy_slide + dy_float
+        else:
+            px, py = ox + dx_slide, oy + dy_enter + dy_slide + dy_float
+
         if a_mul < 0.99:
             alpha_ch = im.split()[3].point(lambda p: int(p * a_mul))
             im.putalpha(alpha_ch)
-        stage.fg.alpha_composite(im, (ox, oy + dy))
+        # Clip cleanly inside frame bounds
+        x_paste = max(frame_b[0] + 4, px)
+        y_paste = max(frame_b[1] + 4, py)
+        stage.fg.alpha_composite(im, (x_paste, y_paste))
 
     if caption:
         gc = _ease_out_cubic(_clamp01((progress - 0.35) / 0.28))
@@ -1784,7 +1816,19 @@ ALL_STUDIO_LAYOUTS: Tuple[str, ...] = (
     "sequence_diagram", "er_schema", "state_machine", "git_branch_tree", "flamegraph_perf",
     "queue_workers", "load_balancer_fanout", "cache_hit_miss", "code_diff_split", "api_request_response",
     "venn_overlap", "funnel_metrics", "stat_grid_2x2", "latency_waterfall", "tree_hierarchy",
-)
+) + EXTRA_32_LAYOUTS
+
+_PRO_HELPERS: Dict[str, Any] = {
+    "_get_font": _get_font,
+    "_draw_wrapped_text": _draw_wrapped_text,
+    "_with_alpha": _with_alpha,
+    "_spring_gate": _spring_gate,
+    "_ease_out_cubic": _ease_out_cubic,
+    "_animate_counter_text": _animate_counter_text,
+    "resolve_world_color": resolve_world_color,
+    "_draw_bezier_comet": _draw_bezier_comet,
+    "_draw_node_visual": _draw_node_visual,
+}
 
 
 def dispatch_studio_layout(
@@ -1797,7 +1841,9 @@ def dispatch_studio_layout(
 ) -> None:
     l = str(layout or "custom_scene").lower().strip()
     d = data or {}
-    if l in ("custom_scene", "custom", "cards", "concept_cards"):
+    if render_pro_layout(stage, l, d, progress, world, _PRO_HELPERS):
+        pass
+    elif l in ("custom_scene", "custom", "cards", "concept_cards"):
         _render_custom_scene(stage, d, progress, world)
     elif l in ("iso_architecture", "architecture", "architecture_flow", "pipeline", "flow"):
         _render_iso_architecture(stage, d, progress, world)
