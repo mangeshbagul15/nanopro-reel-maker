@@ -110,6 +110,7 @@ with st.sidebar:
     tone_option = st.selectbox(
         "Script Tone & Emotion",
         [
+            ("senior_hinglish_mentor", "🧑‍💻 Senior Hinglish Mentor (Warm Hinglish Male Mentor, Interview-Trap Hook, Trade-offs & Progressive Visuals)"),
             ("youth_friend_turbo", "🚀 Youth Dost & Fast Hype Explainer (Fast Voice, Q&A Detailer, Ad/Story Punch & Turbo Visual Sync)"),
             ("mentor_storyteller", "🌟 Student Mentor & Storyteller (Simple Words, Natural Pauses & High Excitement) [Ultra Pro]"),
             ("auto_dynamic", "⚡ Dynamic / Auto (AI Adapts Voice, Pace, Emotion & Visuals Per Scene) [Recommended]"),

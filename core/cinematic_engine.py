@@ -301,7 +301,7 @@ def render_cinematic_scene_frames(
     title = str(visual_data.get("title") or "")
     accent = (
         world["emerald"] if effective_tone == "mentor_storyteller"
-        else (world["amber"] if effective_tone == "interview_prep"
+        else (world["amber"] if effective_tone in ("interview_prep", "senior_hinglish_mentor")
               else (world["rose"] if effective_tone == "dramatic_performance" else world["cyan"]))
     )
 

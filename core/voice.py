@@ -110,6 +110,12 @@ VOICE_CATALOG = {
 
 # Dynamic Voice Parameters tailored to chosen Delivery Tone (ElevenLabs + Edge-TTS Prosody)
 TONE_VOICE_SETTINGS = {
+    "senior_hinglish_mentor": {
+        "stability": 0.48,
+        "similarity_boost": 0.82,
+        "style": 0.30,
+        "use_speaker_boost": True
+    },
     "youth_friend_turbo": {
         "stability": 0.28,
         "similarity_boost": 0.78,
@@ -155,6 +161,7 @@ TONE_VOICE_SETTINGS = {
 }
 
 EDGE_TTS_PROSODY = {
+    "senior_hinglish_mentor": {"rate": "+8%", "pitch": "-1Hz"},
     "youth_friend_turbo": {"rate": "+24%", "pitch": "+3Hz"},
     "mentor_storyteller": {"rate": "+7%", "pitch": "+2Hz"},
     "fireship_octane": {"rate": "+16%", "pitch": "+2Hz"},
@@ -267,7 +274,7 @@ def _synthesize_elevenlabs_sync(
         print("[Voice] ElevenLabs API key missing, skipping ElevenLabs.")
         return False
 
-    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("youth_friend_turbo", "mentor_storyteller", "dramatic_performance")))
+    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("senior_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller", "dramatic_performance")))
     if not cleaned_text:
         return False
 
@@ -340,7 +347,7 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     splits along pause cues, applies per-phrase curiosity/excitement inflection, and inserts
     genuine 300ms breathing silence between phrases via FFmpeg.
     """
-    preserve = (tone in ("youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
+    preserve = (tone in ("senior_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
     cleaned_text = _clean_tts_text(text, preserve_pauses=preserve)
     if not cleaned_text:
         return False
@@ -348,7 +355,7 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+8%", "pitch": "+0Hz"})
     rate = prosody["rate"]
     pitch = prosody["pitch"]
-    pause_sec = "0.22" if tone == "youth_friend_turbo" else "0.30"
+    pause_sec = "0.22" if tone == "youth_friend_turbo" else ("0.28" if tone == "senior_hinglish_mentor" else "0.30")
 
     beats = _split_pause_beats(cleaned_text, max_beats=4) if preserve else [cleaned_text]
     if len(beats) > 1:
@@ -362,6 +369,14 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
                         b_rate, b_pitch = "+26%", "+4Hz"
                     elif len(beat_txt) <= 36:
                         b_rate, b_pitch = "+18%", "+3Hz"
+                    else:
+                        b_rate, b_pitch = rate, pitch
+                elif tone == "senior_hinglish_mentor":
+                    lower_bt = beat_txt.lower()
+                    if beat_txt.endswith("?") or any(kw in lower_bt for kw in ("trap", "interview", "socho", "freeze", "wait")):
+                        b_rate, b_pitch = "+7%", "+1Hz"
+                    elif any(kw in lower_bt for kw in ("trade-off", "tradeoff", "edge case", "lekin", "problem", "catch", "fix")):
+                        b_rate, b_pitch = "+5%", "-2Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
                 elif tone == "mentor_storyteller":

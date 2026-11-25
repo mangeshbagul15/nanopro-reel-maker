@@ -30,6 +30,7 @@ ACCENT_THEMES = {
 
 
 TONE_THEME_MAP = {
+    "senior_hinglish_mentor": "indigo_cyan",
     "youth_friend_turbo": "cyber_cyan",
     "mentor_storyteller": "emerald_matrix",
     "fireship_octane": "cyber_cyan",

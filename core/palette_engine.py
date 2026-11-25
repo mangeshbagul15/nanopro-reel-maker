@@ -243,6 +243,8 @@ def resolve_studio_world(
         return STUDIO_WORLDS["crimson_studio"]
     if t == "staff_engineer":
         return STUDIO_WORLDS["sapphire_3d"]
+    if t == "senior_hinglish_mentor":
+        return STUDIO_WORLDS["sapphire_3d"]
     if t == "mentor_storyteller":
         return STUDIO_WORLDS["emerald_matrix"]
     if topic:

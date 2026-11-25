@@ -401,6 +401,17 @@ ENGINE_STYLE_DIRECTIVES = {
 }
 
 TONE_DIRECTIVES = {
+    "senior_hinglish_mentor": (
+        "SENIOR HINGLISH MENTOR & TECHNICAL STORYTELLER MANDATE: "
+        "Adopt a warm, clear, conversational Hinglish persona with a confident senior-engineer/mentor vibe and natural crisp English tech terms (`latency`, `throughput`, `race condition`, `index`, `cache invalidation`, `trade-off`). "
+        "Unless the selected Voice Persona explicitly specifies Devanagari Hindi/Marathi or pure English, write `narration` in natural, clean conversational Hinglish (Roman script + crisp English technical terms, with intentional `...` / `[pause]` breath cues). "
+        "FOLLOW THIS EXACT 4-ACT STORY ARC ACROSS SCENES:\n"
+        "1. 00:00 HOOK (Scene 1): Start with a punchy, slightly playful interview-trap or real-world production problem hook (e.g., 'Interview mein 90% log yahin phaste hain... [pause] ek simple query production DB ko kaise freeze kar sakti hai?').\n"
+        "2. CALM STEP-BY-STEP WALKTHROUGH (Middle Scenes): Move into a calm, clear, step-by-step storytelling walkthrough using progressive UI cards, animated diagrams/flow chains, and crisp key-term emphasis (`step_timeline`, `architecture_flow`, `custom_scene` with progressive `blocks`, or domain diagrams).\n"
+        "3. CANDID ANALYTICAL TRADE-OFFS & FIXES (Pre-Closing / Deep Scene): Shift to a candid, analytical senior-engineer tone covering real trade-offs, edge cases, and practical fixes (`split_comparison`, `data_structure_memory`, `code_terminal`, or `benchmark_chart`).\n"
+        "4. FRIENDLY DIRECT CTA (Final Scene): End with a warm, direct CTA (e.g., 'Save this reel for your next interview aur comment karo apna next topic!').\n"
+        "CRITICAL SYNC: Populate 4 exact `choreography.triggers` matching key spoken terms per scene so progressive UI cards & diagrams emphasize each concept in tight lockstep, and set each scene's `scene_tone` to `senior_hinglish_mentor`."
+    ),
     "youth_friend_turbo": (
         "YOUTH DOST, FAST HYPE AD/STORYTELLING & HIGH-DENSITY Q&A EXPLAINER MANDATE (ULTRA-FAST + COMPLETE): "
         "Speak like a super-smart, high-energy young best friend (`dost / yaar / bro`) pitching an addictive tech thriller or viral product ad to a smart friend — rapid, crystal clear, hilarious/relatable, and packed with dense real engineering depth in MINIMUM time!\n"
@@ -492,6 +503,13 @@ def generate_timeline(
             "mixed seamlessly with English technical nouns (e.g., 'मित्रांनो, आज आपण पाहणार आहोत की Database Migration झिरो Downtime सह कसे चालते...'). "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
+    elif tone == "senior_hinglish_mentor":
+        lang_directive = (
+            "LANGUAGE & DIALECT MANDATE (Senior Hinglish Mentor): Write the spoken `narration` in warm, clear conversational Hinglish "
+            "using clean LATIN / ROMAN letters mixed naturally with crisp English technical terms "
+            "(e.g., 'Socho zara... interview mein agar koi pooche ki cache stampede kaise rokte hain, toh 90% log ek trap mein phaste hain...'). "
+            "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
+        )
     elif voice == "en-IN-PrabhatNeural":
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: Write in crisp, authoritative Indian Tech English with high technical clarity."
@@ -530,47 +548,61 @@ def generate_timeline(
     
     last_errors = []
 
-    # 1. Primary: High-speed Gemini Models
+    # 1. Primary: High-speed Gemini Models (with JSON mode + resilient model rotation + brief transient retry)
     if GEMINI_API_KEY:
         try:
+            import time
             from google import genai
             client = genai.Client(api_key=GEMINI_API_KEY)
-            
+
             models_to_try = [
+                "gemini-3.5-flash-lite",
                 "gemini-3.1-flash-lite",
                 "gemini-3.1-flash-lite-preview",
                 "gemini-flash-lite-latest",
                 "gemini-flash-latest",
                 "gemini-3-flash-preview",
                 "gemini-3.5-flash",
-                "gemini-3.8-flash"
+                "gemini-3.8-flash",
+                "gemma-4-31b-it",
+                "gemma-4-26b-a4b-it",
             ]
-            
+
             for model_name in models_to_try:
-                try:
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=f"{SYSTEM_PROMPT}\n\n{user_prompt}",
-                    )
-                    raw_text = response.text.strip() if response.text else ""
-                    clean_json = _extract_json(raw_text)
-                    if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
-                        clean_json["meta_director"] = {
-                            "model_used": model_name,
-                            "engine_style": engine_style,
-                            "custom_style_prompt": custom_style_prompt,
-                            "duration_mode": duration_mode,
-                            "topic": topic,
-                            "voice": voice,
-                            "format_ratio": format_ratio
+                attempts = 2 if model_name in ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite") else 1
+                for attempt in range(attempts):
+                    try:
+                        req_kwargs = {
+                            "model": model_name,
+                            "contents": f"{SYSTEM_PROMPT}\n\n{user_prompt}",
                         }
-                        return clean_json
-                except Exception as e:
-                    err_str = str(e)
-                    print(f"[Director] Model {model_name} error: {err_str[:120]}")
-                    last_errors.append(f"{model_name}: {err_str[:120]}")
-                    continue
+                        if not model_name.startswith("gemma-"):
+                            req_kwargs["config"] = {"response_mime_type": "application/json"}
+                        response = client.models.generate_content(**req_kwargs)
+                        raw_text = response.text.strip() if getattr(response, "text", None) else ""
+                        clean_json = _extract_json(raw_text)
+                        if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
+                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
+                            clean_json["meta_director"] = {
+                                "model_used": model_name,
+                                "engine_style": engine_style,
+                                "custom_style_prompt": custom_style_prompt,
+                                "duration_mode": duration_mode,
+                                "topic": topic,
+                                "voice": voice,
+                                "format_ratio": format_ratio
+                            }
+                            return clean_json
+                        last_errors.append(f"{model_name}: invalid/empty JSON ({len(raw_text)} chars)")
+                        break
+                    except Exception as e:
+                        err_str = str(e)
+                        if attempt + 1 < attempts and ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str):
+                            time.sleep(1.2)
+                            continue
+                        print(f"[Director] Model {model_name} error: {err_str[:120]}")
+                        last_errors.append(f"{model_name}: {err_str[:120]}")
+                        break
         except Exception as e:
             last_errors.append(f"Gemini client error: {e}")
 
@@ -579,17 +611,26 @@ def generate_timeline(
         try:
             from groq import Groq
             g_client = Groq(api_key=GROQ_API_KEY)
-            for g_model in ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]:
+            groq_candidates = [
+                ("openai/gpt-oss-120b", True),
+                ("openai/gpt-oss-120b", False),
+                ("qwen/qwen3.8-27b", False),
+                ("openai/gpt-oss-20b", False),
+            ]
+            for g_model, use_json_mode in groq_candidates:
                 try:
-                    g_res = g_client.chat.completions.create(
-                        model=g_model,
-                        messages=[
+                    req_kw = {
+                        "model": g_model,
+                        "messages": [
                             {"role": "system", "content": SYSTEM_PROMPT},
                             {"role": "user", "content": user_prompt}
                         ],
-                        temperature=0.7
-                    )
-                    raw_text = g_res.choices[0].message.content.strip() if g_res.choices else ""
+                        "temperature": 0.7,
+                    }
+                    if use_json_mode:
+                        req_kw["response_format"] = {"type": "json_object"}
+                    g_res = g_client.chat.completions.create(**req_kw)
+                    raw_text = (g_res.choices[0].message.content or "").strip() if g_res.choices else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
                         clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
@@ -603,8 +644,9 @@ def generate_timeline(
                             "format_ratio": format_ratio
                         }
                         return clean_json
+                    last_errors.append(f"groq/{g_model}(json={use_json_mode}): empty/unparsed ({len(raw_text)} chars)")
                 except Exception as e:
-                    last_errors.append(f"groq/{g_model}: {str(e)[:120]}")
+                    last_errors.append(f"groq/{g_model}(json={use_json_mode}): {str(e)[:120]}")
                     continue
         except Exception as e:
             last_errors.append(f"Groq client error: {e}")
@@ -648,6 +690,9 @@ def generate_timeline(
                                 "format_ratio": format_ratio
                             }
                             return clean_json
+                        last_errors.append(f"openrouter/{or_model}: invalid JSON")
+                    else:
+                        last_errors.append(f"openrouter/{or_model}: HTTP {r.status_code}")
                 except Exception as e:
                     last_errors.append(f"openrouter/{or_model}: {str(e)[:120]}")
         except Exception as e:
@@ -714,7 +759,7 @@ Output ONLY the raw HTML starting with <!DOCTYPE html> and ending with </html>."
             try:
                 from google import genai
                 client = genai.Client(api_key=GEMINI_API_KEY)
-                for m in ["gemini-3.1-flash-lite", "gemini-flash-latest"]:
+                for m in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]:
                     try:
                         res = client.models.generate_content(model=m, contents=prompt)
                         raw = str(getattr(res, "text", "") or "").strip()
@@ -1133,7 +1178,7 @@ Return ONLY a valid JSON array of 6 objects matching this schema:
   {{"title": "💡 Crash Course Title 6", "category": "Quick Explainer"}}
 ]
 """
-            for m in ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"]:
+            for m in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"]:
                 try:
                     res = client.models.generate_content(model=m, contents=prompt)
                     raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""
@@ -1159,21 +1204,41 @@ Return ONLY a valid JSON array of 6 objects matching this schema:
     ]
 
 def _extract_json(text: str) -> Dict[str, Any]:
-    """Helper to extract JSON from markdown or raw string."""
-    try:
-        match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
-        if match:
-            text = match.group(1)
-        return json.loads(text.strip())
-    except Exception:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1:
+    """Extracts a JSON object reliably from raw or markdown/reasoning-wrapped LLM output."""
+    if not text:
+        return {}
+    cleaned = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.IGNORECASE).strip()
+
+    candidates: List[str] = []
+    # 1. Outermost braces (immune to inner triple backticks inside code_snippet fields)
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidates.append(cleaned[start:end + 1])
+
+    # 2. Markdown fenced block fallback
+    fenced = re.search(r"```(?:json)?\s*([\s\S]*)\s*```", cleaned)
+    if fenced:
+        candidates.append(fenced.group(1).strip())
+    candidates.append(cleaned)
+
+    for cand in candidates:
+        for strict_flag in (True, False):
             try:
-                return json.loads(text[start:end+1])
+                parsed = json.loads(cand, strict=strict_flag)
+                if isinstance(parsed, dict):
+                    return parsed
             except Exception:
                 pass
-        return {}
+        # Trailing-comma cleanup retry
+        no_trailing = re.sub(r",\s*([}\]])", r"\1", cand)
+        try:
+            parsed = json.loads(no_trailing, strict=False)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+    return {}
 
 def generate_viral_meta(
     topic: str,
@@ -1224,7 +1289,7 @@ Return ONLY a valid JSON object matching this schema:
   ]
 }}
 """
-            for m in ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"]:
+            for m in ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"]:
                 try:
                     res = client.models.generate_content(model=m, contents=prompt)
                     raw_text = res.text.strip() if hasattr(res, "text") and res.text else ""
