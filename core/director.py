@@ -265,18 +265,18 @@ Output a single valid JSON object matching this structure:
 
 ENGINE_STYLE_DIRECTIVES = {
     "cinematic_studio": (
-        "CINEMATIC 2.5D ISOMETRIC & MOTION STUDIO MODE (ULTRA PRO): "
-        "Design premium 3D isometric motion graphics with spring physics, elastic pops, layered cards, card flips, live rolling counters, parallax depth, and cubic Bezier glow curves! "
-        "1. CHOOSE AN ART STYLE (`art_style`) matching the subject: `editorial_dark` (sleek dark mode studio), `blueprint_grid` (3D sapphire CAD), `light_whiteboard` (studio daylight), or `neon_fireship` (crimson/amber high-drama).\n"
-        "2. USE ALL RICH 3D SHAPES & MOTION ARCHETYPES:\n"
-        "   - ALL 12 3D SHAPES AVAILABLE on every node (`shape`): `box` | `stack` | `cylinder` | `sphere` | `hexagon` | `pyramid` | `diamond` | `cloud` | `shield` | `chip` | `bucket` | `gear` | `bot`.\n"
-        "   - For pipelines, cloud flows & architectures: use `iso_architecture` (with `nodes`, `edges`, and optional `metric_badges`).\n"
-        "   - For hub-and-spoke / mesh / interconnected systems: use `node_graph` (`hub_name`, `hub_shape`, `satellites`: `[{\"name\", \"role\", \"shape\", \"edge\"}]`).\n"
-        "   - For A-vs-B trade-offs: use `iso_comparison` (`left_label`, `right_label`, `left_shape`, `right_shape`, `left_points`, `right_points`, `neutral_mode`, `show_vs`).\n"
-        "   - For hooks, multi-point cards, live counters, metric badges & summaries: use `custom_scene` with `blocks` (`big_stat`, `question_card`, `pills`, `flow_chain`, `list_cards` with optional `icon`: `bolt`|`lock`|`db`|`code`|`search`|`chart`|`check`|`warn`, `banner`, `code`) + optional top `metric_badges`: `[\"14ms Latency\", \"Zero Retrain\"]`.\n"
-        "   - For code walkthroughs: use `terminal_studio` (`code_snippet`, `output`).\n"
-        "   - For closing punchlines / CTAs: use `kinetic_statement` (`kicker`, `statement`, `highlight_word`, `bottom_tags`).\n"
-        "3. ZERO HARDCODED FILLER: Never invent fake metrics or canned headings. Always populate `scene_tone` and `choreography.triggers` (4 spoken keywords)."
+        "CINEMATIC 2.5D ISOMETRIC & SVG MOTION STUDIO MODE (INFINITE PRO): "
+        "Design rich 2.5D motion graphics, architectural flows, interactive SVG scenes, and freeform spatial canvases with ZERO repetitive layouts! "
+        "1. UNLIMITED GENERATIVE COLOR (`art_style` & `palette`): Pick from 25 curated worlds (`obsidian_studio`, `sapphire_3d`, `studio_white`, `crimson_studio`, `emerald_matrix`, `amber_carbon`, `violet_nebula`, `warm_sand_light`, `mint_paper_light`, `arctic_ice`, `cyber_lime`, `midnight_rose`, `solarized_dark`, `nordic_slate`, `lavender_light`, `peach_editorial`, `cobalt_blueprint`, `graphite_gold`, `teal_abyss`, `coral_sunset`, `monochrome_ink`, `neon_tokyo`, `forest_paper`, `copper_rust`, `slate_ivory`), OR generate an infinite HSL palette with `art_style: \"#HEX\"` / `\"dynamic_hsl\"` / `visual_data.palette: {\"primary\":\"#...\",\"secondary\":\"#...\",\"mode\":\"dark\"|\"light\"}`.\n"
+        "2. 33+ DEDICATED SCENE LAYOUTS + SPATIAL COMPOSER + AI MULTI-LAYER <svg> (vary across scenes!):\n"
+        "   - Core: `iso_architecture` (`nodes`, `edges`), `node_graph` (`hub_name`, `satellites`), `iso_comparison` (`left_label`, `right_label`, `left_points`, `right_points`), `terminal_studio` (`code_snippet`, `output`), `kinetic_statement` (`kicker`, `statement`, `highlight_word`, `bottom_tags`), `custom_scene` (`blocks`: `big_stat`|`question_card`|`pills`|`flow_chain`|`list_cards`|`banner`|`code`).\n"
+        "   - `spatial_canvas` (Spatial Composer): `elements` (`[{\"id\",\"type\":\"card\"|\"shape\"|\"stat\"|\"code\"|\"svg_icon\",\"x\",\"y\",\"w\",\"h\" (0..1000),\"title\",\"sub\",\"shape\",\"icon\",\"value\"}]`) + `connections` (`[{\"from\",\"to\",\"label\"}]`).\n"
+        "   - `svg_scene` (AI Multi-Layer <svg>): `svg` (valid `<svg viewBox=\"0 0 880 840\">` with progressive `<g id=\"stage_1\">`..`<g id=\"stage_4\">` groups — rendered cleanly via Rust resvg_py!) + optional `caption`.\n"
+        "   - Specialized Diagrams: `layer_stack_3d`, `matrix_2x2`, `pyramid_hierarchy`, `funnel_metrics`, `sql_studio`, `benchmark_3d`, `radial_gauge`, `memory_lanes`, `roadmap_wave`, `checklist_scorecard`, `incident_radar`, `sequence_diagram`, `er_schema`, `state_machine`, `git_branch_tree`, `flamegraph_perf`, `latency_waterfall`, `queue_workers`, `load_balancer_fanout`, `cache_hit_miss`, `code_diff_split`, `api_request_response`, `venn_overlap`, `stat_grid_2x2`, `tree_hierarchy`.\n"
+        "3. ALL 50 3D SHAPES + 200,000+ ICONIFY SVG LOGOS + 60+ VECTOR ICONS:\n"
+        "   - `shape`: `box`, `stack`, `cylinder`, `sphere`, `hexagon`, `pyramid`, `diamond`, `cloud`, `shield`, `chip`, `bucket`, `gear`, `bot`, `server_rack`, `lock`, `key`, `globe`, `router`, `funnel`, `queue`, `rocket`, `bolt_3d`, `document`, `terminal_box`, `bell`, `clock`, `magnifier`, `container`, `bridge`, `brain_node`, `database_cluster`, `load_balancer`, `cdn_edge`, `antenna`, `monitor`, `mobile`, `folder`, `code_cube`, `plug`, `battery`, `gauge_dial`, `magnet`, `layers_wafer`, `prism_tri`, `torus`, `cube_cutout`, `gate_xor`, `packet_envelope`, `scale_balance`, `trophy`.\n"
+        "   - `icon`: Use 60+ crisp glyphs (`check`, `warn`, `bolt`, `lock`, `key`, `db`, `code`, `terminal`, `search`, `chart`, `cloud`, `cpu`, `network`, `shield`, `fire`, `clock`, `layers`, `filter`, `sparkles`, `rocket`, `webhook`, `branch`, etc.) OR ANY real brand/dev Iconify SVG ID (`logos:python`, `logos:kubernetes`, `logos:postgresql`, `logos:docker-icon`, `logos:aws`, `logos:redis`, `simple-icons:openai`, `lucide:shield-check`).\n"
+        "4. ZERO HARDCODED FILLER: Never invent fake numbers unless cited cleanly. Always populate `scene_tone` and `choreography.triggers` (4 spoken keywords)."
     ),
     "auto_dynamic": (
         "AI AUTONOMOUS VISUAL & STORYBOARD COMPOSER MODE (ZERO HARDCODED TEMPLATES): "
@@ -683,9 +683,18 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
 
     # Deterministically pick a fresh visual art_style from topic hash if AI omitted one
     art_styles = ["light_whiteboard", "editorial_dark", "blueprint_grid", "neon_fireship"]
-    topic_art_style = timeline.get("art_style") or art_styles[abs(hash(topic.strip().lower())) % len(art_styles)]
-    if topic_art_style not in art_styles:
-        topic_art_style = art_styles[0]
+    raw_art = str(timeline.get("art_style") or "").strip()
+    if engine_style == "cinematic_studio":
+        from core.palette_engine import STUDIO_WORLDS
+        if raw_art and (raw_art.lower() in STUDIO_WORLDS or raw_art.lower() in art_styles or raw_art.startswith("#") or raw_art.lower().startswith("hue:") or raw_art.lower() in ("dynamic_hsl", "procedural", "hsl")):
+            topic_art_style = raw_art
+        else:
+            studio_pool = list(STUDIO_WORLDS.keys())
+            topic_art_style = studio_pool[abs(hash(topic.strip().lower())) % len(studio_pool)]
+    else:
+        topic_art_style = raw_art or art_styles[abs(hash(topic.strip().lower())) % len(art_styles)]
+        if topic_art_style not in art_styles:
+            topic_art_style = art_styles[0]
     timeline["art_style"] = topic_art_style
 
     role_tone_defaults = ["fireship_octane", "staff_engineer", "dramatic_performance", "interview_prep", "conversational_casual"]

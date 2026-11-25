@@ -2504,34 +2504,47 @@ def generate_thumbnail_9_16(
         from core.cinematic_engine import (
             StudioStage,
             _build_volumetric_studio_bg,
-            _dispatch_cinematic,
             _draw_studio_header,
             _draw_wrapped_text as _cin_wrap,
             _get_font as _cin_font,
-            _resolve_world,
+            dispatch_studio_layout,
+            resolve_studio_world,
         )
-        world = _resolve_world(art_style, timeline.get("scenes", [{}])[0].get("scene_tone", "staff_engineer") if isinstance(timeline, dict) else "staff_engineer")
+        sc0 = timeline.get("scenes", [{}])[0] if isinstance(timeline, dict) else {}
+        world = resolve_studio_world(
+            art_style=art_style,
+            tone=sc0.get("scene_tone", "staff_engineer") if isinstance(sc0, dict) else "staff_engineer",
+            visual_data=sc0.get("visual_data", {}) if isinstance(sc0, dict) else {},
+            topic=topic.strip(),
+        )
         bg = _build_volumetric_studio_bg(canvas_w, canvas_h, world)
         stage = StudioStage(canvas_w, canvas_h, world)
         c_accent = world["cyan"]
-        badge_text = str(timeline["scenes"][0].get("visual_data", {}).get("badge", "")) if (isinstance(timeline, dict) and timeline.get("scenes")) else ""
+        badge_text = str(sc0.get("visual_data", {}).get("badge", "")) if isinstance(sc0, dict) else ""
         _draw_studio_header(stage, badge_text, topic.strip()[:85], c_accent)
         t_sc = None
+        preferred_thumb = {
+            "iso_architecture", "node_graph", "iso_comparison", "spatial_canvas", "svg_scene",
+            "layer_stack_3d", "matrix_2x2", "pyramid_hierarchy", "radial_gauge", "benchmark_3d",
+            "sequence_diagram", "er_schema", "custom_scene", "architecture_flow",
+            "split_comparison", "terminal_studio", "code_terminal",
+        }
         if isinstance(timeline, dict) and timeline.get("scenes"):
             for sc in timeline["scenes"]:
-                if sc.get("visual_type") in ["iso_architecture", "node_graph", "iso_comparison", "custom_scene", "architecture_flow", "split_comparison", "terminal_studio", "code_terminal"]:
+                if sc.get("visual_type") in preferred_thumb:
                     t_sc = sc
                     break
             if not t_sc:
                 t_sc = timeline["scenes"][0]
         if t_sc:
-            _dispatch_cinematic(stage, t_sc.get("visual_type", "custom_scene"), t_sc.get("visual_data", {}), 1.0)
+            dispatch_studio_layout(stage, t_sc.get("visual_type", "custom_scene"), t_sc.get("visual_data", {}), 1.0, world, topic=topic.strip())
         card_w, card_h = 940, 150
         cx, cy = (canvas_w - card_w) // 2, 1600
-        stage.draw_glass_card((cx, cy, cx + card_w, cy + card_h), c_accent, radius=26, alpha_mul=1.0, active=True)
-        _cin_wrap(stage.draw, str(timeline.get("hook_headline") or topic.strip())[:70] if isinstance(timeline, dict) else topic.strip()[:70], _cin_font(34, bold=True), cx + 40, cy + 28, card_w - 80, world["text"], align="center", max_lines=1)
+        stage.draw_glass_card((cx, cy, cx + card_w, cy + card_h), radius=26, accent_col=c_accent, alpha_mul=1.0, active=True)
+        hook_txt = str(timeline.get("hook_headline") or topic.strip())[:70] if isinstance(timeline, dict) else topic.strip()[:70]
+        _cin_wrap(stage.draw, (cx + 40, cy + 28), hook_txt, _cin_font(34, bold=True), world["text"], card_w - 80, align="center", max_lines=1)
         if watermark:
-            _cin_wrap(stage.draw, watermark, _cin_font(26, bold=True), cx + 40, cy + 84, card_w - 80, c_accent, align="center", max_lines=1)
+            _cin_wrap(stage.draw, (cx + 40, cy + 84), watermark, _cin_font(26, bold=True), c_accent, card_w - 80, align="center", max_lines=1)
         im_out = stage.composite_onto(bg)
         chrome = ImageDraw.Draw(im_out, "RGBA")
         _draw_story_progress_bar(chrome, total_scenes=4, current_scene=1, progress=0.25, canvas_w=canvas_w, accent=c_accent)

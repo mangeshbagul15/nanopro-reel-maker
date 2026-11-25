@@ -8,10 +8,24 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-# Ensure fresh module imports on Streamlit Cloud hot-reloads
+# Ensure fresh module imports on Streamlit Cloud hot-reloads in topological DAG order
 import importlib
+_RELOAD_ORDER = [
+    "core.config",
+    "core.palette_engine",
+    "core.svg_engine",
+    "core.shapes_3d",
+    "core.layouts_studio",
+    "core.cinematic_engine",
+]
+for _m in _RELOAD_ORDER:
+    if _m in sys.modules:
+        try:
+            importlib.reload(sys.modules[_m])
+        except Exception:
+            pass
 for mod_name in list(sys.modules.keys()):
-    if mod_name.startswith("core."):
+    if mod_name.startswith("core.") and mod_name not in _RELOAD_ORDER:
         try:
             importlib.reload(sys.modules[mod_name])
         except Exception:
@@ -217,7 +231,7 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("cinematic_studio", "🎬 Cinematic 2.5D Motion Studio (All 3D Shapes, Bezier Glow, Node Graph & Spring FX) [Ultra Pro]"),
+            ("cinematic_studio", "🎬 Cinematic 2.5D Studio (Infinite HSL Color, 33+ Layouts, Spatial Composer, 50 Shapes & 200k+ SVG) [Pro]"),
             ("auto_dynamic", "⚡ Dynamic / Auto (AI Decides Visuals, Progressive Flow & Voice Choreography) [Recommended]"),
             ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
@@ -235,7 +249,7 @@ with st.sidebar:
         ],
         format_func=lambda x: x[1],
         key="visual_engine_select",
-        help="Cinematic 2.5D Studio includes Subtle Grid + Parallax Depth (zero floor mesh), ALL 13 3D shapes (box, stack, cylinder, sphere, hexagon, pyramid, diamond, cloud, shield, chip, bucket, gear, bot), Node Graph, Live Counter, Card Flip, Elastic Pop, Step Progress Bar, Layered Cards & Optical Bloom."
+        help="Cinematic 2.5D Studio Pro features: Unlimited Procedural HSL + 25 Color Worlds, 33+ Technical Layouts + Freeform Spatial Composer + AI Multi-Layer <svg> Renderer (resvg_py), All 50 3D Shapes + 200,000+ Iconify SVGs & 60+ Crisp Vector Icons."
     )
     
     custom_style_prompt = ""
