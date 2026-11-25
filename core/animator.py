@@ -20,6 +20,32 @@ TEXT_PRIMARY = (248, 250, 252)   # Crisp White
 TEXT_MUTED = (148, 163, 184)     # Modern Slate Muted
 TEXT_DIM = (100, 116, 139)       # Dim Slate
 
+ACCENT_THEMES = {
+    "cyber_cyan": {"primary": (56, 189, 248), "secondary": (168, 85, 247), "bg": (11, 15, 25)},
+    "indigo_cyan": {"primary": (99, 102, 241), "secondary": (56, 189, 248), "bg": (12, 14, 30)},
+    "emerald_matrix": {"primary": (52, 211, 153), "secondary": (56, 189, 248), "bg": (9, 20, 22)},
+    "gold_purple": {"primary": (251, 191, 36), "secondary": (168, 85, 247), "bg": (16, 14, 26)},
+    "crimson_alert": {"primary": (244, 63, 94), "secondary": (251, 191, 36), "bg": (20, 12, 20)},
+}
+
+
+def _build_themed_canvas(canvas_w: int, canvas_h: int, theme_name: str = "cyber_cyan") -> Tuple[Image.Image, Dict[str, Tuple[int, int, int]]]:
+    """Builds a crisp cyber-grid background base canvas tailored to the scene's accent theme."""
+    theme = ACCENT_THEMES.get(str(theme_name).lower().strip(), ACCENT_THEMES["cyber_cyan"])
+    bg = theme["bg"]
+    p = theme["primary"]
+    base = Image.new("RGB", (canvas_w, canvas_h), bg)
+    gdraw = ImageDraw.Draw(base, "RGBA")
+    grid_col = (p[0], p[1], p[2], 14)
+    step = 90
+    for gx in range(0, canvas_w, step):
+        gdraw.line((gx, 0, gx, canvas_h), fill=grid_col, width=1)
+    for gy in range(0, canvas_h, step):
+        gdraw.line((0, gy, canvas_w, gy), fill=grid_col, width=1)
+    # Subtle top radial halo behind title
+    gdraw.ellipse((canvas_w // 2 - 360, -140, canvas_w // 2 + 360, 420), fill=(p[0], p[1], p[2], 16))
+    return base, theme
+
 def get_font(size: int = 40, bold: bool = False) -> ImageFont.ImageFont:
     """Returns a clean Truetype font across Windows (Local) and Linux (Streamlit Cloud)."""
     font_names = [
@@ -265,7 +291,10 @@ def render_scene_frames(
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
     canvas_w = spec.get("width", VIDEO_WIDTH)
     canvas_h = spec.get("height", VIDEO_HEIGHT)
-    base_canvas = Image.new("RGB", (canvas_w, canvas_h), COLOR_BG_DARK)
+    theme_cycle = ["indigo_cyan", "cyber_cyan", "emerald_matrix", "gold_purple", "crimson_alert"]
+    chosen_theme = visual_data.get("accent_theme") or theme_cycle[(scene_idx - 1) % len(theme_cycle)]
+    base_canvas, theme_cfg = _build_themed_canvas(canvas_w, canvas_h, chosen_theme)
+    accent_col = theme_cfg["primary"]
     needs_aspect_fit = (canvas_w != VIDEO_WIDTH or canvas_h != VIDEO_HEIGHT)
     anchors = _build_choreography_anchors(duration, scene, scene_words)
     
@@ -276,9 +305,9 @@ def render_scene_frames(
 
         if needs_aspect_fit:
             # Render scene content on virtual 1080x1500 content stage, then fit cleanly onto 16:9 or 1:1
-            stage = Image.new("RGBA", (VIDEO_WIDTH, 1500), (*COLOR_BG_DARK, 0))
+            stage = Image.new("RGBA", (VIDEO_WIDTH, 1500), (*theme_cfg["bg"], 0))
             s_draw = ImageDraw.Draw(stage, "RGBA")
-            _draw_header(s_draw, visual_data.get("badge", "TECH ARCHITECTURE"), visual_data.get("title", ""))
+            _draw_header(s_draw, visual_data.get("badge", "TECH ARCHITECTURE"), visual_data.get("title", ""), accent=accent_col)
             _dispatch_visual_renderer(s_draw, visual_type, visual_data, progress)
 
             # Scale stage cleanly to fit inside canvas_w x (canvas_h - 140) leaving room for top bar & subtitles
@@ -296,11 +325,11 @@ def render_scene_frames(
             draw = ImageDraw.Draw(frame, "RGBA")
         else:
             draw = ImageDraw.Draw(frame, "RGBA")
-            _draw_header(draw, visual_data.get("badge", "TECH ARCHITECTURE"), visual_data.get("title", ""))
+            _draw_header(draw, visual_data.get("badge", "TECH ARCHITECTURE"), visual_data.get("title", ""), accent=accent_col)
             _dispatch_visual_renderer(draw, visual_type, visual_data, progress)
 
         # Top Story Progress Bar & Watermark always crisp at native canvas resolution
-        _draw_story_progress_bar(draw, total_scenes, scene_idx, linear_p, canvas_w=canvas_w)
+        _draw_story_progress_bar(draw, total_scenes, scene_idx, linear_p, canvas_w=canvas_w, accent=accent_col)
         if watermark:
             _draw_watermark(draw, canvas_w, canvas_h, watermark)
             
@@ -339,9 +368,21 @@ def _dispatch_visual_renderer(draw: ImageDraw.Draw, visual_type: str, visual_dat
         "incident": "alert_diagram",
         "bottleneck": "alert_diagram",
         "sql": "sql_table",
+        "question_hook": "hero_hook",
+        "hook_card": "hero_hook",
+        "interview_hook": "hero_hook",
+        "hero": "hero_hook",
+        "merge_diagram": "hybrid_merge",
+        "combination_diagram": "hybrid_merge",
+        "hybrid_architecture": "hybrid_merge",
+        "hybrid_approach": "hybrid_merge",
     }
     vt = aliases.get(str(visual_type).lower().strip(), visual_type)
-    if vt == "split_comparison":
+    if vt == "hero_hook":
+        _render_hero_hook(draw, visual_data, progress)
+    elif vt == "hybrid_merge":
+        _render_hybrid_merge(draw, visual_data, progress)
+    elif vt == "split_comparison":
         _render_split_comparison(draw, visual_data, progress)
     elif vt == "benchmark_chart":
         _render_benchmark_chart(draw, visual_data, progress)
@@ -365,7 +406,7 @@ def _dispatch_visual_renderer(draw: ImageDraw.Draw, visual_type: str, visual_dat
         _render_concept_cards(draw, visual_data, progress)
 
 
-def _draw_story_progress_bar(draw: ImageDraw.Draw, total_scenes: int, current_scene: int, progress: float, canvas_w: int = VIDEO_WIDTH) -> None:
+def _draw_story_progress_bar(draw: ImageDraw.Draw, total_scenes: int, current_scene: int, progress: float, canvas_w: int = VIDEO_WIDTH, accent: Tuple[int, int, int] = NEON_CYAN) -> None:
     """Draws a continuous sleek modern YouTube Shorts / Fireship progress bar across the entire video."""
     global_progress = ((current_scene - 1) + progress) / max(1, total_scenes)
     bar_y = 25
@@ -376,10 +417,10 @@ def _draw_story_progress_bar(draw: ImageDraw.Draw, total_scenes: int, current_sc
     
     # Sleek dark track
     draw.rounded_rectangle((padding, bar_y, padding + track_w, bar_y + bar_h), radius=3, fill=(255, 255, 255, 35))
-    # Glowing neon cyan progress
-    draw.rounded_rectangle((padding, bar_y, padding + fill_w, bar_y + bar_h), radius=3, fill=NEON_CYAN)
+    # Glowing accent progress
+    draw.rounded_rectangle((padding, bar_y, padding + fill_w, bar_y + bar_h), radius=3, fill=accent)
 
-def _draw_header(draw: ImageDraw.Draw, badge_text: str, title_text: str) -> None:
+def _draw_header(draw: ImageDraw.Draw, badge_text: str, title_text: str, accent: Tuple[int, int, int] = NEON_CYAN) -> None:
     font_badge = get_font(26, bold=True)
     font_title = get_font(44, bold=True)
     
@@ -391,10 +432,10 @@ def _draw_header(draw: ImageDraw.Draw, badge_text: str, title_text: str) -> None
     bx = (VIDEO_WIDTH - bw) // 2
     by = 115
     
-    draw.rounded_rectangle((bx - 2, by - 2, bx + bw + 2, by + bh + 2), radius=26, fill=(56, 189, 248, 50))
-    draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=25, fill=(15, 23, 42, 240), outline=NEON_CYAN, width=3)
+    draw.rounded_rectangle((bx - 2, by - 2, bx + bw + 2, by + bh + 2), radius=26, fill=(*accent, 50))
+    draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=25, fill=(15, 23, 42, 240), outline=accent, width=3)
     tx_badge = bx + (bw - raw_bw) // 2
-    draw.text((tx_badge, by + 10), badge_str, fill=NEON_CYAN, font=font_badge)
+    draw.text((tx_badge, by + 10), badge_str, fill=accent, font=font_badge)
     
     if title_text:
         max_title_w = 940
@@ -430,33 +471,33 @@ def _render_split_comparison(draw: ImageDraw.Draw, data: Dict[str, Any], progres
     lx = 65
     rx = 570
     
-    # Left Card (Problem / Legacy - Red Tint) - reveals first (0.04 -> 0.45)
-    if progress >= 0.03:
-        draw.rounded_rectangle((lx, top_y, lx + col_w, top_y + card_h), radius=24, fill=(26, 15, 20, 245), outline=NEON_ROSE, width=3)
-        draw.rounded_rectangle((lx + 20, top_y + 20, lx + col_w - 20, top_y + 80), radius=14, fill=(244, 63, 94, 40))
-        draw_wrapped_text(draw, f"X  {left_label.upper()}", get_font(25, bold=True), lx + 30, top_y + 36, col_w - 60, NEON_ROSE, align="center", max_lines=1)
+    # Left Card (Problem / Legacy - Red Tint) - immediately visible at 0.0s (no blank frame!)
+    draw.rounded_rectangle((lx, top_y, lx + col_w, top_y + card_h), radius=24, fill=(26, 15, 20, 245), outline=NEON_ROSE, width=3)
+    draw.rounded_rectangle((lx + 20, top_y + 20, lx + col_w - 20, top_y + 80), radius=14, fill=(244, 63, 94, 40))
+    draw_wrapped_text(draw, f"X  {left_label.upper()}", get_font(25, bold=True), lx + 30, top_y + 36, col_w - 60, NEON_ROSE, align="center", max_lines=1)
+    
+    for i, pt in enumerate(left_points[:3]):
+        if progress < (0.04 + i * 0.12):
+            continue
+        py = top_y + 120 + (i * 170)
+        draw.rounded_rectangle((lx + 20, py, lx + col_w - 20, py + 140), radius=16, fill=(15, 23, 42, 220), outline=(244, 63, 94, 80), width=1)
+        draw.ellipse((lx + 36, py + 30, lx + 54, py + 48), fill=NEON_ROSE)
+        draw_wrapped_text(draw, pt, get_font(26), lx + 68, py + 22, col_w - 102, TEXT_PRIMARY, max_lines=3, line_spacing=6)
         
-        for i, pt in enumerate(left_points[:3]):
-            if progress < (0.10 + i * 0.11):
-                continue
-            py = top_y + 120 + (i * 170)
-            draw.rounded_rectangle((lx + 20, py, lx + col_w - 20, py + 140), radius=16, fill=(15, 23, 42, 220), outline=(244, 63, 94, 80), width=1)
-            draw.text((lx + 35, py + 20), "•", fill=NEON_ROSE, font=get_font(34, bold=True))
-            draw_wrapped_text(draw, pt, get_font(26), lx + 65, py + 22, col_w - 100, TEXT_PRIMARY, max_lines=3, line_spacing=6)
-        
-    # Right Card (Solution / Modern - Green/Cyan Tint) - reveals in second half (0.48 -> 0.90)
-    if progress >= 0.48:
+    # Right Card (Solution / Modern - Green/Cyan Tint) - reveals progressively
+    if progress >= 0.44:
         draw.rounded_rectangle((rx, top_y, rx + col_w, top_y + card_h), radius=24, fill=(11, 28, 26, 245), outline=NEON_EMERALD, width=3)
         draw.rounded_rectangle((rx + 20, top_y + 20, rx + col_w - 20, top_y + 80), radius=14, fill=(52, 211, 153, 40))
         draw_wrapped_text(draw, f"+  {right_label.upper()}", get_font(25, bold=True), rx + 30, top_y + 36, col_w - 60, NEON_EMERALD, align="center", max_lines=1)
         
         for i, pt in enumerate(right_points[:3]):
-            if progress < (0.54 + i * 0.11):
+            if progress < (0.50 + i * 0.12):
                 continue
             py = top_y + 120 + (i * 170)
             draw.rounded_rectangle((rx + 20, py, rx + col_w - 20, py + 140), radius=16, fill=(15, 23, 42, 220), outline=(52, 211, 153, 90), width=1)
-            draw.text((rx + 35, py + 20), "✓", fill=NEON_EMERALD, font=get_font(30, bold=True))
-            draw_wrapped_text(draw, pt, get_font(26), rx + 65, py + 22, col_w - 100, TEXT_PRIMARY, max_lines=3, line_spacing=6)
+            # Vector checkmark (zero unicode font dependency / no tofu boxes!)
+            _draw_vector_check(draw, rx + 46, py + 38, radius=14)
+            draw_wrapped_text(draw, pt, get_font(26), rx + 70, py + 22, col_w - 104, TEXT_PRIMARY, max_lines=3, line_spacing=6)
         
     # Center "VS" Badge
     if progress >= 0.42:
@@ -866,10 +907,10 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
         node_h, gap, start_y = 135, 180, 405
     
     node_coords = []
-    # Progressive step-by-step reveal: Node 0 -> Arrow 0->1 -> Node 1 -> Arrow 1->2 -> Node 2
+    # Progressive step-by-step reveal: Node 0 visible from 0.0s -> Arrow 0->1 -> Node 1 -> Arrow 1->2 -> Node 2
     step_span = 0.85 / max(1, n_count)
     for i, node in enumerate(nodes):
-        node_start = 0.04 + (i * step_span)
+        node_start = 0.0 if i == 0 else (0.04 + (i * step_span))
         if progress < node_start:
             continue
         ny = start_y + (i * gap)
@@ -881,11 +922,10 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
         draw.rounded_rectangle((center_x, ny, center_x + node_w, ny + node_h), radius=22, fill=CARD_BG, outline=accent_rgb, width=4 if is_current_focus else 2)
         draw.ellipse((center_x + 35, ny + (node_h - 45) // 2, center_x + 80, ny + (node_h + 45) // 2), fill=accent_rgb)
         
-        draw_wrapped_text(draw, node.get("label", ""), font_title, center_x + 100, ny + 20, 720, TEXT_PRIMARY, max_lines=1)
-        sub_text = node.get("sub") or "Cloud Service"
-        if isinstance(sub_text, str):
-            sub_text = sub_text.title()
-        draw_wrapped_text(draw, sub_text, font_sub, center_x + 100, ny + 68, 720, TEXT_MUTED, max_lines=2)
+        draw_wrapped_text(draw, node.get("label", ""), font_title, center_x + 100, ny + 22, 720, TEXT_PRIMARY, max_lines=1)
+        sub_text = node.get("sub") or "Pipeline Stage"
+        # Preserve acronyms like JSON, SQL, RAG, LLM, AWS instead of calling .title()
+        draw_wrapped_text(draw, str(sub_text), font_sub, center_x + 100, ny + 70, 720, TEXT_MUTED, max_lines=2)
 
     for idx_pos in range(len(node_coords) - 1):
         i_src, x1, y1 = node_coords[idx_pos]
@@ -902,50 +942,189 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
         )
 
 # =========================================================================
-# 10. CONCEPT COMPARISON CARDS
+# 10. CONCEPT COMPARISON CARDS (with Warning Box & CTA Support)
 # =========================================================================
 def _render_concept_cards(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
     raw_bullets = data.get("bullets") or data.get("points") or data.get("key_points") or data.get("features") or data.get("concepts") or []
     if not raw_bullets:
-        topic_title = data.get("title") or "Key System Architecture"
+        topic_title = data.get("title") or "Key Engineering Principles"
         raw_bullets = [
-            f"{topic_title}: Core execution and distributed state replication",
-            "Zero Production Downtime: Continuous transaction sync without row locks",
-            "High-Availability Failover: Multi-AZ automated disaster recovery"
+            f"{topic_title}: Core execution mechanism",
+            "Structured Pattern: Predictable & deterministic output",
+            "Production Ready: Balanced latency and cost"
         ]
-    font_head = get_font(34, bold=True)
-    font_sub = get_font(26)
+    font_head = get_font(33, bold=True)
+    font_sub = get_font(25)
     card_w = 940
-    card_h = 180
-    start_y = 440
-    gap = 215
+    has_warn = bool(data.get("warning_box"))
+    has_cta = bool(data.get("footer_cta") or data.get("cta_text"))
+    card_h = 165 if (has_warn or len(raw_bullets) >= 3) else 185
+    start_y = 420
+    gap = card_h + 28
     cx = (VIDEO_WIDTH - card_w) // 2
     
     for i, bullet in enumerate(raw_bullets[:3]):
-        card_start = 0.05 + (i * 0.24)
+        card_start = 0.0 if i == 0 else (i * 0.24)
         if progress < card_start:
             continue
-        is_focused = (card_start <= progress < card_start + 0.24)
+        is_focused = (card_start <= progress < card_start + 0.25)
         cy = start_y + (i * gap)
-        parts = bullet.split(":") if ":" in bullet else (bullet.split("—") if "—" in bullet else [bullet, ""])
+        parts = bullet.split(":", 1) if ":" in bullet else (bullet.split("—", 1) if "—" in bullet else [bullet, ""])
         headline = parts[0].strip()
-        subtext = parts[1].strip() if len(parts) > 1 else "High performance architecture principle"
+        subtext = parts[1].strip() if len(parts) > 1 else ""
         
         draw.rounded_rectangle((cx, cy, cx + card_w, cy + card_h), radius=24, fill=CARD_BG, outline=NEON_CYAN if is_focused else CARD_BORDER, width=4 if is_focused else 2)
-        _draw_vector_check(draw, cx + 70, cy + card_h // 2, radius=32)
-        draw_wrapped_text(draw, headline, font_head, cx + 135, cy + 32, 740, TEXT_PRIMARY, max_lines=1)
-        draw_wrapped_text(draw, subtext, font_sub, cx + 135, cy + 86, 740, TEXT_MUTED, max_lines=2)
+        _draw_vector_check(draw, cx + 68, cy + card_h // 2, radius=30)
+        if subtext:
+            draw_wrapped_text(draw, headline, font_head, cx + 128, cy + 28, 765, TEXT_PRIMARY, max_lines=1)
+            draw_wrapped_text(draw, subtext, font_sub, cx + 128, cy + 78, 765, TEXT_MUTED, max_lines=2)
+        else:
+            draw_wrapped_text(draw, headline, font_head, cx + 128, cy + (card_h // 2) - 24, 765, TEXT_PRIMARY, max_lines=2)
 
-    # Metric HUD reveals after cards
-    if progress >= 0.78:
-        hud_w, hud_h = 940, 150
-        hx = (VIDEO_WIDTH - hud_w) // 2
-        hy = 1110
-        draw.rounded_rectangle((hx, hy, hx + hud_w, hy + hud_h), radius=24, fill=(11, 18, 33, 245), outline=NEON_EMERALD, width=3)
-        draw_wrapped_text(draw, "THROUGHPUT CAPACITY", get_font(22, bold=True), hx + 50, hy + 28, 450, NEON_EMERALD, max_lines=1)
-        draw_wrapped_text(draw, "1,000,000+ msgs/s", get_font(42, bold=True), hx + 50, hy + 65, 450, TEXT_PRIMARY, max_lines=1)
-        draw.text((hx + 560, hy + 28), "SYSTEM LATENCY", fill=NEON_CYAN, font=get_font(22, bold=True))
-        draw.text((hx + 560, hy + 65), "< 2.5 ms", fill=NEON_CYAN, font=get_font(42, bold=True))
+    last_y = start_y + (min(3, len(raw_bullets)) * gap) + 12
+
+    # Optional Amber Warning Callout Box (e.g. "NOT for live facts or frequent policy updates")
+    if has_warn and progress >= 0.68:
+        warn_h = 145
+        wy = min(1140, last_y)
+        draw.rounded_rectangle((cx, wy, cx + card_w, wy + warn_h), radius=22, fill=(32, 22, 12, 245), outline=NEON_AMBER, width=3)
+        draw_wrapped_text(draw, "!  IMPORTANT LIMITATION", get_font(21, bold=True), cx + 36, wy + 22, 860, NEON_AMBER, max_lines=1)
+        draw_wrapped_text(draw, str(data["warning_box"]), get_font(27, bold=True), cx + 36, wy + 60, 860, TEXT_PRIMARY, max_lines=2)
+        last_y = wy + warn_h + 24
+
+    # Optional Metrics HUD only when explicitly supplied in visual_data
+    elif data.get("metrics") and progress >= 0.72:
+        metrics = data["metrics"]
+        hud_w, hud_h = 940, 145
+        hy = min(1120, last_y)
+        draw.rounded_rectangle((cx, hy, cx + hud_w, hy + hud_h), radius=24, fill=(11, 18, 33, 245), outline=NEON_EMERALD, width=3)
+        if isinstance(metrics, list) and len(metrics) >= 2:
+            draw_wrapped_text(draw, str(metrics[0].get("label", "METRIC 1")).upper(), get_font(20, bold=True), cx + 45, hy + 24, 420, NEON_EMERALD, max_lines=1)
+            draw_wrapped_text(draw, str(metrics[0].get("val", "")), get_font(38, bold=True), cx + 45, hy + 62, 420, TEXT_PRIMARY, max_lines=1)
+            draw_wrapped_text(draw, str(metrics[1].get("label", "METRIC 2")).upper(), get_font(20, bold=True), cx + 510, hy + 24, 400, NEON_CYAN, max_lines=1)
+            draw_wrapped_text(draw, str(metrics[1].get("val", "")), get_font(38, bold=True), cx + 510, hy + 62, 400, NEON_CYAN, max_lines=1)
+
+    # Optional Bottom CTA Strip (e.g. "Save • Share • Follow for More")
+    if has_cta and progress >= 0.65:
+        cta_txt = str(data.get("footer_cta") or data.get("cta_text")).replace("•", " | ")
+        cta_y = max(last_y + 10, 1210)
+        cta_h = 84
+        draw.rounded_rectangle((cx + 40, cta_y, cx + card_w - 40, cta_y + cta_h), radius=42, fill=(15, 32, 48, 245), outline=NEON_CYAN, width=3)
+        draw_wrapped_text(draw, cta_txt.upper(), get_font(28, bold=True), cx + 60, cta_y + 24, card_w - 120, TEXT_PRIMARY, align="center", max_lines=1)
+
+
+# =========================================================================
+# 11. HERO HOOK (Question Card + Side Pills + Stat Callout — Replaces Boring Red Circle!)
+# =========================================================================
+def _render_hero_hook(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    question = data.get("question") or data.get("title") or "Which Architecture Wins?"
+    left_pill = data.get("left_pill") or "Approach A"
+    right_pill = data.get("right_pill") or "Approach B"
+    stat_badge = data.get("stat_badge") or "CRITICAL ENGINEERING CHOICE"
+    sub_callouts = data.get("sub_callouts") or []
+
+    # 1. Center Hero Question Card (visible immediately at 0.0s!)
+    cw, ch = 940, 270
+    cx = (VIDEO_WIDTH - cw) // 2
+    cy = 430
+    draw.rounded_rectangle((cx - 3, cy - 3, cx + cw + 3, cy + ch + 3), radius=30, fill=(99, 102, 241, 35))
+    draw.rounded_rectangle((cx, cy, cx + cw, cy + ch), radius=28, fill=(15, 23, 42, 248), outline=(99, 102, 241), width=4)
+    draw_wrapped_text(draw, "CORE ENGINEERING DILEMMA", get_font(21, bold=True), cx + 40, cy + 28, cw - 80, NEON_CYAN, align="center", max_lines=1)
+    draw_wrapped_text(draw, question, get_font(40, bold=True), cx + 45, cy + 78, cw - 90, TEXT_PRIMARY, align="center", max_lines=3, line_spacing=8)
+
+    # 2. Comparison Side Pills + VS Connector (reveals cleanly 16% -> 45%)
+    if progress >= 0.16:
+        pw, ph = 390, 125
+        py = 760
+        lx = 70
+        rx = VIDEO_WIDTH - 70 - pw
+        # Left Pill
+        draw.rounded_rectangle((lx, py, lx + pw, py + ph), radius=24, fill=(12, 32, 48, 245), outline=NEON_CYAN, width=3)
+        draw_wrapped_text(draw, left_pill, get_font(30, bold=True), lx + 20, py + 40, pw - 40, NEON_CYAN, align="center", max_lines=1)
+
+        if progress >= 0.28:
+            # Animated glowing VS circle
+            vx, vy = VIDEO_WIDTH // 2, py + ph // 2
+            draw.ellipse((vx - 38, vy - 38, vx + 38, vy + 38), fill=(15, 23, 42), outline=NEON_AMBER, width=4)
+            draw.text((vx - 20, vy - 17), "VS", fill=NEON_AMBER, font=get_font(26, bold=True))
+
+            # Right Pill
+            draw.rounded_rectangle((rx, py, rx + pw, py + ph), radius=24, fill=(28, 16, 46, 245), outline=NEON_PURPLE, width=3)
+            draw_wrapped_text(draw, right_pill, get_font(30, bold=True), rx + 20, py + 40, pw - 40, NEON_PURPLE, align="center", max_lines=1)
+
+    # 3. Highlight Callout Stat Badge (e.g. "90% Candidates Confused") (reveals >= 45%)
+    if progress >= 0.45:
+        bw, bh = 860, 105
+        bx = (VIDEO_WIDTH - bw) // 2
+        by = 945
+        draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=24, fill=(40, 26, 12, 245), outline=NEON_AMBER, width=3)
+        draw_wrapped_text(draw, f"!  {stat_badge.upper()}", get_font(29, bold=True), bx + 30, by + 32, bw - 60, NEON_AMBER, align="center", max_lines=1)
+
+    # 4. Trap / Takeaway Sub-Callouts (reveals >= 68%)
+    if sub_callouts and progress >= 0.68:
+        sy = 1095
+        for idx, sc_txt in enumerate(sub_callouts[:2]):
+            if progress < (0.68 + idx * 0.14):
+                continue
+            row_y = sy + (idx * 85)
+            draw.rounded_rectangle((100, row_y, VIDEO_WIDTH - 100, row_y + 70), radius=16, fill=CARD_BG, outline=NEON_ROSE if idx == 0 else CARD_BORDER, width=2)
+            draw_wrapped_text(draw, str(sc_txt), get_font(24, bold=True), 130, row_y + 20, VIDEO_WIDTH - 260, TEXT_PRIMARY, align="center", max_lines=1)
+
+
+# =========================================================================
+# 12. HYBRID MERGE DIAGRAM (Left Pillar + Right Pillar -> Merged System -> Outcomes)
+# =========================================================================
+def _render_hybrid_merge(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    lp = data.get("left_pillar") or {"label": "Fine-Tuning", "sub": "Structure & Tone"}
+    rp = data.get("right_pillar") or {"label": "RAG System", "sub": "Fresh Data & Rules"}
+    merged = data.get("merged_label") or "Unified Production System"
+    outcomes = data.get("outcomes") or ["Accuracy", "Consistency", "Freshness"]
+
+    pw, ph = 420, 175
+    top_y = 435
+    lx, rx = 75, VIDEO_WIDTH - 75 - pw
+
+    # 1. Left & Right Input Pillars (Left immediate at 0.0, Right reveals at 0.14)
+    draw.rounded_rectangle((lx, top_y, lx + pw, top_y + ph), radius=24, fill=(28, 18, 45, 245), outline=NEON_PURPLE, width=3)
+    draw_wrapped_text(draw, str(lp.get("label", "Pillar 1")), get_font(30, bold=True), lx + 20, top_y + 36, pw - 40, NEON_PURPLE, align="center", max_lines=1)
+    draw_wrapped_text(draw, str(lp.get("sub", "")), get_font(22), lx + 20, top_y + 88, pw - 40, TEXT_PRIMARY, align="center", max_lines=2)
+
+    if progress >= 0.14:
+        draw.ellipse((VIDEO_WIDTH // 2 - 28, top_y + ph // 2 - 28, VIDEO_WIDTH // 2 + 28, top_y + ph // 2 + 28), fill=(15, 23, 42), outline=NEON_AMBER, width=3)
+        draw.text((VIDEO_WIDTH // 2 - 11, top_y + ph // 2 - 20), "+", fill=NEON_AMBER, font=get_font(36, bold=True))
+
+        draw.rounded_rectangle((rx, top_y, rx + pw, top_y + ph), radius=24, fill=(12, 32, 48, 245), outline=NEON_CYAN, width=3)
+        draw_wrapped_text(draw, str(rp.get("label", "Pillar 2")), get_font(30, bold=True), rx + 20, top_y + 36, pw - 40, NEON_CYAN, align="center", max_lines=1)
+        draw_wrapped_text(draw, str(rp.get("sub", "")), get_font(22), rx + 20, top_y + 88, pw - 40, TEXT_PRIMARY, align="center", max_lines=2)
+
+    # 2. Converging Dotted/Glowing Merge Arrows -> Merged Block
+    merge_y = 770
+    mw, mh = 700, 150
+    mx = (VIDEO_WIDTH - mw) // 2
+    arr_t = _stage_reveal(progress, 0.28, 0.48)
+    _draw_data_packet_arrow(draw, (lx + pw // 2, top_y + ph), (mx + 160, merge_y), progress=progress, color=NEON_PURPLE, reveal_t=arr_t)
+    _draw_data_packet_arrow(draw, (rx + pw // 2, top_y + ph), (mx + mw - 160, merge_y), progress=progress, color=NEON_CYAN, reveal_t=arr_t)
+
+    if progress >= 0.42:
+        draw.rounded_rectangle((mx, merge_y, mx + mw, merge_y + mh), radius=26, fill=(11, 28, 26, 248), outline=NEON_EMERALD, width=4)
+        draw_wrapped_text(draw, "HYBRID ENGINE MERGE", get_font(20, bold=True), mx + 30, merge_y + 24, mw - 60, NEON_EMERALD, align="center", max_lines=1)
+        draw_wrapped_text(draw, str(merged), get_font(34, bold=True), mx + 30, merge_y + 66, mw - 60, TEXT_PRIMARY, align="center", max_lines=1)
+
+    # 3. Three Outcome Badges popping in one by one
+    if outcomes and progress >= 0.60:
+        out_y = 1030
+        bw = 290
+        gap = 25
+        start_x = (VIDEO_WIDTH - (bw * 3 + gap * 2)) // 2
+        colors = [NEON_EMERALD, NEON_CYAN, NEON_AMBER]
+        for idx, out_lbl in enumerate(outcomes[:3]):
+            if progress < (0.60 + idx * 0.11):
+                continue
+            bx = start_x + idx * (bw + gap)
+            c = colors[idx % len(colors)]
+            draw.rounded_rectangle((bx, out_y, bx + bw, out_y + 135), radius=22, fill=CARD_BG, outline=c, width=3)
+            _draw_vector_check(draw, bx + bw // 2, out_y + 42, radius=18)
+            draw_wrapped_text(draw, str(out_lbl).upper(), get_font(22, bold=True), bx + 12, out_y + 80, bw - 24, TEXT_PRIMARY, align="center", max_lines=1)
 
 def _draw_vector_warning(draw: ImageDraw.Draw, cx: int, cy: int, radius: int = 34) -> None:
     draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(244, 63, 94, 60), outline=NEON_ROSE, width=4)
@@ -1017,9 +1196,11 @@ def _draw_database_cylinder(
     led_y = y1 + ellipse_h // 2
     draw.ellipse((led_x - 5, led_y - 5, led_x + 5, led_y + 5), fill=NEON_EMERALD if led_blink else (51, 65, 85))
 
-    # Text Labels (wider box + 2 lines allowed so full names don't truncate)
-    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 15, cy - 18, w + 30, TEXT_PRIMARY, align="center", max_lines=2, line_spacing=2)
-    draw_wrapped_text(draw, sub, get_font(15), x1 - 15, cy + 28, w + 30, color, align="center", max_lines=1)
+    # Text Labels (dark backing pill inside cylinder so ring lines never cut through text + sub cleanly below base!)
+    lbl_bg_y1, lbl_bg_y2 = cy - 16, cy + 20
+    draw.rounded_rectangle((x1 + 14, lbl_bg_y1, x2 - 14, lbl_bg_y2), radius=8, fill=(11, 18, 33, 220))
+    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 15, cy - 11, w + 30, TEXT_PRIMARY, align="center", max_lines=1)
+    draw_wrapped_text(draw, sub, get_font(15), x1 - 15, y2 + 6, w + 30, color, align="center", max_lines=1)
 
 
 def _draw_server_rack(
@@ -1285,9 +1466,12 @@ def _draw_data_packet_arrow(
     if label:
         mx = (x1 + x2) // 2
         my = (y1 + y2) // 2 - 16
-        bw = len(label) * 9 + 18
+        lbl_font = get_font(14, bold=True)
+        bbox = lbl_font.getbbox(label)
+        tw = bbox[2] - bbox[0]
+        bw = tw + 20
         draw.rounded_rectangle((mx - bw // 2, my - 12, mx + bw // 2, my + 12), radius=8, fill=(15, 23, 42, 235), outline=(51, 65, 85), width=1)
-        draw.text((mx - bw // 2 + 9, my - 9), label, fill=NEON_AMBER, font=get_font(14, bold=True))
+        draw.text((mx - tw // 2, my - 9), label, fill=NEON_AMBER, font=lbl_font)
 
 
 def _draw_motion_pointer(
@@ -1322,101 +1506,137 @@ def _draw_motion_pointer(
         draw.text((cx - tw // 2, ly - 9), lbl_txt, fill=color, font=lbl_font)
 
 
+def _draw_semantic_node(
+    draw: ImageDraw.Draw,
+    cx: int,
+    cy: int,
+    label: str,
+    sub: str,
+    progress: float,
+    default_shape: str = "rack",
+    color: Tuple[int, int, int] = NEON_CYAN
+) -> None:
+    """Chooses the right vector icon semantically from label keywords (e.g. LLM Engine won't draw as a DB cylinder!)."""
+    lbl_l = f"{label} {sub}".lower()
+    if any(k in lbl_l for k in ["s3", "bucket", "lake", "parquet", "archive"]):
+        shape = "bucket"
+    elif any(k in lbl_l for k in ["postgres", "mysql", "aurora", "oracle", "sql", "database", "db", "store"]):
+        shape = "db"
+    elif any(k in lbl_l for k in ["llm", "agent", "ai", "model", "reason", "vector", "embed"]):
+        shape = "robot"
+    elif any(k in lbl_l for k in ["python", "api", "source", "client", "ingest", "code"]):
+        shape = "chip"
+    else:
+        shape = default_shape
+
+    if shape == "chip":
+        _draw_python_chip(draw, cx=cx, cy=cy, size=165, label=label, sub=sub, progress=progress)
+    elif shape == "robot":
+        _draw_ai_robot(draw, cx=cx, cy=cy, size=160, label=label, sub=sub, progress=progress)
+    elif shape == "db":
+        _draw_database_cylinder(draw, cx=cx, cy=cy, w=250, h=165, label=label, sub=sub, color=color, progress=progress)
+    elif shape == "bucket":
+        _draw_s3_bucket(draw, cx=cx, cy=cy, w=220, h=160, label=label, sub=sub, color=color, progress=progress)
+    else:
+        _draw_server_rack(draw, cx=cx, cy=cy, w=280, h=160, label=label, sub=sub, color=color, progress=progress)
+
+
 def _render_all_in_one_tech_canvas(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
     """
     Voice-Synced Progressive Reveal 2D Architecture Canvas:
-    Objects and dotted/glowing pipeline arrows appear STEP-BY-STEP as narration progresses,
-    never dumping the entire diagram at frame 0.
+    Objects and dotted/glowing pipeline arrows appear STEP-BY-STEP from 0.0s,
+    using semantic icons and clean spacing so pointers never touch VPC borders.
     """
-    # 1. Cloud & VPC Security Group Boundary (reveals immediately at start)
+    # 1. Cloud & VPC Boundary
     vpc_label = data.get("vpc_label") or "SYSTEM ARCHITECTURE • HIGH AVAILABILITY"
-    _draw_cloud_vpc_boundary(draw, 50, 420, 980, 800, label=vpc_label, color=NEON_CYAN)
+    _draw_cloud_vpc_boundary(draw, 50, 425, 980, 815, label=vpc_label, color=NEON_CYAN)
 
-    # Progressive reveal gates across scene duration (0.0 -> 1.0)
-    show_c1 = progress >= 0.04
-    arrow1_t = _stage_reveal(progress, 0.16, 0.30)
-    show_c3 = progress >= 0.25
-    show_c2 = progress >= 0.36
-    arrow2_t = _stage_reveal(progress, 0.42, 0.54)
+    # Node 1 visible immediately at 0.0s (no blank frame)
+    show_c1 = True
+    arrow1_t = _stage_reveal(progress, 0.10, 0.25)
+    show_c3 = progress >= 0.20
+    show_c2 = progress >= 0.34
+    arrow2_t = _stage_reveal(progress, 0.40, 0.54)
     arrow3_t = _stage_reveal(progress, 0.55, 0.68)
-    show_c4 = progress >= 0.62
+    show_c4 = progress >= 0.60
     arrow4_t = _stage_reveal(progress, 0.70, 0.82)
-    show_c5 = progress >= 0.76
+    show_c5 = progress >= 0.75
     show_hud = progress >= 0.85
 
-    # 2. Progressive Component Placement
+    # 2. Semantic Component Placement (clear vertical clearance under VPC badge y=425)
     c1_lbl = data.get("comp1_label") or "Client / Ingestion"
     c1_sub = data.get("comp1_sub") or "API & Request Layer"
     if show_c1:
-        _draw_python_chip(draw, cx=260, cy=560, size=175, label=c1_lbl, sub=c1_sub, progress=progress)
+        _draw_semantic_node(draw, 260, 595, c1_lbl, c1_sub, progress, default_shape="chip", color=NEON_CYAN)
 
     c2_lbl = data.get("comp2_label") or "AI Agent / Compute"
     c2_sub = data.get("comp2_sub") or "Reasoning & Logic"
     if show_c2:
-        _draw_ai_robot(draw, cx=820, cy=560, size=170, label=c2_lbl, sub=c2_sub, progress=progress)
+        _draw_semantic_node(draw, 820, 595, c2_lbl, c2_sub, progress, default_shape="robot", color=NEON_PURPLE)
 
     c3_lbl = data.get("comp3_label") or "Core Orchestrator"
     c3_sub = data.get("comp3_sub") or "Distributed Pipeline"
     if show_c3:
-        _draw_server_rack(draw, cx=540, cy=780, w=280, h=165, label=c3_lbl, sub=c3_sub, color=NEON_PURPLE, progress=progress)
+        _draw_semantic_node(draw, 540, 810, c3_lbl, c3_sub, progress, default_shape="rack", color=NEON_PURPLE)
 
     c4_lbl = data.get("comp4_label") or "Primary Database"
     c4_sub = data.get("comp4_sub") or "Transactional Store"
     if show_c4:
-        _draw_database_cylinder(draw, cx=270, cy=1050, w=260, h=180, label=c4_lbl, sub=c4_sub, color=NEON_CYAN, progress=progress)
+        _draw_semantic_node(draw, 270, 1075, c4_lbl, c4_sub, progress, default_shape="db", color=NEON_CYAN)
 
     c5_lbl = data.get("comp5_label") or "Target Sink / Lake"
     c5_sub = data.get("comp5_sub") or "Analytics & Output"
     if show_c5:
-        _draw_s3_bucket(draw, cx=810, cy=1050, w=230, h=170, label=c5_lbl, sub=c5_sub, color=NEON_EMERALD, progress=progress)
+        _draw_semantic_node(draw, 810, 1075, c5_lbl, c5_sub, progress, default_shape="bucket", color=NEON_EMERALD)
 
     # 3. Progressive Dotted/Glowing Pipeline Arrows
-    a1_lbl = data.get("arrow1_label") or "gRPC Stream"
-    a2_lbl = data.get("arrow2_label") or "Async Inference"
+    a1_lbl = data.get("arrow1_label") or "Stream"
+    a2_lbl = data.get("arrow2_label") or "Retrieve / Compute"
     a3_lbl = data.get("arrow3_label") or "State Write"
-    a4_lbl = data.get("arrow4_label") or "Event Sync"
+    a4_lbl = data.get("arrow4_label") or "Output Sync"
 
-    _draw_data_packet_arrow(draw, (350, 580), (450, 720), label=a1_lbl, progress=progress, color=NEON_CYAN, reveal_t=arrow1_t)
-    _draw_data_packet_arrow(draw, (730, 580), (630, 720), label=a2_lbl, progress=progress, color=NEON_PURPLE, reveal_t=arrow2_t)
-    _draw_data_packet_arrow(draw, (440, 860), (330, 960), label=a3_lbl, progress=progress, color=NEON_AMBER, reveal_t=arrow3_t)
-    _draw_data_packet_arrow(draw, (640, 860), (750, 960), label=a4_lbl, progress=progress, color=NEON_EMERALD, reveal_t=arrow4_t)
+    _draw_data_packet_arrow(draw, (350, 615), (450, 750), label=a1_lbl, progress=progress, color=NEON_CYAN, reveal_t=arrow1_t)
+    _draw_data_packet_arrow(draw, (730, 615), (630, 750), label=a2_lbl, progress=progress, color=NEON_PURPLE, reveal_t=arrow2_t)
+    _draw_data_packet_arrow(draw, (440, 890), (330, 985), label=a3_lbl, progress=progress, color=NEON_AMBER, reveal_t=arrow3_t)
+    _draw_data_packet_arrow(draw, (640, 890), (750, 985), label=a4_lbl, progress=progress, color=NEON_EMERALD, reveal_t=arrow4_t)
 
-    # 4. Active Motion Pointer tracking the currently revealing component
-    if progress < 0.25:
-        px, py, plbl = 260, 560, "STEP 1: INGESTION"
-    elif progress < 0.36:
-        px, py, plbl = 540, 780, "STEP 2: ROUTING"
-    elif progress < 0.62:
-        px, py, plbl = 820, 560, "STEP 3: COMPUTE"
-    elif progress < 0.76:
-        px, py, plbl = 270, 1050, "STEP 4: STORAGE"
+    # 4. Active Motion Pointer cleanly below top VPC pill
+    if progress < 0.20:
+        px, py, plbl = 260, 508, "STEP 1: INPUT"
+    elif progress < 0.34:
+        px, py, plbl = 540, 718, "STEP 2: ORCHESTRATE"
+    elif progress < 0.60:
+        px, py, plbl = 820, 508, "STEP 3: PROCESS"
+    elif progress < 0.75:
+        px, py, plbl = 270, 978, "STEP 4: STAGE"
     else:
-        px, py, plbl = 810, 1050, "STEP 5: OUTPUT"
-    _draw_motion_pointer(draw, px, py - 95, label=plbl, progress=progress, color=NEON_AMBER)
+        px, py, plbl = 810, 978, "STEP 5: OUTPUT"
+    _draw_motion_pointer(draw, px, py, label=plbl, progress=progress, color=NEON_AMBER)
 
-    # 5. Bottom Architectural Telemetry & KPI HUD (reveals cleanly near end of scene)
+    # 5. Bottom Status Tag or Telemetry HUD (reveals cleanly near end of scene)
     if show_hud:
-        hx = 50
-        hy = 1250
-        hw = 980
-        hh = 175
-        draw.rounded_rectangle((hx, hy, hx + hw, hy + hh), radius=22, fill=(11, 18, 33, 245), outline=NEON_EMERALD, width=3)
-        
-        col_w = hw // 3
-        draw_wrapped_text(draw, "* DATA PIPELINE FLOW", get_font(17, bold=True), hx + 25, hy + 22, col_w - 40, NEON_CYAN, max_lines=1)
-        draw_wrapped_text(draw, "100K+ msgs/s", get_font(25, bold=True), hx + 25, hy + 52, col_w - 40, TEXT_PRIMARY, max_lines=1)
-        draw_wrapped_text(draw, "Zero-Copy Memory Bus", get_font(15), hx + 25, hy + 94, col_w - 40, TEXT_MUTED, max_lines=1)
+        hx, hy, hw, hh = 50, 1265, 980, 155
+        status_tag = data.get("status_tag") or data.get("bottom_tag")
+        if status_tag:
+            draw.rounded_rectangle((hx, hy + 20, hx + hw, hy + 115), radius=22, fill=(11, 28, 26, 245), outline=NEON_EMERALD, width=3)
+            draw_wrapped_text(draw, str(status_tag).upper(), get_font(26, bold=True), hx + 30, hy + 52, hw - 60, NEON_EMERALD, align="center", max_lines=1)
+        else:
+            draw.rounded_rectangle((hx, hy, hx + hw, hy + hh), radius=22, fill=(11, 18, 33, 245), outline=NEON_EMERALD, width=3)
+            col_w = hw // 3
+            draw_wrapped_text(draw, "* PIPELINE FLOW", get_font(17, bold=True), hx + 25, hy + 18, col_w - 40, NEON_CYAN, max_lines=1)
+            draw_wrapped_text(draw, "Async Stream", get_font(25, bold=True), hx + 25, hy + 48, col_w - 40, TEXT_PRIMARY, max_lines=1)
+            draw_wrapped_text(draw, "Progressive Sync", get_font(15), hx + 25, hy + 88, col_w - 40, TEXT_MUTED, max_lines=1)
 
-        draw_wrapped_text(draw, "* REPLICATION LAG", get_font(17, bold=True), hx + col_w + 25, hy + 22, col_w - 40, NEON_AMBER, max_lines=1)
-        draw_wrapped_text(draw, "< 4.2 ms", get_font(25, bold=True), hx + col_w + 25, hy + 52, col_w - 40, NEON_AMBER, max_lines=1)
-        draw_wrapped_text(draw, "Sub-second CDC Sync", get_font(15), hx + col_w + 25, hy + 94, col_w - 40, TEXT_MUTED, max_lines=1)
+            draw_wrapped_text(draw, "* LATENCY TARGET", get_font(17, bold=True), hx + col_w + 25, hy + 18, col_w - 40, NEON_AMBER, max_lines=1)
+            draw_wrapped_text(draw, "Low Overhead", get_font(25, bold=True), hx + col_w + 25, hy + 48, col_w - 40, NEON_AMBER, max_lines=1)
+            draw_wrapped_text(draw, "Optimized Execution", get_font(15), hx + col_w + 25, hy + 88, col_w - 40, TEXT_MUTED, max_lines=1)
 
-        draw_wrapped_text(draw, "* CLOUD RESILIENCE", get_font(17, bold=True), hx + (col_w * 2) + 25, hy + 22, col_w - 40, NEON_EMERALD, max_lines=1)
-        draw_wrapped_text(draw, "99.999% SLA", get_font(25, bold=True), hx + (col_w * 2) + 25, hy + 52, col_w - 40, NEON_EMERALD, max_lines=1)
-        draw_wrapped_text(draw, "Multi-AZ Auto-Failover", get_font(15), hx + (col_w * 2) + 25, hy + 94, col_w - 40, TEXT_MUTED, max_lines=1)
+            draw_wrapped_text(draw, "* RELIABILITY", get_font(17, bold=True), hx + (col_w * 2) + 25, hy + 18, col_w - 40, NEON_EMERALD, max_lines=1)
+            draw_wrapped_text(draw, "Production Ready", get_font(25, bold=True), hx + (col_w * 2) + 25, hy + 48, col_w - 40, NEON_EMERALD, max_lines=1)
+            draw_wrapped_text(draw, "Zero Data Loss", get_font(15), hx + (col_w * 2) + 25, hy + 88, col_w - 40, TEXT_MUTED, max_lines=1)
 
-        draw.rounded_rectangle((hx + 20, hy + hh - 38, hx + hw - 20, hy + hh - 12), radius=8, fill=(16, 185, 129, 45), outline=NEON_EMERALD, width=1)
-        draw_wrapped_text(draw, "PRODUCTION VERIFIED  |  ZERO DATA LOSS ARCHITECTURE", get_font(16, bold=True), hx + 40, hy + hh - 34, hw - 80, TEXT_PRIMARY, align="center", max_lines=1)
+            draw.rounded_rectangle((hx + 20, hy + hh - 36, hx + hw - 20, hy + hh - 10), radius=8, fill=(16, 185, 129, 45), outline=NEON_EMERALD, width=1)
+            draw_wrapped_text(draw, "REAL-TIME PROGRESSIVE ARCHITECTURE", get_font(15, bold=True), hx + 40, hy + hh - 32, hw - 80, TEXT_PRIMARY, align="center", max_lines=1)
 
 
 def _draw_watermark(

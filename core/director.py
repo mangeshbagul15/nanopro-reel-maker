@@ -137,10 +137,35 @@ Select the most appropriate visual_type for each scene from the following suppor
     "badge": "CORE MECHANISMS",
     "title": "Key Engineering Principles",
     "bullets": [
-      "Continuous CDC: Streaming transaction log updates in real-time",
-      "Schema Conversion: Automated mapping between heterogeneous engines",
-      "Multi-AZ High Availability: Standby failover with sub-second switchover"
-    ]
+      "Strict Output Format: Enforce JSON, SQL, or specific domain tone",
+      "Relatively Stable Data: Ideal when rules rarely change"
+    ],
+    "warning_box": "Optional warning box (e.g. NOT for live facts or frequent policy updates)",
+    "footer_cta": "Optional bottom CTA strip (e.g. Save • Share • Follow for More)",
+    "accent_theme": "emerald_matrix"
+  }
+
+- "hero_hook":
+  visual_data: {
+    "badge": "INTERVIEW QUESTION / TOPIC HOOK",
+    "title": "Scene Headline",
+    "question": "Central Hero Question or Core Dilemma",
+    "left_pill": "Option A (e.g. RAG)",
+    "right_pill": "Option B (e.g. Fine-Tuning)",
+    "stat_badge": "90% Candidates Confused",
+    "sub_callouts": ["Trap 1: Using A everywhere", "Trap 2: Using B for live data"],
+    "accent_theme": "indigo_cyan"
+  }
+
+- "hybrid_merge":
+  visual_data: {
+    "badge": "PRODUCTION BEST PRACTICE: HYBRID",
+    "title": "The Hybrid Architecture",
+    "left_pillar": {"label": "Fine-Tuning", "sub": "Clean Structure & Tone"},
+    "right_pillar": {"label": "RAG System", "sub": "Fresh Context & Policies"},
+    "merged_label": "Production AI System",
+    "outcomes": ["Accuracy", "Consistency", "Freshness"],
+    "accent_theme": "gold_purple"
   }
 
 - "all_in_one_tech_canvas":
@@ -175,7 +200,7 @@ Output a single valid JSON object matching this structure:
       "scene_id": 1,
       "role": "hook",
       "narration": "Narration text with natural pauses...",
-      "visual_type": "alert_diagram",
+      "visual_type": "hero_hook",
       "choreography": {
         "mode": "progressive_node_edge",
         "triggers": [
@@ -188,6 +213,7 @@ Output a single valid JSON object matching this structure:
       "visual_data": {
         "badge": "BADGE TEXT",
         "title": "Scene Title",
+        "accent_theme": "indigo_cyan / cyber_cyan / emerald_matrix / gold_purple / crimson_alert",
         "...": "Fields strictly populated from the schema above"
       }
     }
@@ -198,15 +224,20 @@ Output a single valid JSON object matching this structure:
 ENGINE_STYLE_DIRECTIVES = {
     "auto_dynamic": (
         "AI AUTONOMOUS VISUAL & CHOREOGRAPHY DIRECTOR MODE (RECOMMENDED): "
-        "You have full creative & architectural autonomy to decide the exact best `visual_type` FOR EACH INDIVIDUAL SCENE "
-        "based on topic depth, narration flow, and viewer retention. Mix engines dynamically per scene: "
-        "- Use `alert_diagram` or `split_comparison` for hooks/bottlenecks/trade-offs.\n"
-        "- Use `all_in_one_tech_canvas` or `architecture_flow` or `circular_hub_mesh` for system topologies & pipelines (Animated Node-and-Edge Traversal).\n"
-        "- Use `sql_table`, `data_structure_memory`, or `code_terminal` for queries, buffers, WAL/memory internals, or live code.\n"
-        "- Use `benchmark_chart`, `metric_gauge_hud`, or `concept_cards` for performance results and takeaways.\n"
-        "MANDATORY AUDIO-VISUAL SYNC CHOREOGRAPHY: For EVERY scene, also output `choreography` with `mode` "
-        "('progressive_build', 'node_edge_traversal', 'live_typing', or 'step_comparison') and `triggers` containing 4 chronological single words "
-        "copied verbatim from that scene's `narration` marking when Stage 1, Stage 2, Stage 3, and Stage 4 should reveal on screen as the voice speaks them!"
+        "You have full creative & architectural autonomy to make EVERY video look distinct, non-repetitive, and tightly mapped to what is spoken! "
+        "ANTI-REPETITION RULE: NEVER start every video with the same red radar `alert_diagram`! "
+        "Pick the Scene-1 Hook dynamically:\n"
+        "  - Use `hero_hook` for interview questions, dilemmas, 'X vs Y' debates, or conceptual questions (shows hero question card + 2 side pills + stat callout!).\n"
+        "  - Use `split_comparison` when comparing two approaches directly.\n"
+        "  - Use `benchmark_chart` when leading with a 10x speedup/performance hook.\n"
+        "  - Use `code_terminal` or `sql_table` when starting with a query/code bug.\n"
+        "  - ONLY use `alert_diagram` when the topic is specifically a production server crash, deadlock, or outage!\n"
+        "For subsequent scenes, mix `architecture_flow` (4-step linear flows like RAG Ingestion->Vector Search->Prompt->LLM), "
+        "`all_in_one_tech_canvas` (rich cloud/microservices ecosystems), `hybrid_merge` (combining 2 pillars into unified outcomes), "
+        "`split_comparison`, `concept_cards` (with `warning_box` and/or `footer_cta` when appropriate), `sql_table`, `data_structure_memory`, `code_terminal`, and `circular_hub_mesh`.\n"
+        "Always vary `accent_theme` (`indigo_cyan`, `emerald_matrix`, `gold_purple`, `cyber_cyan`, `crimson_alert`) across scenes so visuals stay fresh! "
+        "If the user provided a Custom Script / Visuals / Progressive Flow, honor their exact scene structure, labels, warning boxes, and CTAs! "
+        "MANDATORY AUDIO-VISUAL SYNC CHOREOGRAPHY: For EVERY scene, output `choreography` with `mode` and `triggers` containing 4 chronological keywords copied verbatim from that scene's `narration`."
     ),
     "all_in_one_tech_canvas": (
         "CRITICAL MANDATORY INSTRUCTION: The user explicitly selected 'All-in-One Tech Canvas'. "
@@ -555,6 +586,14 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
         "incident": "alert_diagram",
         "bottleneck": "alert_diagram",
         "sql": "sql_table",
+        "question_hook": "hero_hook",
+        "hook_card": "hero_hook",
+        "interview_hook": "hero_hook",
+        "hero": "hero_hook",
+        "merge_diagram": "hybrid_merge",
+        "combination_diagram": "hybrid_merge",
+        "hybrid_architecture": "hybrid_merge",
+        "hybrid_approach": "hybrid_merge",
     }
 
     for idx, sc in enumerate(scenes):
@@ -563,7 +602,7 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
         current_vtype = vtype_aliases.get(raw_vtype, raw_vtype)
         sc["visual_type"] = current_vtype
         
-        # If user explicitly chose a single-focus engine (not hybrid), enforce it
+        # If user explicitly chose a single-focus engine (not hybrid/auto), enforce it
         if target_type:
             if engine_style == "bytebytego_dsl" and current_vtype in ["architecture_flow", "circular_hub_mesh"]:
                 pass
@@ -573,9 +612,18 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 sc["visual_type"] = target_type
                 current_vtype = target_type
 
+        # Anti-Repetition Safety in auto_dynamic: if Scene 1 defaulted to alert_diagram on non-outage topics, upgrade to hero_hook
+        if engine_style == "auto_dynamic" and idx == 0 and current_vtype == "alert_diagram":
+            topic_l = topic.lower()
+            outage_kw = ["crash", "outage", "down", "lock", "deadlock", "incident", "failure", "oom"]
+            if not any(kw in topic_l for kw in outage_kw):
+                sc["visual_type"] = "hero_hook"
+                current_vtype = "hero_hook"
+
         # Ensure required data structures are present and rich for the active visual_type
         title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
-        badge = v_data.get("badge") or engine_style.replace("_", " ").upper()
+        default_badge = "TECH ARCHITECTURE" if engine_style in ["auto_dynamic", "hybrid_modern"] else engine_style.replace("_", " ").upper()
+        badge = v_data.get("badge") or default_badge
         v_data["title"] = title
         v_data["badge"] = badge
 
@@ -671,6 +719,21 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 v_data["problem_title"] = v_data.get("problem_title") or f"Production Bottleneck: {title}"
                 v_data["problem_desc"] = v_data.get("problem_desc") or "High concurrency spikes caused thread contention and system degradation."
                 v_data["challenge"] = "How to achieve 100% availability without sacrificing latency?"
+
+        elif current_vtype == "hero_hook":
+            v_data["question"] = v_data.get("question") or v_data.get("problem_title") or title
+            v_data["left_pill"] = v_data.get("left_pill") or "Approach A"
+            v_data["right_pill"] = v_data.get("right_pill") or "Approach B"
+            v_data["stat_badge"] = v_data.get("stat_badge") or v_data.get("challenge") or "KEY ENGINEERING DECISION"
+            v_data["sub_callouts"] = v_data.get("sub_callouts") or [
+                v_data.get("problem_desc") or "Choose based on data freshness & behavior",
+            ]
+
+        elif current_vtype == "hybrid_merge":
+            v_data["left_pillar"] = v_data.get("left_pillar") or {"label": "Core Logic / Style", "sub": "Consistent Output"}
+            v_data["right_pillar"] = v_data.get("right_pillar") or {"label": "Live Retrieval / State", "sub": "Fresh Data Context"}
+            v_data["merged_label"] = v_data.get("merged_label") or f"{title[:20]} Hybrid"
+            v_data["outcomes"] = v_data.get("outcomes") or ["Accuracy", "Consistency", "Low Latency"]
 
         elif current_vtype == "all_in_one_tech_canvas":
             v_data["vpc_label"] = v_data.get("vpc_label") or f"SYSTEM ARCHITECTURE • {title.upper()[:24]}"

@@ -280,7 +280,7 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str) -
 
     for attempt in range(3):
         try:
-            communicate = edge_tts.Communicate(cleaned_text, voice, rate="+6%", pitch="+0Hz")
+            communicate = edge_tts.Communicate(cleaned_text, voice, rate="+10%", pitch="+0Hz")
             await communicate.save(str(output_path))
             if output_path.exists() and output_path.stat().st_size > 1000:
                 return True
@@ -408,9 +408,11 @@ def generate_voiceover(
         cur_time = s_end
 
     # 5. Extract Word Timestamps via Groq Whisper for karaoke subtitles
+    # Pass original script excerpt as prompt hint so Hinglish/English tech spellings (RAG, JSON, SQL, Fine-Tuning) stay exact
+    combined_prompt = " ".join(scene_texts)[:750]
     word_timestamps = []
     try:
-        word_timestamps = _extract_word_timestamps(final_audio_path)
+        word_timestamps = _extract_word_timestamps(final_audio_path, prompt_hint=combined_prompt)
     except Exception as e:
         print(f"[Voice] Groq Whisper extraction notice ({e}), generating robust fallback timestamps...")
         word_timestamps = _generate_fallback_word_timestamps(scenes_with_timestamps)
@@ -425,19 +427,22 @@ def generate_voiceover(
 
     return final_audio_path, word_timestamps, scenes_with_timestamps
 
-def _extract_word_timestamps(audio_path: Path) -> List[Dict[str, Any]]:
-    """Calls Groq Whisper Large v3 to get microsecond word-level timestamps."""
+def _extract_word_timestamps(audio_path: Path, prompt_hint: str = "") -> List[Dict[str, Any]]:
+    """Calls Groq Whisper Large v3 to get microsecond word-level timestamps with script vocabulary hint."""
     if not GROQ_API_KEY:
         raise ValueError("GROQ_API_KEY is required for word timestamp alignment.")
     
     client = Groq(api_key=GROQ_API_KEY)
     with open(audio_path, "rb") as file:
-        transcription = client.audio.transcriptions.create(
-            file=(audio_path.name, file.read()),
-            model="whisper-large-v3",
-            response_format="verbose_json",
-            timestamp_granularities=["word"]
-        )
+        req_kwargs = {
+            "file": (audio_path.name, file.read()),
+            "model": "whisper-large-v3",
+            "response_format": "verbose_json",
+            "timestamp_granularities": ["word"],
+        }
+        if prompt_hint.strip():
+            req_kwargs["prompt"] = prompt_hint.strip()
+        transcription = client.audio.transcriptions.create(**req_kwargs)
     
     words = []
     if hasattr(transcription, "words") and transcription.words:
