@@ -122,27 +122,88 @@ def _stage_reveal(progress: float, start_p: float, end_p: float) -> float:
     return 1.0 - pow(1.0 - t, 3)
 
 
+def _build_choreography_anchors(
+    duration: float,
+    scene: Dict[str, Any],
+    scene_words: List[Dict[str, Any]] = None
+) -> List[Tuple[float, float]]:
+    """
+    Maps AI-selected choreography trigger keywords onto exact Whisper spoken word timestamps,
+    returning monotonic (time_frac, stage_progress) anchor pairs for Audio-Visual Sync.
+    """
+    if not scene_words:
+        return [(0.0, 0.0), (1.0, 1.0)]
+
+    choreo = scene.get("choreography", {})
+    triggers = choreo.get("triggers", []) if isinstance(choreo, dict) else []
+    if not triggers:
+        return [(0.0, 0.0), (1.0, 1.0)]
+
+    sc_start = float(scene.get("start_time", 0.0))
+    clean_words = []
+    for w in scene_words:
+        txt = "".join(ch for ch in str(w.get("word", "")).lower() if ch.isalnum())
+        clean_words.append((txt, float(w.get("start", sc_start))))
+
+    anchors = [(0.0, 0.0)]
+    target_stages = [0.08, 0.30, 0.56, 0.78]
+    word_cursor = 0
+    prev_t = 0.0
+
+    for idx, trig in enumerate(triggers[:4]):
+        kw = str(trig.get("keyword", "")).lower().strip()
+        kw_clean = "".join(ch for ch in kw if ch.isalnum())
+        if not kw_clean:
+            continue
+        matched_t = None
+        for w_idx in range(word_cursor, len(clean_words)):
+            w_txt, w_start = clean_words[w_idx]
+            if kw_clean in w_txt or w_txt in kw_clean:
+                matched_t = (w_start - sc_start) / max(0.5, duration)
+                word_cursor = w_idx + 1
+                break
+        if matched_t is not None:
+            t_clamped = max(prev_t + 0.06, min(0.90, matched_t))
+            prev_t = t_clamped
+            stage_p = target_stages[idx]
+            anchors.append((t_clamped, stage_p))
+
+    anchors.append((1.0, 1.0))
+    return anchors
+
+
 def _compute_voice_synced_progress(
     frame_idx: int,
     total_frames: int,
     duration: float,
     scene: Dict[str, Any],
-    scene_words: List[Dict[str, Any]] = None
+    scene_words: List[Dict[str, Any]] = None,
+    anchors: List[Tuple[float, float]] = None
 ) -> float:
     """
-    Computes frame progress (0.0 -> 1.0) anchored to Whisper word timestamps
-    so visual reveals track spoken delivery rather than fixed blind timers.
+    Computes frame progress (0.0 -> 1.0) anchored to Whisper word timestamps and
+    AI choreography triggers for true Voice-Driven Progressive Reveal & Node-Edge Traversal.
     """
     linear_p = frame_idx / max(1, total_frames - 1)
     if not scene_words:
         return linear_p
 
+    # Piecewise-linear interpolation along matched spoken keyword anchors
+    choreo_p = linear_p
+    if anchors and len(anchors) >= 3:
+        for i in range(len(anchors) - 1):
+            t0, p0 = anchors[i]
+            t1, p1 = anchors[i + 1]
+            if t0 <= linear_p <= t1:
+                span = max(1e-5, t1 - t0)
+                choreo_p = p0 + ((linear_p - t0) / span) * (p1 - p0)
+                break
+
     sc_start = float(scene.get("start_time", 0.0))
     cur_time = sc_start + (linear_p * duration)
     spoken_count = sum(1 for w in scene_words if float(w.get("start", 0.0)) <= cur_time)
     word_p = spoken_count / max(1, len(scene_words))
-    # Smooth blend: 65% speech progression + 35% linear frame flow
-    return min(1.0, max(0.0, 0.65 * word_p + 0.35 * linear_p))
+    return min(1.0, max(0.0, 0.55 * choreo_p + 0.30 * word_p + 0.15 * linear_p))
 
 
 def render_scene_frames(
@@ -206,10 +267,11 @@ def render_scene_frames(
     canvas_h = spec.get("height", VIDEO_HEIGHT)
     base_canvas = Image.new("RGB", (canvas_w, canvas_h), COLOR_BG_DARK)
     needs_aspect_fit = (canvas_w != VIDEO_WIDTH or canvas_h != VIDEO_HEIGHT)
+    anchors = _build_choreography_anchors(duration, scene, scene_words)
     
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
-        progress = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words)
+        progress = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
         frame = base_canvas.copy()
 
         if needs_aspect_fit:

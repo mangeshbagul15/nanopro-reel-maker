@@ -197,7 +197,8 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion) [Recommended]"),
+            ("auto_dynamic", "⚡ Dynamic / Auto (AI Decides Visuals, Progressive Flow & Voice Choreography) [Recommended]"),
+            ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
             ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
             ("bytebytego_dsl", "📊 ByteByteGo Architecture & Cloud Topology (Pipelines / Microservices)"),
@@ -211,7 +212,9 @@ with st.sidebar:
             ("concept_keynote", "💡 Kinetic Concept Keynote (Punchy Principles & Bullet Cards)"),
             ("custom_user_style", "✍️ Custom Visual Style... (Type your own custom visual aesthetic)")
         ],
-        format_func=lambda x: x[1]
+        format_func=lambda x: x[1],
+        key="visual_engine_select",
+        help="In Dynamic / Auto mode, the AI Director autonomously decides the best per-scene visual layout, Progressive Reveal steps, Audio-Visual Sync triggers, and Animated Node-and-Edge Traversal based on your topic and voiceover."
     )
     
     custom_style_prompt = ""
@@ -634,7 +637,7 @@ with tab_create:
                     3. **🎨 Step 3 — 2D Generative Visual Rendering:**
                        - **Rendering Engine:** Python 2D Generative Canvas (Pillow)
                        - **Resolution & Frame Rate:** {FORMAT_SPECS[aspect_ratio[0]]['width']}x{FORMAT_SPECS[aspect_ratio[0]]['height']} ({aspect_ratio[0]}) @ {VIDEO_FPS} FPS (Razor-sharp, 0% blur)
-                       - **Dynamic Story Elements:** Visuals strictly enforced to match `{visual_engine[0]}`.
+                       - **Dynamic Story Elements:** {"AI Autonomous Visual Mix -> " + ", ".join(s.get("visual_type", "") for s in aligned_scenes) if visual_engine[0] == "auto_dynamic" else "Visuals strictly enforced to match `" + visual_engine[0] + "`"}
                        - **Total Frames Generated:** `{round(total_duration * VIDEO_FPS)}` frames rendered frame-by-frame.
 
                     4. **⚡ Step 4 — Hardware FFmpeg Video Stitching & Captions:**

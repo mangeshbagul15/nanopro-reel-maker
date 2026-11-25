@@ -176,6 +176,15 @@ Output a single valid JSON object matching this structure:
       "role": "hook",
       "narration": "Narration text with natural pauses...",
       "visual_type": "alert_diagram",
+      "choreography": {
+        "mode": "progressive_node_edge",
+        "triggers": [
+          {"stage": 1, "keyword": "first_keyword_from_narration"},
+          {"stage": 2, "keyword": "second_keyword_from_narration"},
+          {"stage": 3, "keyword": "third_keyword_from_narration"},
+          {"stage": 4, "keyword": "fourth_keyword_from_narration"}
+        ]
+      },
       "visual_data": {
         "badge": "BADGE TEXT",
         "title": "Scene Title",
@@ -187,6 +196,18 @@ Output a single valid JSON object matching this structure:
 """
 
 ENGINE_STYLE_DIRECTIVES = {
+    "auto_dynamic": (
+        "AI AUTONOMOUS VISUAL & CHOREOGRAPHY DIRECTOR MODE (RECOMMENDED): "
+        "You have full creative & architectural autonomy to decide the exact best `visual_type` FOR EACH INDIVIDUAL SCENE "
+        "based on topic depth, narration flow, and viewer retention. Mix engines dynamically per scene: "
+        "- Use `alert_diagram` or `split_comparison` for hooks/bottlenecks/trade-offs.\n"
+        "- Use `all_in_one_tech_canvas` or `architecture_flow` or `circular_hub_mesh` for system topologies & pipelines (Animated Node-and-Edge Traversal).\n"
+        "- Use `sql_table`, `data_structure_memory`, or `code_terminal` for queries, buffers, WAL/memory internals, or live code.\n"
+        "- Use `benchmark_chart`, `metric_gauge_hud`, or `concept_cards` for performance results and takeaways.\n"
+        "MANDATORY AUDIO-VISUAL SYNC CHOREOGRAPHY: For EVERY scene, also output `choreography` with `mode` "
+        "('progressive_build', 'node_edge_traversal', 'live_typing', or 'step_comparison') and `triggers` containing 4 chronological single words "
+        "copied verbatim from that scene's `narration` marking when Stage 1, Stage 2, Stage 3, and Stage 4 should reveal on screen as the voice speaks them!"
+    ),
     "all_in_one_tech_canvas": (
         "CRITICAL MANDATORY INSTRUCTION: The user explicitly selected 'All-in-One Tech Canvas'. "
         "EVERY scene's visual_type MUST BE 'all_in_one_tech_canvas'. "
@@ -300,7 +321,7 @@ def generate_timeline(
             f"'{custom_style_prompt.strip()}'. You MUST tailor your visual_type and visual_data to reflect this custom design aesthetic across all scenes."
         )
     else:
-        style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["hybrid_modern"])
+        style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["auto_dynamic"])
     
     # 1. Language & Dialect based on the selected Voice Persona
     if voice.startswith("hi-") or voice == "en-IN-NeerjaExpressiveNeural":
@@ -668,6 +689,25 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
             v_data["arrow4_label"] = v_data.get("arrow4_label") or "Event Sync"
 
         sc["visual_data"] = v_data
+
+        # Ensure Audio-Visual Choreography triggers exist for voice-synced Progressive Reveal
+        choreo = sc.get("choreography")
+        if not isinstance(choreo, dict) or not choreo.get("triggers"):
+            narration_words = [
+                re.sub(r"[^a-zA-Z0-9_-]", "", w)
+                for w in sc.get("narration", "").split()
+            ]
+            narration_words = [w for w in narration_words if len(w) >= 4]
+            auto_triggers = []
+            if len(narration_words) >= 4:
+                step = len(narration_words) / 4.0
+                for st_i in range(4):
+                    kw = narration_words[min(len(narration_words) - 1, int(st_i * step))]
+                    auto_triggers.append({"stage": st_i + 1, "keyword": kw.lower()})
+            sc["choreography"] = {
+                "mode": "node_edge_traversal" if current_vtype in ["all_in_one_tech_canvas", "architecture_flow", "circular_hub_mesh"] else "progressive_build",
+                "triggers": auto_triggers
+            }
 
     return timeline
 
