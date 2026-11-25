@@ -117,15 +117,21 @@ TONE_VOICE_SETTINGS = {
         "use_speaker_boost": True
     },
     "senior_hinglish_mentor": {
-        "stability": 0.48,
+        "stability": 0.46,
         "similarity_boost": 0.82,
+        "style": 0.34,
+        "use_speaker_boost": True
+    },
+    "purposeful_hinglish_mentor": {
+        "stability": 0.50,
+        "similarity_boost": 0.84,
         "style": 0.30,
         "use_speaker_boost": True
     },
     "youth_friend_turbo": {
-        "stability": 0.28,
-        "similarity_boost": 0.78,
-        "style": 0.62,
+        "stability": 0.40,
+        "similarity_boost": 0.80,
+        "style": 0.42,
         "use_speaker_boost": True
     },
     "mentor_storyteller": {
@@ -167,11 +173,12 @@ TONE_VOICE_SETTINGS = {
 }
 
 EDGE_TTS_PROSODY = {
-    "trusted_dost_guide": {"rate": "+10%", "pitch": "+2Hz"},
-    "senior_hinglish_mentor": {"rate": "+8%", "pitch": "-1Hz"},
-    "youth_friend_turbo": {"rate": "+24%", "pitch": "+3Hz"},
+    "trusted_dost_guide": {"rate": "+11%", "pitch": "+2Hz"},
+    "senior_hinglish_mentor": {"rate": "+14%", "pitch": "+0Hz"},
+    "purposeful_hinglish_mentor": {"rate": "+12%", "pitch": "-1Hz"},
+    "youth_friend_turbo": {"rate": "+15%", "pitch": "+2Hz"},
     "mentor_storyteller": {"rate": "+7%", "pitch": "+2Hz"},
-    "fireship_octane": {"rate": "+16%", "pitch": "+2Hz"},
+    "fireship_octane": {"rate": "+15%", "pitch": "+2Hz"},
     "dramatic_performance": {"rate": "-4%", "pitch": "-4Hz"},
     "staff_engineer": {"rate": "+4%", "pitch": "-2Hz"},
     "conversational_casual": {"rate": "+8%", "pitch": "+0Hz"},
@@ -553,7 +560,7 @@ def _synthesize_elevenlabs_sync(
         print("[Voice] ElevenLabs API key missing, skipping ElevenLabs.")
         return False
 
-    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("trusted_dost_guide", "senior_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller", "dramatic_performance")))
+    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("trusted_dost_guide", "senior_hinglish_mentor", "purposeful_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller", "dramatic_performance")))
     if not cleaned_text:
         return False
 
@@ -593,11 +600,12 @@ def _synthesize_elevenlabs_sync(
         res = requests.post(url, json=payload, headers=headers, timeout=25)
         if res.status_code == 200 and len(res.content) > 1000:
             output_path.write_bytes(res.content)
-            if tone == "youth_friend_turbo":
+            if tone in ("youth_friend_turbo", "senior_hinglish_mentor", "purposeful_hinglish_mentor"):
                 fast_tmp = output_path.with_suffix(".fast.mp3")
+                tempo = "1.06" if tone == "youth_friend_turbo" else ("1.05" if tone == "senior_hinglish_mentor" else "1.04")
                 try:
                     t_res = subprocess.run(
-                        [str(FFMPEG_EXE), "-y", "-i", str(output_path.resolve()), "-filter:a", "atempo=1.16", "-c:a", "libmp3lame", "-b:a", "192k", str(fast_tmp.resolve())],
+                        [str(FFMPEG_EXE), "-y", "-i", str(output_path.resolve()), "-filter:a", f"atempo={tempo}", "-c:a", "libmp3lame", "-b:a", "192k", str(fast_tmp.resolve())],
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20,
                     )
                     if t_res.returncode == 0 and fast_tmp.exists() and fast_tmp.stat().st_size > 1000:
@@ -624,9 +632,9 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     Synthesizes speech using Microsoft Edge-TTS with tone-matched rate & pitch prosody.
     When explicit pause beats ('...' / '[pause]') exist or tone is 'mentor_storyteller',
     splits along pause cues, applies per-phrase curiosity/excitement inflection, and inserts
-    genuine 300ms breathing silence between phrases via FFmpeg.
+    genuine breathing silence between phrases via FFmpeg without clipping consonants.
     """
-    preserve = (tone in ("trusted_dost_guide", "senior_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
+    preserve = (tone in ("trusted_dost_guide", "senior_hinglish_mentor", "purposeful_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
     cleaned_text = _clean_tts_text(text, preserve_pauses=preserve)
     if not cleaned_text:
         return False
@@ -634,7 +642,11 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+8%", "pitch": "+0Hz"})
     rate = prosody["rate"]
     pitch = prosody["pitch"]
-    pause_sec = "0.22" if tone == "youth_friend_turbo" else ("0.26" if tone == "trusted_dost_guide" else ("0.28" if tone == "senior_hinglish_mentor" else "0.30"))
+    pause_sec = (
+        "0.24" if tone == "youth_friend_turbo"
+        else ("0.24" if tone in ("trusted_dost_guide", "purposeful_hinglish_mentor")
+              else ("0.22" if tone == "senior_hinglish_mentor" else "0.28"))
+    )
 
     beats = _split_pause_beats(cleaned_text, max_beats=4) if preserve else [cleaned_text]
     if len(beats) > 1:
@@ -643,27 +655,27 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
             for bi, beat_txt in enumerate(beats):
                 if tone == "youth_friend_turbo":
                     if beat_txt.endswith("?"):
-                        b_rate, b_pitch = "+19%", "+4Hz"
-                    elif "!" in beat_txt or any(kw in beat_txt.lower() for kw in ("boom", "magic", "secret", "finally", "exactly", "zero", "yaar", "dost", "bro", "wait")):
-                        b_rate, b_pitch = "+26%", "+4Hz"
+                        b_rate, b_pitch = "+14%", "+3Hz"
+                    elif "!" in beat_txt or any(kw in beat_txt.lower() for kw in ("boom", "magic", "secret", "finally", "exactly", "zero", "yaar", "dost", "wait")):
+                        b_rate, b_pitch = "+17%", "+3Hz"
                     elif len(beat_txt) <= 36:
-                        b_rate, b_pitch = "+18%", "+3Hz"
+                        b_rate, b_pitch = "+15%", "+2Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
                 elif tone == "trusted_dost_guide":
                     lower_bt = beat_txt.lower()
-                    if any(kw in lower_bt for kw in ("worry", "tension", "help", "easy", "relax", "simple", "saath")):
-                        b_rate, b_pitch = "+7%", "+1Hz"
+                    if any(kw in lower_bt for kw in ("easy", "relax", "simple", "saath", "clear", "clarity")):
+                        b_rate, b_pitch = "+10%", "+2Hz"
                     elif beat_txt.endswith("?") or any(kw in lower_bt for kw in ("secret", "shortcut", "magic", "imagine", "vision")):
-                        b_rate, b_pitch = "+11%", "+3Hz"
+                        b_rate, b_pitch = "+12%", "+3Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
-                elif tone == "senior_hinglish_mentor":
+                elif tone in ("senior_hinglish_mentor", "purposeful_hinglish_mentor"):
                     lower_bt = beat_txt.lower()
-                    if beat_txt.endswith("?") or any(kw in lower_bt for kw in ("trap", "interview", "socho", "freeze", "wait")):
-                        b_rate, b_pitch = "+7%", "+1Hz"
-                    elif any(kw in lower_bt for kw in ("trade-off", "tradeoff", "edge case", "lekin", "problem", "catch", "fix")):
-                        b_rate, b_pitch = "+5%", "-2Hz"
+                    if beat_txt.endswith("?") or any(kw in lower_bt for kw in ("trap", "interview", "socho", "freeze", "wait", "why")):
+                        b_rate, b_pitch = ("+13%" if tone == "senior_hinglish_mentor" else "+11%"), "+1Hz"
+                    elif any(kw in lower_bt for kw in ("trade-off", "tradeoff", "edge case", "lekin", "problem", "catch", "fix", "must")):
+                        b_rate, b_pitch = ("+12%" if tone == "senior_hinglish_mentor" else "+10%"), "-2Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
                 elif tone == "mentor_storyteller":
@@ -703,10 +715,7 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
                 parts = []
                 seq = []
                 for idx in range(len(beat_files)):
-                    if tone == "youth_friend_turbo":
-                        parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo,silenceremove=start_periods=1:start_silence=0.02:start_threshold=-42dB,areverse,silenceremove=start_periods=1:start_silence=0.02:start_threshold=-42dB,areverse[b{idx}]")
-                    else:
-                        parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo[b{idx}]")
+                    parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo[b{idx}]")
                     seq.append(f"[b{idx}]")
                     if idx < len(beat_files) - 1:
                         parts.append(f"[{sil_idx}:a]atrim=0:{pause_sec}[p{idx}]")

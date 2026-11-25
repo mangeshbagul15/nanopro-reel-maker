@@ -71,6 +71,49 @@ def _rgba_css(rgb: Tuple[int, ...], alpha: float) -> str:
     return f"rgba({int(rgb[0])},{int(rgb[1])},{int(rgb[2])},{alpha:.2f})"
 
 
+ZERO_TEMPLATE_50_ARCHETYPES: Tuple[str, ...] = (
+    # 20 Interactive HTML5 / Canvas 3D Web Scenes (`web_scene`)
+    "web_pipeline_3d", "web_hub_mesh", "web_bento_layers", "web_orbit_nodes",
+    "web_memory_wal", "web_benchmark_race", "web_split_vs", "web_telemetry_hud",
+    "web_terminal_sql", "web_alert_radar", "web_flamegraph_html", "web_waterfall_trace",
+    "web_state_fsm", "web_kanban_stream", "web_packet_dissector", "web_neural_synapse",
+    "web_timeline_ribbon", "web_quadrant_radar", "web_ring_consensus", "web_diff_inspector",
+    # 18 Animated Crisp Vector Blueprints (`svg_scene`)
+    "svg_circuit_bus", "svg_concentric_shields", "svg_dag_lineage", "svg_sequence_lanes",
+    "svg_btree_split", "svg_raft_heartbeat", "svg_shard_hash_ring", "svg_tls_handshake_arcs",
+    "svg_medallion_funnel", "svg_cache_hierarchy", "svg_lock_contention", "svg_vector_embeddings",
+    "svg_microservice_mesh", "svg_dns_resolver_tree", "svg_tcp_congestion_wave", "svg_merkle_proof_tree",
+    "svg_transformer_attention", "svg_event_sourcing_log",
+    # 16 Freeform 3D-Camera Spatial Glass Compositions (`spatial_canvas`)
+    "spatial_isometric_stack", "spatial_floating_cards", "spatial_depth_carousel", "spatial_constellation_map",
+    "spatial_layered_slices", "spatial_split_hologram", "spatial_radar_sweep", "spatial_code_glass_pane",
+    "spatial_metric_monolith", "spatial_queue_conveyor", "spatial_pipeline_tunnel", "spatial_pyramid_tier",
+    "spatial_heatmap_tiles", "spatial_orbit_carousel", "spatial_comparison_bridge", "spatial_mastery_crown",
+)
+
+_OPTION1_ARCH_FAMILY: Dict[str, str] = {
+    "web_pipeline_3d": "pipeline_3d", "web_hub_mesh": "hub_mesh", "web_bento_layers": "bento_layers",
+    "web_orbit_nodes": "orbit_nodes", "web_memory_wal": "memory_wal", "web_benchmark_race": "benchmark",
+    "web_split_vs": "split_vs", "web_telemetry_hud": "telemetry", "web_terminal_sql": "terminal_sql",
+    "web_alert_radar": "alert_radar", "web_flamegraph_html": "flame_bars", "web_waterfall_trace": "waterfall_spans",
+    "web_state_fsm": "fsm_cycle", "web_kanban_stream": "bento_layers", "web_packet_dissector": "svg_sequence",
+    "web_neural_synapse": "hub_mesh", "web_timeline_ribbon": "pipeline_3d", "web_quadrant_radar": "matrix_grid",
+    "web_ring_consensus": "svg_rings", "web_diff_inspector": "split_vs",
+    "svg_circuit_bus": "svg_blueprint", "svg_concentric_shields": "svg_rings", "svg_dag_lineage": "svg_blueprint",
+    "svg_sequence_lanes": "svg_sequence", "svg_btree_split": "svg_blueprint", "svg_raft_heartbeat": "svg_rings",
+    "svg_shard_hash_ring": "svg_rings", "svg_tls_handshake_arcs": "svg_sequence", "svg_medallion_funnel": "pyramid_tiers",
+    "svg_cache_hierarchy": "pyramid_tiers", "svg_lock_contention": "split_vs", "svg_vector_embeddings": "spatial_constellation",
+    "svg_microservice_mesh": "hub_mesh", "svg_dns_resolver_tree": "svg_blueprint", "svg_tcp_congestion_wave": "waterfall_spans",
+    "svg_merkle_proof_tree": "svg_blueprint", "svg_transformer_attention": "matrix_grid", "svg_event_sourcing_log": "memory_wal",
+    "spatial_isometric_stack": "spatial_stack", "spatial_floating_cards": "bento_layers", "spatial_depth_carousel": "orbit_nodes",
+    "spatial_constellation_map": "spatial_constellation", "spatial_layered_slices": "spatial_stack", "spatial_split_hologram": "split_vs",
+    "spatial_radar_sweep": "alert_radar", "spatial_code_glass_pane": "terminal_sql", "spatial_metric_monolith": "telemetry",
+    "spatial_queue_conveyor": "pipeline_3d", "spatial_pipeline_tunnel": "flame_bars", "spatial_pyramid_tier": "pyramid_tiers",
+    "spatial_heatmap_tiles": "matrix_grid", "spatial_orbit_carousel": "svg_rings", "spatial_comparison_bridge": "split_vs",
+    "spatial_mastery_crown": "pyramid_tiers",
+}
+
+
 def _extract_structured_scene_payload(scene: Dict[str, Any], scene_idx: int) -> Dict[str, Any]:
     """
     Normalizes ANY director storyboard scene (`visual_data` + `narration` + `visual_type`) into rich
@@ -207,32 +250,50 @@ def _extract_structured_scene_payload(scene: Dict[str, Any], scene_idx: int) -> 
             cards.append({"title": title, "sub": topic or "Technical Breakdown", "tag": "01", "val": ""})
 
     var_seed = int(vd.get("_variation_seed") or 0)
-    # Choose genuinely distinct archetype per scene content, index, & variation seed
-    if entries:
+    arch_hint = str(vd.get("archetype") or vd.get("option1_archetype") or scene.get("option1_archetype") or vtype).lower().strip()
+    sub_variant = ""
+    if arch_hint in _OPTION1_ARCH_FAMILY:
+        sub_variant = arch_hint
+        archetype = _OPTION1_ARCH_FAMILY[arch_hint]
+    elif entries:
         archetype = "memory_wal"
+        sub_variant = "web_memory_wal"
     elif bars:
         archetype = "benchmark"
+        sub_variant = "web_benchmark_race"
     elif split_data:
         archetype = "split_vs"
+        sub_variant = "web_split_vs"
     elif gauge_data:
         archetype = "telemetry"
+        sub_variant = "web_telemetry_hud"
     elif code_snippet or table_data:
         archetype = "terminal_sql"
+        sub_variant = "web_terminal_sql"
     elif alert_data and not (vd.get("satellites") or vd.get("nodes")):
         archetype = "alert_radar"
+        sub_variant = "web_alert_radar"
+    elif vtype == "svg_scene" or "svg" in arch_hint:
+        svg_pool = [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a.startswith("svg_")]
+        sub_variant = svg_pool[(scene_idx - 1 + var_seed) % len(svg_pool)]
+        archetype = _OPTION1_ARCH_FAMILY[sub_variant]
+    elif vtype == "spatial_canvas" or "spatial" in arch_hint:
+        sp_pool = [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a.startswith("spatial_")]
+        sub_variant = sp_pool[(scene_idx - 1 + var_seed) % len(sp_pool)]
+        archetype = _OPTION1_ARCH_FAMILY[sub_variant]
     elif vd.get("satellites") or "mesh" in vtype or "hub" in vtype:
         archetype = "hub_mesh"
-    elif "flow" in vtype or "pipeline" in vtype or "cdc" in vtype or len(cards) >= 3:
-        cycle = ("pipeline_3d", "hub_mesh", "bento_layers", "orbit_nodes")
-        archetype = cycle[(scene_idx - 1 + var_seed) % len(cycle)]
+        sub_variant = "web_hub_mesh"
     else:
-        cycle = ("bento_layers", "orbit_nodes", "pipeline_3d", "hub_mesh")
-        archetype = cycle[(scene_idx - 1 + var_seed) % len(cycle)]
+        cycle_variants = [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a.startswith("web_")]
+        sub_variant = cycle_variants[(scene_idx - 1 + var_seed * 3) % len(cycle_variants)]
+        archetype = _OPTION1_ARCH_FAMILY.get(sub_variant, "pipeline_3d")
 
     return {
         "title": title,
         "badge": badge,
         "archetype": archetype,
+        "sub_variant": sub_variant or archetype,
         "cards": cards[:5],
         "entries": entries,
         "bars": bars,
@@ -536,9 +597,10 @@ function renderArchetype(){{
       grid.appendChild(mc); animNodes.push(mc);
     }});
     mount.appendChild(grid);
-  }} else if(arch==='hub_mesh'||arch==='orbit_nodes'){{
+  }} else if(arch==='hub_mesh'||arch==='orbit_nodes'||arch==='spatial_constellation'){{
     const topo=document.createElement('div'); topo.className='gcard active'; topo.style.cssText='padding:26px;text-align:center;';
-    topo.innerHTML=`<div style="font-size:26px;font-weight:900;color:${{PAL.cyan}};margin-bottom:18px;">✦ CORE HUB: ${{P.hub_name}}</div><div id="satGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;text-align:left;"></div>`;
+    const hdrTxt=arch==='spatial_constellation'?'✧ SPATIAL CONSTELLATION: ':'✦ CORE HUB: ';
+    topo.innerHTML=`<div style="font-size:26px;font-weight:900;color:${{PAL.cyan}};margin-bottom:18px;">${{hdrTxt}}${{P.hub_name}}</div><div id="satGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;text-align:left;"></div>`;
     mount.appendChild(topo);
     const sg=topo.querySelector('#satGrid');
     P.cards.forEach((c,i)=>{{
@@ -550,6 +612,55 @@ function renderArchetype(){{
     const ft=document.createElement('div'); ft.className='hero-footer';
     ft.innerHTML=`<div style="font-size:24px;color:${{PAL.emerald}};font-weight:900;">CONTINUOUS ZERO-LOCK DATA STREAM</div>`;
     mount.appendChild(ft);
+  }} else if(arch==='svg_blueprint'||arch==='svg_sequence'||arch==='svg_rings'||arch==='fsm_cycle'){{
+    const svgBox=document.createElement('div'); svgBox.className='gcard active'; svgBox.style.cssText='padding:18px;';
+    const list=P.cards.slice(0,4);
+    let inner='';
+    if(arch==='svg_rings'||arch==='fsm_cycle'){{
+      inner=`<svg viewBox="0 0 880 420" width="100%" height="380"><circle cx="440" cy="210" r="165" fill="none" stroke="${{PAL.cyan}}" stroke-opacity="0.32" stroke-width="3" stroke-dasharray="10 8"/><circle cx="440" cy="210" r="105" fill="none" stroke="${{PAL.purple}}" stroke-opacity="0.38" stroke-width="2.5"/><text x="440" y="216" text-anchor="middle" fill="${{PAL.text}}" font-size="22" font-weight="900">${{P.hub_name.slice(0,18)}}</text></svg>`;
+    }} else if(arch==='svg_sequence'){{
+      const xs=[160,440,720];
+      const lines=xs.map((x,i)=>`<line x1="${{x}}" y1="30" x2="${{x}}" y2="380" stroke="${{ACCENTS[i%ACCENTS.length]}}" stroke-width="3" stroke-dasharray="8 6"/>`).join('');
+      const arrows=list.map((c,i)=>`<line x1="${{xs[i%2]}}" y1="${{90+i*75}}" x2="${{xs[1+((i+1)%2)]}}" y2="${{90+i*75}}" stroke="${{ACCENTS[i%ACCENTS.length]}}" stroke-width="4"/><text x="440" y="${{80+i*75}}" text-anchor="middle" fill="${{PAL.text}}" font-size="18" font-weight="800">${{(c.title||'Step').slice(0,26)}}</text>`).join('');
+      inner=`<svg viewBox="0 0 880 400" width="100%" height="360">${{lines}}${{arrows}}</svg>`;
+    }} else {{
+      const paths=list.map((c,i)=>`<rect x="${{70+(i%2)*400}}" y="${{40+Math.floor(i/2)*180}}" width="340" height="120" rx="18" fill="rgba(15,23,42,0.75)" stroke="${{ACCENTS[i%ACCENTS.length]}}" stroke-width="2.5"/><text x="${{240+(i%2)*400}}" y="${{96+Math.floor(i/2)*180}}" text-anchor="middle" fill="${{PAL.text}}" font-size="20" font-weight="800">${{(c.title||'Module').slice(0,22)}}</text><text x="${{240+(i%2)*400}}" y="${{128+Math.floor(i/2)*180}}" text-anchor="middle" fill="${{ACCENTS[i%ACCENTS.length]}}" font-size="15" font-weight="700">${{(c.sub||P.sub_variant||'SVG NODE').slice(0,26)}}</text>`).join('');
+      inner=`<svg viewBox="0 0 880 390" width="100%" height="350"><line x1="240" y1="160" x2="640" y2="220" stroke="${{PAL.cyan}}" stroke-width="3" stroke-dasharray="8 6"/>${{paths}}</svg>`;
+    }}
+    svgBox.innerHTML=inner; mount.appendChild(svgBox); animNodes.push(svgBox);
+    list.slice(0,3).forEach((c,i)=>{{
+      const col=ACCENTS[i%ACCENTS.length];
+      const sc=document.createElement('div'); sc.className='gcard'; sc.style.borderColor=col;
+      sc.innerHTML=`<div style="display:flex;align-items:center;gap:16px;"><div class="pill-num" style="background:${{col}}">${{c.tag||('0'+(i+1))}}</div><div><div class="ctitle">${{c.title}}</div>${{c.sub?`<div class="csub">${{c.sub}}</div>`:''}}</div></div>`;
+      mount.appendChild(sc); animNodes.push(sc);
+    }});
+  }} else if(arch==='flame_bars'||arch==='waterfall_spans'||arch==='pyramid_tiers'){{
+    P.cards.slice(0,5).forEach((c,i)=>{{
+      const col=ACCENTS[i%ACCENTS.length];
+      const wPct=arch==='pyramid_tiers'?(54+i*11):(100-i*14);
+      const marginL=arch==='waterfall_spans'?(i*8):0;
+      const el=document.createElement('div'); el.className='gcard';
+      el.style.cssText=`width:${{wPct}}%;margin-left:${{marginL}}%;align-self:${{arch==='pyramid_tiers'?'center':'stretch'}};border-color:${{col}};`;
+      el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;"><div><div class="ctitle" style="color:${{col}}">${{c.title}}</div>${{c.sub?`<div class="csub">${{c.sub}}</div>`:''}}</div><span style="font-family:monospace;font-weight:900;color:${{PAL.text}}">${{c.val||((wPct)+'%')}}</span></div>`;
+      mount.appendChild(el); animNodes.push(el);
+    }});
+  }} else if(arch==='matrix_grid'){{
+    const grid=document.createElement('div'); grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:18px;';
+    P.cards.slice(0,4).forEach((c,i)=>{{
+      const col=ACCENTS[i%ACCENTS.length];
+      const el=document.createElement('div'); el.className='gcard'; el.style.borderColor=col;
+      el.innerHTML=`<span style="display:inline-block;padding:6px 12px;border-radius:999px;background:${{col}}22;color:${{col}};font-weight:900;font-size:17px;margin-bottom:10px;">CELL 0${{i+1}}</span><div class="ctitle">${{c.title}}</div>${{c.sub?`<div class="csub">${{c.sub}}</div>`:''}}`;
+      grid.appendChild(el); animNodes.push(el);
+    }});
+    mount.appendChild(grid);
+  }} else if(arch==='spatial_stack'){{
+    P.cards.slice(0,4).forEach((c,i)=>{{
+      const col=ACCENTS[i%ACCENTS.length];
+      const el=document.createElement('div'); el.className='gcard'+(i===0?' active':'');
+      el.style.cssText=`border-color:${{col}};transform:perspective(900px) rotateX(6deg) translateX(${{(i%2===0?-10:10)}}px);`;
+      el.innerHTML=`<div style="display:flex;align-items:center;gap:18px;"><div class="pill-num" style="background:${{col}}">L${{i+1}}</div><div><div class="ctitle">${{c.title}}</div>${{c.sub?`<div class="csub">${{c.sub}}</div>`:''}}</div></div>`;
+      mount.appendChild(el); animNodes.push(el);
+    }});
   }} else {{
     // Interactive Glowing Bezier Pipeline / Bento Stages (Default Zero-Template Multi-Card Flow)
     P.cards.forEach((c,i)=>{{
@@ -761,7 +872,7 @@ def render_web_generative_frames(
                 page.set_content(fallback_html, wait_until="domcontentloaded", timeout=10000)
 
         wps = (len(scene_words) / max(0.5, duration)) if scene_words else 2.5
-        pace_boost = max(1.0, min(1.42, wps / 2.55))
+        pace_boost = max(0.96, min(1.12, wps / 2.85))
 
         for f in range(total_frames):
             lin_p = f / max(1, total_frames - 1)
@@ -780,9 +891,11 @@ def render_web_generative_frames(
                 word_p = spoken / max(1, len(scene_words))
             raw_p = min(1.0, (0.65 * word_p + 0.35 * lin_p) * pace_boost)
             if effective_tone == "youth_friend_turbo":
-                eff_p = 1.0 if lin_p >= 0.88 else min(1.0, (raw_p ** 0.76) * 1.18)
+                eff_p = 1.0 if lin_p >= 0.93 else min(1.0, (raw_p ** 0.92) * 1.05)
+            elif effective_tone in ("purposeful_hinglish_mentor", "senior_hinglish_mentor"):
+                eff_p = 1.0 if lin_p >= 0.94 else min(1.0, (raw_p ** 0.94) * 1.04)
             elif effective_tone == "fireship_octane":
-                eff_p = 1.0 if lin_p >= 0.92 else min(1.0, raw_p * 1.12)
+                eff_p = 1.0 if lin_p >= 0.93 else min(1.0, raw_p * 1.08)
             else:
                 eff_p = 1.0 if lin_p >= 0.95 else raw_p
             page.evaluate(f"if (window.__setStudioProgress) window.__setStudioProgress({eff_p:.5f}, {cur_t:.4f}, {energy:.3f});")

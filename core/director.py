@@ -5,45 +5,59 @@ from core.config import GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, MISTRA
 
 VISUAL_HISTORY_PATH = OUTPUT_DIR / "visual_history.json"
 
-# Compatible geometry families across ALL_STUDIO_LAYOUTS (for non-repeating Option 2 & Combined rotation)
+# Compatible geometry families across ALL_STUDIO_LAYOUTS (Core 103 + Pro 104 + IT/SDLC 105 + Domain 360 + Grammar 56)
 _DIVERSE_LAYOUT_FAMILIES: Dict[str, Tuple[str, ...]] = {
     "hook": (
         "hero_hook", "custom_scene", "cap_theorem_triangle", "incident_radar", "alert_diagram",
-        "kinetic_statement", "grammar:grid:2x2", "checklist_scorecard", "pacelc_tradeoff", "venn_overlap",
+        "kinetic_statement", "grammar:grid:2x2", "grammar:bento:4", "grammar:quadrant:2x2",
+        "checklist_scorecard", "pacelc_tradeoff", "venn_overlap", "incident_thundering_herd",
+        "incident_split_brain", "chaos_monkey_fault_inj", "dora_metrics_four_keys",
     ),
     "flow": (
         "architecture_flow", "iso_architecture", "cdc_debezium_flow", "etl_elt_pipeline", "outbox_pattern_cdc",
         "saga_orchestration", "step_timeline", "roadmap_wave", "cicd_pipeline_stages", "sequence_diagram",
         "lsm_tree_compaction", "write_ahead_log_wal", "rate_limiter_token_bucket", "idempotency_key_store",
-        "strangler_fig_migration", "event_sourcing_snapshots", "grammar:flow:4", "grammar:slots:4",
+        "strangler_fig_migration", "event_sourcing_snapshots", "rag_chunk_overlap_pipe", "llm_tokenization_bpe",
+        "browser_critical_path", "payment_idempotent_retry", "kalman_sensor_fusion", "flink_watermarks_window",
+        "grammar:flow:4", "grammar:flow:5", "grammar:chevron:4", "grammar:swimlane:3", "grammar:timeline_v:4",
     ),
     "hub": (
         "circular_hub_mesh", "node_graph", "consistent_hashing_ring", "raft_leader_election",
         "circuit_breaker_states", "epoll_event_loop", "gossip_protocol_cluster", "sdlc_cycle_wheel",
-        "sharding_hash_range", "hexagonal_ports_adapters", "radar_spider", "grammar:ring:5",
+        "sharding_hash_range", "hexagonal_ports_adapters", "radar_spider", "agent_react_tool_loop",
+        "mcp_client_host_server", "multi_agent_supervisor", "service_mesh_envoy_proxy", "ros2_dds_pubsub",
+        "grammar:ring:5", "grammar:hub:4", "grammar:orbit:4",
     ),
     "tiers": (
         "layer_stack_3d", "pyramid_hierarchy", "l1_l2_l3_cache_tiers", "osi_7_layers", "medallion_lakehouse",
         "docker_cgroups_namespaces", "hnsw_vector_graph", "clean_architecture_rings", "tree_hierarchy",
-        "b_plus_tree_pages", "merkle_tree_proof", "grammar:tiers:4", "grammar:tree:3",
+        "b_plus_tree_pages", "merkle_tree_proof", "k8s_pod_scheduling", "iceberg_snapshot_tables",
+        "llm_guardrails_safety", "pci_dss_token_vault", "quic_http3_0rtt", "tls_13_handshake",
+        "grammar:tiers:4", "grammar:pyramid:4", "grammar:funnel:4", "grammar:tree:3", "grammar:ladder:4",
     ),
     "compare": (
         "split_comparison", "iso_comparison", "code_diff_split", "hybrid_merge", "pacelc_tradeoff",
         "process_thread_context", "index_seek_vs_scan", "dma_zero_copy_io", "matrix_2x2",
-        "monolith_modular_vs_micro", "bfs_dfs_traversal", "venn_overlap",
+        "monolith_modular_vs_micro", "bfs_dfs_traversal", "venn_overlap", "compare_sync_vs_async",
+        "compare_rest_vs_grpc", "llm_prefill_vs_decode", "optimistic_vs_zk_rollup",
+        "grammar:dual:vs", "grammar:dual:tradeoff", "grammar:grid:3x2",
     ),
     "metrics": (
         "benchmark_chart", "benchmark_3d", "metric_gauge_hud", "radial_gauge", "latency_waterfall",
         "flamegraph_perf", "funnel_metrics", "stat_grid_2x2", "line_area_chart", "donut_3d",
+        "pareto_frontier_plot", "box_whisker_latency", "slo_burn_rate_gauge", "big_o_complexity_curves",
+        "gauge_slo_availability", "benchmark_throughput_ops", "grammar:waterfall:5",
     ),
     "code": (
         "code_terminal", "terminal_studio", "sql_table", "sql_studio", "data_structure_memory",
         "memory_lanes", "api_request_response", "er_schema", "columnar_parquet_blocks",
-        "isolation_levels_matrix", "jwt_header_payload_sig",
+        "isolation_levels_matrix", "jwt_header_payload_sig", "memory_ring_buffer", "memory_lsm_memtable",
+        "sql_window_partition", "sql_covering_index", "diff_n_plus_one_fix", "grammar:slots:5", "grammar:table:4x4",
     ),
     "summary": (
         "concept_cards", "checklist_scorecard", "kinetic_statement", "hybrid_merge",
-        "step_timeline", "grammar:grid:2x2", "pyramid_hierarchy", "rfc_adr_decision_log",
+        "step_timeline", "grammar:grid:2x2", "grammar:bento:5", "pyramid_hierarchy",
+        "rfc_adr_decision_log", "checklist_prod_readiness", "checklist_sql_tuning",
     ),
 }
 
@@ -390,19 +404,19 @@ Output a single valid JSON object matching this structure:
 
 ENGINE_STYLE_DIRECTIVES = {
     "studio_300_domain": (
-        "UNLIMITED STUDIO MAX + ZERO-TEMPLATE HYBRID ENGINE (OPTION 1 + OPTION 2 COMBINED — 320+ DOMAIN LAYOUTS + DIAGRAM GRAMMAR + BESPOKE WEBGL/HTML5 + AI <svg>): "
-        "Mix bespoke zero-template scenes (`web_scene`, `svg_scene`, `spatial_canvas`) AND specialized 320+ Domain Layouts across every scene! NEVER use the same layout twice in one reel!\n"
+        "UNLIMITED STUDIO MAX + ZERO-TEMPLATE HYBRID ENGINE (OPTION 1 + OPTION 2 COMBINED — 670+ DOMAIN LAYOUTS + 56 GRAMMAR + 54 OPTION 1 WEBGL/SVG/SPATIAL): "
+        "Mix bespoke zero-template scenes (`web_scene`, `svg_scene`, `spatial_canvas` with `visual_data.option1_archetype`) AND specialized 670+ Domain Layouts across every scene! NEVER use the same layout twice in one reel!\n"
         "1. COLOR WORLDS: Any of 46 curated worlds (`obsidian_studio`, `sapphire_3d`, `aurora_borealis`, `synthwave_84`, `studio_white`, `emerald_matrix`, `cobalt_blueprint`, `midnight_gold`, etc.) OR `#HEX`.\n"
         "2. BACKDROP, TRANSITION & TEXT FX: Vary `backdrop` (18 styles), `transition` (12 styles), and `text_fx` (14 styles) per scene.\n"
         "3. USE DIVERSE VISUAL TYPES ACROSS SCENES (populate rich schema fields for whichever you pick!):\n"
-        "   - Zero-Template Custom: `web_scene` (bespoke animated HTML5/Canvas3D), `svg_scene`, `spatial_canvas` (`elements` 0..1000 + `connections`).\n"
-        "   - 320+ Domain Layouts: NEVER fall back to bare `alert_diagram` without `alerts`! Populate `nodes`/`stages`/`items` (with `icon` like `'postgres'`, `'aws_rds'`, `'kafka'`, `'docker'`, `'kubernetes'`, `'router'`, `'server'` & `shape` like `'server_rack'`, `'router'`, `'network_switch'`, `'laptop'`, `'database_cluster'`). Examples: `cdc_debezium_flow`, `client_server_cluster`, `etl_elt_pipeline`, `medallion_lakehouse`, `hardware_rack_diagram`, `osi_7_layers`, `sdlc_cycle_wheel`, `cicd_pipeline_stages`, `consistent_hashing_ring`, `raft_leader_election`, `circuit_breaker_states`, `write_ahead_log_wal`, `mesh_3d_stage`, `sequence_diagram`, `layer_stack_3d`, `benchmark_3d`, `radial_gauge`.\n"
-        "   - Diagram Grammar: `grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`, `grammar:tree:3`, `grammar:slots:5`.\n"
+        "   - Zero-Template Custom (54+ archetypes): `web_scene`, `svg_scene`, `spatial_canvas` (`elements` 0..1000 + `connections`).\n"
+        "   - 670+ Domain & Pro/IT Layouts: NEVER fall back to bare `alert_diagram` without `alerts`! Populate `nodes`/`stages`/`items` (with `icon` like `'postgres'`, `'aws_rds'`, `'kafka'`, `'docker'`, `'kubernetes'`, `'router'`, `'server'` & `shape` like `'server_rack'`, `'router'`, `'network_switch'`, `'laptop'`, `'database_cluster'`). Examples: `cdc_debezium_flow`, `iceberg_snapshot_tables`, `k8s_pod_scheduling`, `transformer_self_attn`, `mcp_tool_bridge`, `quic_http3_0rtt`, `rag_chunk_overlap_pipe`, `double_entry_ledger`, `ros2_dds_pubsub`, `medallion_lakehouse`, `consistent_hashing_ring`, `raft_leader_election`, `circuit_breaker_states`, `write_ahead_log_wal`, `mesh_3d_stage`, `sequence_diagram`, `benchmark_3d`.\n"
+        "   - Composable Diagram Grammar (56+ presets): `grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`, `grammar:bento:5`, `grammar:swimlane:3`, `grammar:chevron:4`, `grammar:pyramid:4`, `grammar:funnel:4`, `grammar:quadrant:2x2`.\n"
         "4. Populate `scene_tone` & 4 `choreography.triggers` per scene."
     ),
     "pure_zero_template": (
-        "PURE ZERO-TEMPLATE AI CODE-AS-VIDEO ENGINE (OPTION 1 — STRICTLY INFINITE BESPOKE SCENES, ZERO REPEATING TEMPLATES): "
-        "CRITICAL RULE: NEVER repeat the same layout or generic placeholders across scenes! Write rich, topic-specific structured details in `visual_data` for EVERY scene so our dedicated AI HTML5/Canvas3D Code Synthesizer builds a completely unique interactive visual composition per scene:\n"
+        "PURE ZERO-TEMPLATE AI CODE-AS-VIDEO ENGINE (OPTION 1 — 54+ INTERACTIVE WEBGL / SVG / SPATIAL CODE ARCHETYPES, ZERO REPEATING TEMPLATES): "
+        "CRITICAL RULE: NEVER repeat the same layout or generic placeholders across scenes! Write rich, topic-specific structured details in `visual_data` (including optional `visual_data.option1_archetype` from `web_*`, `svg_*`, `spatial_*`) for EVERY scene so our dedicated AI HTML5/Canvas3D Code Synthesizer builds a completely unique interactive visual composition per scene:\n"
         "- Scene 1 (Hook/Problem): Use `alert_diagram` or `split_comparison` with real production dilemma, risk blips (`alerts`), `left_points`/`right_points`, or metrics.\n"
         "- Scene 2 (Architecture/Flow): Use `architecture_flow`, `cdc_debezium_flow`, or `circular_hub_mesh` with concrete `nodes`/`stages`/`satellites` and service icons (`postgres`, `kafka`, `aws`, `router`, `server`).\n"
         "- Scene 3 (Internals/Code/Stream): Use `data_structure_memory` (`entries` with hex offsets/LSN), `code_terminal` (`command`, `code_snippet`, `output`), or `sql_table`.\n"
@@ -410,14 +424,14 @@ ENGINE_STYLE_DIRECTIVES = {
         "Optionally provide `visual_data.html` or `visual_data.svg` directly, AND vary `art_style`, `backdrop`, `transition`, `text_fx`, `scene_tone`, and 4 `choreography.triggers` per scene!"
     ),
     "studio_domain_library": (
-        "DOMAIN LAYOUT LIBRARY PRO (OPTION 2 — 320+ SPECIALIZED DOMAIN LAYOUTS + DIAGRAM GRAMMAR): "
-        "Select the most technically authentic specialized layout from the **320+ Domain Library** (never repeat the same layout twice in one reel!):\n"
+        "DOMAIN LAYOUT LIBRARY PRO (OPTION 2 — 670+ SPECIALIZED DOMAIN LAYOUTS + 56 COMPOSABLE GRAMMAR PRESETS): "
+        "Select the most technically authentic specialized layout from the **670+ Domain Library across 18 Engineering Domains + Pro Charts + IT/SDLC** (never repeat the same layout twice in one reel!):\n"
         "- Algorithms & DSA: `binary_search_trace`, `two_pointers_window`, `sliding_window_buffer`, `quicksort_partition`, `heap_priority_tree`, `trie_prefix_tree`, `bloom_filter_bits`, `lru_cache_eviction`, `consistent_hashing_ring`, `merkle_tree_proof`.\n"
         "- Databases & Storage: `b_plus_tree_pages`, `lsm_tree_compaction`, `write_ahead_log_wal`, `mvcc_snapshot_versions`, `two_phase_commit_2pc`, `saga_orchestration`, `sharding_hash_range`, `hnsw_vector_graph`, `columnar_parquet_blocks`.\n"
         "- Distributed Systems: `raft_leader_election`, `paxos_quorum_rounds`, `cap_theorem_triangle`, `circuit_breaker_states`, `rate_limiter_token_bucket`, `idempotency_key_store`, `outbox_pattern_cdc`, `backpressure_reactive`.\n"
-        "- OS, Security, Web, AI & Cloud: `virtual_memory_paging`, `epoll_event_loop`, `ebpf_kernel_hooks`, `oauth2_pkce_flow`, `tls_13_handshake`, `passkey_webauthn_fido2`, `http1_vs_http2_vs_http3`, `webrtc_ice_stun_turn`, `transformer_multihead_attn`, `lora_qlora_adapters`, `mcp_tool_protocol`, `k8s_control_plane`, `docker_overlayfs_layers`, `iceberg_snapshot_manifest`.\n"
-        "- Networking, Data Eng, Hardware & SDLC: `client_server_cluster`, `osi_7_layers`, `hardware_rack_diagram`, `vpc_subnet_topology`, `medallion_lakehouse`, `etl_elt_pipeline`, `cdc_debezium_flow`, `sdlc_cycle_wheel`, `cicd_pipeline_stages`, `agile_sprint_board`, `test_pyramid_qa`.\n"
-        "- Also supports Composable Grammar `grammar:grid:3x2` / `grammar:flow:5` / `grammar:ring:6` + all 145 3D shapes (`laptop`, `desktop`, `mobile`, `router`, `network_switch`, `hub`, `server_rack`) + 200k+ 3D SVGs.\n"
+        "- AI/LLM, Web, Mobile, FinTech, Web3 & Robotics: `llm_tokenization_bpe`, `rag_chunk_overlap_pipe`, `mcp_client_host_server`, `browser_critical_path`, `react_fiber_reconciler`, `double_entry_ledger`, `merkle_patricia_trie`, `ros2_dds_pubsub`, `kalman_sensor_fusion`.\n"
+        "- Networking, Data Eng, Hardware & SDLC: `client_server_cluster`, `osi_7_layers`, `quic_http3_0rtt`, `iceberg_snapshot_tables`, `k8s_pod_scheduling`, `medallion_lakehouse`, `etl_elt_pipeline`, `cdc_debezium_flow`, `sdlc_cycle_wheel`, `cicd_pipeline_stages`.\n"
+        "- Also supports 56 Composable Grammar Presets (`grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`, `grammar:bento:5`, `grammar:swimlane:3`, `grammar:pyramid:4`, `grammar:funnel:4`) + all 145 3D shapes + 200k+ 3D SVGs.\n"
         "- Vary 46 `art_style` worlds / `#HEX`, 18 `backdrop`s, 12 `transition`s, 14 `text_fx`. Populate `scene_tone` & 4 `choreography.triggers`."
     ),
     "cinematic_studio": (
@@ -528,28 +542,38 @@ ENGINE_STYLE_DIRECTIVES = {
 TONE_DIRECTIVES = {
     "trusted_dost_guide": (
         "TRUSTED DOST, HAPPY CURIOUS HINGLISH & PEACEFUL GUIDE MANDATE: "
-        "Speak with a happy, deeply human, curious Hinglish voice — like a trusted best friend (`dost / yaar`), peaceful mentor, and supportive problem solver who genuinely understands the viewer's confusion and reassures them ('Don't worry yaar, tension bilkul mat lo — main hoon na, chal saath mein samajhte hain!').\n"
+        "Speak with a happy, deeply human, curious Hinglish voice — like a trusted best friend (`dost / yaar`), peaceful guide, and supportive problem solver who genuinely understands the viewer's mindset and walks through every intuition step warmly ('Aao dost, is concept ko ekdam simple aur clear tarike se decode karte hain!'). "
+        "STRICT DIALOG RULE: NEVER use repetitive cliché reassurance phrases or filler sympathy — express warmth purely through genuine curiosity, encouraging clarity, and collaborative storytelling instead!\n"
         "1. 00:00 CLEVER SECRET / SHORTCUT HOOK: Open Scene 1 immediately with an exciting, curious secret or smart engineering shortcut ('Ek chhota sa secret shortcut bataun jo 90% log miss kar dete hain?... [pause]').\n"
-        "2. NATURAL Q&A CLARITY CHECKS: Check concept clarity through natural, conversational friend-like Q&A ('Wait... ab socho agar 10,000 requests ek saath aayein toh kya hoga? [pause] Simple hai dost — yahan ek smart trick kaam aati hai!').\n"
-        "3. ENJOYABLE VISIONARY FLOW + PROGRESSIVE VISUAL SYNC: Build an uplifting, enjoyable, visionary momentum from curiosity -> clarity -> mastery. Populate rich progressive cards/flows/diagrams and 4 exact `choreography.triggers` per scene so visuals light up in tight lockstep with your words. Set each scene's `scene_tone` to `trusted_dost_guide`."
+        "2. NATURAL Q&A CLARITY CHECKS: Check concept clarity through natural, conversational friend-like Q&A ('Ab socho agar 10,000 requests ek saath aayein toh kya hoga? [pause] Simple hai dost — yahan ek smart pattern kaam aata hai!').\n"
+        "3. ENJOYABLE VISIONARY FLOW + PROGRESSIVE VISUAL SYNC: Build an uplifting, enjoyable, visionary momentum from curiosity -> clarity -> mastery without skipping any step. Populate rich progressive cards/flows/diagrams and 4 exact `choreography.triggers` per scene so visuals light up in tight lockstep with your words. Set each scene's `scene_tone` to `trusted_dost_guide`."
+    ),
+    "purposeful_hinglish_mentor": (
+        "PURPOSEFUL HINGLISH MENTOR ('MUST UNDERSTAND' CLARITY + EDGE CASES) MANDATE: "
+        "Speak with a warm, authoritative yet approachable Hinglish male mentor voice delivered at a slightly brisk, purposeful pace that stays crystal clear and ensures the viewer genuinely understands every concept ('must understand'). "
+        "Write `narration` in clean Roman Hinglish mixed naturally with crisp English technical terms and ASCII numbers, using brief intentional pauses (`...` / `[pause]`) only for rhetorical weight so pacing stays tight and cohesive.\n"
+        "1. 00:00 SHARP INTERVIEW-TRAP / REAL-WORLD HOOK (Scene 1): Open immediately at 00:00 with a concrete interview trap or production failure scenario (e.g., 'Interview mein jab puchte hain ki 100K RPS par connection pool kyun choke hota hai... [pause] 85% engineers yahin galti karte hain!').\n"
+        "2. ZERO-SKIP STEP-BY-STEP MECHANICS (Middle Scenes): Explain every essential step, internal data flow, and mental model clearly from A to B without jumping steps, seamlessly bridging each scene's conclusion into the next scene's visual transition.\n"
+        "3. EDGE CASES, TRADE-OFFS & PRACTICAL FIX (Deep Scene -> Close): Explicitly break down edge cases, latency/cost/memory trade-offs, and an actionable production fix (`split_comparison`, `code_diff_split`, `sql_studio`, or domain diagrams) so the viewer walks away with complete mastery.\n"
+        "4. TIGHT VISUAL SYNC: Populate 4 exact `choreography.triggers` per scene synced to key spoken terms, matching progressive diagrams, highlights, and transitions from start to finish. Set each scene's `scene_tone` to `purposeful_hinglish_mentor`."
     ),
     "senior_hinglish_mentor": (
         "SENIOR HINGLISH MENTOR & TECHNICAL STORYTELLER MANDATE: "
-        "Adopt a warm, clear, conversational Hinglish persona with a confident senior-engineer/mentor vibe and natural crisp English tech terms (`latency`, `throughput`, `race condition`, `index`, `cache invalidation`, `trade-off`). "
-        "Unless the selected Voice Persona explicitly specifies Devanagari Hindi/Marathi or pure English, write `narration` in natural, clean conversational Hinglish (Roman script + crisp English technical terms, with intentional `...` / `[pause]` breath cues). "
+        "Adopt a warm, brisk yet crisp conversational Hinglish persona with a confident senior-engineer/mentor vibe and natural crisp English tech terms (`latency`, `throughput`, `race condition`, `index`, `cache invalidation`, `trade-off`). "
+        "Unless the selected Voice Persona explicitly specifies Devanagari Hindi/Marathi or pure English, write `narration` in natural, clean conversational Hinglish (Roman script + crisp English technical terms, with tight intentional `...` / `[pause]` breath cues). "
         "FOLLOW THIS EXACT 4-ACT STORY ARC ACROSS SCENES:\n"
-        "1. 00:00 HOOK (Scene 1): Start with a punchy, slightly playful interview-trap or real-world production problem hook (e.g., 'Interview mein 90% log yahin phaste hain... [pause] ek simple query production DB ko kaise freeze kar sakti hai?').\n"
-        "2. CALM STEP-BY-STEP WALKTHROUGH (Middle Scenes): Move into a calm, clear, step-by-step storytelling walkthrough using progressive UI cards, animated diagrams/flow chains, and crisp key-term emphasis (`step_timeline`, `architecture_flow`, `custom_scene` with progressive `blocks`, or domain diagrams).\n"
-        "3. CANDID ANALYTICAL TRADE-OFFS & FIXES (Pre-Closing / Deep Scene): Shift to a candid, analytical senior-engineer tone covering real trade-offs, edge cases, and practical fixes (`split_comparison`, `data_structure_memory`, `code_terminal`, or `benchmark_chart`).\n"
-        "4. FRIENDLY DIRECT CTA (Final Scene): End with a warm, direct CTA (e.g., 'Save this reel for your next interview aur comment karo apna next topic!').\n"
+        "1. 00:00 HOOK (Scene 1): Start immediately with a crisp interview-trap or real-world production problem hook (e.g., 'Interview mein 90% log yahin phaste hain... [pause] ek simple query production DB ko kaise freeze kar sakti hai?').\n"
+        "2. BRISK STEP-BY-STEP WALKTHROUGH (Middle Scenes): Move seamlessly into a crisp, step-by-step walkthrough with smooth scene-to-scene connectors using progressive UI cards, animated diagrams/flow chains, and crisp key-term emphasis.\n"
+        "3. CANDID ANALYTICAL TRADE-OFFS & FIXES (Pre-Closing / Deep Scene): Cover real trade-offs, edge cases, and practical fixes cleanly (`split_comparison`, `data_structure_memory`, `code_terminal`, or `benchmark_chart`).\n"
+        "4. FRIENDLY DIRECT CTA (Final Scene): End cleanly with a direct CTA ('Save this reel for your next interview aur comment karo apna next topic!').\n"
         "CRITICAL SYNC: Populate 4 exact `choreography.triggers` matching key spoken terms per scene so progressive UI cards & diagrams emphasize each concept in tight lockstep, and set each scene's `scene_tone` to `senior_hinglish_mentor`."
     ),
     "youth_friend_turbo": (
-        "YOUTH DOST, FAST HYPE AD/STORYTELLING & HIGH-DENSITY Q&A EXPLAINER MANDATE (ULTRA-FAST + COMPLETE): "
-        "Speak like a super-smart, high-energy young best friend (`dost / yaar / bro`) pitching an addictive tech thriller or viral product ad to a smart friend — rapid, crystal clear, hilarious/relatable, and packed with dense real engineering depth in MINIMUM time!\n"
-        "1. FRIENDLY YOUTH Q&A + DETAILER FLOW IN EVERY SCENE: Open scenes with a sharp intelligent question ('Arre yaar, think—why did 10,000 checkouts crash at once?', 'Wait... how does AWS replicate 50GB with zero lag?'), hit a crisp natural breath pause ('...' or '[pause]'), then deliver the punchy answer + real deep internals (`WAL`, `lsn`, exact latency ms, tradeoffs) without wasting a single filler word!\n"
-        "2. HIGH CONTENT DENSITY IN LESS TIME: Pack maximum actionable value, real metrics, commands, and sharp analogies per sentence (tight, punchy 8-14 word sentences with zero boring fluff!). Every scene + voice line must finish its complete point crisply.\n"
-        "3. RICH VISUAL MATCHING FOR TURBO SYNC: Populate 4-5 rich structured visual items (`nodes`, `stages`, `bars`, `entries`, `bullets`) + 4 exact `choreography.triggers` matching spoken punchwords so on-screen 3D visuals flash & build in tight lockstep with your fast delivery!\n"
+        "YOUTH DOST, ENERGETIC Q&A DETAILER & BALANCED SYNC EXPLAINER MANDATE (COMPLETE + ZERO RUSH/SKIP): "
+        "Speak like a smart, energetic young friend (`dost / yaar`) delivering an engaging story-driven tech breakdown — lively, crystal clear, relatable, and complete with zero rushed truncation or skipped ideas!\n"
+        "1. STRUCTURED FRIENDLY Q&A IN EVERY SCENE: Open scenes with a crisp relatable question ('Socho zara — ek saath 10,000 requests aane par checkout slow kyun padta hai?'), insert ONE clean breath beat ('... [pause]'), then deliver the full step-by-step answer and concrete internals (`WAL`, `lsn`, exact latency ms, tradeoffs) clearly.\n"
+        "2. COMPLETE SENTENCES & SMOOTH SCENE BRIDGES (ZERO GHAI-GADBAD): Never compress too many disconnected buzzwords into one rushed breath! Use smooth, complete 12-16 word conversational sentences with explicit scene transitions ('Ab yahan asli magic shuru hota hai -> let's trace step 2!') so voice, visuals, effects, and karaoke finish cleanly together.\n"
+        "3. FULL VISUAL SYNC: Populate 4 balanced visual items (`nodes`, `stages`, `bars`, `entries`, `bullets`) + 4 exact `choreography.triggers` spaced evenly across the sentence timings so zero cards or words ever skip.\n"
         "Set each scene's `scene_tone` to `youth_friend_turbo`."
     ),
     "mentor_storyteller": (
@@ -645,11 +669,12 @@ def generate_timeline(
             "ALSO include `\"narration_hinglish\"` on every scene with the exact natural Roman Minglish/Hinglish version of `narration` (e.g., 'Mitrano, aaj aapan pahnar aahot ki Database Migration Zero Downtime sobat kase chalte...') for karaoke captions! "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
-    elif tone in ("senior_hinglish_mentor", "trusted_dost_guide"):
+    elif tone in ("senior_hinglish_mentor", "purposeful_hinglish_mentor", "trusted_dost_guide", "youth_friend_turbo"):
         lang_directive = (
             f"LANGUAGE & DIALECT MANDATE ({tone}): Write the spoken `narration` in warm, clear, deeply human conversational Hinglish "
             "using clean LATIN / ROMAN letters mixed naturally with crisp English technical terms and ASCII numbers "
-            "(e.g., 'Socho zara yaar... don't worry, is complex concept ko 30 seconds mein crystal clear banate hain!'). "
+            "(e.g., 'Socho zara yaar... is complex concept ko 30 seconds mein crystal clear decode karte hain!'). "
+            "Express warmth through curious, uplifting clarity rather than repetitive reassurance clichés. "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
     elif voice == "en-IN-PrabhatNeural":
@@ -1492,14 +1517,26 @@ def _enforce_engine_style(
             v_data["arrow4_label"] = v_data.get("arrow4_label") or "Event Sync"
 
         v_data["_variation_seed"] = run_num
+        from core.web_generative_engine import ZERO_TEMPLATE_50_ARCHETYPES
+        fresh_opt1 = [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a not in recent_vtypes] or list(ZERO_TEMPLATE_50_ARCHETYPES)
+        chosen_opt1 = fresh_opt1[(run_num * 5 + idx * 3 + abs(hash(topic.strip().lower()))) % len(fresh_opt1)]
         if engine_style == "pure_zero_template" and current_vtype not in ("svg_scene", "spatial_canvas"):
             v_data.setdefault("_intent", current_vtype)
-            sc["visual_type"] = "web_scene"
+            v_data.setdefault("option1_archetype", chosen_opt1)
+            if chosen_opt1.startswith("svg_"):
+                sc["visual_type"] = "svg_scene"
+            elif chosen_opt1.startswith("spatial_"):
+                sc["visual_type"] = "spatial_canvas"
+            else:
+                sc["visual_type"] = "web_scene"
+            used_vtypes.add(chosen_opt1)
         elif engine_style == "studio_300_domain" and (idx + run_num) % max(2, len(scenes)) == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-            # Both Combined: rotate which scene renders as bespoke Option 1 web_scene vs Option 2 domain layouts
+            # Both Combined: rotate which scene renders as bespoke Option 1 web/svg/spatial vs Option 2 domain layouts
             v_data.setdefault("_intent", current_vtype)
-            sc["visual_type"] = "web_scene"
+            v_data.setdefault("option1_archetype", chosen_opt1)
+            sc["visual_type"] = "svg_scene" if chosen_opt1.startswith("svg_") else ("spatial_canvas" if chosen_opt1.startswith("spatial_") else "web_scene")
             used_vtypes.add(current_vtype)
+            used_vtypes.add(chosen_opt1)
         else:
             used_vtypes.add(sc["visual_type"])
 

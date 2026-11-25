@@ -397,7 +397,8 @@ def generate_ass_subtitles(
     tone_styles = {
         "trusted_dost_guide": (r"\c&H0099D334&\fscx112\fscy112", "trusted_emerald_warm"),
         "senior_hinglish_mentor": (r"\c&H00F8BD38&\fscx110\fscy110", "mentor_cyan_emphasis"),
-        "youth_friend_turbo": (r"\c&H002BF6FF&\fscx116\fscy116", "turbo_youth_pop"),
+        "purposeful_hinglish_mentor": (r"\c&H00F8BD38&\fscx110\fscy110", "purposeful_mentor_cyan"),
+        "youth_friend_turbo": (r"\c&H002BF6FF&\fscx112\fscy112", "turbo_youth_pop"),
         "mentor_storyteller": (r"\c&H0099D334&\fscx112\fscy112", "mentor_emerald"),
         "fireship_octane": (r"\c&H002BF6FF&\fscx114\fscy114", "electric_yellow"),
         "dramatic_performance": (r"\c&H0024BFFF&\fscx108\fscy108", "amber_drama"),

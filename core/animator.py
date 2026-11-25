@@ -33,6 +33,7 @@ ACCENT_THEMES = {
 TONE_THEME_MAP = {
     "trusted_dost_guide": "emerald_matrix",
     "senior_hinglish_mentor": "indigo_cyan",
+    "purposeful_hinglish_mentor": "indigo_cyan",
     "youth_friend_turbo": "cyber_cyan",
     "mentor_storyteller": "emerald_matrix",
     "fireship_octane": "cyber_cyan",
@@ -534,13 +535,17 @@ def render_scene_frames(
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
         raw_p = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
-        # Tone-matched reveal snap: Youth Turbo & Fireship snap faster and complete cleanly before scene end
+        # Tone-matched reveal snap synced to narration & subtitle cadence (zero skipped frames/content)
         if effective_tone == "youth_friend_turbo":
-            progress = min(1.0, 1.0 if linear_p >= 0.90 else pow(raw_p, 0.78) * 1.18)
+            progress = min(1.0, 1.0 if linear_p >= 0.93 else pow(raw_p, 0.92) * 1.05)
+        elif effective_tone == "purposeful_hinglish_mentor":
+            progress = min(1.0, 1.0 if linear_p >= 0.94 else pow(raw_p, 0.94) * 1.04)
+        elif effective_tone == "senior_hinglish_mentor":
+            progress = min(1.0, 1.0 if linear_p >= 0.94 else pow(raw_p, 0.93) * 1.04)
         elif effective_tone == "fireship_octane":
-            progress = min(1.0, 1.0 if linear_p >= 0.93 else raw_p * 1.12)
+            progress = min(1.0, 1.0 if linear_p >= 0.93 else raw_p * 1.08)
         elif effective_tone == "dramatic_performance":
-            progress = pow(raw_p, 1.08)
+            progress = pow(raw_p, 1.06)
         else:
             progress = raw_p
         frame = base_canvas.copy()

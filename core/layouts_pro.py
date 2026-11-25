@@ -194,22 +194,126 @@ def draw_kinetic_text(
 
 
 # =========================================================================
-# +32 ADDITIONAL SPECIALIZED STUDIO LAYOUTS (Total -> 65 Named Layouts)
+# +104 SPECIALIZED STUDIO PRO LAYOUTS (AI/ML, Charts, UI Mockups, Science)
 # =========================================================================
+_PRO_EXTRA_PRESETS: Dict[str, Tuple[str, str, Tuple[str, ...]]] = {
+    # --- AI / LLM / Agents / MLOps (+19 -> 26 total in AI pillar) ---
+    "transformer_self_attn": ("attention_heatmap", "Self-Attention Q·K^T Matrix", ("Query", "Key", "Value", "Softmax")),
+    "kv_cache_sliding": ("timeline_gantt", "KV Cache Sliding Window", ("System Prompt", "Context Window", "Evicted Tokens", "Active Decode")),
+    "lora_adapter_merge": ("sankey_flow", "LoRA Low-Rank Adapter Merge", ("Frozen W0|Merged W|95%", "Rank A*B|Merged W|100%")),
+    "moe_routing_chart": ("rag_pipeline_3d", "Mixture-of-Experts Top-2 Router", ("Gate Router", "Expert Math", "Expert Code", "Expert SQL", "Combine")),
+    "mcp_tool_bridge": ("agent_loop_3d", "Model Context Protocol (MCP) Bridge", ("LLM Host", "MCP Client", "Schema Discovery", "Tool Execution")),
+    "eval_rubric_matrix": ("confusion_matrix", "LLM Eval Groundedness Matrix", ("Faithful", "Relevant", "Concise", "Cited")),
+    "prompt_injection_guard": ("split_screen_50_50", "Prompt Firewall Defense", ("Untrusted Input\nRaw SQL / Override", "Sanitized Guard\nPolicy Verified ✓")),
+    "speculative_tokens_chart": ("line_area_chart", "Speculative Draft vs Target Tokens/s", ("Draft k=4", "Verify 1 Pass", "Accept 3.2x", "Target Match")),
+    "rlhf_ppo_loop": ("agent_loop_3d", "RLHF / DPO Alignment Loop", ("Policy LM", "Reward Model", "KL Penalty", "Human Prefs")),
+    "diffusion_denoise_steps": ("line_area_chart", "Latent Diffusion Denoising Schedule", ("t=1000 Noise", "UNet Cross-Attn", "CFG Scale", "Clean Latent")),
+    "quantization_int4": ("before_after_slider", "FP16 vs INT4 AWQ Footprint", ("FP16 Weights\n14 GB VRAM • 1x", "INT4 Quantized\n3.8 GB VRAM • 2.7x Faster")),
+    "graph_rag_hops": ("mindmap_radial", "2-Hop Knowledge Graph RAG", ("Entity Hub", "Edge Weight", "Community Summary", "Vector Fuse")),
+    "vllm_paged_attn": ("kanban_board", "vLLM PagedAttention KV Blocks", ("Logical KV", "Block Table", "Physical VRAM")),
+    "supervisor_agent_orbit": ("orbit_ecosystem", "Multi-Agent Supervisor Swarm", ("Planner", "Researcher", "Coder", "Verifier")),
+    "voice_pipeline_vad": ("rag_pipeline_3d", "Realtime Voice AI Pipeline (<300ms)", ("Mic PCM", "Silero VAD", "Streaming ASR", "TTS Prosody")),
+    "semantic_cache_clusters": ("embedding_cluster", "Semantic Cosine Similarity Cache", ("Hit >0.94", "Miss <0.78", "Vector LSH", "LRU Evict")),
+    "reranker_cross_encoder": ("token_prob_bars", "Bi-Encoder -> Cross-Encoder Rerank", ("Doc #14 Exact", "Doc #03 Semantic", "Doc #09 Keyword", "Doc #22 Tail")),
+    "embedding_hnsw_layers": ("neural_net_layers", "HNSW Hierarchical Navigable Layers", ("Entry Layer 2", "Skip Layer 1", "Dense Layer 0", "Top-K")),
+    "fine_tune_loss_curve": ("line_area_chart", "Training vs Validation Loss Decay", ("Epoch 1", "Warmup Peak", "Cosine Decay", "Converged")),
+
+    # --- Charts, Quant & Observability (+18 -> 26 total in Analytics pillar) ---
+    "cohort_retention_grid": ("heatmap_matrix", "Weekly User Cohort Retention %", ("Week 1", "Week 2", "Week 3", "Week 4")),
+    "pareto_frontier_plot": ("scatter_plot", "Latency vs Cost Pareto Frontier", ("Optimal Frontier", "Over-Provisioned", "High Latency")),
+    "box_whisker_latency": ("candlestick_pro", "P50 / P95 / P99 Tail Spread", ("Min", "P50", "P95", "P99")),
+    "violin_distribution": ("line_area_chart", "Bimodal Cache Hit vs Miss Distribution", ("L1 Hit 0.2ms", "L2 Hit 3ms", "DB Fallback 48ms")),
+    "waterfall_bridge_chart": ("candlestick_pro", "Latency Budget Bridge Breakdown", ("DNS 8ms", "TLS 14ms", "DB 42ms", "Render 12ms")),
+    "treemap_storage_alloc": ("kanban_board", "Storage Partition Allocation", ("Hot NVMe 52%", "Warm S3 31%", "Cold Glacier 17%")),
+    "sunburst_cost_breakdown": ("donut_3d", "Cloud Spend Cost Attribution", ("Compute", "Storage", "Egress")),
+    "chord_service_deps": ("orbit_ecosystem", "Cross-Service Call Density", ("API GW", "Auth", "Orders", "Ledger")),
+    "slo_burn_rate_gauge": ("donut_3d", "99.95% Error Budget Burn Rate", ("Healthy 82%", "Alert Burn 12%", "Remaining 6%")),
+    "anomaly_zscore_bands": ("line_area_chart", "Z-Score Drift & Spike Detection", ("Mean", "+2 Sigma", "Anomaly Z>3.5", "Recovered")),
+    "funnel_conversion_drop": ("sankey_flow", "Checkout Drop-Off Funnel", ("Landing|Cart|68%", "Cart|Checkout|54%", "Checkout|Paid|84%")),
+    "bullet_kpi_targets": ("token_prob_bars", "Quarterly SLA Attainment vs Target", ("Uptime SLA", "P99 Target", "Error Cap", "MTTR Goal")),
+    "histogram_p99_tail": ("token_prob_bars", "Request Latency Bucket Histogram", ("<10ms Fast", "10-50ms OK", "50-200ms Slow", ">200ms Tail")),
+    "correlation_matrix_pro": ("heatmap_matrix", "Metric Pearson Correlation Grid", ("CPU", "GC Pause", "IOPS", "P99")),
+    "cumulative_throughput_area": ("line_area_chart", "Cumulative RPS Throughput Ramp", ("Baseline 5K", "Autoscale 25K", "Peak 80K")),
+    "sparkline_kpi_board": ("radar_spider", "Multi-Signal Service Health Radar", ("CPU", "Mem", "Disk", "Net", "Err")),
+    "latency_heatmap_hour": ("heatmap_matrix", "24h Traffic Surge Heatmap", ("00:00", "06:00", "12:00", "18:00")),
+    "resource_quota_meter": ("donut_3d", "Namespace CPU & Memory Quota", ("Reserved", "Burstable", "Headroom")),
+
+    # --- UI / Product / Developer Experience (+17 -> 26 total in UI pillar) ---
+    "ide_split_debugger": ("split_screen_50_50", "Breakpoint Watch & Callstack", ("Call Stack\nmain() -> parse()\nLine 42 Break", "Watch Inspector\ntokens = 1024\nerr = nil ✓")),
+    "pr_review_thread": ("chat_thread_ai", "Automated PR Review Inline Thread", ("Bot: Potential N+1 query detected", "Dev: Switched to batched JOIN", "Bot: Latency -82% Approved ✓")),
+    "billing_usage_meter": ("pricing_tiers", "Metered API Tier Consumption", ("Free Dev", "Pro Scale", "Enterprise SLA")),
+    "feature_flag_toggle_ui": ("mobile_app_mockup", "Progressive Rollout Feature Flags", ("1% Canary ON", "10% Region US", "100% GA Ready")),
+    "api_playground_console": ("browser_window", "Interactive REST / GraphQL Console", ("POST /v2/stream • 200 OK • 18ms",)),
+    "webhook_inspector_card": ("notification_stack", "Signed Webhook Delivery Trace", ("HMAC SHA-256 Verified", "Retry #1 Backoff 2s", "200 ACK Confirmed")),
+    "onboarding_stepper_ui": ("timeline_gantt", "Developer 3-Min Onboarding Flow", ("API Key Created", "SDK Installed", "First Request 200 OK")),
+    "command_palette_modal": ("browser_window", "Cmd+K Global Action Palette", ("Jump to Traces • Logs • Deploy • Secrets",)),
+    "diff_patch_card": ("before_after_slider", "Production Config Patch Diff", ("max_conn = 50\ntimeout = 30s", "max_conn = 400\ntimeout = 2s + retry ✓")),
+    "auth_oauth_consent": ("mobile_app_mockup", "OAuth 2.1 PKCE Consent Flow", ("Scope: read:metrics", "PKCE S256 Verified", "Token Issued")),
+    "role_permission_matrix": ("confusion_matrix", "RBAC Least-Privilege Matrix", ("Admin", "DevOps", "Viewer", "CI Bot")),
+    "search_autocomplete_ui": ("token_prob_bars", "Typeahead Instant Prefix Ranking", ("pg_stat_statements", "pgbouncer_pool", "postgres_wal", "pgvector_hnsw")),
+    "toast_alert_banner": ("notification_stack", "Zero-Downtime Cutover Alerts", ("Shadow Traffic Verified", "DNS Weight Shifted 100%", "Zero Dropped Requests")),
+    "changelog_release_notes": ("timeline_gantt", "Semantic Release Changelog v4.2", ("v4.0 Engine", "v4.1 Streaming", "v4.2 Zero-Lock")),
+    "profile_badge_showcase": ("radar_spider", "System Maturity Capability Profile", ("Speed", "Reliability", "Security", "Cost", "Observability")),
+    "table_pagination_pro": ("before_after_slider", "OFFSET vs Keyset Cursor Pagination", ("OFFSET 100000\nScans 100K Rows (640ms)", "WHERE id > last_id\nB-Tree Seek (0.4ms)")),
+    "mobile_push_alert": ("mobile_app_mockup", "On-Call Mobile Pager Alert", ("P1 Cache Stampede", "Auto-Mitigated", "SLO Green 99.99%")),
+
+    # --- Science / Systems Strategy / Quantum / Hardware (+18 -> 26 total in Science pillar) ---
+    "fourier_wave_decompose": ("line_area_chart", "FFT Signal Frequency Decomposition", ("Fundamental f0", "Harmonic 3f0", "Noise Filter", "Clean Signal")),
+    "gradient_descent_valley": ("mesh_3d_stage", "AdamW Loss Landscape Convergence", ("Non-Convex Saddle -> Global Minima",)),
+    "bayesian_prior_posterior": ("split_screen_50_50", "Bayesian Prior -> Posterior Update", ("Prior Belief\nP(H) = 0.25", "Observed Evidence\nPosterior = 0.89 ✓")),
+    "markov_transition_graph": ("agent_loop_3d", "Markov Chain State Transition P(ij)", ("Idle", "Active", "Retry", "Settled")),
+    "pid_feedback_controller": ("rag_pipeline_3d", "Closed-Loop PID Auto-Scaler", ("Setpoint", "Proportional", "Integral", "Derivative")),
+    "simd_lane_kanban": ("kanban_board", "AVX-512 8-Lane SIMD Vectorization", ("Lane 0-1", "Lane 2-3", "Lane 4-7")),
+    "gpu_warp_scheduler": ("neural_net_layers", "GPU SM 32-Thread Warp Scheduler", ("Warp Issue", "Tensor Core", "Shared Mem", "Register File")),
+    "quantum_bloch_circuit": ("atom_orbit_3d", "Qubit Hadamard + CNOT Entanglement", ("Superposition |+⟩ State",)),
+    "crispr_gene_edit": ("dna_helix_3d", "CRISPR Cas9 Guide RNA Target Cut", ("PAM Site Recognition & Repair",)),
+    "protein_folding_energy": ("embedding_cluster", "AlphaFold Free-Energy Folding Funnel", ("Unfolded Coil", "Molten Globule", "Native State")),
+    "neural_synapse_spike": ("neural_net_layers", "Leaky Integrate-and-Fire SNN", ("Dendrite", "Threshold", "Axon Spike", "Synapse")),
+    "entropy_info_gain": ("equation_proof", "Shannon Entropy H(X) = -Σ p log p", ("Information Gain Maximization",)),
+    "game_theory_payoff": ("confusion_matrix", "Nash Equilibrium Strategy Matrix", ("Cooperate", "Defect", "Retry", "Backoff")),
+    "pareto_80_20_rule": ("donut_3d", "Pareto 80/20 Bottleneck Distribution", ("Critical 20%", "Secondary 30%", "Long Tail 50%")),
+    "big_o_complexity_curves": ("line_area_chart", "O(1) vs O(log N) vs O(N^2) Growth", ("O(1) Hash", "O(log N) B-Tree", "O(N) Scan", "O(N^2) Cliff")),
+    "cap_pacelc_matrix": ("pros_cons_scale", "PACELC Partition & Latency Choice", ("PA/EL: Dynamo/Cassandra", "PC/EC: Spanner/Cockroach")),
+    "amortized_cost_analysis": ("countdown_hero", "O(1) Amortized Dynamic Resize", ("Doubling Strategy Token Credit",)),
+    "flywheel_compounding_loop": ("orbit_ecosystem", "Compounding Systems Flywheel", ("Better Latency", "Higher Trust", "More Scale", "Lower Cost")),
+}
+
 EXTRA_32_LAYOUTS: Tuple[str, ...] = (
-    # AI / ML & True 3D Mesh (7)
+    # AI / ML & True 3D Mesh (26)
     "neural_net_layers", "attention_heatmap", "embedding_cluster", "rag_pipeline_3d",
     "agent_loop_3d", "token_prob_bars", "mesh_3d_stage",
-    # Charts & Analytics (8)
+    "transformer_self_attn", "kv_cache_sliding", "lora_adapter_merge", "moe_routing_chart",
+    "mcp_tool_bridge", "eval_rubric_matrix", "prompt_injection_guard", "speculative_tokens_chart",
+    "rlhf_ppo_loop", "diffusion_denoise_steps", "quantization_int4", "graph_rag_hops",
+    "vllm_paged_attn", "supervisor_agent_orbit", "voice_pipeline_vad", "semantic_cache_clusters",
+    "reranker_cross_encoder", "embedding_hnsw_layers", "fine_tune_loss_curve",
+    # Charts & Analytics (26)
     "line_area_chart", "donut_3d", "radar_spider", "sankey_flow",
     "candlestick_pro", "heatmap_matrix", "scatter_plot", "confusion_matrix",
-    # UI / Mockups / Social (9)
+    "cohort_retention_grid", "pareto_frontier_plot", "box_whisker_latency", "violin_distribution",
+    "waterfall_bridge_chart", "treemap_storage_alloc", "sunburst_cost_breakdown", "chord_service_deps",
+    "slo_burn_rate_gauge", "anomaly_zscore_bands", "funnel_conversion_drop", "bullet_kpi_targets",
+    "histogram_p99_tail", "correlation_matrix_pro", "cumulative_throughput_area", "sparkline_kpi_board",
+    "latency_heatmap_hour", "resource_quota_meter",
+    # UI / Mockups / Social (26)
     "mobile_app_mockup", "browser_window", "chat_thread_ai", "notification_stack",
     "kanban_board", "pricing_tiers", "quote_spotlight", "split_screen_50_50", "countdown_hero",
-    # Science / Math / Strategy (8)
+    "ide_split_debugger", "pr_review_thread", "billing_usage_meter", "feature_flag_toggle_ui",
+    "api_playground_console", "webhook_inspector_card", "onboarding_stepper_ui", "command_palette_modal",
+    "diff_patch_card", "auth_oauth_consent", "role_permission_matrix", "search_autocomplete_ui",
+    "toast_alert_banner", "changelog_release_notes", "profile_badge_showcase", "table_pagination_pro",
+    "mobile_push_alert",
+    # Science / Math / Strategy (26)
     "mindmap_radial", "timeline_gantt", "equation_proof", "before_after_slider",
     "pros_cons_scale", "atom_orbit_3d", "dna_helix_3d", "orbit_ecosystem",
+    "fourier_wave_decompose", "gradient_descent_valley", "bayesian_prior_posterior", "markov_transition_graph",
+    "pid_feedback_controller", "simd_lane_kanban", "gpu_warp_scheduler", "quantum_bloch_circuit",
+    "crispr_gene_edit", "protein_folding_energy", "neural_synapse_spike", "entropy_info_gain",
+    "game_theory_payoff", "pareto_80_20_rule", "big_o_complexity_curves", "cap_pacelc_matrix",
+    "amortized_cost_analysis", "flywheel_compounding_loop",
 )
+
+EXTRA_PRO_100_LAYOUTS: Tuple[str, ...] = EXTRA_32_LAYOUTS
 
 _ACCENT_CYCLE = ("cyan", "purple", "emerald", "amber", "rose")
 SX0, SY0, SX1, SY1 = 64, 328, 1016, 1406
@@ -225,12 +329,68 @@ def render_pro_layout(
     helpers: Dict[str, Any],
 ) -> bool:
     """
-    Renders all +32 specialized AI/ML, True-3D Mesh, Chart, Mockup & Science layouts.
+    Renders all +104 specialized AI/ML, True-3D Mesh, Chart, Mockup & Science layouts.
     Returns True if handled.
     """
-    l = str(layout or "").lower().strip()
-    if l not in EXTRA_32_LAYOUTS:
+    l_orig = str(layout or "").lower().strip()
+    if l_orig not in EXTRA_32_LAYOUTS:
         return False
+
+    d = dict(data or {})
+    l = l_orig
+    if l_orig in _PRO_EXTRA_PRESETS:
+        base_mode, sub_title, items_t = _PRO_EXTRA_PRESETS[l_orig]
+        l = base_mode
+        d.setdefault("caption", sub_title)
+        d.setdefault("center", sub_title[:24])
+        if base_mode in ("rag_pipeline_3d", "agent_loop_3d", "mindmap_radial", "orbit_ecosystem") and not (d.get("nodes") or d.get("steps") or d.get("branches") or d.get("satellites")):
+            d["nodes"] = list(items_t)
+        elif base_mode in ("kanban_board", "pricing_tiers", "notification_stack", "timeline_gantt", "pros_cons_scale") and not (d.get("columns") or d.get("tiers") or d.get("tasks") or d.get("items")):
+            d["items"] = [{"title": s, "sub": sub_title} for s in items_t]
+        elif base_mode == "mobile_app_mockup" and not (d.get("screens") or d.get("items")):
+            d["screens"] = [{"title": s, "sub": sub_title} for s in items_t]
+        elif base_mode == "browser_window" and not d.get("body"):
+            d["url"] = f"https://studio.dev/{l_orig.replace('_', '-')}"
+            d["headline"] = sub_title
+            d["body"] = " • ".join(items_t)
+            d["cta"] = "Inspect Live"
+        elif base_mode == "chat_thread_ai" and not d.get("messages"):
+            d["messages"] = [{"role": "ai" if i % 2 else "user", "text": s} for i, s in enumerate(items_t)]
+        elif base_mode in ("split_screen_50_50", "before_after_slider") and not d.get("left_text") and len(items_t) >= 2:
+            d.setdefault("left_label", "BASELINE")
+            d.setdefault("left_text", items_t[0])
+            d.setdefault("right_label", "OPTIMIZED")
+            d.setdefault("right_text", items_t[1])
+        elif base_mode in ("equation_proof", "countdown_hero") and not (d.get("formula") or d.get("value")):
+            d["formula"] = sub_title
+            d["value"] = sub_title[:16]
+            d["sub"] = items_t[0] if items_t else l_orig.replace("_", " ").title()
+        elif base_mode in ("attention_heatmap", "heatmap_matrix", "confusion_matrix") and not d.get("labels"):
+            d["labels"] = list(items_t)
+        elif base_mode == "token_prob_bars" and not (d.get("tokens") or d.get("items")):
+            d["tokens"] = [{"token": s, "prob": round(max(0.12, 0.88 - i * 0.2), 2)} for i, s in enumerate(items_t)]
+        elif base_mode == "sankey_flow" and not d.get("flows"):
+            flows = []
+            for s in items_t:
+                parts = [p.strip() for p in s.split("|")]
+                if len(parts) >= 2:
+                    flows.append({"from": parts[0], "to": parts[1], "label": parts[2] if len(parts) > 2 else "Flow"})
+            if flows:
+                d["flows"] = flows
+        elif base_mode == "donut_3d" and not (d.get("slices") or d.get("items")):
+            d["slices"] = [{"label": s, "value": max(15, 50 - i * 12)} for i, s in enumerate(items_t)]
+        elif base_mode == "radar_spider" and not (d.get("axes") or d.get("metrics")):
+            d["axes"] = [{"label": s, "value": 92 - i * 4} for i, s in enumerate(items_t)]
+        elif base_mode == "neural_net_layers" and not d.get("layer_names"):
+            d["layer_names"] = list(items_t)
+        elif base_mode in ("embedding_cluster", "scatter_plot") and not (d.get("clusters") or d.get("points")):
+            d["clusters"] = [{"label": s, "x": 0.22 + (i % 3) * 0.28, "y": 0.28 + (i // 3) * 0.42} for i, s in enumerate(items_t)]
+        elif base_mode in ("mesh_3d_stage", "atom_orbit_3d", "dna_helix_3d") and not (d.get("points") or d.get("items")):
+            d["points"] = list(items_t) + [sub_title]
+        elif base_mode in ("line_area_chart", "candlestick_pro") and not d.get("values"):
+            # deterministic rising curve distinct per preset hash
+            h = sum(ord(ch) for ch in l_orig) % 19
+            d["values"] = [18 + h, 31 + h // 2, 27 + h, 52, 66 + h // 3, 74, 88, 96]
 
     _get_font = helpers["_get_font"]
     _draw_wrapped = helpers["_draw_wrapped_text"]

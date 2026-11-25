@@ -1614,7 +1614,7 @@ def _render_state_machine(stage: StudioStage, data: Dict[str, Any], progress: fl
 
 
 def _render_git_branch_tree(stage: StudioStage, data: Dict[str, Any], progress: float, world: Dict[str, Any]) -> None:
-    commits = list(data.get("commits") or data.get("steps") or [])[:6]
+    commits = list(data.get("commits") or data.get("steps") or _harvest_generic_items(data))[:6]
     if not commits:
         return
     lanes = {"main": 260, "feature": 540, "hotfix": 820}
@@ -1634,7 +1634,7 @@ def _render_git_branch_tree(stage: StudioStage, data: Dict[str, Any], progress: 
         a_mul = _ease_out_cubic(g)
         if a_mul <= 0.03:
             continue
-        br = str(cm.get("branch") or "main").lower()
+        br = str(cm.get("branch") or ("main" if i % 3 == 0 else ("feature" if i % 3 == 1 else "hotfix"))).lower()
         lx = lanes.get(br, 260 if i % 2 == 0 else 540)
         ly = STAGE_Y0 + 135 + i * y_step
         cc = world["cyan"] if lx == 260 else (world["purple"] if lx == 540 else world["amber"])
@@ -1650,7 +1650,7 @@ def _render_git_branch_tree(stage: StudioStage, data: Dict[str, Any], progress: 
 
 
 def _render_flamegraph_perf(stage: StudioStage, data: Dict[str, Any], progress: float, world: Dict[str, Any]) -> None:
-    spans = list(data.get("spans") or data.get("frames") or [])[:10]
+    spans = list(data.get("spans") or data.get("frames") or _harvest_generic_items(data))[:10]
     if not spans:
         return
     g_box = _ease_out_cubic(_clamp01(progress / 0.18))
@@ -1664,7 +1664,7 @@ def _render_flamegraph_perf(stage: StudioStage, data: Dict[str, Any], progress: 
             continue
         d = int(sp.get("depth", i % 5))
         s = _clamp01(float(sp.get("start", 0.0)))
-        w = max(0.14, min(1.0 - s, float(sp.get("width", 1.0))))
+        w = max(0.14, min(1.0 - s, float(sp.get("width", max(0.28, 1.0 - i * 0.16)))))
         hot = bool(sp.get("hot", False))
         col = world["rose"] if hot else resolve_world_color(world, sp.get("color"), _ACCENT_CYCLE[d % len(_ACCENT_CYCLE)])
         x0 = int(96 + s * 888)
@@ -2147,10 +2147,92 @@ def _render_all_in_one_tech(stage: StudioStage, data: Dict[str, Any], progress: 
             _draw_wrapped_text(stage.draw, (cx - 72, cy + 16), sb, _get_font(18), _with_alpha(world["muted"], gc), 255, max_lines=1)
 
 
+from core.layouts_domain_220 import GRAMMAR_50_PRESETS
+
+
 # =========================================================================
-# UNIFIED 320+ STUDIO LAYOUT DISPATCHER
+# +70 CORE STUDIO ARCHITECTURAL PRESETS (Core 33 + 70 = 103 Core Studio!)
 # =========================================================================
-ALL_STUDIO_LAYOUTS: Tuple[str, ...] = (
+CORE_STUDIO_EXTRA_70: Dict[str, Tuple[str, Dict[str, Any]]] = {
+    # Isometric & System Topologies (12)
+    "iso_microservice_Mesh": ("iso_architecture", {"badge": "MICROSERVICES", "nodes": [{"name": "API Gateway", "sub": "Auth + Rate Limit", "shape": "router"}, {"name": "Orders Service", "sub": "Async gRPC", "shape": "k8s_pod_mesh"}, {"name": "Ledger Vault", "sub": "Serializable DB", "shape": "database_cluster"}]}),
+    "iso_event_backbone": ("iso_architecture", {"badge": "EVENT BACKBONE", "nodes": [{"name": "Domain Producer", "sub": "CloudEvents v1", "shape": "api_plug_3d"}, {"name": "Partitioned Log", "sub": "Durable Replay", "shape": "kafka_broker"}, {"name": "CQRS Materializer", "sub": "Read Projections", "shape": "warehouse_3d"}]}),
+    "iso_edge_compute": ("iso_architecture", {"badge": "EDGE RUNTIME", "nodes": [{"name": "Global Anycast POP", "sub": "<15ms RTT", "shape": "cdn_edge"}, {"name": "WASM V8 Isolate", "sub": "0ms Cold Start", "shape": "chip"}, {"name": "Distributed KV", "sub": "Read-Heavy Edge", "shape": "ssd_nvme"}]}),
+    "iso_zero_trust_proxy": ("iso_architecture", {"badge": "ZERO TRUST", "nodes": [{"name": "Device Posture Check", "sub": "SPIFFE Workload ID", "shape": "laptop"}, {"name": "Identity Aware Proxy", "sub": "mTLS + JWT Policy", "shape": "firewall_wall"}, {"name": "Private Workload", "sub": "Zero Public IP", "shape": "server_rack"}]}),
+    "iso_read_replica_topology": ("iso_architecture", {"badge": "READ SCALING", "nodes": [{"name": "Primary Writer DB", "sub": "Strict ACID Writes", "shape": "database_cluster"}, {"name": "WAL Async Stream", "sub": "Sub-10ms LSN Lag", "shape": "data_pipe"}, {"name": "3x Read Replicas", "sub": "RO Analytics Pool", "shape": "server_rack"}]}),
+    "iso_cqrs_segregation": ("iso_architecture", {"badge": "CQRS PATTERN", "nodes": [{"name": "Command Write Model", "sub": "Normalized Constraints", "shape": "schema_table"}, {"name": "Projector Worker", "sub": "Async Denormalizer", "shape": "gear"}, {"name": "Read View Elastic", "sub": "<5ms Search Query", "shape": "warehouse_3d"}]}),
+    "iso_sharded_cluster": ("iso_architecture", {"badge": "SHARDING", "nodes": [{"name": "Scatter-Gather Router", "sub": "Consistent Hash Key", "shape": "load_balancer"}, {"name": "Shard 01 (A-M)", "sub": "Isolated IOPS Pool", "shape": "database_cluster"}, {"name": "Shard 02 (N-Z)", "sub": "Linear Write Scale", "shape": "database_cluster"}]}),
+    "iso_worker_autoscaler": ("iso_architecture", {"badge": "KEDA AUTOSCALE", "nodes": [{"name": "Queue Lag Monitor", "sub": "Depth > 500 msgs", "shape": "gauge_dial"}, {"name": "Ephemeral Worker Pool", "sub": "Scale 2 -> 64 Pods", "shape": "k8s_pod_mesh"}, {"name": "Graceful Drain Sig", "sub": "Zero Job Loss", "shape": "shield"}]}),
+    "iso_graphql_federation": ("iso_architecture", {"badge": "FEDERATION", "nodes": [{"name": "Apollo Supergraph", "sub": "Unified Schema Plan", "shape": "hub"}, {"name": "Users Subgraph", "sub": "Identity Entities", "shape": "server_rack"}, {"name": "Catalog Subgraph", "sub": "Inventory Pricing", "shape": "database_cluster"}]}),
+    "iso_search_indexing": ("iso_architecture", {"badge": "HYBRID SEARCH", "nodes": [{"name": "Ingestion Tokenizer", "sub": "BM25 + 1536d Embed", "shape": "code_cube"}, {"name": "Inverted + HNSW Index", "sub": "Milliseond Recall", "shape": "dag_pipeline"}, {"name": "RRF Score Fusion", "sub": "Top-K Ranked Hits", "shape": "radar_dish"}]}),
+    "iso_observability_mesh": ("node_graph", {"badge": "OTEL MESH", "hub_name": "OTel Collector", "satellites": [{"name": "Metrics PromQL"}, {"name": "Trace Spans"}, {"name": "Structured Logs"}, {"name": "eBPF Profiler"}]}),
+    "iso_consensus_quorum": ("node_graph", {"badge": "QUORUM 3/5", "hub_name": "Raft Leader", "satellites": [{"name": "Follower N1"}, {"name": "Follower N2"}, {"name": "Follower N3"}, {"name": "Witness"}]}),
+    # Memory, Storage & Queues (12)
+    "memory_ring_buffer": ("memory_lanes", {"badge": "LMAX DISRUPTOR", "entries": [{"address": "0x00", "op": "HEAD_CURSOR", "table": "producer_seq", "status": "LOCK-FREE"}, {"address": "0x40", "op": "CACHE_LINE_PAD", "table": "zero_false_share", "status": "ALIGNED"}, {"address": "0x80", "op": "TAIL_CONSUMER", "table": "batch_commit", "status": "10M_OPS/S"}]}),
+    "memory_slab_allocator": ("memory_lanes", {"badge": "SLAB CACHE", "entries": [{"address": "64B", "op": "SMALL_POOL", "table": "zero_frag", "status": "O(1) FREE"}, {"address": "256B", "op": "STRUCT_SLAB", "table": "hot_reuse", "status": "LOCKLESS"}, {"address": "4KB", "op": "PAGE_SLAB", "table": "mmap_backed", "status": "READY"}]}),
+    "memory_lsm_memtable": ("memory_lanes", {"badge": "LSM ENGINE", "entries": [{"address": "WAL", "op": "APPEND_DISK", "table": "durable_log", "status": "SYNCED"}, {"address": "MEM", "op": "SKIPLIST_RAM", "table": "write_fast", "status": "HOT"}, {"address": "SST", "op": "LEVEL0_FLUSH", "table": "compacted", "status": "IMMUTABLE"}]}),
+    "memory_btree_slotted": ("memory_lanes", {"badge": "8KB SLOTTED PAGE", "entries": [{"address": "HDR", "op": "PAGE_LSN_FREE", "table": "b_plus_root", "status": "PINNED"}, {"address": "PTR", "op": "OFFSET_ARRAY", "table": "binary_search", "status": "SORTED"}, {"address": "TUP", "op": "ROW_PAYLOADS", "table": "mvcc_xmin", "status": "ACTIVE"}]}),
+    "memory_stack_heap_split": ("memory_lanes", {"badge": "STACK VS HEAP", "entries": [{"address": "RSP", "op": "STACK_FRAME", "table": "pop_1_cycle", "status": "THREAD_LOCAL"}, {"address": "PTR", "op": "GC_HEAP_ALLOC", "table": "escape_analysis", "status": "TRACKED"}, {"address": "ESC", "op": "ZERO_ALLOC_FAST", "table": "inlined_val", "status": "OPTIMIZED"}]}),
+    "memory_arena_bump": ("memory_lanes", {"badge": "ARENA ALLOCATOR", "entries": [{"address": "0x10", "op": "BUMP_PTR++", "table": "request_ctx", "status": "2_CYCLES"}, {"address": "0x90", "op": "ZERO_INDIV_FREE", "table": "bulk_objects", "status": "CONTIGUOUS"}, {"address": "RST", "op": "RESET_ALL_AT_END", "table": "zero_leak", "status": "CLEARED"}]}),
+    "queue_dlq_backoff": ("queue_workers", {"badge": "RETRY + DLQ", "items": [{"name": "Primary Queue", "sub": "Fast First Attempt"}, {"name": "Exp Backoff + Jitter", "sub": "Prevents Retry Storm"}, {"name": "Dead-Letter Vault", "sub": "Replay & Inspect Later"}]}),
+    "queue_priority_lanes": ("queue_workers", {"badge": "PRIORITY QOS", "items": [{"name": "P0 Checkout / Auth", "sub": "Dedicated Workers"}, {"name": "P1 Webhook Notify", "sub": "Bounded Concurrency"}, {"name": "P2 Bulk Email Export", "sub": "Spot Idle Drain"}]}),
+    "lb_consistent_hash_mesh": ("load_balancer_fanout", {"badge": "HASH RING LB", "items": [{"name": "Envoy Edge Router", "sub": "xxHash Session Sticky"}, {"name": "Pod A (Hot Cache)", "sub": "94% Local Hit Rate"}, {"name": "Pod B & C Failover", "sub": "Bounded Load Shed"}]}),
+    "lb_least_connections": ("load_balancer_fanout", {"badge": "SMART ROUTING", "items": [{"name": "Peak-EWMA Scorer", "sub": "Tracks Live RTT"}, {"name": "Skip Slow Degraded Node", "sub": "Sub-5ms Route Pick"}, {"name": "Zero Queue Head Stall", "sub": "Balanced Tail P99"}]}),
+    "cache_write_through": ("cache_hit_miss", {"badge": "WRITE-THROUGH", "items": [{"name": "App Write Request", "sub": "Update Cache + DB Sync"}, {"name": "Zero Stale Reads", "sub": "Consistent Always"}, {"name": "L1 Cache Hit (0.3ms)", "sub": "Next Reads Instant"}]}),
+    "cache_stampede_singleflight": ("cache_hit_miss", {"badge": "SINGLEFLIGHT", "items": [{"name": "1000 Concurrent Misses", "sub": "Coalesced Into 1 Leader"}, {"name": "999 Wait Shared Future", "sub": "Zero DB Stampede"}, {"name": "Cache Repopulated Once", "sub": "DB CPU Drops 95%"}]}),
+    # Compare, Tradeoff, Code, SQL & API (14)
+    "compare_sync_vs_async": ("iso_comparison", {"left_label": "BLOCKING SYNC", "right_label": "NON-BLOCKING ASYNC", "left_points": ["Thread blocks on DB I/O", "10K threads = 10GB RAM", "Context switch thrash"], "right_points": ["Epoll / kqueue event loop", "Tiny 4KB coroutine tasks", "100K+ sockets/core"]}),
+    "compare_sql_vs_nosql": ("iso_comparison", {"left_label": "RELATIONAL ACID", "right_label": "WIDE-COL / DOC", "left_points": ["Strict foreign key joins", "Strong transactional locks", "Vertical + Read Replicas"], "right_points": ["Schema-free partition keys", "Horizontal shard auto-split", "Tunable quorum consistency"]}),
+    "compare_rest_vs_grpc": ("iso_comparison", {"left_label": "JSON OVER HTTP/1.1", "right_label": "GRPC + PROTOBUF", "left_points": ["Human-readable text JSON", "Head-of-line connection stall", "~400B payload tax"], "right_points": ["Compact binary fields", "HTTP/2 multiplexed streams", "5x lower wire latency"]}),
+    "compare_polling_vs_sse": ("iso_comparison", {"left_label": "SHORT POLLING", "right_label": "SSE / WEBSOCKET", "left_points": ["95% empty 304 responses", "Wastes mobile radio", "Stale up to poll interval"], "right_points": ["Instant zero-delay push", "Single persistent TCP stream", "Sub-50ms live updates"]}),
+    "compare_offset_vs_keyset": ("iso_comparison", {"left_label": "OFFSET 50000", "right_label": "SEEK id > last", "left_points": ["Scans & discards 50K rows", "Duplicates on concurrent insert", "Degrades linearly O(N)"], "right_points": ["Direct B-Tree index seek", "O(log N) constant 0.4ms", "Stable cursor pagination"]}),
+    "compare_locks_vs_lockfree": ("iso_comparison", {"left_label": "MUTEX CONTENTION", "right_label": "ATOMIC CAS / RCU", "left_points": ["OS sleeps & wakes threads", "Convoy deadlock hazard", "Tail latency spikes 40x"], "right_points": ["Hardware CMPXCHG instruction", "Zero kernel wait queue", "Predictable nanoseconds"]}),
+    "sql_window_partition": ("sql_studio", {"badge": "POSTGRES WINDOW", "query": "SELECT user_id, amt, DENSE_RANK() OVER (PARTITION BY dept ORDER BY amt DESC) FROM sales;", "columns": ["user", "dept", "amt", "rk"], "rows": [["Asha", "Eng", "$92k", "1"], ["Vikram", "Eng", "$84k", "2"]]}),
+    "sql_cte_recursive": ("sql_studio", {"badge": "RECURSIVE CTE", "query": "WITH RECURSIVE tree AS (SELECT id, parent FROM org UNION ALL SELECT c.id, c.parent FROM org c JOIN tree t ON c.parent=t.id) SELECT * FROM tree;", "columns": ["lvl", "node", "parent"], "rows": [["0", "VP", "NULL"], ["1", "Staff", "VP"]]}),
+    "sql_covering_index": ("sql_studio", {"badge": "INDEX ONLY SCAN", "query": "CREATE INDEX CONCURRENTLY idx_orders_cov ON orders(tenant_id, created_at) INCLUDE (total, status);", "columns": ["step", "io_cost", "latency"], "rows": [["Seq Scan", "48,000", "910ms"], ["Covering", "4 pages", "0.6ms"]]}),
+    "sql_upsert_conflict": ("sql_studio", {"badge": "ATOMIC UPSERT", "query": "INSERT INTO quotas(uid, hits) VALUES ($1, 1) ON CONFLICT (uid) DO UPDATE SET hits = quotas.hits + 1;", "columns": ["op", "lock_mode", "safe"], "rows": [["Race Check", "Lost Update", "NO"], ["ON CONFLICT", "Atomic Row", "YES"]]}),
+    "diff_n_plus_one_fix": ("code_diff_split", {"badge": "FIX N+1 QUERY", "left_label": "N+1 (101 QUERIES)", "right_label": "BATCH JOIN (1 QUERY)", "before": "for u in users:\n  orders = db.get(u.id)", "after": "SELECT * FROM orders\nWHERE user_id = ANY($1)"}),
+    "diff_async_gather": ("code_diff_split", {"badge": "PARALLEL AWAIT", "left_label": "SEQUENTIAL 600ms", "right_label": "GATHER 210ms", "before": "a = await fetch_a()\nb = await fetch_b()", "after": "a, b = await asyncio.gather(\n  fetch_a(), fetch_b()\n)"}),
+    "api_idempotent_post": ("api_request_response", {"badge": "IDEMPOTENT API", "method": "POST", "endpoint": "/v1/charges", "request_headers": "Idempotency-Key: 9f2c-41a0", "status": "201 Created (Replay Safe)", "response_body": "{\"charge_id\": \"ch_881\", \"deduped\": true}"}),
+    "api_rate_limit_429": ("api_request_response", {"badge": "RATE LIMIT RFC", "method": "GET", "endpoint": "/v2/search?q=logs", "status": "429 Too Many Requests", "response_body": "{\"retry_after_sec\": 12, \"limit\": \"100/min\"}"}),
+    # Performance, Gauges, Telemetry & Incidents (12)
+    "perf_flamegraph_cpu": ("flamegraph_perf", {"badge": "CPU FLAMEGRAPH", "frames": [{"name": "http_handler (100%)", "pct": 1.0}, {"name": "json.loads_hot_path (72%)", "pct": 0.72}, {"name": "orjson_simd (6%)", "pct": 0.14}]}),
+    "perf_flamegraph_alloc": ("flamegraph_perf", {"badge": "HEAP ALLOC PROFILER", "frames": [{"name": "worker_loop (100%)", "pct": 1.0}, {"name": "bytes_copy_slice (68%)", "pct": 0.68}, {"name": "zero_copy_memview (4%)", "pct": 0.12}]}),
+    "perf_waterfall_ssr": ("latency_waterfall", {"badge": "WATERFALL TRACE", "spans": [{"label": "Edge TLS + DNS", "start": 0.0, "end": 0.18}, {"label": "DB Pool Wait (Alert)", "start": 0.18, "end": 0.78}, {"label": "Render & Flush", "start": 0.78, "end": 1.0}]}),
+    "perf_waterfall_grpc": ("latency_waterfall", {"badge": "DISTRIBUTED TRACE", "spans": [{"label": "API Gateway Parse", "start": 0.0, "end": 0.15}, {"label": "Parallel Auth + Fraud", "start": 0.15, "end": 0.55}, {"label": "Ledger Commit + Ack", "start": 0.55, "end": 1.0}]}),
+    "benchmark_throughput_ops": ("benchmark_3d", {"badge": "OPS / SECOND", "bars": [{"label": "Unindexed Full Scan", "value": 420, "display": "420/s"}, {"label": "Redis + Read Replica", "value": 18500, "display": "18.5K/s"}, {"label": "Local L1 + Shard", "value": 94000, "display": "94K/s", "is_winner": True}]}),
+    "benchmark_memory_footprint": ("benchmark_3d", {"badge": "RAM FOOTPRINT", "bars": [{"label": "Raw Python Dicts", "value": 920, "display": "920 MB"}, {"label": "__slots__ Class", "value": 310, "display": "310 MB"}, {"name": "NumPy Compact Struct", "value": 64, "display": "64 MB", "is_winner": True}]}),
+    "gauge_slo_availability": ("radial_gauge", {"badge": "99.99% SLO BUDGET", "main_value": "99.99%", "main_unit": "FOUR NINES UPTIME", "gauge_percent": 99, "telemetry": [{"label": "Monthly Budget", "val": "4.3 min"}, {"label": "Current Burn", "val": "0.4 min"}]}),
+    "gauge_cache_efficiency": ("radial_gauge", {"badge": "L1/L2 HIT RATIO", "main_value": "96.4%", "main_unit": "CACHE HIT RATIO", "gauge_percent": 96, "telemetry": [{"label": "Origin DB Load", "val": "-91%"}, {"label": "P99 Saved", "val": "44ms"}]}),
+    "incident_thundering_herd": ("incident_radar", {"badge": "THUNDERING HERD", "problem_title": "Midnight Cache Expiry Storm", "problem_desc": "12,000 clients miss TTL at 00:00 simultaneously", "alerts": ["DB CPU 100%", "Pool Exhausted", "Add Jitter + Lock"]}),
+    "incident_split_brain": ("incident_radar", {"badge": "SPLIT BRAIN", "problem_title": "Two Primary Leaders Accept Writes", "problem_desc": "Network partition without fencing tokens corrupts state", "alerts": ["Dual Writers", "Diverged LSN", "Fencing Epoch Fix"]}),
+    "checklist_prod_readiness": ("checklist_scorecard", {"badge": "PROD CHECKLIST", "items": [{"name": "Structured Timeouts + Retries", "sub": "Jittered Backoff + Budget"}, {"name": "Graceful SIGTERM Drain", "sub": "In-Flight Requests Safe"}, {"name": "Circuit Breaker + Alerts", "sub": "Actionable SLO Runbook"}]}),
+    "checklist_sql_tuning": ("checklist_scorecard", {"badge": "SQL TUNING CHECK", "items": [{"name": "Inspect EXPLAIN ANALYZE", "sub": "Verify Buffers & Seq Scans"}, {"name": "Composite Equality-Range Order", "sub": "Match Index Sort Order"}, {"name": "PgBouncer Transaction Pool", "sub": "Cap Idle Backend Connections"}]}),
+    # Hierarchy, Sequence, FSM, Timeline & Venn (12)
+    "seq_oauth_authorization": ("sequence_diagram", {"badge": "OAUTH 2.1 FLOW", "steps": [{"name": "Auth Code + PKCE"}, {"name": "User Login Consent"}, {"name": "Code + Verifier Exchange"}, {"name": "Signed JWT + Refresh"}]}),
+    "seq_two_phase_commit": ("sequence_diagram", {"badge": "2PC PROTOCOL", "steps": [{"name": "Coordinator: PREPARE"}, {"name": "Shards Lock & ACK"}, {"name": "Coordinator: COMMIT"}, {"name": "All Release & Persist"}]}),
+    "erd_multi_tenant_saas": ("er_schema", {"badge": "SAAS ERD SCHEMA", "tables": [{"name": "organizations", "cols": ["id PK", "plan_tier", "slug UK"]}, {"name": "users", "cols": ["id PK", "org_id FK", "role"]}, {"name": "api_keys", "cols": ["id PK", "org_id FK", "hash"]}]}),
+    "erd_ecommerce_orders": ("er_schema", {"badge": "ORDERS SCHEMA", "tables": [{"name": "orders", "cols": ["id PK", "user_fk", "status"]}, {"name": "order_items", "cols": ["id PK", "order_fk", "sku_fk"]}, {"name": "payments", "cols": ["id PK", "order_fk", "idem_key"]}]}),
+    "fsm_order_fulfillment": ("state_machine", {"badge": "ORDER FSM", "states": ["CREATED", "AUTHORIZED", "PACKED", "SHIPPED", "SETTLED"]}),
+    "fsm_connection_lifecycle": ("state_machine", {"badge": "SOCKET FSM", "states": ["CLOSED", "SYN_SENT", "ESTABLISHED", "FIN_WAIT", "TIME_WAIT"]}),
+    "git_trunk_cherrypick": ("git_branch_tree", {"badge": "GIT TRUNK FLOW", "commits": [{"name": "main: feat flag off", "sub": "C104 Safe Merge"}, {"name": "fix/hotpatch -> cherry-pick", "sub": "Zero Rebase Conflict"}, {"name": "tag v2.14.1 Prod", "sub": "Verified Artifact"}]}),
+    "roadmap_scale_milestones": ("roadmap_wave", {"badge": "0 TO 10M USERS", "milestones": [{"name": "10K: Single Postgres + Redis", "sub": "Simple Vertical Scale"}, {"name": "1M: Replicas + CDN + Async", "sub": "Offload Heavy Reads"}, {"name": "10M: Partition + Geo-Edge", "sub": "Isolated Blast Radius"}]}),
+    "venn_cap_tradeoff": ("venn_overlap", {"badge": "SYSTEM TRADE-OFFS", "sets": ["Consistency", "Availability", "Partition Tolerant"]}),
+    "venn_sec_usability": ("venn_overlap", {"badge": "AUTH BALANCE", "sets": ["Zero Trust Crypto", "1-Tap Passkey UX", "Enterprise Compliance"]}),
+    "tree_ast_compiler": ("tree_hierarchy", {"badge": "COMPILER AST", "items": [{"name": "Program Root"}, {"name": "Lexical Tokens"}, {"name": "Typed IR Graph"}, {"name": "LLVM Machine Code"}]}),
+    "pyramid_testing_roi": ("pyramid_hierarchy", {"badge": "TEST PYRAMID", "items": [{"name": "10% E2E Playwright Flows"}, {"name": "25% API Integration Contracts"}, {"name": "65% Fast Deterministic Unit"}]}),
+    # Generative Spatial & SVG Core Presets (8)
+    "matrix_effort_impact": ("matrix_2x2", {"badge": "ENGINEERING ROI", "items": [{"name": "Quick Wins (High/Low)", "sub": "Index + Cache Fix Now"}, {"name": "Strategic Bets (High/High)", "sub": "Sharding Architecture"}, {"name": "Fill-Ins (Low/Low)", "sub": "Minor Refactor"}, {"name": "Avoid (Low/High)", "sub": "Over-Engineered Mesh"}]}),
+    "stat_bento_slo": ("stat_grid_2x2", {"badge": "LIVE BENCHMARK", "items": [{"name": "0.8 ms P50", "sub": "In-Memory Hit"}, {"name": "14 ms P99", "sub": "With Backpressure"}, {"name": "99.99% SLA", "sub": "Multi-AZ Failover"}, {"name": "62% Lower Bill", "sub": "Right-Sized Pool"}]}),
+    "funnel_latency_drop": ("funnel_metrics", {"badge": "BOTTLENECK FUNNEL", "items": [{"name": "920ms Cold Uncached"}, {"name": "240ms Query Indexed"}, {"name": "42ms Pooled + Prepared"}, {"name": "2ms Edge Redis Cache"}]}),
+    "stack_osi_transport": ("layer_stack_3d", {"badge": "NETWORK STACK", "layers": [{"name": "L7 App (HTTP/3 gRPC)"}, {"name": "L4 Transport (QUIC / TCP)"}, {"name": "L3 Network (IPv6 / BGP)"}, {"name": "L2 Fiber / NIC Ring"}]}),
+    "kinetic_interview_rule": ("kinetic_statement", {"badge": "GOLDEN RULE", "statement": "Measure First. Never Optimize Without Tracing P99!", "sub": "Staff Engineering Heuristic"}),
+    "terminal_explain_analyze": ("terminal_studio", {"badge": "EXPLAIN ANALYZE", "command": "EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM logs WHERE org=42;", "output": "Index Scan using idx_logs_org (cost=0.43..8.45)\nBuffers: shared hit=4 | Execution Time: 0.312 ms"}),
+    "spatial_blueprint_core": ("spatial_canvas", {"badge": "SPATIAL SYSTEM", "elements": [{"title": "Edge Gateway", "sub": "TLS + Rate Limit", "x": 220, "y": 460}, {"title": "Async Queue", "sub": "Kafka Partition", "x": 540, "y": 780}, {"title": "Worker Cluster", "sub": "Auto-Scaled Pods", "x": 840, "y": 1090}]}),
+    "svg_architecture_core": ("svg_scene", {"badge": "VECTOR SCHEMATIC", "nodes": [{"name": "Client SDK", "sub": "Optimistic Mutation"}, {"name": "Sync Engine", "sub": "CRDT Conflict-Free"}, {"name": "Durable Vault", "sub": "Replicated Storage"}]}),
+}
+
+CORE_STUDIO_100_LAYOUTS: Tuple[str, ...] = (
     "custom_scene", "iso_architecture", "node_graph", "iso_comparison", "terminal_studio", "kinetic_statement",
     "spatial_canvas", "svg_scene",
     "layer_stack_3d", "matrix_2x2", "pyramid_hierarchy", "sql_studio", "benchmark_3d",
@@ -2158,7 +2240,19 @@ ALL_STUDIO_LAYOUTS: Tuple[str, ...] = (
     "sequence_diagram", "er_schema", "state_machine", "git_branch_tree", "flamegraph_perf",
     "queue_workers", "load_balancer_fanout", "cache_hit_miss", "code_diff_split", "api_request_response",
     "venn_overlap", "funnel_metrics", "stat_grid_2x2", "latency_waterfall", "tree_hierarchy",
-) + EXTRA_32_LAYOUTS + IT_SDLC_35_LAYOUTS + DOMAIN_220_LAYOUTS
+) + tuple(k.lower() for k in CORE_STUDIO_EXTRA_70.keys())
+
+_CORE_STUDIO_PRESETS_LC: Dict[str, Tuple[str, Dict[str, Any]]] = {
+    k.lower(): v for k, v in CORE_STUDIO_EXTRA_70.items()
+}
+
+
+# =========================================================================
+# UNIFIED 620+ STUDIO LAYOUT DISPATCHER (Core 103 + Pro 104 + IT 105 + Domain 360 + Grammar 56)
+# =========================================================================
+ALL_STUDIO_LAYOUTS: Tuple[str, ...] = (
+    CORE_STUDIO_100_LAYOUTS + EXTRA_32_LAYOUTS + IT_SDLC_35_LAYOUTS + DOMAIN_220_LAYOUTS + GRAMMAR_50_PRESETS
+)
 
 _PRO_HELPERS: Dict[str, Any] = {
     "_get_font": _get_font,
@@ -2182,7 +2276,15 @@ def dispatch_studio_layout(
     topic: str = "",
 ) -> None:
     l = str(layout or "custom_scene").lower().strip()
-    d = data or {}
+    d = dict(data or {})
+    if l in _CORE_STUDIO_PRESETS_LC:
+        target_l, preset_d = _CORE_STUDIO_PRESETS_LC[l]
+        merged = dict(preset_d)
+        for pk, pv in d.items():
+            if pv not in (None, "", [], {}):
+                merged[pk] = pv
+        l = target_l
+        d = merged
     if render_pro_layout(stage, l, d, progress, world, _PRO_HELPERS):
         pass
     elif render_it_sdlc_layout(stage, l, d, progress, world, _PRO_HELPERS):
@@ -2209,9 +2311,9 @@ def dispatch_studio_layout(
         _render_terminal_studio(stage, d, progress, world)
     elif l in ("kinetic_statement", "statement", "hook", "cta"):
         _render_kinetic_statement(stage, d, progress, world)
-    elif l in ("spatial_canvas", "spatial", "freeform", "composer"):
+    elif l in ("spatial_canvas", "spatial", "freeform", "composer") or l.startswith("spatial_"):
         _render_spatial_canvas(stage, d, progress, world)
-    elif l in ("svg_scene", "generative_svg", "svg", "web_scene", "webgl_scene", "html_scene"):
+    elif l in ("svg_scene", "generative_svg", "svg", "web_scene", "webgl_scene", "html_scene") or l.startswith(("svg_", "web_")):
         _render_svg_scene(stage, d, progress, world)
     elif l in ("layer_stack_3d", "stack_3d", "layers"):
         _render_layer_stack_3d(stage, d, progress, world)

@@ -111,8 +111,9 @@ with st.sidebar:
         "Script Tone & Emotion",
         [
             ("trusted_dost_guide", "🤝 Trusted Dost & Peaceful Guide (Happy Curious Hinglish, Secret Hook, Supportive Q&A & Visionary Sync)"),
+            ("purposeful_hinglish_mentor", "🎯 Purposeful Hinglish Mentor (Crystal-Clear Brisk Male Mentor, Must-Understand Depth, Edge Cases & Visual Sync)"),
             ("senior_hinglish_mentor", "🧑‍💻 Senior Hinglish Mentor (Warm Hinglish Male Mentor, Interview-Trap Hook, Trade-offs & Progressive Visuals)"),
-            ("youth_friend_turbo", "🚀 Youth Dost & Fast Hype Explainer (Fast Voice, Q&A Detailer, Ad/Story Punch & Turbo Visual Sync)"),
+            ("youth_friend_turbo", "🚀 Youth Dost & Fast Hype Explainer (Balanced Brisk Voice, Complete Q&A, Ad/Story Punch & Synced Visuals)"),
             ("mentor_storyteller", "🌟 Student Mentor & Storyteller (Simple Words, Natural Pauses & High Excitement) [Ultra Pro]"),
             ("auto_dynamic", "⚡ Dynamic / Auto (AI Adapts Voice, Pace, Emotion & Visuals Per Scene) [Recommended]"),
             ("fireship_octane", "🔥 High-Octane & Punchy (Fireship Speed, Kinetic Energy & Neon Pop)"),
@@ -239,11 +240,11 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("studio_300_domain", "🎨 Both Combined: 320+ Domain Layouts + Diagram Grammar + Zero-Template WebGL/SVG [Recommended]"),
-            ("pure_zero_template", "♾️ Option 1: Pure Zero-Template AI Code Engine (Custom HTML5 / Three.js / Animated <svg> — ∞)"),
-            ("studio_domain_library", "📚 Option 2: 320+ Curated Domain Layout Library (DSA, DB, OS, Cloud, Data, Network, SDLC)"),
+            ("studio_300_domain", "🎨 Both Combined: 670+ Domain Layouts + 56 Grammar + 54 Option 1 WebGL/SVG [Recommended]"),
+            ("pure_zero_template", "♾️ Option 1: 54+ Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
+            ("studio_domain_library", "📚 Option 2: 670+ Domain Layout Library + 56 Composable Grammar Presets"),
             ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
-            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (46 Worlds, 320+ Layouts, 145 Shapes, 200k+ 3D SVGs)"),
+            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (46 Worlds, 670+ Layouts, 145 Shapes, 200k+ 3D SVGs)"),
             ("auto_dynamic", "⚡ Dynamic / Auto (AI Decides Visuals, Progressive Flow & Voice Choreography)"),
             ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
@@ -261,7 +262,7 @@ with st.sidebar:
         ],
         format_func=lambda x: x[1],
         key="visual_engine_select",
-        help="Switch seamlessly between Option 1 (Pure Zero-Template Custom HTML5/Three.js/Animated <svg>), Option 2 (320+ Domain Layouts across Algorithms, DB Internals, Distributed Systems, OS, Security, Web, AI, Cloud, Networking, Data Engineering & SDLC + Diagram Grammar), OR Both Combined!"
+        help="Switch seamlessly between Option 1 (54+ Zero-Template HTML5/Three.js/Animated <svg>/Spatial Scenes), Option 2 (670+ Domain Layouts across 18 Engineering Domains, Pro Charts, IT/Network/Data/SDLC + 56 Composable Diagram Grammar Presets), OR Both Combined!"
     )
 
     manual_layout_choice = "auto"

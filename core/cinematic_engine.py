@@ -138,11 +138,11 @@ def _voice_progress(
     cur_t = sc_start + (linear_p * duration)
     spoken = sum(1 for w in scene_words if float(w.get("start", 0.0)) <= cur_t)
     word_p = spoken / max(1, len(scene_words))
-    # Voice-speed adaptive velocity: faster narration automatically accelerates visual builds & ensures full completion
+    # Voice-speed adaptive velocity: faster narration scales builds smoothly without skipping steps
     wps = len(scene_words) / max(0.5, duration)
-    pace_boost = max(1.0, min(1.42, wps / 2.55))
+    pace_boost = max(0.96, min(1.12, wps / 2.85))
     blended = 0.50 * choreo_p + 0.35 * word_p + 0.15 * linear_p
-    if linear_p >= 0.92:
+    if linear_p >= 0.94:
         return 1.0
     return _clamp01(blended * pace_boost)
 
@@ -301,7 +301,7 @@ def render_cinematic_scene_frames(
     title = str(visual_data.get("title") or "")
     accent = (
         world["emerald"] if effective_tone in ("mentor_storyteller", "trusted_dost_guide")
-        else (world["amber"] if effective_tone in ("interview_prep", "senior_hinglish_mentor")
+        else (world["amber"] if effective_tone in ("interview_prep", "senior_hinglish_mentor", "purposeful_hinglish_mentor")
               else (world["rose"] if effective_tone == "dramatic_performance" else world["cyan"]))
     )
 
@@ -313,9 +313,11 @@ def render_cinematic_scene_frames(
         linear_p = f / max(1, total_frames - 1)
         raw_p = _voice_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
         if effective_tone == "youth_friend_turbo":
-            progress = 1.0 if linear_p >= 0.88 else min(1.0, (raw_p ** 0.76) * 1.18)
+            progress = 1.0 if linear_p >= 0.93 else min(1.0, (raw_p ** 0.92) * 1.05)
+        elif effective_tone in ("purposeful_hinglish_mentor", "senior_hinglish_mentor"):
+            progress = 1.0 if linear_p >= 0.94 else min(1.0, (raw_p ** 0.94) * 1.04)
         elif effective_tone == "fireship_octane":
-            progress = 1.0 if linear_p >= 0.92 else min(1.0, raw_p * 1.12)
+            progress = 1.0 if linear_p >= 0.93 else min(1.0, raw_p * 1.08)
         else:
             progress = raw_p
         cur_time = sc_start + (linear_p * duration)
