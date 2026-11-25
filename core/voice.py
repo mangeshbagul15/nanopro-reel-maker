@@ -843,8 +843,12 @@ def generate_voiceover(
         cur_time = s_end
 
     # 5. Extract Word Timestamps via Groq Whisper for karaoke subtitles
-    # Pass original script excerpt as prompt hint so Hinglish/English tech spellings (RAG, JSON, SQL, Fine-Tuning) stay exact
-    combined_prompt = re.sub(r'\[pause\]', ' ', " ".join(scene_texts), flags=re.IGNORECASE)[:750]
+    # Pass Roman Hinglish/English script excerpt as prompt hint so captions stay crisp Roman Hinglish & tech spellings
+    hint_texts = [
+        (sc.get("narration_hinglish") or sc.get("narration") or "").strip()
+        for sc in scenes_with_timestamps
+    ]
+    combined_prompt = re.sub(r'\[pause\]', ' ', " ".join(hint_texts), flags=re.IGNORECASE)[:750]
     word_timestamps = []
     try:
         word_timestamps = _extract_word_timestamps(final_audio_path, prompt_hint=combined_prompt)
@@ -856,6 +860,9 @@ def generate_voiceover(
     if len(word_timestamps) < max(3, int(expected_word_cnt * 0.45)):
         print(f"[Voice] Whisper alignment sparse ({len(word_timestamps)}/{expected_word_cnt}), using scene-exact word alignment...")
         word_timestamps = _generate_fallback_word_timestamps(scenes_with_timestamps)
+
+    from core.subtitles import normalize_hinglish_subtitle_words
+    word_timestamps = normalize_hinglish_subtitle_words(word_timestamps, aligned_scenes=scenes_with_timestamps)
 
     # Cleanup individual scene MP3 files
     for p in scene_audio_paths:
@@ -906,10 +913,14 @@ def _generate_fallback_word_timestamps(scenes: List[Dict[str, Any]]) -> List[Dic
     Fallback word timing generator that guarantees words match their exact scene
     boundaries if Groq API is temporarily unreachable.
     """
+    from core.subtitles import devanagari_word_to_hinglish, _extract_scene_roman_vocab
     all_words = []
     for sc in scenes:
-        narration = re.sub(r'\[pause\]', ' ', sc.get("narration", ""), flags=re.IGNORECASE).strip()
-        words = narration.split()
+        raw_script = sc.get("narration_hinglish") or sc.get("narration") or ""
+        narration = re.sub(r'\[pause\]', ' ', raw_script, flags=re.IGNORECASE).strip()
+        vocab = _extract_scene_roman_vocab(sc)
+        words = [devanagari_word_to_hinglish(w, scene_vocab=vocab) for w in narration.split()]
+        words = [w for w in words if w]
         if not words:
             continue
         sc_start = sc.get("start_time", 0.0)

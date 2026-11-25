@@ -492,15 +492,17 @@ def generate_timeline(
     elif voice.startswith("hi-") or voice.endswith("|hi"):
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: The user explicitly selected a Hindi / Hinglish voice persona. "
-            "You MUST write the spoken `narration` in natural, conversational Hindi-English using Devanagari for Hindi words "
-            "mixed seamlessly with crisp English technical terms (e.g., 'आज हम समझेंगे कि Database Migration बिना Downtime के कैसे काम करता है...'). "
+            "You MUST write the spoken `narration` in natural, conversational Hindi-English using Devanagari for Hindi grammar words "
+            "mixed seamlessly with crisp English technical terms (e.g., 'आज हम समझेंगे कि Database Migration Zero Downtime के साथ कैसे काम करता है...'). "
+            "ALSO include `\"narration_hinglish\"` on every scene with the exact natural Roman Hinglish version of `narration` (e.g., 'Aaj hum samjhenge ki Database Migration Zero Downtime ke saath kaise kaam karta hai...') for karaoke captions! "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
     elif voice.startswith("mr-") or voice.endswith("|mr"):
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: The user explicitly selected a Marathi voice persona. "
-            "You MUST write the spoken `narration` in natural conversational Marathi using Devanagari for Marathi words "
+            "You MUST write the spoken `narration` in natural conversational Marathi using Devanagari for Marathi grammar words "
             "mixed seamlessly with crisp English technical nouns (e.g., 'मित्रांनो, आज आपण पाहणार आहोत की Database Migration Zero Downtime सह कसे चालते...'). "
+            "ALSO include `\"narration_hinglish\"` on every scene with the exact natural Roman Minglish/Hinglish version of `narration` (e.g., 'Mitrano, aaj aapan pahnar aahot ki Database Migration Zero Downtime sobat kase chalte...') for karaoke captions! "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
     elif tone == "senior_hinglish_mentor":
