@@ -224,8 +224,278 @@ def get_audio_duration(file_path: Path) -> float:
         print(f"[Voice] Error getting audio duration for {file_path}: {e}")
     return 0.0
 
+_DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
+
+_ONES = [
+    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+]
+_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+_ORDINAL_SPECIAL = {
+    1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth", 6: "sixth", 7: "seventh", 8: "eighth",
+    9: "ninth", 10: "tenth", 11: "eleventh", 12: "twelfth", 13: "thirteenth", 14: "fourteenth", 15: "fifteenth",
+    16: "sixteenth", 17: "seventeenth", 18: "eighteenth", 19: "nineteenth", 20: "twentieth",
+    30: "thirtieth", 40: "fortieth", 50: "fiftieth", 60: "sixtieth", 70: "seventieth", 80: "eightieth", 90: "ninetieth",
+}
+
+_MONTH_NAMES = {
+    1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June",
+    7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December",
+}
+_MONTH_ABBR = {
+    "jan": "January", "feb": "February", "mar": "March", "apr": "April",
+    "jun": "June", "jul": "July", "aug": "August", "sep": "September", "sept": "September",
+    "oct": "October", "nov": "November", "dec": "December",
+}
+
+_DEVANAGARI_WORD_MAP = [
+    # Months (Hindi / Marathi)
+    (r"(?<![\w\u0900-\u097F])(?:जनवरी|जानेवारी)(?![\w\u0900-\u097F])", "January"),
+    (r"(?<![\w\u0900-\u097F])(?:फरवरी|फेब्रुवारी)(?![\w\u0900-\u097F])", "February"),
+    (r"(?<![\w\u0900-\u097F])मार्च(?![\w\u0900-\u097F])", "March"),
+    (r"(?<![\w\u0900-\u097F])(?:अप्रैल|एप्रिल)(?![\w\u0900-\u097F])", "April"),
+    (r"(?<![\w\u0900-\u097F])(?:मई|मे)(?![\w\u0900-\u097F])", "May"),
+    (r"(?<![\w\u0900-\u097F])जून(?![\w\u0900-\u097F])", "June"),
+    (r"(?<![\w\u0900-\u097F])(?:जुलाई|जुलै)(?![\w\u0900-\u097F])", "July"),
+    (r"(?<![\w\u0900-\u097F])(?:अगस्त|ऑगस्ट)(?![\w\u0900-\u097F])", "August"),
+    (r"(?<![\w\u0900-\u097F])(?:सितंबर|सप्टेंबर)(?![\w\u0900-\u097F])", "September"),
+    (r"(?<![\w\u0900-\u097F])(?:अक्टूबर|ऑक्टोबर)(?![\w\u0900-\u097F])", "October"),
+    (r"(?<![\w\u0900-\u097F])(?:नवंबर|नोव्हेंबर)(?![\w\u0900-\u097F])", "November"),
+    (r"(?<![\w\u0900-\u097F])(?:दिसंबर|डिसेंबर)(?![\w\u0900-\u097F])", "December"),
+    # Units / metrics / common tech transliterations
+    (r"(?<![\w\u0900-\u097F])(?:प्रतिशत|टक्के)(?![\w\u0900-\u097F])", "percent"),
+    (r"(?<![\w\u0900-\u097F])(?:सेकंड|सेकंद)(?![\w\u0900-\u097F])", "seconds"),
+    (r"(?<![\w\u0900-\u097F])(?:मिनट|मिनिटे|मिनिट)(?![\w\u0900-\u097F])", "minutes"),
+    (r"(?<![\w\u0900-\u097F])(?:घंटे|घंटा|तास)(?![\w\u0900-\u097F])", "hours"),
+    (r"(?<![\w\u0900-\u097F])(?:शून्य|झिरो|ज़ीरो|जीरो)(?![\w\u0900-\u097F])", "zero"),
+    (r"(?<![\w\u0900-\u097F])(?:डेटाबेस|डाटाबेस)(?![\w\u0900-\u097F])", "database"),
+    (r"(?<![\w\u0900-\u097F])(?:सर्व्हर|सर्वर)(?![\w\u0900-\u097F])", "server"),
+    (r"(?<![\w\u0900-\u097F])(?:इंटरव्यू|इंटरव्ह्यू)(?![\w\u0900-\u097F])", "interview"),
+    (r"(?<![\w\u0900-\u097F])डाउनटाइम(?![\w\u0900-\u097F])", "downtime"),
+    (r"(?<![\w\u0900-\u097F])(?:लेटेंसी|लॅटन्सी)(?![\w\u0900-\u097F])", "latency"),
+    (r"(?<![\w\u0900-\u097F])(?:करोड़|कोटी)(?![\w\u0900-\u097F])", "crore"),
+    (r"(?<![\w\u0900-\u097F])लाख(?![\w\u0900-\u097F])", "lakh"),
+    (r"(?<![\w\u0900-\u097F])(?:हज़ार|हजार)(?![\w\u0900-\u097F])", "thousand"),
+    (r"(?<![\w\u0900-\u097F])(?:शंभर|सौ)(?![\w\u0900-\u097F])", "hundred"),
+    (r"(?<![\w\u0900-\u097F])(?:नब्बे|नव्वद)(?![\w\u0900-\u097F])", "ninety"),
+    (r"(?<![\w\u0900-\u097F])(?:पचास|पन्नास)(?![\w\u0900-\u097F])", "fifty"),
+    (r"(?<![\w\u0900-\u097F])(?:बीस|वीस)(?![\w\u0900-\u097F])", "twenty"),
+    (r"(?<![\w\u0900-\u097F])(?:दस|दहा)(?![\w\u0900-\u097F])", "ten"),
+    (r"(?<![\w\u0900-\u097F])(?:नौ|नऊ)(?![\w\u0900-\u097F])", "nine"),
+    (r"(?<![\w\u0900-\u097F])आठ(?![\w\u0900-\u097F])", "eight"),
+    (r"(?<![\w\u0900-\u097F])सात(?![\w\u0900-\u097F])", "seven"),
+    (r"(?<![\w\u0900-\u097F])(?:छह|सहा)(?![\w\u0900-\u097F])", "six"),
+    (r"(?<![\w\u0900-\u097F])(?:पांच|पाँच|पाच)(?![\w\u0900-\u097F])", "five"),
+    (r"(?<![\w\u0900-\u097F])चार(?![\w\u0900-\u097F])", "four"),
+    (r"(?<![\w\u0900-\u097F])तीन(?![\w\u0900-\u097F])", "three"),
+    (r"(?<![\w\u0900-\u097F])(?:दो|दोन)(?![\w\u0900-\u097F])", "two"),
+    (r"(?<![\w\u0900-\u097F])एक\s+(?=(?:second|seconds|minute|minutes|hour|hours|percent|million|billion|thousand|hundred|day|days|week|weeks|month|months|year|years|server|query|request|thread|lock|node|database|cache|api|step|user|record|ms|kb|mb|gb|tb|x)\b)", "one "),
+]
+
+
+def _int_to_english(n: int) -> str:
+    """Converts a non-negative integer into natural spoken English words."""
+    if n < 0:
+        return "minus " + _int_to_english(-n)
+    if n < 20:
+        return _ONES[n]
+    if n < 100:
+        return _TENS[n // 10] + ("" if n % 10 == 0 else " " + _ONES[n % 10])
+    if n < 1000:
+        rem = n % 100
+        return _ONES[n // 100] + " hundred" + ("" if rem == 0 else " " + _int_to_english(rem))
+    for scale, name in ((10**12, "trillion"), (10**9, "billion"), (10**6, "million"), (1000, "thousand")):
+        if n >= scale:
+            rem = n % scale
+            return _int_to_english(n // scale) + f" {name}" + ("" if rem == 0 else " " + _int_to_english(rem))
+    return str(n)
+
+
+def _year_to_english(year: int) -> str:
+    """Converts a 4-digit calendar year (1900-2099) into natural spoken English."""
+    if 2000 <= year <= 2009:
+        return "two thousand" if year == 2000 else f"two thousand {_ONES[year - 2000]}"
+    if 2010 <= year <= 2099:
+        return f"twenty {_int_to_english(year - 2000)}"
+    if 1900 <= year <= 1999:
+        hi, lo = year // 100, year % 100
+        if lo == 0:
+            return f"{_int_to_english(hi)} hundred"
+        return f"{_int_to_english(hi)} {('oh ' + _ONES[lo]) if lo < 10 else _int_to_english(lo)}"
+    return _int_to_english(year)
+
+
+def _ordinal_to_english(n: int) -> str:
+    """Converts day/rank integer (e.g. 1 -> first, 25 -> twenty fifth) to English ordinal words."""
+    if n in _ORDINAL_SPECIAL:
+        return _ORDINAL_SPECIAL[n]
+    if 20 < n < 100:
+        tens, ones = (n // 10) * 10, n % 10
+        if ones in _ORDINAL_SPECIAL:
+            return f"{_TENS[tens // 10]} {_ORDINAL_SPECIAL[ones]}"
+    base = _int_to_english(n)
+    return base + "th"
+
+
+def _num_str_to_english(num_str: str) -> str:
+    """Converts an integer or decimal numeric string (commas allowed) into spoken English."""
+    clean = num_str.replace(",", "").strip()
+    if not clean:
+        return num_str
+    if "." in clean:
+        parts = clean.split(".", 1)
+        int_part = _int_to_english(int(parts[0])) if parts[0].isdigit() else parts[0]
+        frac_part = " ".join(_ONES[int(d)] for d in parts[1] if d.isdigit())
+        return f"{int_part} point {frac_part}".strip() if frac_part else int_part
+    val = int(clean)
+    if 1900 <= val <= 2099 and "," not in num_str and len(clean) == 4:
+        return _year_to_english(val)
+    return _int_to_english(val)
+
+
+def _normalize_text_for_english_tts(text: str) -> str:
+    """
+    Ensures ALL voices (Hindi, Marathi, Hinglish, English, ElevenLabs, Edge-TTS) pronounce
+    numbers, dates, times, percentages, units, and technical words in proper human English.
+    """
+    s = text.translate(_DEVANAGARI_DIGITS)
+
+    # Normalize Devanagari months, units, number words, and common transliterated tech words
+    for pat, repl in _DEVANAGARI_WORD_MAP:
+        s = re.sub(pat, repl, s)
+
+    # Expand abbreviated English months ONLY when paired with a numeric day/year (avoids Hinglish 'mar'/'jan')
+    s = re.sub(
+        r"\b(\d{1,2}(?:st|nd|rd|th)?\s+)(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\b",
+        lambda m: f"{m.group(1)}{_MONTH_ABBR.get(m.group(2).lower(), m.group(2))}",
+        s,
+        flags=re.IGNORECASE,
+    )
+    s = re.sub(
+        r"\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?(?=\s+\d{1,4}\b)",
+        lambda m: _MONTH_ABBR.get(m.group(1).lower(), m.group(1)),
+        s,
+        flags=re.IGNORECASE,
+    )
+
+    # Expand K8s and common shorthand
+    s = re.sub(r"\bK8s\b", "Kubernetes", s, flags=re.IGNORECASE)
+
+    # ISO dates YYYY-MM-DD -> spoken English date
+    def _iso_date_repl(m: re.Match) -> str:
+        y, mo, dy = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if 1 <= mo <= 12 and 1 <= dy <= 31:
+            return f"{_ordinal_to_english(dy)} {_MONTH_NAMES[mo]} {_year_to_english(y)}"
+        return m.group(0)
+
+    s = re.sub(r"\b((?:19|20)\d{2})-(\d{1,2})-(\d{1,2})\b", _iso_date_repl, s)
+
+    # Numeric dates DD/MM/YYYY or DD-MM-YYYY
+    def _dmy_date_repl(m: re.Match) -> str:
+        dy, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if 1 <= mo <= 12 and 1 <= dy <= 31:
+            return f"{_ordinal_to_english(dy)} {_MONTH_NAMES[mo]} {_year_to_english(y)}"
+        return m.group(0)
+
+    s = re.sub(r"\b(\d{1,2})[/-](\d{1,2})[/-]((?:19|20)\d{2})\b", _dmy_date_repl, s)
+
+    # Ordinal numbers (1st, 2nd, 3rd, 25th)
+    s = re.sub(
+        r"\b(\d{1,3})(?:st|nd|rd|th)\b",
+        lambda m: _ordinal_to_english(int(m.group(1))),
+        s,
+        flags=re.IGNORECASE,
+    )
+
+    # Timestamps HH:MM(:SS)
+    def _time_repl(m: re.Match) -> str:
+        h, mn = int(m.group(1)), int(m.group(2))
+        if h == 0 and mn == 0:
+            return "zero zero"
+        h_w = _int_to_english(h)
+        m_w = "o'clock" if mn == 0 else (("oh " + _ONES[mn]) if mn < 10 else _int_to_english(mn))
+        return f"{h_w} {m_w}"
+
+    s = re.sub(r"\b(\d{1,2}):(\d{2})\b", _time_repl, s)
+
+    # Version tokens like v2.5 or v3.11 -> "version two point five"
+    s = re.sub(
+        r"\bv(\d+(?:\.\d+)+)\b",
+        lambda m: "version " + " point ".join(_int_to_english(int(p)) if p.isdigit() else p for p in m.group(1).split(".")),
+        s,
+        flags=re.IGNORECASE,
+    )
+
+    # Tech units & scales attached to numbers (preserve hex literals like 0x00A1 separately)
+    unit_map = {
+        "ms": "milliseconds",
+        "us": "microseconds",
+        "µs": "microseconds",
+        "ns": "nanoseconds",
+        "sec": "seconds",
+        "secs": "seconds",
+        "s": "seconds",
+        "min": "minutes",
+        "mins": "minutes",
+        "hr": "hours",
+        "hrs": "hours",
+        "gbps": "G B P S",
+        "mbps": "M B P S",
+        "kbps": "K B P S",
+        "fps": "F P S",
+        "rps": "requests per second",
+        "qps": "queries per second",
+        "gb": "G B",
+        "mb": "M B",
+        "kb": "K B",
+        "tb": "T B",
+        "x": "X",
+        "k": "K",
+        "m": "million",
+        "b": "billion",
+    }
+
+    def _unit_repl(m: re.Match) -> str:
+        num, unit = m.group(1), m.group(2).lower()
+        return f"{_num_str_to_english(num)} {unit_map.get(unit, unit)}"
+
+    s = re.sub(
+        r"(?<![0-9a-fA-Fx])\b(\d+(?:,\d{3})*(?:\.\d+)?)\s*(ms|us|µs|ns|secs?|min|mins|hrs?|gbps|mbps|kbps|fps|rps|qps|gb|mb|kb|tb)\b",
+        _unit_repl,
+        s,
+        flags=re.IGNORECASE,
+    )
+    # Single-letter scale suffixes only when directly attached (e.g. 10x, 10k, 5M, 2B — avoids "0 B" -> billion)
+    s = re.sub(
+        r"(?<![0-9a-fA-Fx])\b(\d+(?:,\d{3})*(?:\.\d+)?)(x|k|m|b)\b",
+        _unit_repl,
+        s,
+        flags=re.IGNORECASE,
+    )
+
+    # Currency & Percentages
+    s = re.sub(
+        r"\$(\d+(?:,\d{3})*(?:\.\d+)?)",
+        lambda m: f"{_num_str_to_english(m.group(1))} dollars",
+        s,
+    )
+    s = re.sub(
+        r"(\d+(?:,\d{3})*(?:\.\d+)?)\s*%",
+        lambda m: f"{_num_str_to_english(m.group(1))} percent",
+        s,
+    )
+
+    # Standalone numbers (excluding hex like 0x00A1 or word-attached IDs like S3, EC2, IPv4, SHA256)
+    s = re.sub(
+        r"(?<![A-Za-z0-9_x.])(\d+(?:,\d{3})*(?:\.\d+)?)(?![A-Za-z0-9_])",
+        lambda m: _num_str_to_english(m.group(1)),
+        s,
+    )
+    return s
+
+
 def _clean_tts_text(text: str, preserve_pauses: bool = False) -> str:
-    """Cleans script text for natural speech synthesis and handles explicit pause tokens."""
+    """Cleans script text for natural speech synthesis and normalizes numbers/dates/tech terms to spoken English."""
     if preserve_pauses:
         cleaned = re.sub(r'\[pause\]', ' ... ', text, flags=re.IGNORECASE)
     else:
@@ -234,6 +504,8 @@ def _clean_tts_text(text: str, preserve_pauses: bool = False) -> str:
     cleaned = cleaned.replace("`", "").replace("*", "").replace("#", "")
     # Replace technical underscores with spaces (e.g. DENSE_RANK -> DENSE RANK)
     cleaned = re.sub(r'(?<=\w)_(?=\w)', ' ', cleaned)
+    # Force all numbers, dates, units, and tech terms into natural spoken English across ALL voices
+    cleaned = _normalize_text_for_english_tts(cleaned)
     # Remove excessive whitespace
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned

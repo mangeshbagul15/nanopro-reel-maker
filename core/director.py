@@ -500,7 +500,7 @@ def generate_timeline(
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: The user explicitly selected a Marathi voice persona. "
             "You MUST write the spoken `narration` in natural conversational Marathi using Devanagari for Marathi words "
-            "mixed seamlessly with English technical nouns (e.g., 'मित्रांनो, आज आपण पाहणार आहोत की Database Migration झिरो Downtime सह कसे चालते...'). "
+            "mixed seamlessly with crisp English technical nouns (e.g., 'मित्रांनो, आज आपण पाहणार आहोत की Database Migration Zero Downtime सह कसे चालते...'). "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
     elif tone == "senior_hinglish_mentor":
@@ -528,9 +528,17 @@ def generate_timeline(
     }
     dur_guidance = duration_instructions.get(duration_mode, duration_instructions["auto"])
 
-    # 3. Format guidance
+    # 3. Format & Universal Spoken English Numbers/Dates/Tech Rules
     format_directive = f"Target Aspect Ratio: '{format_ratio}'."
     tone_directive = TONE_DIRECTIVES.get(tone, f"SCRIPT TONE & CADENCE: {tone}.")
+    english_tech_num_rule = (
+        "UNIVERSAL SPOKEN ENGLISH NUMBERS, DATES & TECH TERMS MANDATE (APPLIES TO ALL VOICES): "
+        "In EVERY scene's `narration`, ALL numbers, counts, percentages, latencies, capacities, versions, dates, months, years, days, time durations, and technical words "
+        "MUST be written in clean English ASCII (e.g., `100`, `1,000`, `10 million`, `50%`, `24ms`, `January 2026`, `25 November`, `5 minutes`, `10 seconds`, `Zero Downtime`, `Database`, `Cache`, `Thread`, `Interview`, `Trade-off`). "
+        "NEVER use Devanagari digits (`०-९`), NEVER write Hindi/Marathi number or unit words (`एक`, `दो`, `तीन`, `पांच`, `दस`, `सौ`, `हज़ार`, `लाख`, `करोड़`, `lakhon`, `hazaaron`, `दोन`, `पाच`, `दहा`, `शंभर`, `कोटी`, `प्रतिशत`, `टक्के`, `मिनट`, `सेकंड`, `तास` — prefer English `thousands of`, `millions of`, `1M`, `100K`), "
+        "NEVER write Hindi/Marathi month names (`जनवरी`, `नोव्हेंबर`), and NEVER transliterate English technical words into Devanagari (`डेटाबेस`, `थ्रेड`, `कैश`, `सर्व्हर`, `झिरो`, `डाउनटाइम`, `इंटरव्यू`, `लेटेंसी`). "
+        "Keep English terms natural and conversational like authentic Hinglish / spoken tech speech."
+    )
 
     user_prompt = (
         f"Topic: '{topic}'.\n"
@@ -538,6 +546,7 @@ def generate_timeline(
         f"Selected Visual Engine: '{engine_style}'.\n"
         f"Selected Voice Persona: '{voice}'.\n"
         f"{lang_directive}\n"
+        f"{english_tech_num_rule}\n"
         f"{format_directive}\n"
         f"Target Depth / Duration: {dur_guidance}\n"
         f"{style_directive}\n\n"
