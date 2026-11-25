@@ -2519,7 +2519,7 @@ def generate_thumbnail_9_16(
         t_sc = None
         if isinstance(timeline, dict) and timeline.get("scenes"):
             for sc in timeline["scenes"]:
-                if sc.get("visual_type") in ["iso_architecture", "iso_comparison", "custom_scene", "architecture_flow", "split_comparison", "terminal_studio", "code_terminal"]:
+                if sc.get("visual_type") in ["iso_architecture", "node_graph", "iso_comparison", "custom_scene", "architecture_flow", "split_comparison", "terminal_studio", "code_terminal"]:
                     t_sc = sc
                     break
             if not t_sc:
