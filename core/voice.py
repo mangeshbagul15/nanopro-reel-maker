@@ -98,38 +98,46 @@ VOICE_CATALOG = {
     ]
 }
 
-# Dynamic Voice Parameters tailored to chosen Delivery Tone
+# Dynamic Voice Parameters tailored to chosen Delivery Tone (ElevenLabs + Edge-TTS Prosody)
 TONE_VOICE_SETTINGS = {
     "dramatic_performance": {
-        "stability": 0.35,
-        "similarity_boost": 0.80,
-        "style": 0.35,
+        "stability": 0.32,
+        "similarity_boost": 0.82,
+        "style": 0.42,
         "use_speaker_boost": True
     },
     "fireship_octane": {
-        "stability": 0.45,
+        "stability": 0.42,
         "similarity_boost": 0.75,
-        "style": 0.20,
+        "style": 0.25,
         "use_speaker_boost": True
     },
     "staff_engineer": {
-        "stability": 0.70,
+        "stability": 0.72,
         "similarity_boost": 0.85,
-        "style": 0.05,
+        "style": 0.06,
         "use_speaker_boost": True
     },
     "conversational_casual": {
         "stability": 0.55,
         "similarity_boost": 0.75,
-        "style": 0.10,
+        "style": 0.12,
         "use_speaker_boost": True
     },
     "interview_prep": {
-        "stability": 0.60,
+        "stability": 0.58,
         "similarity_boost": 0.80,
-        "style": 0.15,
+        "style": 0.18,
         "use_speaker_boost": True
     }
+}
+
+EDGE_TTS_PROSODY = {
+    "fireship_octane": {"rate": "+16%", "pitch": "+2Hz"},
+    "dramatic_performance": {"rate": "-4%", "pitch": "-4Hz"},
+    "staff_engineer": {"rate": "+4%", "pitch": "-2Hz"},
+    "conversational_casual": {"rate": "+8%", "pitch": "+0Hz"},
+    "interview_prep": {"rate": "+12%", "pitch": "+1Hz"},
 }
 
 def get_elevenlabs_usage() -> Dict[str, Any]:
@@ -272,15 +280,19 @@ def _synthesize_elevenlabs_sync(
         print(f"[Voice] ElevenLabs request failed ({e})")
         return False
 
-async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str) -> bool:
-    """Synthesizes speech using Microsoft Edge-TTS with automatic retries."""
+async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, tone: str = "conversational_casual") -> bool:
+    """Synthesizes speech using Microsoft Edge-TTS with tone-matched rate & pitch prosody."""
     cleaned_text = _clean_tts_text(text)
     if not cleaned_text:
         return False
 
+    prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+9%", "pitch": "+0Hz"})
+    rate = prosody["rate"]
+    pitch = prosody["pitch"]
+
     for attempt in range(3):
         try:
-            communicate = edge_tts.Communicate(cleaned_text, voice, rate="+10%", pitch="+0Hz")
+            communicate = edge_tts.Communicate(cleaned_text, voice, rate=rate, pitch=pitch)
             await communicate.save(str(output_path))
             if output_path.exists() and output_path.stat().st_size > 1000:
                 return True
@@ -301,7 +313,7 @@ def _synthesize_single_scene(
     """
     Synthesizes speech for a single scene:
     - Only calls ElevenLabs API if allow_elevenlabs=True AND voice starts with 'elevenlabs:'.
-    - Otherwise strictly uses Microsoft Edge-TTS (0 ElevenLabs credits consumed).
+    - Otherwise strictly uses Microsoft Edge-TTS (0 ElevenLabs credits consumed), with tone-matched prosody.
     """
     is_elevenlabs = allow_elevenlabs and voice.startswith("elevenlabs:")
     
@@ -318,14 +330,14 @@ def _synthesize_single_scene(
             return
         print("[Voice] Falling back to high-fidelity Edge-TTS for this scene...")
         fallback_voice = "mr-IN-ManoharNeural" if lang_code == "mr" else ("hi-IN-MadhurNeural" if lang_code == "hi" else "en-US-ChristopherNeural")
-        asyncio.run(_synthesize_edge_tts_scene(text, output_path, fallback_voice))
+        asyncio.run(_synthesize_edge_tts_scene(text, output_path, fallback_voice, tone=tone))
         return
 
     # Standard Edge-TTS path (never consumes ElevenLabs credits)
     clean_voice = voice.replace("edge:", "")
     if clean_voice.startswith("elevenlabs:"):
         clean_voice = "en-US-ChristopherNeural"
-    asyncio.run(_synthesize_edge_tts_scene(text, output_path, clean_voice))
+    asyncio.run(_synthesize_edge_tts_scene(text, output_path, clean_voice, tone=tone))
 
 def _ensure_valid_audio(path: Path) -> None:
     """Generates a 2-second silent audio if an audio synthesis failed, guaranteeing FFmpeg never crashes."""
@@ -366,9 +378,10 @@ def generate_voiceover(
         sc_path = OUTPUT_DIR / f"scene_{i + 1:02d}_voice.mp3"
         scene_audio_paths.append(sc_path)
 
-    # 1. Synthesize all scene voiceovers
-    for i, (text, p) in enumerate(zip(scene_texts, scene_audio_paths)):
-        _synthesize_single_scene(text, p, voice=voice, elevenlabs_model=elevenlabs_model, tone=tone, allow_elevenlabs=allow_elevenlabs)
+    # 1. Synthesize all scene voiceovers (dynamic per-scene tone when tone == "auto_dynamic")
+    for i, (sc, text, p) in enumerate(zip(scenes, scene_texts, scene_audio_paths)):
+        sc_tone = (sc.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
+        _synthesize_single_scene(text, p, voice=voice, elevenlabs_model=elevenlabs_model, tone=sc_tone, allow_elevenlabs=allow_elevenlabs)
         _ensure_valid_audio(p)
 
     # 2. Measure exact duration of each scene's audio

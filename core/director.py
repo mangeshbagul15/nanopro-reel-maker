@@ -168,6 +168,30 @@ Select the most appropriate visual_type for each scene from the following suppor
     "accent_theme": "gold_purple"
   }
 
+- "kinetic_statement":
+  visual_data: {
+    "badge": "KEY INSIGHT",
+    "title": "Scene Headline",
+    "kicker": "THE GOLDEN RULE",
+    "statement": "Punchy bold focal sentence (5-9 words max)",
+    "highlight_word": "Keyword",
+    "bottom_tags": ["Tag 1", "Tag 2", "Tag 3"],
+    "accent_theme": "fireship / indigo_cyan"
+  }
+
+- "step_timeline":
+  visual_data: {
+    "badge": "STEP-BY-STEP EXECUTION",
+    "title": "How The Flow Works",
+    "steps": [
+      {"num": "01", "title": "Step 1 Title", "desc": "Exact detail from narration"},
+      {"num": "02", "title": "Step 2 Title", "desc": "Exact detail from narration"},
+      {"num": "03", "title": "Step 3 Title", "desc": "Exact detail from narration"},
+      {"num": "04", "title": "Step 4 Title", "desc": "Exact detail from narration"}
+    ],
+    "accent_theme": "cyber_cyan"
+  }
+
 - "all_in_one_tech_canvas":
   visual_data: {
     "badge": "SYSTEM ARCHITECTURE",
@@ -199,6 +223,7 @@ Output a single valid JSON object matching this structure:
     {
       "scene_id": 1,
       "role": "hook",
+      "scene_tone": "fireship_octane / dramatic_performance / staff_engineer / conversational_casual / interview_prep",
       "narration": "Narration text with natural pauses...",
       "visual_type": "hero_hook",
       "choreography": {
@@ -232,10 +257,11 @@ ENGINE_STYLE_DIRECTIVES = {
         "  - Use `benchmark_chart` when leading with a 10x speedup/performance hook.\n"
         "  - Use `code_terminal` or `sql_table` when starting with a query/code bug.\n"
         "  - ONLY use `alert_diagram` when the topic is specifically a production server crash, deadlock, or outage!\n"
-        "For subsequent scenes, mix `architecture_flow` (4-step linear flows like RAG Ingestion->Vector Search->Prompt->LLM), "
+        "For subsequent scenes, mix `step_timeline` (glowing vertical 01->04 timeline), `kinetic_statement` (huge high-impact typographic slide without boxes), `architecture_flow`, "
         "`all_in_one_tech_canvas` (rich cloud/microservices ecosystems), `hybrid_merge` (combining 2 pillars into unified outcomes), "
         "`split_comparison`, `concept_cards` (with `warning_box` and/or `footer_cta` when appropriate), `sql_table`, `data_structure_memory`, `code_terminal`, and `circular_hub_mesh`.\n"
-        "Always vary `accent_theme` (`indigo_cyan`, `emerald_matrix`, `gold_purple`, `cyber_cyan`, `crimson_alert`) across scenes so visuals stay fresh! "
+        "NEVER use generic textbook phrases like 'Which architecture pattern fits your production requirements?' on-screen — always put the user's REAL question, REAL Hinglish/English terms, and REAL examples!\n"
+        "Always vary `accent_theme` (`indigo_cyan`, `emerald_matrix`, `gold_purple`, `cyber_cyan`, `crimson_alert`) and per-scene `scene_tone` across scenes so text, voice emotion, and storyboard visuals stay genuinely dynamic! "
         "If the user provided a Custom Script / Visuals / Progressive Flow, honor their exact scene structure, labels, warning boxes, and CTAs! "
         "MANDATORY AUDIO-VISUAL SYNC CHOREOGRAPHY: For EVERY scene, output `choreography` with `mode` and `triggers` containing 4 chronological keywords copied verbatim from that scene's `narration`."
     ),
@@ -306,30 +332,36 @@ ENGINE_STYLE_DIRECTIVES = {
 }
 
 TONE_DIRECTIVES = {
+    "auto_dynamic": (
+        "DYNAMIC PER-SCENE TONE & VOICE CHOREOGRAPHY (RECOMMENDED): "
+        "Dynamically shift emotional tone & pacing across the video storyboard: "
+        "Hook/Intro -> energetic (`fireship_octane` or `interview_prep`), Problem/Mistake -> suspenseful (`dramatic_performance`), "
+        "Architecture/Mechanism -> authoritative (`staff_engineer`), Closing Summary/CTA -> warm (`conversational_casual`). "
+        "Set each scene's `scene_tone` field accordingly so both TTS voice prosody AND visual motion/subtitle energy adapt per scene!"
+    ),
     "fireship_octane": (
-        "SCRIPT TONE & CADENCE MANDATE: Write in high-octane Fireship style. "
+        "SCRIPT TONE & VISUAL SYNC MANDATE: Write in high-octane Fireship style. "
         "Punchy sentences, witty comparisons, rapid pacing, zero corporate throat-clearing. "
-        "Start immediately with a dramatic hook. Keep sentences crisp and energetic."
+        "Set each scene's `scene_tone` to `fireship_octane` and prefer fast kinetic visuals (`kinetic_statement`, `split_comparison`, `code_terminal`, `hero_hook`)."
     ),
     "dramatic_performance": (
-        "SCRIPT TONE & CADENCE MANDATE: Emotionally rich, theatrical, dramatic performance. "
-        "Build tension and suspense around the problem. Use natural dramatic pauses ('...') before revealing key engineering insights. "
-        "Make the engineering stakes feel massive (e.g. 'At 3 AM, the primary database locked up...')."
+        "SCRIPT TONE & VISUAL SYNC MANDATE: Emotionally rich, theatrical, dramatic performance. "
+        "Build tension and suspense around the problem. Use natural dramatic pauses ('...') before revealing key insights. "
+        "Set each scene's `scene_tone` to `dramatic_performance` and use high-drama themes (`crimson_alert`, `gold_purple`) and dramatic story visuals (`alert_diagram`, `hero_hook`, `kinetic_statement`, `hybrid_merge`)."
     ),
     "staff_engineer": (
-        "SCRIPT TONE & CADENCE MANDATE: Senior Staff Engineer / ByteByteGo masterclass style. "
-        "Calm, deeply authoritative, mature technical confidence. "
-        "Focus on real-world production trade-offs, scalability bottlenecks, and architectural rationale."
+        "SCRIPT TONE & VISUAL SYNC MANDATE: Senior Staff Engineer / ByteByteGo masterclass style. "
+        "Calm, deeply authoritative, mature technical confidence focusing on real-world trade-offs and internals. "
+        "Set each scene's `scene_tone` to `staff_engineer` and prefer structured diagrams (`step_timeline`, `architecture_flow`, `all_in_one_tech_canvas`, `data_structure_memory`)."
     ),
     "conversational_casual": (
-        "SCRIPT TONE & CADENCE MANDATE: Conversational, warm, and friendly. "
-        "Like an experienced senior dev explaining an awesome concept to a friend over coffee. "
-        "Engaging, approachable, and highly relatable."
+        "SCRIPT TONE & VISUAL SYNC MANDATE: Conversational, warm, and friendly, like explaining over coffee. "
+        "Set each scene's `scene_tone` to `conversational_casual` and use approachable `emerald_matrix`/`cyber_cyan` visuals (`concept_cards`, `step_timeline`, `hybrid_merge`)."
     ),
     "interview_prep": (
-        "SCRIPT TONE & CADENCE MANDATE: High-stakes Technical Interview Prep. "
-        "Frame the topic as a top FAANG/MAANG interview question. "
-        "Clear problem setup, common candidate traps, and the optimal staff-level solution."
+        "SCRIPT TONE & VISUAL SYNC MANDATE: High-stakes FAANG Technical Interview Prep. "
+        "Clear interview question hook, candidate traps, crisp trade-offs, and a 30-second crisp answer. "
+        "Set each scene's `scene_tone` to `interview_prep` and use interview-aligned visuals (`hero_hook`, `split_comparison`, `concept_cards`, `hybrid_merge`)."
     )
 }
 
@@ -432,7 +464,7 @@ def generate_timeline(
                     raw_text = response.text.strip() if response.text else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                        clean_json = _enforce_engine_style(clean_json, engine_style, topic)
+                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone)
                         clean_json["meta_director"] = {
                             "model_used": model_name,
                             "engine_style": engine_style,
@@ -469,7 +501,7 @@ def generate_timeline(
                     raw_text = g_res.choices[0].message.content.strip() if g_res.choices else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                        clean_json = _enforce_engine_style(clean_json, engine_style, topic)
+                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone)
                         clean_json["meta_director"] = {
                             "model_used": f"groq/{g_model}",
                             "engine_style": engine_style,
@@ -514,7 +546,7 @@ def generate_timeline(
                         raw_text = res_json["choices"][0]["message"]["content"].strip()
                         clean_json = _extract_json(raw_text)
                         if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                            clean_json = _enforce_engine_style(clean_json, engine_style, topic)
+                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone)
                             clean_json["meta_director"] = {
                                 "model_used": f"openrouter/{or_model}",
                                 "engine_style": engine_style,
@@ -533,10 +565,10 @@ def generate_timeline(
     err_summary = "; ".join(last_errors) if last_errors else "No valid API keys configured."
     raise RuntimeError(f"Failed to generate video timeline from AI Director. Details: {err_summary}")
 
-def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: str) -> Dict[str, Any]:
+def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: str, tone: str = "auto_dynamic") -> Dict[str, Any]:
     """
     Guarantees that every scene in the timeline strictly adheres to the user-selected Visual Engine & Style,
-    adapting both visual_type and populating rich, topic-specific visual_data fields.
+    adapting visual_type, scene_tone, and populating rich topic-specific visual_data fields.
     """
     if not timeline or "scenes" not in timeline:
         return timeline
@@ -594,9 +626,21 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
         "combination_diagram": "hybrid_merge",
         "hybrid_architecture": "hybrid_merge",
         "hybrid_approach": "hybrid_merge",
+        "kinetic": "kinetic_statement",
+        "statement": "kinetic_statement",
+        "callout": "kinetic_statement",
+        "timeline": "step_timeline",
+        "steps": "step_timeline",
+        "step_flow": "step_timeline",
     }
 
+    role_tone_defaults = ["fireship_octane", "staff_engineer", "dramatic_performance", "interview_prep", "conversational_casual"]
     for idx, sc in enumerate(scenes):
+        if tone != "auto_dynamic":
+            sc["scene_tone"] = tone
+        elif not sc.get("scene_tone"):
+            sc["scene_tone"] = role_tone_defaults[idx % len(role_tone_defaults)]
+
         v_data = sc.get("visual_data", {})
         raw_vtype = str(sc.get("visual_type", "concept_cards")).lower().strip()
         current_vtype = vtype_aliases.get(raw_vtype, raw_vtype)
@@ -734,6 +778,21 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
             v_data["right_pillar"] = v_data.get("right_pillar") or {"label": "Live Retrieval / State", "sub": "Fresh Data Context"}
             v_data["merged_label"] = v_data.get("merged_label") or f"{title[:20]} Hybrid"
             v_data["outcomes"] = v_data.get("outcomes") or ["Accuracy", "Consistency", "Low Latency"]
+
+        elif current_vtype == "kinetic_statement":
+            v_data["kicker"] = v_data.get("kicker") or "KEY ENGINEERING TAKEAWAY"
+            v_data["statement"] = v_data.get("statement") or sc.get("narration", "")[:80] or title
+            v_data["highlight_word"] = v_data.get("highlight_word") or ""
+            v_data["bottom_tags"] = v_data.get("bottom_tags") or ["High Precision", "Production Ready"]
+
+        elif current_vtype == "step_timeline":
+            if not v_data.get("steps"):
+                v_data["steps"] = [
+                    {"num": "01", "title": f"{title[:18]} Init", "desc": "Incoming request or query"},
+                    {"num": "02", "title": "Core Processing", "desc": "Contextual lookup & validation"},
+                    {"num": "03", "title": "Execution Engine", "desc": "Apply rules & transformation"},
+                    {"num": "04", "title": "Verified Output", "desc": "Deterministic production response"}
+                ]
 
         elif current_vtype == "all_in_one_tech_canvas":
             v_data["vpc_label"] = v_data.get("vpc_label") or f"SYSTEM ARCHITECTURE • {title.upper()[:24]}"

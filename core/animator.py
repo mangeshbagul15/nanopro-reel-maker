@@ -29,21 +29,49 @@ ACCENT_THEMES = {
 }
 
 
-def _build_themed_canvas(canvas_w: int, canvas_h: int, theme_name: str = "cyber_cyan") -> Tuple[Image.Image, Dict[str, Tuple[int, int, int]]]:
-    """Builds a crisp cyber-grid background base canvas tailored to the scene's accent theme."""
+TONE_THEME_MAP = {
+    "fireship_octane": "cyber_cyan",
+    "dramatic_performance": "crimson_alert",
+    "staff_engineer": "indigo_cyan",
+    "conversational_casual": "emerald_matrix",
+    "interview_prep": "gold_purple",
+}
+
+
+def _build_themed_canvas(canvas_w: int, canvas_h: int, theme_name: str = "cyber_cyan", effective_tone: str = "conversational_casual") -> Tuple[Image.Image, Dict[str, Tuple[int, int, int]]]:
+    """Builds a distinct tone-matched backdrop texture (grid, diagonal streaks, blueprint dots, or theatrical vignette)."""
     theme = ACCENT_THEMES.get(str(theme_name).lower().strip(), ACCENT_THEMES["cyber_cyan"])
     bg = theme["bg"]
     p = theme["primary"]
+    s = theme["secondary"]
     base = Image.new("RGB", (canvas_w, canvas_h), bg)
     gdraw = ImageDraw.Draw(base, "RGBA")
-    grid_col = (p[0], p[1], p[2], 14)
-    step = 90
-    for gx in range(0, canvas_w, step):
-        gdraw.line((gx, 0, gx, canvas_h), fill=grid_col, width=1)
-    for gy in range(0, canvas_h, step):
-        gdraw.line((0, gy, canvas_w, gy), fill=grid_col, width=1)
-    # Subtle top radial halo behind title
-    gdraw.ellipse((canvas_w // 2 - 360, -140, canvas_w // 2 + 360, 420), fill=(p[0], p[1], p[2], 16))
+
+    if effective_tone == "fireship_octane":
+        # High-energy diagonal cyber speed streaks
+        streak_col = (p[0], p[1], p[2], 16)
+        for offset in range(-canvas_h, canvas_w + canvas_h, 130):
+            gdraw.line((offset, 0, offset - 380, canvas_h), fill=streak_col, width=2)
+    elif effective_tone == "staff_engineer":
+        # Technical blueprint coordinate dot-matrix
+        dot_col = (p[0], p[1], p[2], 32)
+        for gx in range(30, canvas_w, 60):
+            for gy in range(30, canvas_h, 60):
+                gdraw.ellipse((gx - 1, gy - 1, gx + 1, gy + 1), fill=dot_col)
+    elif effective_tone == "dramatic_performance":
+        # Theatrical moody dual spotlight vignette
+        gdraw.ellipse((canvas_w // 2 - 480, 120, canvas_w // 2 + 480, 950), fill=(p[0], p[1], p[2], 20))
+        gdraw.ellipse((canvas_w // 2 - 360, 750, canvas_w // 2 + 360, 1550), fill=(s[0], s[1], s[2], 14))
+    else:
+        grid_col = (p[0], p[1], p[2], 14)
+        step = 90
+        for gx in range(0, canvas_w, step):
+            gdraw.line((gx, 0, gx, canvas_h), fill=grid_col, width=1)
+        for gy in range(0, canvas_h, step):
+            gdraw.line((0, gy, canvas_w, gy), fill=grid_col, width=1)
+
+    # Subtle ambient halo behind scene header
+    gdraw.ellipse((canvas_w // 2 - 360, -140, canvas_w // 2 + 360, 420), fill=(p[0], p[1], p[2], 18))
     return base, theme
 
 def get_font(size: int = 40, bold: bool = False) -> ImageFont.ImageFont:
@@ -240,12 +268,12 @@ def render_scene_frames(
     format_ratio: str = "9:16",
     watermark: str = DEFAULT_WATERMARK,
     scene_words: List[Dict[str, Any]] = None,
-    custom_style_prompt: str = ""
+    custom_style_prompt: str = "",
+    tone: str = "auto_dynamic"
 ) -> List[Path]:
     """
-    Renders high-octane 2D frames across 10+ rich motion-graphics visual engines,
-    strictly adhering to the user-selected Visual Engine & Style, Voice-Synced Progressive Reveal,
-    and Target Aspect Ratio (9:16, 16:9, 1:1).
+    Renders high-octane 2D frames across 12+ rich motion-graphics visual engines,
+    adapting layout, texture, pacing, and accents to BOTH Visual Engine & Script Tone.
     """
     duration = max(1.5, float(scene.get("duration", 5.0)))
     total_frames = max(15, round(duration * VIDEO_FPS))
@@ -291,16 +319,25 @@ def render_scene_frames(
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
     canvas_w = spec.get("width", VIDEO_WIDTH)
     canvas_h = spec.get("height", VIDEO_HEIGHT)
+    effective_tone = (scene.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
     theme_cycle = ["indigo_cyan", "cyber_cyan", "emerald_matrix", "gold_purple", "crimson_alert"]
-    chosen_theme = visual_data.get("accent_theme") or theme_cycle[(scene_idx - 1) % len(theme_cycle)]
-    base_canvas, theme_cfg = _build_themed_canvas(canvas_w, canvas_h, chosen_theme)
+    tone_default_theme = TONE_THEME_MAP.get(effective_tone, theme_cycle[(scene_idx - 1) % len(theme_cycle)])
+    chosen_theme = visual_data.get("accent_theme") or tone_default_theme
+    base_canvas, theme_cfg = _build_themed_canvas(canvas_w, canvas_h, chosen_theme, effective_tone=effective_tone)
     accent_col = theme_cfg["primary"]
     needs_aspect_fit = (canvas_w != VIDEO_WIDTH or canvas_h != VIDEO_HEIGHT)
     anchors = _build_choreography_anchors(duration, scene, scene_words)
     
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
-        progress = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
+        raw_p = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
+        # Tone-matched reveal snap: Fireship snaps faster, Dramatic eases in with suspense
+        if effective_tone == "fireship_octane":
+            progress = min(1.0, raw_p * 1.12)
+        elif effective_tone == "dramatic_performance":
+            progress = pow(raw_p, 1.08)
+        else:
+            progress = raw_p
         frame = base_canvas.copy()
 
         if needs_aspect_fit:
@@ -376,12 +413,22 @@ def _dispatch_visual_renderer(draw: ImageDraw.Draw, visual_type: str, visual_dat
         "combination_diagram": "hybrid_merge",
         "hybrid_architecture": "hybrid_merge",
         "hybrid_approach": "hybrid_merge",
+        "kinetic": "kinetic_statement",
+        "statement": "kinetic_statement",
+        "callout": "kinetic_statement",
+        "timeline": "step_timeline",
+        "steps": "step_timeline",
+        "step_flow": "step_timeline",
     }
     vt = aliases.get(str(visual_type).lower().strip(), visual_type)
     if vt == "hero_hook":
         _render_hero_hook(draw, visual_data, progress)
     elif vt == "hybrid_merge":
         _render_hybrid_merge(draw, visual_data, progress)
+    elif vt == "kinetic_statement":
+        _render_kinetic_statement(draw, visual_data, progress)
+    elif vt == "step_timeline":
+        _render_step_timeline(draw, visual_data, progress)
     elif vt == "split_comparison":
         _render_split_comparison(draw, visual_data, progress)
     elif vt == "benchmark_chart":
@@ -1145,6 +1192,127 @@ def _hex_to_rgb(hex_code: str) -> Tuple[int, int, int]:
     if len(hex_code) == 6:
         return tuple(int(hex_code[i:i+2], 16) for i in (0, 2, 4))
     return (56, 189, 248)
+
+
+# =========================================================================
+# 13. KINETIC STATEMENT (Minimalist High-Impact Typographic Focus — No Card Clutter!)
+# =========================================================================
+def _render_kinetic_statement(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    kicker = str(data.get("kicker") or "CORE ENGINEERING RULE").upper()
+    statement = str(data.get("statement") or data.get("title") or "Architecture Follows Access Patterns.")
+    hl_word = str(data.get("highlight_word") or "").strip().lower()
+    tags = data.get("bottom_tags") or []
+
+    # Expanding luminous divider line across center stage
+    line_w = int(680 * _stage_reveal(progress, 0.0, 0.25))
+    lx_mid = VIDEO_WIDTH // 2
+    draw.line((lx_mid - line_w // 2, 455, lx_mid + line_w // 2, 455), fill=NEON_AMBER, width=4)
+    draw_wrapped_text(draw, kicker, get_font(26, bold=True), 120, 405, VIDEO_WIDTH - 240, NEON_AMBER, align="center", max_lines=1)
+
+    # Big kinetic word-by-word reveal of the focal statement
+    words = statement.split()
+    total_w = len(words)
+    vis_words = max(2, int(math.ceil(total_w * min(1.0, 0.15 + progress * 1.15))))
+    shown_words = words[:vis_words]
+
+    font_big = get_font(56, bold=True)
+    # Measure and wrap into balanced centered lines
+    lines = []
+    cur = []
+    for w in shown_words:
+        test = " ".join(cur + [w])
+        if (font_big.getbbox(test)[2] - font_big.getbbox(test)[0]) <= 880:
+            cur.append(w)
+        else:
+            if cur:
+                lines.append(cur)
+            cur = [w]
+    if cur:
+        lines.append(cur)
+
+    y_cursor = 540
+    for line_words in lines[:4]:
+        line_str = " ".join(line_words)
+        line_bbox = font_big.getbbox(line_str)
+        line_px = line_bbox[2] - line_bbox[0]
+        cur_x = (VIDEO_WIDTH - line_px) // 2
+        for w in line_words:
+            is_hl = hl_word and hl_word in w.lower()
+            fill_c = NEON_CYAN if is_hl else TEXT_PRIMARY
+            w_draw = w + " "
+            draw.text((cur_x, y_cursor), w_draw, fill=fill_c, font=font_big)
+            if is_hl:
+                wb = font_big.getbbox(w)
+                draw.line((cur_x, y_cursor + 66, cur_x + (wb[2] - wb[0]), y_cursor + 66), fill=NEON_AMBER, width=5)
+            cur_x += font_big.getbbox(w_draw)[2] - font_big.getbbox(w_draw)[0]
+        y_cursor += 82
+
+    # Clean floating bottom accent tags (appear progressively >= 0.55)
+    if tags and progress >= 0.55:
+        tag_y = 1040
+        spacing = 24
+        tag_w = 270
+        visible_tags = tags[:3]
+        total_tags_w = len(visible_tags) * tag_w + (len(visible_tags) - 1) * spacing
+        tx0 = (VIDEO_WIDTH - total_tags_w) // 2
+        for idx, tg in enumerate(visible_tags):
+            if progress < (0.55 + idx * 0.12):
+                continue
+            bx = tx0 + idx * (tag_w + spacing)
+            draw.rounded_rectangle((bx, tag_y, bx + tag_w, tag_y + 72), radius=36, fill=(15, 30, 45, 240), outline=NEON_EMERALD, width=3)
+            draw_wrapped_text(draw, str(tg).upper(), get_font(21, bold=True), bx + 12, tag_y + 22, tag_w - 24, TEXT_PRIMARY, align="center", max_lines=1)
+
+
+# =========================================================================
+# 14. STEP TIMELINE (Glowing Vertical Progress Rail + Numbered Milestones)
+# =========================================================================
+def _render_step_timeline(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    steps = data.get("steps") or data.get("nodes") or []
+    if not steps:
+        steps = [
+            {"num": "01", "title": "Trigger & Ingest", "desc": "Incoming user query arrives"},
+            {"num": "02", "title": "Retrieve Context", "desc": "Semantic search matches live docs"},
+            {"num": "03", "title": "Inject & Reason", "desc": "Prompt carries grounded facts"},
+            {"num": "04", "title": "Stream Response", "desc": "Deterministic output returned"}
+        ]
+    steps = steps[:4]
+    n = len(steps)
+    rail_x = 155
+    start_y = 450
+    gap = 215 if n <= 4 else 180
+    end_y = start_y + (n - 1) * gap
+
+    # Background vertical rail + animated glowing active progress fill
+    draw.line((rail_x, start_y, rail_x, end_y), fill=(51, 65, 85, 220), width=8)
+    fill_y = start_y + int((end_y - start_y) * min(1.0, progress * 1.05))
+    draw.line((rail_x, start_y, rail_x, fill_y), fill=NEON_CYAN, width=8)
+
+    colors = [NEON_CYAN, NEON_PURPLE, NEON_AMBER, NEON_EMERALD]
+    for i, st_item in enumerate(steps):
+        gate = 0.0 if i == 0 else (i * (0.80 / max(1, n - 1)))
+        if progress < gate:
+            continue
+        sy = start_y + i * gap
+        c = colors[i % len(colors)]
+        is_active = (gate <= progress < gate + 0.28)
+        num_txt = str(st_item.get("num") or f"0{i+1}")
+        st_title = str(st_item.get("title") or st_item.get("label") or f"Step {i+1}")
+        st_desc = str(st_item.get("desc") or st_item.get("sub") or "")
+
+        # Glowing milestone circle node
+        r = 38 if is_active else 34
+        draw.ellipse((rail_x - r, sy - r, rail_x + r, sy + r), fill=(15, 23, 42, 250), outline=c, width=4)
+        nb = get_font(26, bold=True).getbbox(num_txt)
+        draw.text((rail_x - (nb[2] - nb[0]) // 2, sy - 16), num_txt, fill=c, font=get_font(26, bold=True))
+
+        # Horizontal branch line into floating row text
+        draw.line((rail_x + r, sy, rail_x + r + 35, sy), fill=c, width=3)
+        rx = rail_x + r + 48
+        rw = VIDEO_WIDTH - rx - 80
+        draw.rounded_rectangle((rx, sy - 62, rx + rw, sy + 62), radius=18, fill=CARD_BG, outline=c if is_active else CARD_BORDER, width=3 if is_active else 1)
+        draw_wrapped_text(draw, st_title, get_font(31, bold=True), rx + 26, sy - 42, rw - 52, TEXT_PRIMARY, max_lines=1)
+        if st_desc:
+            draw_wrapped_text(draw, st_desc, get_font(23), rx + 26, sy + 6, rw - 52, TEXT_MUTED, max_lines=2)
 
 # =========================================================================
 # ALL-IN-ONE TECH CANVAS VECTOR SHAPES & 2D MOTION GRAPHICS

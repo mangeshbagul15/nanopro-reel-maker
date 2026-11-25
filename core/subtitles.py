@@ -5,15 +5,16 @@ from core.config import OUTPUT_DIR
 def generate_ass_subtitles(
     word_timestamps: List[Dict[str, Any]],
     output_path: Path = None,
-    format_ratio: str = "9:16"
+    format_ratio: str = "9:16",
+    tone: str = "auto_dynamic",
+    aligned_scenes: List[Dict[str, Any]] = None
 ) -> Path:
     """
     Generates an Advanced SubStation Alpha (.ass) subtitle file with viral
-    TikTok / Instagram Reels style:
-    - Safe-zone positioning adapted to aspect ratio (9:16, 16:9, 1:1) so text never touches bottom UI or middle cards
-    - Fontsize dynamically scaled with clean margins so words never go out of frame
-    - Intelligent 1-2 word chunking for long technical words
-    - Active spoken word highlighted in bright glowing cyan/yellow with contrast outline
+    TikTok / Instagram Reels style synchronized to aspect ratio AND script tone:
+    - Dynamic highlight colors & kinetic pop matched to chosen/per-scene tone
+    - Safe-zone positioning adapted to aspect ratio (9:16, 16:9, 1:1)
+    - Devanagari (Hindi/Marathi) + English technical terms cleanly rendered
     """
     if output_path is None:
         output_path = OUTPUT_DIR / "subtitles.ass"
@@ -80,6 +81,26 @@ def generate_ass_subtitles(
             chunks.append([current])
             i += 1
 
+    # Highlight color (ASS BGR hex) & kinetic pop scale per tone
+    tone_styles = {
+        "fireship_octane": (r"\c&H002BF6FF&\fscx114\fscy114", "electric_yellow"),
+        "dramatic_performance": (r"\c&H0024BFFF&\fscx108\fscy108", "amber_drama"),
+        "staff_engineer": (r"\c&H00F8BD38&\fscx105\fscy105", "cyber_cyan"),
+        "interview_prep": (r"\c&H0099D334&\fscx110\fscy110", "emerald_pop"),
+        "conversational_casual": (r"\c&H002BF6FF&\fscx106\fscy106", "warm_yellow"),
+    }
+
+    def _tone_for_time(t_sec: float) -> str:
+        if tone != "auto_dynamic":
+            return tone
+        if aligned_scenes:
+            for sc in aligned_scenes:
+                st_t = float(sc.get("start_time", 0.0))
+                en_t = float(sc.get("end_time", 9999.0))
+                if st_t <= t_sec <= en_t:
+                    return sc.get("scene_tone", "conversational_casual")
+        return "fireship_octane"
+
     for chunk in chunks:
         if not chunk:
             continue
@@ -88,6 +109,8 @@ def generate_ass_subtitles(
         for w_idx, current_word in enumerate(chunk):
             w_start = current_word["start"]
             w_end = current_word["end"]
+            active_tone = _tone_for_time(w_start)
+            hl_tag = tone_styles.get(active_tone, tone_styles["fireship_octane"])[0]
 
             line_parts = []
             for j, w in enumerate(chunk):
@@ -98,8 +121,7 @@ def generate_ass_subtitles(
                 if not clean_w:
                     continue
                 if j == w_idx:
-                    # Highlight color (Glowing Neon Cyan: &H002BF6FF&) with 106% gentle pop
-                    line_parts.append(r"{\c&H002BF6FF&\fscx106\fscy106}" + clean_w + r"{\r}")
+                    line_parts.append("{" + hl_tag + "}" + clean_w + r"{\r}")
                 else:
                     line_parts.append(r"{\c&H00FFFFFF&}" + clean_w)
 

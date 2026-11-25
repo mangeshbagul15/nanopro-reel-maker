@@ -87,18 +87,20 @@ with st.sidebar:
         help="Channel watermark displayed in the corner of every video frame and thumbnail."
     )
     st.markdown("---")
-    st.markdown("### 🎭 Script Tone & Delivery Style")
+    st.markdown("### 🎭 Script Tone & Emotion (Voice + Visual Sync)")
     tone_option = st.selectbox(
         "Script Tone & Emotion",
         [
-            ("fireship_octane", "🔥 High-Octane & Punchy (Fireship Style - Fast, Witty & Zero Fluff) [Recommended]"),
-            ("dramatic_performance", "🎭 Dramatic & Emotionally Rich (Suspenseful, Dramatic Pauses & Theatrical)"),
-            ("staff_engineer", "🧠 Senior Staff Engineer Authority (ByteByteGo Architectural Depth & Trade-offs)"),
-            ("conversational_casual", "☕ Conversational & Friendly (Casual Tech Friend Chat over Coffee)"),
-            ("interview_prep", "⚡ High-Stakes Interview Prep (FAANG Question & Tactical Masterclass)")
+            ("auto_dynamic", "⚡ Dynamic / Auto (AI Adapts Voice, Pace, Emotion & Visuals Per Scene) [Recommended]"),
+            ("fireship_octane", "🔥 High-Octane & Punchy (Fireship Speed, Kinetic Energy & Neon Pop)"),
+            ("dramatic_performance", "🎭 Dramatic & Emotionally Rich (Suspenseful Voice, Amber Glow & Slow Reveal)"),
+            ("staff_engineer", "🧠 Senior Staff Engineer Authority (Calm Deep Voice & Architectural Blueprint)"),
+            ("conversational_casual", "☕ Conversational & Friendly (Natural Coffee-Chat Cadence & Emerald Flow)"),
+            ("interview_prep", "⚡ High-Stakes Interview Prep (FAANG Question Hook, Traps & Crisp Trade-offs)")
         ],
         format_func=lambda x: x[1],
-        help="Controls the AI Director's scriptwriting style, dramatic pauses ('...'), and ElevenLabs voice delivery emotion."
+        key="tone_option_select",
+        help="Controls AI scriptwriting, BOTH Edge-TTS & ElevenLabs voice speed/pitch/emotion, 2D canvas animation theme, and karaoke subtitle highlights."
     )
     chosen_tone = tone_option[0]
 
@@ -499,7 +501,8 @@ with tab_create:
                     format_ratio=aspect_ratio[0],
                     watermark=channel_watermark,
                     scene_words=sc_words,
-                    custom_style_prompt=custom_style_prompt
+                    custom_style_prompt=custom_style_prompt,
+                    tone=chosen_tone
                 )
                 all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 
@@ -508,7 +511,9 @@ with tab_create:
             progress_bar.progress(80)
             subtitles_path = generate_ass_subtitles(
                 word_timestamps,
-                format_ratio=aspect_ratio[0]
+                format_ratio=aspect_ratio[0],
+                tone=chosen_tone,
+                aligned_scenes=aligned_scenes
             )
             
             final_video_path = render_final_reel(
@@ -645,9 +650,10 @@ with tab_create:
                        - **Duration Strategy:** `{duration_option[1]}` (Planned {len(aligned_scenes)} scenes without artificial 60s cutoff)
                     
                     2. **🎙️ Step 2 — Text-to-Speech & Microsecond Alignment:**
-                       - **Voice Gender Filter:** `{gender_filter}`
+                       - **Voice Gender / Language:** `{gender_filter}` / `{lang_filter}`
                        - **Voice Persona (TTS):** `{voice_label}` (`{chosen_voice}`)
-                       - **Speech Engine:** `{"ElevenLabs (" + elevenlabs_model_id + " - " + chosen_tone + ")" if chosen_voice.startswith("elevenlabs:") else "Microsoft Edge-TTS"}`
+                       - **Per-Scene Tone Delivery:** `{"Dynamic Tone Sync -> " + ", ".join(s.get("scene_tone", "") for s in aligned_scenes) if chosen_tone == "auto_dynamic" else chosen_tone}`
+                       - **Speech Engine:** `{"ElevenLabs (" + elevenlabs_model_id + ")" if (voice_provider == "ElevenLabs AI (Ultra-Realistic)" and chosen_voice.startswith("elevenlabs:")) else "Microsoft Edge-TTS (Prosody Synced)"}`
                        - **Audio Alignment API:** `Groq Whisper Large v3` (`whisper-large-v3`)
                        - **Total Aligned Words:** `{len(word_timestamps)}` words aligned with 0% drift across all scenes.
 
