@@ -142,7 +142,7 @@ def _build_choreography_anchors(
     sc_start = float(scene.get("start_time", 0.0))
     clean_words = []
     for w in scene_words:
-        txt = "".join(ch for ch in str(w.get("word", "")).lower() if ch.isalnum())
+        txt = "".join(ch for ch in str(w.get("word", "")).lower() if ch.isalnum() or "\u0900" <= ch <= "\u097f")
         clean_words.append((txt, float(w.get("start", sc_start))))
 
     anchors = [(0.0, 0.0)]
@@ -152,7 +152,7 @@ def _build_choreography_anchors(
 
     for idx, trig in enumerate(triggers[:4]):
         kw = str(trig.get("keyword", "")).lower().strip()
-        kw_clean = "".join(ch for ch in kw if ch.isalnum())
+        kw_clean = "".join(ch for ch in kw if ch.isalnum() or "\u0900" <= ch <= "\u097f")
         if not kw_clean:
             continue
         matched_t = None

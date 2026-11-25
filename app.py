@@ -112,11 +112,20 @@ with st.sidebar:
         help="Microsoft Edge-TTS is 100% free & unlimited (recommended for testing). Switch to ElevenLabs AI when you want ultra-realistic studio voice."
     )
 
-    # Gender filter pills (safe fallback for older Streamlit versions)
-    if hasattr(st, "pills"):
-        gender_filter = st.pills("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], default="All", key="gender_filter_pills")
-    else:
-        gender_filter = st.radio("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], index=0, horizontal=True, key="gender_filter_pills")
+    # Language & Gender filter pills (persist across reruns)
+    col_flt1, col_flt2 = st.columns([1.2, 1])
+    with col_flt1:
+        if hasattr(st, "pills"):
+            lang_filter = st.pills("Language:", ["All", "🇺🇸 English", "🇮🇳 Hindi", "🇮🇳 Marathi"], default="All", key="lang_filter_pills")
+        else:
+            lang_filter = st.radio("Language:", ["All", "🇺🇸 English", "🇮🇳 Hindi", "🇮🇳 Marathi"], index=0, horizontal=True, key="lang_filter_pills")
+    with col_flt2:
+        if hasattr(st, "pills"):
+            gender_filter = st.pills("Gender:", ["All", "👨 Male", "👩 Female"], default="All", key="gender_filter_pills")
+        else:
+            gender_filter = st.radio("Gender:", ["All", "👨 Male", "👩 Female"], index=0, horizontal=True, key="gender_filter_pills")
+
+    l_filter_key = "all" if (not lang_filter or lang_filter == "All") else ("marathi" if "Marathi" in lang_filter else ("hindi" if "Hindi" in lang_filter else "english"))
     g_filter_key = "all" if (not gender_filter or gender_filter == "All") else ("male" if "Male" in gender_filter else "female")
 
     if voice_provider == "ElevenLabs AI (Ultra-Realistic)":
@@ -133,14 +142,18 @@ with st.sidebar:
                 ("eleven_turbo_v2_5", "🚀 Eleven Turbo v2.5 (Our best model for real-time and agents)")
             ],
             format_func=lambda x: x[1],
-            help="Choose the ElevenLabs model. Flash v2.5 is fastest and uses 50% fewer credits."
+            help="Choose the ElevenLabs model. Flash v2.5 is fastest, supports Hindi/Marathi/English, and uses 50% fewer credits."
         )
         elevenlabs_model_id = elevenlabs_model_choice[0]
 
-        # Filter available voices by gender
+        # Filter available voices by language and gender
         available_el_voices = VOICE_CATALOG.get("elevenlabs", [])
+        if l_filter_key != "all":
+            available_el_voices = [v for v in available_el_voices if v.get("lang") == l_filter_key]
         if g_filter_key != "all":
             available_el_voices = [v for v in available_el_voices if v.get("gender") == g_filter_key]
+        if not available_el_voices:
+            available_el_voices = VOICE_CATALOG.get("elevenlabs", [])
 
         el_voice_options = [(v["id"], v["label"]) for v in available_el_voices]
         el_voice_options.append(("custom", "✍️ Custom Voice ID (Enter your own Voice ID)"))
@@ -161,8 +174,12 @@ with st.sidebar:
         elevenlabs_model_id = "eleven_flash_v2_5"
         st.success("🆓 **Edge-TTS Active:** 100% Free & Unlimited (0 ElevenLabs Credits Used)")
         available_edge_voices = VOICE_CATALOG.get("edge_tts", [])
+        if l_filter_key != "all":
+            available_edge_voices = [v for v in available_edge_voices if v.get("lang") == l_filter_key]
         if g_filter_key != "all":
             available_edge_voices = [v for v in available_edge_voices if v.get("gender") == g_filter_key]
+        if not available_edge_voices:
+            available_edge_voices = VOICE_CATALOG.get("edge_tts", [])
         edge_voice_options = [(v["id"], v["label"]) for v in available_edge_voices]
 
         edge_voice_choice = st.selectbox(

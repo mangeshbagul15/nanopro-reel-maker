@@ -41,7 +41,7 @@ def generate_ass_subtitles(
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        f"Style: ReelHighlight,Segoe UI,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,5,2,2,80,80,{margin_v},1",
+        f"Style: ReelHighlight,Nirmala UI,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,5,2,2,80,80,{margin_v},1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
@@ -91,10 +91,10 @@ def generate_ass_subtitles(
 
             line_parts = []
             for j, w in enumerate(chunk):
-                # Strip unsupported emojis/glyphs that render as tofu boxes (▯) in libass
+                # Strip unsupported emojis/glyphs while preserving ASCII + Devanagari (Hindi/Marathi)
                 clean_w = w["word"].upper().strip()
                 clean_w = clean_w.replace("—", "-").replace("–", "-").replace("’", "'").replace("“", '"').replace("”", '"')
-                clean_w = "".join(ch for ch in clean_w if 32 <= ord(ch) <= 126)
+                clean_w = "".join(ch for ch in clean_w if (32 <= ord(ch) <= 126) or (0x0900 <= ord(ch) <= 0x097F))
                 if not clean_w:
                     continue
                 if j == w_idx:
@@ -110,7 +110,7 @@ def generate_ass_subtitles(
                 f"Dialogue: 0,{_format_ass_time(w_start)},{_format_ass_time(w_end)},ReelHighlight,,0,0,0,,{dialogue_text}"
             )
 
-    output_path.write_text("\n".join(ass_content), encoding="utf-8")
+    output_path.write_text("\n".join(ass_content), encoding="utf-8-sig")
     return output_path
 
 def _format_ass_time(seconds: float) -> str:

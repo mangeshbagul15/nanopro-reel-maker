@@ -324,18 +324,19 @@ def generate_timeline(
         style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["auto_dynamic"])
     
     # 1. Language & Dialect based on the selected Voice Persona
-    if voice.startswith("hi-") or voice == "en-IN-NeerjaExpressiveNeural":
+    if voice.startswith("hi-") or voice == "en-IN-NeerjaExpressiveNeural" or voice.endswith("|hi"):
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: The user explicitly selected a Hindi / Hinglish voice persona. "
-            "You MUST write the narration script in natural, conversational Hinglish (Hindi mixed with technical English terms like "
-            "database, pipeline, CDC, failover, cluster, latency, table, query, lock, downtime). "
-            "Explain like a staff software engineer speaking in Hinglish to Indian developers."
+            "You MUST write the spoken `narration` in natural, conversational Hindi-English using Devanagari for Hindi words "
+            "mixed seamlessly with crisp English technical terms (e.g., 'आज हम समझेंगे कि Database Migration बिना Downtime के कैसे काम करता है...'). "
+            "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
-    elif voice.startswith("mr-"):
+    elif voice.startswith("mr-") or voice.endswith("|mr"):
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: The user explicitly selected a Marathi voice persona. "
-            "You MUST write the narration script in natural conversational Marathi / Marathi-English tech style. "
-            "Explain the technical concepts using clear technical terms with Marathi grammar."
+            "You MUST write the spoken `narration` in natural conversational Marathi using Devanagari for Marathi words "
+            "mixed seamlessly with English technical nouns (e.g., 'मित्रांनो, आज आपण पाहणार आहोत की Database Migration झिरो Downtime सह कसे चालते...'). "
+            "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
     elif voice == "en-IN-PrabhatNeural":
         lang_directive = (
@@ -694,7 +695,7 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
         choreo = sc.get("choreography")
         if not isinstance(choreo, dict) or not choreo.get("triggers"):
             narration_words = [
-                re.sub(r"[^a-zA-Z0-9_-]", "", w)
+                re.sub(r"[^a-zA-Z0-9_\u0900-\u097F-]", "", w)
                 for w in sc.get("narration", "").split()
             ]
             narration_words = [w for w in narration_words if len(w) >= 4]
