@@ -21,16 +21,31 @@ TEXT_MUTED = (148, 163, 184)     # Modern Slate Muted
 TEXT_DIM = (100, 116, 139)       # Dim Slate
 
 def get_font(size: int = 40, bold: bool = False) -> ImageFont.ImageFont:
-    """Returns a clean Truetype font or default PIL font."""
-    font_names = ["segoeui.ttf", "arial.ttf", "DejaVuSans.ttf"]
+    """Returns a clean Truetype font across Windows (Local) and Linux (Streamlit Cloud)."""
+    font_names = [
+        "segoeui.ttf",
+        "arial.ttf",
+        "DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    ]
     if bold:
-        font_names = ["segoeuib.ttf", "arialbd.ttf", "DejaVuSans-Bold.ttf"] + font_names
+        font_names = [
+            "segoeuib.ttf",
+            "arialbd.ttf",
+            "DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        ] + font_names
     for name in font_names:
         try:
             return ImageFont.truetype(name, size)
         except Exception:
             continue
-    return ImageFont.load_default()
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
 
 def draw_wrapped_text(
     draw: ImageDraw.Draw,

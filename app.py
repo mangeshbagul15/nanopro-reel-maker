@@ -111,9 +111,12 @@ with st.sidebar:
         help="ElevenLabs provides studio-quality realistic human cadence with emotional performance. Edge-TTS is completely free and fast."
     )
 
-    # Gender filter pills
-    gender_filter = st.pills("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], default="All")
-    g_filter_key = "all" if gender_filter == "All" else ("male" if "Male" in gender_filter else "female")
+    # Gender filter pills (safe fallback for older Streamlit versions)
+    if hasattr(st, "pills"):
+        gender_filter = st.pills("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], default="All")
+    else:
+        gender_filter = st.radio("Filter Voice by Gender:", ["All", "👨 Male", "👩 Female"], index=0, horizontal=True)
+    g_filter_key = "all" if (not gender_filter or gender_filter == "All") else ("male" if "Male" in gender_filter else "female")
 
     if voice_provider == "ElevenLabs AI (Ultra-Realistic)":
         el_usage = get_elevenlabs_usage()
