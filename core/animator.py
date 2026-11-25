@@ -37,41 +37,202 @@ TONE_THEME_MAP = {
     "interview_prep": "gold_purple",
 }
 
+# Active visual palette for the current frame (supports distinct light/dark/blueprint/editorial worlds)
+_ACTIVE_PAL: Dict[str, Any] = {
+    "art_style": "editorial_dark",
+    "is_light": False,
+    "bg": (16, 17, 21),
+    "card_bg": (24, 26, 32, 245),
+    "card_alt": (30, 34, 42, 248),
+    "card_border": (55, 65, 81, 220),
+    "text": TEXT_PRIMARY,
+    "muted": TEXT_MUTED,
+    "dim": TEXT_DIM,
+    "cyan": NEON_CYAN,
+    "purple": NEON_PURPLE,
+    "emerald": NEON_EMERALD,
+    "amber": NEON_AMBER,
+    "rose": NEON_ROSE,
+    "accent": NEON_CYAN,
+    "warn_bg": (38, 25, 14, 245),
+    "rose_bg": (32, 16, 22, 245),
+    "emerald_bg": (13, 32, 28, 245),
+    "cyan_bg": (14, 30, 44, 245),
+}
 
-def _build_themed_canvas(canvas_w: int, canvas_h: int, theme_name: str = "cyber_cyan", effective_tone: str = "conversational_casual") -> Tuple[Image.Image, Dict[str, Tuple[int, int, int]]]:
-    """Builds a distinct tone-matched backdrop texture (grid, diagonal streaks, blueprint dots, or theatrical vignette)."""
-    theme = ACCENT_THEMES.get(str(theme_name).lower().strip(), ACCENT_THEMES["cyber_cyan"])
-    bg = theme["bg"]
-    p = theme["primary"]
+
+def _set_active_palette(art_style: str, theme_cfg: Dict[str, Tuple[int, int, int]]) -> Dict[str, Any]:
+    """Sets high-contrast colors for the active visual art style."""
+    style = str(art_style or "editorial_dark").lower().strip()
+    accent = theme_cfg.get("primary", NEON_CYAN)
+    if style == "light_whiteboard":
+        _ACTIVE_PAL.update({
+            "art_style": "light_whiteboard",
+            "is_light": True,
+            "bg": (246, 248, 252),
+            "card_bg": (255, 255, 255, 248),
+            "card_alt": (241, 245, 249, 250),
+            "card_border": (203, 213, 225, 255),
+            "text": (15, 23, 42),
+            "muted": (71, 85, 105),
+            "dim": (100, 116, 139),
+            "cyan": (2, 132, 199),
+            "purple": (126, 34, 206),
+            "emerald": (5, 150, 105),
+            "amber": (217, 119, 6),
+            "rose": (225, 29, 72),
+            "accent": (2, 132, 199),
+            "warn_bg": (254, 243, 199, 250),
+            "rose_bg": (255, 228, 230, 250),
+            "emerald_bg": (209, 250, 229, 250),
+            "cyan_bg": (224, 242, 254, 250),
+        })
+    elif style == "blueprint_grid":
+        _ACTIVE_PAL.update({
+            "art_style": "blueprint_grid",
+            "is_light": False,
+            "bg": (9, 21, 41),
+            "card_bg": (13, 30, 56, 244),
+            "card_alt": (17, 38, 68, 248),
+            "card_border": (56, 189, 248, 120),
+            "text": (248, 250, 252),
+            "muted": (148, 163, 184),
+            "dim": (100, 116, 139),
+            "cyan": (56, 189, 248),
+            "purple": (168, 85, 247),
+            "emerald": (52, 211, 153),
+            "amber": (251, 191, 36),
+            "rose": (244, 63, 94),
+            "accent": accent,
+            "warn_bg": (36, 26, 14, 245),
+            "rose_bg": (34, 16, 24, 245),
+            "emerald_bg": (11, 30, 32, 245),
+            "cyan_bg": (12, 34, 60, 245),
+        })
+    elif style == "editorial_dark":
+        _ACTIVE_PAL.update({
+            "art_style": "editorial_dark",
+            "is_light": False,
+            "bg": (16, 17, 21),
+            "card_bg": (24, 26, 32, 248),
+            "card_alt": (31, 34, 42, 248),
+            "card_border": (63, 68, 82, 220),
+            "text": (248, 250, 252),
+            "muted": (161, 168, 182),
+            "dim": (113, 118, 130),
+            "cyan": NEON_CYAN,
+            "purple": NEON_PURPLE,
+            "emerald": NEON_EMERALD,
+            "amber": NEON_AMBER,
+            "rose": NEON_ROSE,
+            "accent": accent,
+            "warn_bg": (38, 26, 14, 245),
+            "rose_bg": (34, 16, 22, 245),
+            "emerald_bg": (13, 32, 28, 245),
+            "cyan_bg": (15, 30, 44, 245),
+        })
+    else:  # neon_fireship
+        _ACTIVE_PAL.update({
+            "art_style": "neon_fireship",
+            "is_light": False,
+            "bg": theme_cfg.get("bg", COLOR_BG_DARK),
+            "card_bg": CARD_BG,
+            "card_alt": CARD_BG_ALT,
+            "card_border": CARD_BORDER,
+            "text": TEXT_PRIMARY,
+            "muted": TEXT_MUTED,
+            "dim": TEXT_DIM,
+            "cyan": NEON_CYAN,
+            "purple": NEON_PURPLE,
+            "emerald": NEON_EMERALD,
+            "amber": NEON_AMBER,
+            "rose": NEON_ROSE,
+            "accent": accent,
+            "warn_bg": (38, 24, 12, 245),
+            "rose_bg": (28, 15, 22, 245),
+            "emerald_bg": (11, 28, 26, 245),
+            "cyan_bg": (12, 32, 48, 245),
+        })
+    return _ACTIVE_PAL
+
+
+def _pal_color_name(name: str, fallback: Tuple[int, int, int] = None) -> Tuple[int, int, int]:
+    """Maps symbolic color names ('cyan', 'amber', 'emerald', 'purple', 'rose') or hex to active palette RGB."""
+    raw = str(name or "").strip()
+    if raw.startswith("#"):
+        return _hex_to_rgb(raw)
+    k = raw.lower()
+    if k in ("cyan", "blue", "primary", "info"):
+        return _ACTIVE_PAL["cyan"]
+    if k in ("purple", "violet"):
+        return _ACTIVE_PAL["purple"]
+    if k in ("emerald", "green", "success"):
+        return _ACTIVE_PAL["emerald"]
+    if k in ("amber", "yellow", "gold", "warn", "warning"):
+        return _ACTIVE_PAL["amber"]
+    if k in ("rose", "red", "danger", "alert"):
+        return _ACTIVE_PAL["rose"]
+    return fallback or _ACTIVE_PAL["accent"]
+
+
+def _build_themed_canvas(
+    canvas_w: int,
+    canvas_h: int,
+    theme_name: str = "cyber_cyan",
+    effective_tone: str = "conversational_casual",
+    art_style: str = "editorial_dark",
+) -> Tuple[Image.Image, Dict[str, Any]]:
+    """Builds a visually distinct canvas world (light_whiteboard, editorial_dark, blueprint_grid, neon_fireship)."""
+    theme = dict(ACCENT_THEMES.get(str(theme_name).lower().strip(), ACCENT_THEMES["cyber_cyan"]))
+    style = str(art_style or "editorial_dark").lower().strip()
+    pal = _set_active_palette(style, theme)
+    theme["bg"] = pal["bg"]
+    p = pal["accent"]
     s = theme["secondary"]
-    base = Image.new("RGB", (canvas_w, canvas_h), bg)
+    base = Image.new("RGB", (canvas_w, canvas_h), pal["bg"])
     gdraw = ImageDraw.Draw(base, "RGBA")
 
-    if effective_tone == "fireship_octane":
-        # High-energy diagonal cyber speed streaks
-        streak_col = (p[0], p[1], p[2], 16)
-        for offset in range(-canvas_h, canvas_w + canvas_h, 130):
-            gdraw.line((offset, 0, offset - 380, canvas_h), fill=streak_col, width=2)
-    elif effective_tone == "staff_engineer":
-        # Technical blueprint coordinate dot-matrix
-        dot_col = (p[0], p[1], p[2], 32)
-        for gx in range(30, canvas_w, 60):
-            for gy in range(30, canvas_h, 60):
+    if style == "light_whiteboard":
+        # Clean Excalidraw/editorial off-white dot paper + crisp subtle top rule
+        dot_col = (148, 163, 184, 70)
+        for gx in range(36, canvas_w, 48):
+            for gy in range(36, canvas_h, 48):
                 gdraw.ellipse((gx - 1, gy - 1, gx + 1, gy + 1), fill=dot_col)
-    elif effective_tone == "dramatic_performance":
-        # Theatrical moody dual spotlight vignette
-        gdraw.ellipse((canvas_w // 2 - 480, 120, canvas_w // 2 + 480, 950), fill=(p[0], p[1], p[2], 20))
-        gdraw.ellipse((canvas_w // 2 - 360, 750, canvas_w // 2 + 360, 1550), fill=(s[0], s[1], s[2], 14))
-    else:
-        grid_col = (p[0], p[1], p[2], 14)
-        step = 90
+    elif style == "editorial_dark":
+        # Minimal matte charcoal: clean subtle horizontal margin rules only (NO neon glow blob!)
+        rule_col = (255, 255, 255, 10)
+        gdraw.line((64, 345, canvas_w - 64, 345), fill=rule_col, width=1)
+        gdraw.line((64, canvas_h - 110, canvas_w - 64, canvas_h - 110), fill=rule_col, width=1)
+    elif style == "blueprint_grid":
+        # Crisp CAD blueprint engineering grid + corner registration ticks
+        grid_col = (56, 189, 248, 20)
+        step = 72
         for gx in range(0, canvas_w, step):
             gdraw.line((gx, 0, gx, canvas_h), fill=grid_col, width=1)
         for gy in range(0, canvas_h, step):
             gdraw.line((0, gy, canvas_w, gy), fill=grid_col, width=1)
-
-    # Subtle ambient halo behind scene header
-    gdraw.ellipse((canvas_w // 2 - 360, -140, canvas_w // 2 + 360, 420), fill=(p[0], p[1], p[2], 18))
+        tick = (56, 189, 248, 90)
+        gdraw.line((36, 70, 76, 70), fill=tick, width=2)
+        gdraw.line((36, 70, 36, 110), fill=tick, width=2)
+        gdraw.line((canvas_w - 76, canvas_h - 70, canvas_w - 36, canvas_h - 70), fill=tick, width=2)
+        gdraw.line((canvas_w - 36, canvas_h - 110, canvas_w - 36, canvas_h - 70), fill=tick, width=2)
+    else:
+        # neon_fireship: kinetic cyber streaks / spotlight based on tone
+        if effective_tone == "fireship_octane":
+            streak_col = (p[0], p[1], p[2], 18)
+            for offset in range(-canvas_h, canvas_w + canvas_h, 130):
+                gdraw.line((offset, 0, offset - 380, canvas_h), fill=streak_col, width=2)
+        elif effective_tone == "dramatic_performance":
+            gdraw.ellipse((canvas_w // 2 - 480, 120, canvas_w // 2 + 480, 950), fill=(p[0], p[1], p[2], 20))
+            gdraw.ellipse((canvas_w // 2 - 360, 750, canvas_w // 2 + 360, 1550), fill=(s[0], s[1], s[2], 14))
+        else:
+            grid_col = (p[0], p[1], p[2], 14)
+            step = 90
+            for gx in range(0, canvas_w, step):
+                gdraw.line((gx, 0, gx, canvas_h), fill=grid_col, width=1)
+            for gy in range(0, canvas_h, step):
+                gdraw.line((0, gy, canvas_w, gy), fill=grid_col, width=1)
+        gdraw.ellipse((canvas_w // 2 - 360, -140, canvas_w // 2 + 360, 420), fill=(p[0], p[1], p[2], 16))
     return base, theme
 
 def get_font(size: int = 40, bold: bool = False) -> ImageFont.ImageFont:
@@ -320,14 +481,23 @@ def render_scene_frames(
     canvas_w = spec.get("width", VIDEO_WIDTH)
     canvas_h = spec.get("height", VIDEO_HEIGHT)
     effective_tone = (scene.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
+    art_style = str(visual_data.get("art_style") or scene.get("art_style") or "editorial_dark").lower().strip()
     theme_cycle = ["indigo_cyan", "cyber_cyan", "emerald_matrix", "gold_purple", "crimson_alert"]
     tone_default_theme = TONE_THEME_MAP.get(effective_tone, theme_cycle[(scene_idx - 1) % len(theme_cycle)])
     chosen_theme = visual_data.get("accent_theme") or tone_default_theme
-    base_canvas, theme_cfg = _build_themed_canvas(canvas_w, canvas_h, chosen_theme, effective_tone=effective_tone)
-    accent_col = theme_cfg["primary"]
+    base_canvas, theme_cfg = _build_themed_canvas(
+        canvas_w,
+        canvas_h,
+        chosen_theme,
+        effective_tone=effective_tone,
+        art_style=art_style,
+    )
+    accent_col = _ACTIVE_PAL["accent"]
     needs_aspect_fit = (canvas_w != VIDEO_WIDTH or canvas_h != VIDEO_HEIGHT)
     anchors = _build_choreography_anchors(duration, scene, scene_words)
-    
+    header_badge = visual_data.get("badge", "")
+    header_title = visual_data.get("title", "")
+
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
         raw_p = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
@@ -344,7 +514,7 @@ def render_scene_frames(
             # Render scene content on virtual 1080x1500 content stage, then fit cleanly onto 16:9 or 1:1
             stage = Image.new("RGBA", (VIDEO_WIDTH, 1500), (*theme_cfg["bg"], 0))
             s_draw = ImageDraw.Draw(stage, "RGBA")
-            _draw_header(s_draw, visual_data.get("badge", "TECH ARCHITECTURE"), visual_data.get("title", ""), accent=accent_col)
+            _draw_header(s_draw, header_badge, header_title, accent=accent_col, art_style=art_style)
             _dispatch_visual_renderer(s_draw, visual_type, visual_data, progress)
 
             # Scale stage cleanly to fit inside canvas_w x (canvas_h - 140) leaving room for top bar & subtitles
@@ -362,7 +532,7 @@ def render_scene_frames(
             draw = ImageDraw.Draw(frame, "RGBA")
         else:
             draw = ImageDraw.Draw(frame, "RGBA")
-            _draw_header(draw, visual_data.get("badge", "TECH ARCHITECTURE"), visual_data.get("title", ""), accent=accent_col)
+            _draw_header(draw, header_badge, header_title, accent=accent_col, art_style=art_style)
             _dispatch_visual_renderer(draw, visual_type, visual_data, progress)
 
         # Top Story Progress Bar & Watermark always crisp at native canvas resolution
@@ -380,6 +550,9 @@ def render_scene_frames(
 
 def _dispatch_visual_renderer(draw: ImageDraw.Draw, visual_type: str, visual_data: Dict[str, Any], progress: float) -> None:
     aliases = {
+        "custom": "custom_scene",
+        "modular": "custom_scene",
+        "dynamic_canvas": "custom_scene",
         "service_topology": "architecture_flow",
         "topology": "architecture_flow",
         "pipeline": "architecture_flow",
@@ -421,7 +594,9 @@ def _dispatch_visual_renderer(draw: ImageDraw.Draw, visual_type: str, visual_dat
         "step_flow": "step_timeline",
     }
     vt = aliases.get(str(visual_type).lower().strip(), visual_type)
-    if vt == "hero_hook":
+    if vt == "custom_scene":
+        _render_custom_scene(draw, visual_data, progress)
+    elif vt == "hero_hook":
         _render_hero_hook(draw, visual_data, progress)
     elif vt == "hybrid_merge":
         _render_hybrid_merge(draw, visual_data, progress)
@@ -454,40 +629,430 @@ def _dispatch_visual_renderer(draw: ImageDraw.Draw, visual_type: str, visual_dat
 
 
 def _draw_story_progress_bar(draw: ImageDraw.Draw, total_scenes: int, current_scene: int, progress: float, canvas_w: int = VIDEO_WIDTH, accent: Tuple[int, int, int] = NEON_CYAN) -> None:
-    """Draws a continuous sleek modern YouTube Shorts / Fireship progress bar across the entire video."""
+    """Draws a continuous sleek progress bar across the entire video matching light/dark theme."""
     global_progress = ((current_scene - 1) + progress) / max(1, total_scenes)
     bar_y = 25
     bar_h = 6
     padding = 40
     track_w = canvas_w - (padding * 2)
     fill_w = max(10, int(track_w * min(1.0, max(0.01, global_progress))))
-    
-    # Sleek dark track
-    draw.rounded_rectangle((padding, bar_y, padding + track_w, bar_y + bar_h), radius=3, fill=(255, 255, 255, 35))
-    # Glowing accent progress
+    track_col = (15, 23, 42, 32) if _ACTIVE_PAL.get("is_light") else (255, 255, 255, 35)
+
+    draw.rounded_rectangle((padding, bar_y, padding + track_w, bar_y + bar_h), radius=3, fill=track_col)
     draw.rounded_rectangle((padding, bar_y, padding + fill_w, bar_y + bar_h), radius=3, fill=accent)
 
-def _draw_header(draw: ImageDraw.Draw, badge_text: str, title_text: str, accent: Tuple[int, int, int] = NEON_CYAN) -> None:
-    font_badge = get_font(26, bold=True)
+
+def _draw_header(
+    draw: ImageDraw.Draw,
+    badge_text: str,
+    title_text: str,
+    accent: Tuple[int, int, int] = NEON_CYAN,
+    art_style: str = "",
+) -> None:
+    """Draws header typography cleanly adapted to each art_style so every reel doesn't look identical."""
+    style = str(art_style or _ACTIVE_PAL.get("art_style", "editorial_dark")).lower().strip()
+    pal = _ACTIVE_PAL
+    text_col = pal["text"]
+    muted_col = pal["muted"]
+    font_badge = get_font(25, bold=True)
     font_title = get_font(44, bold=True)
-    
-    badge_str = badge_text.upper().strip()
-    bbox = font_badge.getbbox(badge_str)
-    raw_bw = bbox[2] - bbox[0]
-    bw = min(880, raw_bw + 44)
-    bh = 50
-    bx = (VIDEO_WIDTH - bw) // 2
-    by = 115
-    
-    draw.rounded_rectangle((bx - 2, by - 2, bx + bw + 2, by + bh + 2), radius=26, fill=(*accent, 50))
-    draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=25, fill=(15, 23, 42, 240), outline=accent, width=3)
-    tx_badge = bx + (bw - raw_bw) // 2
-    draw.text((tx_badge, by + 10), badge_str, fill=accent, font=font_badge)
-    
-    if title_text:
-        max_title_w = 940
-        start_x = (VIDEO_WIDTH - max_title_w) // 2
-        draw_wrapped_text(draw, title_text, font_title, start_x, by + 75, max_title_w, TEXT_PRIMARY, line_spacing=8, align="center", max_lines=2)
+    badge_str = str(badge_text or "").upper().strip()
+
+    if style in ("light_whiteboard", "editorial_dark"):
+        # Left-aligned modern editorial hierarchy (accent stripe + kicker + bold title — NO neon pill capsule!)
+        lx = 70
+        y_cur = 104
+        if badge_str:
+            draw.rounded_rectangle((lx, y_cur + 4, lx + 8, y_cur + 28), radius=4, fill=accent)
+            draw.text((lx + 22, y_cur), badge_str, fill=accent, font=font_badge)
+            y_cur += 46
+        if title_text:
+            draw_wrapped_text(draw, str(title_text), font_title, lx, y_cur, 930, text_col, line_spacing=8, align="left", max_lines=2)
+    elif style == "blueprint_grid":
+        # Engineering bracket header [ SECTION_TAG ] + hairline + title
+        lx = 68
+        y_cur = 106
+        if badge_str:
+            tag_txt = f"[ {badge_str} ]"
+            tb = font_badge.getbbox(tag_txt)
+            draw.text((lx, y_cur), tag_txt, fill=accent, font=font_badge)
+            rule_x = min(980, lx + (tb[2] - tb[0]) + 18)
+            if rule_x < 990:
+                draw.line((rule_x, y_cur + 15, VIDEO_WIDTH - 68, y_cur + 15), fill=(accent[0], accent[1], accent[2], 90), width=2)
+            y_cur += 46
+        if title_text:
+            draw_wrapped_text(draw, str(title_text), font_title, lx, y_cur, 940, text_col, line_spacing=8, align="left", max_lines=2)
+    else:
+        # neon_fireship: centered glowing pill badge + centered punchy title
+        by = 112
+        if badge_str:
+            bbox = font_badge.getbbox(badge_str)
+            raw_bw = bbox[2] - bbox[0]
+            bw = min(880, raw_bw + 44)
+            bh = 50
+            bx = (VIDEO_WIDTH - bw) // 2
+            draw.rounded_rectangle((bx - 2, by - 2, bx + bw + 2, by + bh + 2), radius=26, fill=(*accent, 45))
+            draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=25, fill=(15, 23, 42, 240), outline=accent, width=3)
+            tx_badge = bx + (bw - raw_bw) // 2
+            draw.text((tx_badge, by + 10), badge_str, fill=accent, font=font_badge)
+            title_y = by + 72
+        else:
+            title_y = by + 18
+
+        if title_text:
+            max_title_w = 940
+            start_x = (VIDEO_WIDTH - max_title_w) // 2
+            draw_wrapped_text(draw, str(title_text), font_title, start_x, title_y, max_title_w, text_col, line_spacing=8, align="center", max_lines=2)
+
+
+# =========================================================================
+# 0. COMPOSABLE CUSTOM SCENE ENGINE (Dynamic Block Assembly — Zero Fixed Templates!)
+# =========================================================================
+def _synthesize_blocks_fallback(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extracts structured blocks from legacy visual_data keys if explicit blocks are absent."""
+    blocks: List[Dict[str, Any]] = []
+    q = data.get("question") or data.get("problem_title")
+    if q:
+        blocks.append({"block": "question_card", "text": str(q), "stage": 1})
+    pills = data.get("pills")
+    if isinstance(pills, list) and pills:
+        blocks.append({"block": "pills", "items": [str(x) for x in pills[:4]], "mode": "vs" if data.get("show_vs") else "row", "stage": 2})
+    elif data.get("left_pill") and data.get("right_pill"):
+        blocks.append({"block": "pills", "items": [str(data["left_pill"]), str(data["right_pill"])], "mode": "vs" if data.get("show_vs") else "row", "stage": 2})
+    nodes = data.get("nodes") or data.get("steps")
+    if isinstance(nodes, list) and nodes:
+        node_labels = [n.get("label") or n.get("title") or str(n) if isinstance(n, dict) else str(n) for n in nodes[:4]]
+        blocks.append({"block": "flow_chain", "nodes": node_labels, "edges": data.get("edges") or [], "stage": 1 if not q else 2})
+    bullets = data.get("bullets") or data.get("points")
+    if isinstance(bullets, list) and bullets:
+        blocks.append({"block": "list_cards", "items": [str(x) for x in bullets[:4]], "variant": "check", "stage": 1 if not blocks else 2})
+    if data.get("statement"):
+        blocks.append({"block": "question_card", "text": str(data["statement"]), "stage": 1})
+    if data.get("stat_badge"):
+        blocks.append({"block": "banner", "text": str(data["stat_badge"]), "tone": "highlight", "stage": 3})
+    if data.get("warning_box"):
+        blocks.append({"block": "banner", "text": str(data["warning_box"]), "tone": "warn", "stage": 3})
+    if data.get("footer_cta") or data.get("cta_text"):
+        blocks.append({"block": "banner", "text": str(data.get("footer_cta") or data.get("cta_text")), "tone": "cta", "stage": 4})
+    if not blocks:
+        title = str(data.get("title") or "Architecture Breakdown")
+        blocks.append({"block": "question_card", "text": title, "stage": 1})
+    return blocks[:4]
+
+
+def _estimate_wrapped_lines(text: str, font: ImageFont.ImageFont, max_w: int, max_lines: int = 4) -> int:
+    words = str(text or "").split()
+    if not words:
+        return 1
+    lines = 1
+    cur = []
+    for w in words:
+        test = " ".join(cur + [w])
+        if (font.getbbox(test)[2] - font.getbbox(test)[0]) <= max_w:
+            cur.append(w)
+        else:
+            if cur:
+                lines += 1
+                cur = [w]
+            else:
+                cur = [w]
+    return min(max_lines, max(1, lines))
+
+
+def _render_custom_scene(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    """
+    Renders dynamically composed visual blocks (big_stat, question_card, pills,
+    flow_chain, list_cards, banner, code) with automatic vertical centering and zero overlap.
+    """
+    pal = _ACTIVE_PAL
+    raw_blocks = data.get("blocks")
+    blocks = list(raw_blocks[:4]) if isinstance(raw_blocks, list) and raw_blocks else _synthesize_blocks_fallback(data)
+    n_blocks = len(blocks)
+
+    avail_top = 365
+    avail_bottom = 1405
+    avail_h = avail_bottom - avail_top
+    only_one = (n_blocks == 1)
+
+    font_q = get_font(38, bold=True)
+    font_list = get_font(27, bold=True)
+    font_banner = get_font(27, bold=True)
+
+    # Estimate ideal height for every block
+    ideal_heights: List[int] = []
+    for b in blocks:
+        btype = str(b.get("block", "list_cards")).lower().strip()
+        if btype == "big_stat":
+            ideal_heights.append(190 if only_one else 160)
+        elif btype == "question_card":
+            ey = str(b.get("eyebrow") or "").strip()
+            n_ln = _estimate_wrapped_lines(str(b.get("text", "")), font_q, 830, max_lines=3)
+            ideal_heights.append((86 if ey else 56) + n_ln * 50)
+        elif btype == "pills":
+            items = b.get("items") or []
+            mode = str(b.get("mode", "row")).lower().strip()
+            rows = math.ceil(min(4, max(1, len(items))) / 2) if (mode == "grid" or len(items) > 3) else 1
+            ideal_heights.append(rows * 94 + max(0, rows - 1) * 16)
+        elif btype == "flow_chain":
+            nodes = b.get("nodes") or []
+            cnt = min(4, max(1, len(nodes)))
+            nh = 145 if only_one else (92 if cnt <= 3 else 78)
+            ag = 78 if only_one else (46 if cnt <= 3 else 36)
+            ideal_heights.append(cnt * nh + max(0, cnt - 1) * ag)
+        elif btype == "code":
+            lines = str(b.get("code", "")).splitlines()[:5]
+            ideal_heights.append(72 + max(2, len(lines)) * 46)
+        elif btype == "banner":
+            n_ln = _estimate_wrapped_lines(str(b.get("text", "")), font_banner, 820, max_lines=2)
+            ideal_heights.append(56 + n_ln * 36)
+        else:  # list_cards
+            items = (b.get("items") or [])[:4]
+            cnt = max(1, len(items))
+            rh = 155 if only_one else (112 if cnt <= 3 else 94)
+            ideal_heights.append(cnt * rh + max(0, cnt - 1) * 14)
+
+    gap = 28 if n_blocks <= 3 else 20
+    total_h = sum(ideal_heights) + max(0, n_blocks - 1) * gap
+    scale = 1.0
+    if total_h > avail_h:
+        scale = max(0.74, avail_h / max(1, total_h))
+        gap = max(14, int(gap * scale))
+    heights = [max(72, int(h * scale)) for h in ideal_heights]
+    scaled_total = sum(heights) + max(0, n_blocks - 1) * gap
+
+    y_cur = avail_top + max(0, min(95, (avail_h - scaled_total) // 3))
+    cx = 70
+    cw = VIDEO_WIDTH - 140
+
+    for idx, (b, bh) in enumerate(zip(blocks, heights)):
+        btype = str(b.get("block", "list_cards")).lower().strip()
+        stage = int(b.get("stage", idx + 1)) if str(b.get("stage", "")).isdigit() else (idx + 1)
+        gate = 0.0 if (idx == 0 or stage <= 1) else min(0.72, (stage - 1) * 0.21)
+        if progress < gate:
+            y_cur += bh + gap
+            continue
+
+        local_p = min(1.0, (progress - gate) / max(0.22, 1.0 - gate))
+        col_accent = _pal_color_name(b.get("color", ""), pal["accent"])
+
+        if btype == "big_stat":
+            val_str = str(
+                b.get("value")
+                or b.get("val")
+                or b.get("number")
+                or b.get("stat")
+                or b.get("metric")
+                or b.get("headline")
+                or b.get("text")
+                or ""
+            ).strip()
+            lbl_str = str(b.get("label") or "").upper().strip()
+            draw.rounded_rectangle((cx, y_cur, cx + cw, y_cur + bh), radius=24, fill=pal["card_bg"], outline=col_accent, width=3)
+            if val_str:
+                font_big = get_font(68 if len(val_str) <= 6 else (50 if len(val_str) <= 14 else 38), bold=True)
+                vb = font_big.getbbox(val_str)
+                vw = vb[2] - vb[0]
+                if vw <= cw - 60:
+                    draw.text((cx + (cw - vw) // 2, y_cur + (20 if lbl_str else max(26, (bh - 72) // 2))), val_str, fill=col_accent, font=font_big)
+                else:
+                    draw_wrapped_text(draw, val_str, get_font(38, bold=True), cx + 30, y_cur + 20, cw - 60, col_accent, align="center", max_lines=2)
+                if lbl_str:
+                    draw_wrapped_text(draw, lbl_str, get_font(23, bold=True), cx + 30, y_cur + bh - 48, cw - 60, pal["text"], align="center", max_lines=1)
+            elif lbl_str:
+                draw_wrapped_text(draw, lbl_str, get_font(34, bold=True), cx + 40, y_cur + max(28, (bh - 44) // 2), cw - 80, col_accent, align="center", max_lines=2)
+
+        elif btype == "question_card":
+            eyebrow = str(b.get("eyebrow") or "").strip().upper()
+            q_text = str(b.get("text") or "")
+            draw.rounded_rectangle((cx, y_cur, cx + cw, y_cur + bh), radius=26, fill=pal["card_bg"], outline=col_accent, width=3)
+            # Subtle left or top accent highlight bar
+            draw.rounded_rectangle((cx + 22, y_cur + 22, cx + 28, y_cur + bh - 22), radius=3, fill=col_accent)
+            text_top = y_cur + 24
+            if eyebrow:
+                draw_wrapped_text(draw, eyebrow, get_font(20, bold=True), cx + 52, text_top, cw - 90, col_accent, align="center", max_lines=1)
+                text_top += 34
+            else:
+                text_top = y_cur + max(24, (bh - _estimate_wrapped_lines(q_text, font_q, cw - 110, 3) * 48) // 2)
+            draw_wrapped_text(draw, q_text, font_q, cx + 52, text_top, cw - 104, pal["text"], align="center", max_lines=3, line_spacing=8)
+
+        elif btype == "pills":
+            items = b.get("items") or []
+            mode = str(b.get("mode", "row")).lower().strip()
+            clean_items = []
+            for it in items[:4]:
+                if isinstance(it, dict):
+                    clean_items.append((str(it.get("label") or it.get("text") or ""), it.get("color", "")))
+                else:
+                    clean_items.append((str(it), ""))
+            n_it = len(clean_items)
+            pill_cols = [pal["cyan"], pal["purple"], pal["emerald"], pal["amber"]]
+
+            if n_it == 2 and mode == "vs":
+                pw = 415
+                gap_p = cw - pw * 2
+                for pi, (ptxt, pcol) in enumerate(clean_items):
+                    if pi == 1 and progress < gate + 0.10:
+                        continue
+                    px = cx + pi * (pw + gap_p)
+                    pc = _pal_color_name(pcol, pill_cols[pi % len(pill_cols)])
+                    draw.rounded_rectangle((px, y_cur, px + pw, y_cur + bh), radius=22, fill=pal["card_bg"], outline=pc, width=3)
+                    draw_wrapped_text(draw, ptxt, get_font(28, bold=True), px + 18, y_cur + (bh - 34) // 2, pw - 36, pc, align="center", max_lines=2)
+                if progress >= gate + 0.08:
+                    vx, vy = cx + cw // 2, y_cur + bh // 2
+                    draw.ellipse((vx - 30, vy - 30, vx + 30, vy + 30), fill=pal["bg"], outline=pal["amber"], width=3)
+                    draw.text((vx - 17, vy - 14), "VS", fill=pal["amber"], font=get_font(22, bold=True))
+            elif mode == "grid" or n_it > 3:
+                col_w_g = (cw - 20) // 2
+                rows = math.ceil(n_it / 2)
+                cell_h = max(62, (bh - (rows - 1) * 14) // max(1, rows))
+                for pi, (ptxt, pcol) in enumerate(clean_items):
+                    if progress < gate + pi * 0.08:
+                        continue
+                    r_idx, c_idx = pi // 2, pi % 2
+                    px = cx + c_idx * (col_w_g + 20)
+                    py_i = y_cur + r_idx * (cell_h + 14)
+                    pc = _pal_color_name(pcol, pill_cols[pi % len(pill_cols)])
+                    draw.rounded_rectangle((px, py_i, px + col_w_g, py_i + cell_h), radius=18, fill=pal["card_bg"], outline=pc, width=2)
+                    draw_wrapped_text(draw, ptxt, get_font(24, bold=True), px + 16, py_i + max(14, (cell_h - 30) // 2), col_w_g - 32, pal["text"], align="center", max_lines=2)
+            else:
+                pgap = 20 if mode != "arrow" else 42
+                pw = (cw - max(0, n_it - 1) * pgap) // max(1, n_it)
+                f_pill = get_font(26 if n_it <= 2 else 22, bold=True)
+                for pi, (ptxt, pcol) in enumerate(clean_items):
+                    if progress < gate + pi * 0.09:
+                        continue
+                    px = cx + pi * (pw + pgap)
+                    pc = _pal_color_name(pcol, pill_cols[pi % len(pill_cols)])
+                    draw.rounded_rectangle((px, y_cur, px + pw, y_cur + bh), radius=20, fill=pal["card_bg"], outline=pc, width=3)
+                    draw_wrapped_text(draw, ptxt, f_pill, px + 14, y_cur + max(18, (bh - 32) // 2), pw - 28, pal["text"], align="center", max_lines=2)
+                    if mode == "arrow" and pi < n_it - 1:
+                        ax1 = px + pw + 6
+                        ax2 = ax1 + pgap - 12
+                        ay = y_cur + bh // 2
+                        draw.line((ax1, ay, ax2, ay), fill=pal["amber"], width=4)
+                        draw.polygon([(ax2 + 6, ay), (ax2 - 6, ay - 7), (ax2 - 6, ay + 7)], fill=pal["amber"])
+
+        elif btype == "flow_chain":
+            nodes = b.get("nodes") or []
+            edges = b.get("edges") or []
+            cnt = min(4, max(1, len(nodes)))
+            ag = max(28, min(72, int(bh * 0.14))) if cnt > 1 else 0
+            nh = max(66, (bh - max(0, cnt - 1) * ag) // cnt)
+            step_span = 0.72 / max(1, cnt)
+            node_cols = [pal["cyan"], pal["purple"], pal["emerald"], pal["amber"]]
+            centers: List[Tuple[int, int]] = []
+            for ni, raw_n in enumerate(nodes[:4]):
+                n_gate = gate + (0.0 if ni == 0 else ni * step_span * 0.55)
+                if progress < n_gate:
+                    continue
+                ny = y_cur + ni * (nh + ag)
+                nc = node_cols[ni % len(node_cols)]
+                is_focus = (n_gate <= progress < n_gate + step_span)
+                if isinstance(raw_n, dict):
+                    nlbl = str(raw_n.get("label") or raw_n.get("title") or "")
+                    nsub = str(raw_n.get("sub") or "")
+                else:
+                    nlbl = str(raw_n)
+                    nsub = ""
+                draw.rounded_rectangle((cx, ny, cx + cw, ny + nh), radius=20, fill=pal["card_bg"], outline=nc, width=4 if is_focus else 2)
+                num_r = 22 if nh < 95 else 26
+                num_cx, num_cy = cx + 44, ny + nh // 2
+                draw.ellipse((num_cx - num_r, num_cy - num_r, num_cx + num_r, num_cy + num_r), fill=nc)
+                num_s = str(ni + 1)
+                nf = get_font(22, bold=True)
+                nb = nf.getbbox(num_s)
+                draw.text((num_cx - (nb[2] - nb[0]) // 2, num_cy - 13), num_s, fill=(255, 255, 255), font=nf)
+                if nsub:
+                    draw_wrapped_text(draw, nlbl, get_font(28, bold=True), cx + 88, ny + 14, cw - 115, pal["text"], max_lines=1)
+                    draw_wrapped_text(draw, nsub, get_font(21), cx + 88, ny + 50, cw - 115, pal["muted"], max_lines=1)
+                else:
+                    draw_wrapped_text(draw, nlbl, get_font(27 if nh < 95 else 31, bold=True), cx + 88, ny + max(16, (nh - 32) // 2), cw - 115, pal["text"], max_lines=2)
+                centers.append((ni, cx + cw // 2, ny + nh))
+
+            # Animated arrows + exact edge labels between connected revealed nodes
+            for ci in range(len(nodes[:4]) - 1):
+                ny_src_bot = y_cur + ci * (nh + ag) + nh
+                ny_dst_top = y_cur + (ci + 1) * (nh + ag)
+                a_start = gate + (ci + 0.35) * step_span * 0.55
+                a_t = _stage_reveal(progress, a_start, a_start + 0.16)
+                if a_t <= 0.02:
+                    continue
+                edge_lbl = str(edges[ci]) if ci < len(edges) else ""
+                _draw_data_packet_arrow(
+                    draw,
+                    (cx + cw // 2, ny_src_bot + 2),
+                    (cx + cw // 2, ny_dst_top - 2),
+                    label=edge_lbl,
+                    progress=progress,
+                    color=node_cols[ci % len(node_cols)],
+                    reveal_t=a_t,
+                )
+
+        elif btype == "code":
+            code_txt = str(b.get("code") or "")
+            lang = str(b.get("lang") or "py").lower()
+            draw.rounded_rectangle((cx, y_cur, cx + cw, y_cur + bh), radius=20, fill=(13, 17, 23, 250), outline=pal["card_border"], width=2)
+            draw.rounded_rectangle((cx, y_cur, cx + cw, y_cur + 42), radius=20, fill=(30, 41, 59, 250))
+            draw.text((cx + 22, y_cur + 10), f"{lang.upper()} SNIPPET", fill=NEON_CYAN, font=get_font(18, bold=True))
+            f_c = get_font(24)
+            clines = code_txt.splitlines()[:5]
+            tot_chars = max(1, len(code_txt))
+            show_chars = int(tot_chars * min(1.0, local_p * 1.4 + 0.25))
+            seen = 0
+            cy_line = y_cur + 56
+            for ln in clines:
+                rem = max(0, show_chars - seen)
+                vis = ln[:rem]
+                draw.text((cx + 24, cy_line), vis, fill=NEON_EMERALD if any(k in ln for k in ("def ", "SELECT", "return", "FROM")) else TEXT_PRIMARY, font=f_c)
+                seen += len(ln) + 1
+                cy_line += 38
+
+        elif btype == "banner":
+            b_txt = str(b.get("text") or "")
+            btone = str(b.get("tone") or "highlight").lower().strip()
+            if btone == "warn":
+                b_fill, b_out, b_tcol = pal["warn_bg"], pal["amber"], pal["amber"]
+            elif btone == "cta":
+                b_fill, b_out, b_tcol = pal["cyan_bg"], pal["cyan"], pal["text"]
+            else:
+                b_fill, b_out, b_tcol = pal["emerald_bg"], pal["emerald"], pal["text"]
+            rad = min(44, bh // 2) if btone == "cta" else 20
+            draw.rounded_rectangle((cx + 12, y_cur, cx + cw - 12, y_cur + bh), radius=rad, fill=b_fill, outline=b_out, width=3)
+            draw_wrapped_text(draw, b_txt, font_banner, cx + 36, y_cur + max(16, (bh - 34) // 2), cw - 72, b_tcol, align="center", max_lines=2)
+
+        else:  # list_cards
+            items = (b.get("items") or [])[:4]
+            variant = str(b.get("variant") or "check").lower().strip()
+            cnt = max(1, len(items))
+            igap = 14
+            rh = max(72, (bh - max(0, cnt - 1) * igap) // cnt)
+            for li, raw_it in enumerate(items):
+                lgate = gate + li * 0.14
+                if progress < lgate:
+                    continue
+                ry = y_cur + li * (rh + igap)
+                if isinstance(raw_it, dict):
+                    head = str(raw_it.get("title") or raw_it.get("label") or "")
+                    sub = str(raw_it.get("sub") or raw_it.get("desc") or "")
+                else:
+                    s_it = str(raw_it)
+                    parts = s_it.split(":", 1) if ":" in s_it else (s_it.split("—", 1) if "—" in s_it else [s_it, ""])
+                    head = parts[0].strip()
+                    sub = parts[1].strip() if len(parts) > 1 else ""
+                is_f = (lgate <= progress < lgate + 0.18)
+                card_out = pal["amber"] if variant == "warn" else (pal["accent"] if is_f else pal["card_border"])
+                draw.rounded_rectangle((cx, ry, cx + cw, ry + rh), radius=20, fill=pal["card_bg"], outline=card_out, width=3 if is_f else 2)
+                if variant == "warn":
+                    _draw_vector_warning(draw, cx + 48, ry + rh // 2, radius=20)
+                else:
+                    _draw_vector_check(draw, cx + 48, ry + rh // 2, radius=20)
+                if sub:
+                    draw_wrapped_text(draw, head, get_font(27, bold=True), cx + 92, ry + 16, cw - 115, pal["text"], max_lines=1)
+                    draw_wrapped_text(draw, sub, get_font(21), cx + 92, ry + 52, cw - 115, pal["muted"], max_lines=2)
+                else:
+                    draw_wrapped_text(draw, head, get_font(27, bold=True), cx + 92, ry + max(18, (rh - 34) // 2), cw - 115, pal["text"], max_lines=2)
+
+        y_cur += bh + gap
 
 # =========================================================================
 # 1. SPLIT COMPARISON (Left vs Right - Problem vs Solution)
@@ -512,45 +1077,59 @@ def _render_split_comparison(draw: ImageDraw.Draw, data: Dict[str, Any], progres
     if not right_points:
         right_points = ["Zero Downtime & Fast Execution", "Low Latency & High Throughput", "Automated Scalable Architecture"]
     
+    pal = _ACTIVE_PAL
     col_w = 445
     card_h = 680
     top_y = 440
     lx = 65
     rx = 570
-    
-    # Left Card (Problem / Legacy - Red Tint) - immediately visible at 0.0s (no blank frame!)
-    draw.rounded_rectangle((lx, top_y, lx + col_w, top_y + card_h), radius=24, fill=(26, 15, 20, 245), outline=NEON_ROSE, width=3)
-    draw.rounded_rectangle((lx + 20, top_y + 20, lx + col_w - 20, top_y + 80), radius=14, fill=(244, 63, 94, 40))
-    draw_wrapped_text(draw, f"X  {left_label.upper()}", get_font(25, bold=True), lx + 30, top_y + 36, col_w - 60, NEON_ROSE, align="center", max_lines=1)
-    
+    neutral_mode = bool(data.get("neutral_mode", False))
+    show_vs = bool(data.get("show_vs", not neutral_mode))
+
+    left_out = pal["cyan"] if neutral_mode else pal["rose"]
+    left_hdr_fill = pal["cyan_bg"] if neutral_mode else pal["rose_bg"]
+    left_title_str = left_label.upper() if neutral_mode else f"X  {left_label.upper()}"
+
+    right_out = pal["purple"] if neutral_mode else pal["emerald"]
+    right_hdr_fill = pal["card_alt"] if neutral_mode else pal["emerald_bg"]
+    right_title_str = right_label.upper() if neutral_mode else f"+  {right_label.upper()}"
+
+    # Left Card - visible immediately at 0.0s (no blank frame)
+    draw.rounded_rectangle((lx, top_y, lx + col_w, top_y + card_h), radius=24, fill=pal["card_bg"], outline=left_out, width=3)
+    draw.rounded_rectangle((lx + 20, top_y + 20, lx + col_w - 20, top_y + 80), radius=14, fill=left_hdr_fill)
+    draw_wrapped_text(draw, left_title_str, get_font(25, bold=True), lx + 30, top_y + 36, col_w - 60, left_out, align="center", max_lines=1)
+
     for i, pt in enumerate(left_points[:3]):
         if progress < (0.04 + i * 0.12):
             continue
         py = top_y + 120 + (i * 170)
-        draw.rounded_rectangle((lx + 20, py, lx + col_w - 20, py + 140), radius=16, fill=(15, 23, 42, 220), outline=(244, 63, 94, 80), width=1)
-        draw.ellipse((lx + 36, py + 30, lx + 54, py + 48), fill=NEON_ROSE)
-        draw_wrapped_text(draw, pt, get_font(26), lx + 68, py + 22, col_w - 102, TEXT_PRIMARY, max_lines=3, line_spacing=6)
-        
-    # Right Card (Solution / Modern - Green/Cyan Tint) - reveals progressively
+        draw.rounded_rectangle((lx + 20, py, lx + col_w - 20, py + 140), radius=16, fill=pal["card_alt"], outline=pal["card_border"], width=1)
+        draw.ellipse((lx + 36, py + 30, lx + 54, py + 48), fill=left_out)
+        draw_wrapped_text(draw, pt, get_font(26), lx + 68, py + 22, col_w - 102, pal["text"], max_lines=3, line_spacing=6)
+
+    # Right Card - reveals progressively
     if progress >= 0.44:
-        draw.rounded_rectangle((rx, top_y, rx + col_w, top_y + card_h), radius=24, fill=(11, 28, 26, 245), outline=NEON_EMERALD, width=3)
-        draw.rounded_rectangle((rx + 20, top_y + 20, rx + col_w - 20, top_y + 80), radius=14, fill=(52, 211, 153, 40))
-        draw_wrapped_text(draw, f"+  {right_label.upper()}", get_font(25, bold=True), rx + 30, top_y + 36, col_w - 60, NEON_EMERALD, align="center", max_lines=1)
-        
+        draw.rounded_rectangle((rx, top_y, rx + col_w, top_y + card_h), radius=24, fill=pal["card_bg"], outline=right_out, width=3)
+        draw.rounded_rectangle((rx + 20, top_y + 20, rx + col_w - 20, top_y + 80), radius=14, fill=right_hdr_fill)
+        draw_wrapped_text(draw, right_title_str, get_font(25, bold=True), rx + 30, top_y + 36, col_w - 60, right_out, align="center", max_lines=1)
+
         for i, pt in enumerate(right_points[:3]):
             if progress < (0.50 + i * 0.12):
                 continue
             py = top_y + 120 + (i * 170)
-            draw.rounded_rectangle((rx + 20, py, rx + col_w - 20, py + 140), radius=16, fill=(15, 23, 42, 220), outline=(52, 211, 153, 90), width=1)
-            # Vector checkmark (zero unicode font dependency / no tofu boxes!)
-            _draw_vector_check(draw, rx + 46, py + 38, radius=14)
-            draw_wrapped_text(draw, pt, get_font(26), rx + 70, py + 22, col_w - 104, TEXT_PRIMARY, max_lines=3, line_spacing=6)
-        
-    # Center "VS" Badge
-    if progress >= 0.42:
+            draw.rounded_rectangle((rx + 20, py, rx + col_w - 20, py + 140), radius=16, fill=pal["card_alt"], outline=pal["card_border"], width=1)
+            if neutral_mode:
+                draw.ellipse((rx + 36, py + 30, rx + 54, py + 48), fill=right_out)
+                draw_wrapped_text(draw, pt, get_font(26), rx + 68, py + 22, col_w - 102, pal["text"], max_lines=3, line_spacing=6)
+            else:
+                _draw_vector_check(draw, rx + 46, py + 38, radius=14)
+                draw_wrapped_text(draw, pt, get_font(26), rx + 70, py + 22, col_w - 104, pal["text"], max_lines=3, line_spacing=6)
+
+    # Center "VS" Badge (only when explicitly a side-by-side comparison)
+    if show_vs and progress >= 0.42:
         vx, vy = VIDEO_WIDTH // 2, top_y + card_h // 2
-        draw.ellipse((vx - 42, vy - 42, vx + 42, vy + 42), fill=(15, 23, 42), outline=NEON_AMBER, width=4)
-        draw.text((vx - 22, vy - 18), "VS", fill=NEON_AMBER, font=get_font(28, bold=True))
+        draw.ellipse((vx - 42, vy - 42, vx + 42, vy + 42), fill=pal["bg"], outline=pal["amber"], width=4)
+        draw.text((vx - 22, vy - 18), "VS", fill=pal["amber"], font=get_font(28, bold=True))
 
 # =========================================================================
 # 2. BENCHMARK PERFORMANCE COMPARISON BARS
@@ -563,20 +1142,22 @@ def _render_benchmark_chart(draw: ImageDraw.Draw, data: Dict[str, Any], progress
     ]
     winner_badge = data.get("winner_badge", "15X FASTER")
     
+    pal = _ACTIVE_PAL
     container_w = 940
     cx = (VIDEO_WIDTH - container_w) // 2
     start_y = 440
-    
+
     # Outer Panel
     panel_h = 740
-    draw.rounded_rectangle((cx, start_y, cx + container_w, start_y + panel_h), radius=26, fill=CARD_BG, outline=CARD_BORDER, width=2)
-    
+    draw.rounded_rectangle((cx, start_y, cx + container_w, start_y + panel_h), radius=26, fill=pal["card_bg"], outline=pal["card_border"], width=2)
+
     font_lbl = get_font(30, bold=True)
     font_val = get_font(28, bold=True)
-    
+
     bar_max_w = 860
     base_bar_y = start_y + 60
-    
+    track_col = (226, 232, 240, 220) if pal.get("is_light") else (30, 41, 59, 200)
+
     for i, b in enumerate(bars[:3]):
         bar_start = 0.05 + (i * 0.22)
         bar_fill_t = _stage_reveal(progress, bar_start, bar_start + 0.22)
@@ -585,27 +1166,27 @@ def _render_benchmark_chart(draw: ImageDraw.Draw, data: Dict[str, Any], progress
         by = base_bar_y + (i * 190)
         color = _hex_to_rgb(b.get("color", "#38BDF8"))
         is_winner = b.get("is_winner", False)
-        
+
         # Label
-        draw.text((cx + 40, by), b.get("label", ""), fill=TEXT_PRIMARY, font=font_lbl)
-        
+        draw.text((cx + 40, by), b.get("label", ""), fill=pal["text"], font=font_lbl)
+
         # Background track
         track_y = by + 50
         track_h = 56
-        draw.rounded_rectangle((cx + 40, track_y, cx + 40 + bar_max_w, track_y + track_h), radius=14, fill=(30, 41, 59, 200))
-        
+        draw.rounded_rectangle((cx + 40, track_y, cx + 40 + bar_max_w, track_y + track_h), radius=14, fill=track_col)
+
         # Animated filling progress
         val_ratio = 1.0 if not is_winner and i == 0 else (0.55 if i == 1 else 0.20)
         animated_w = max(80, int(bar_max_w * val_ratio * bar_fill_t))
-        
+
         draw.rounded_rectangle((cx + 40, track_y, cx + 40 + animated_w, track_y + track_h), radius=14, fill=(*color, 230), outline=color, width=2)
-        draw.text((cx + 60, track_y + 10), b.get("display", ""), fill=(10, 15, 25) if is_winner else TEXT_PRIMARY, font=font_val)
+        draw.text((cx + 60, track_y + 10), b.get("display", ""), fill=(10, 15, 25) if is_winner else (248, 250, 252), font=font_val)
 
     # Winner Banner at bottom
-    if progress >= 0.72:
+    if winner_badge and progress >= 0.72:
         wy = start_y + panel_h - 110
-        draw.rounded_rectangle((cx + 40, wy, cx + container_w - 40, wy + 80), radius=18, fill=(16, 185, 129, 45), outline=NEON_EMERALD, width=3)
-        draw_wrapped_text(draw, f"* {winner_badge} WITH ZERO DATA LOSS", get_font(30, bold=True), cx + 50, wy + 20, container_w - 100, NEON_EMERALD, align="center", max_lines=1)
+        draw.rounded_rectangle((cx + 40, wy, cx + container_w - 40, wy + 80), radius=18, fill=pal["emerald_bg"], outline=pal["emerald"], width=3)
+        draw_wrapped_text(draw, str(winner_badge).upper(), get_font(28, bold=True), cx + 50, wy + 22, container_w - 100, pal["emerald"], align="center", max_lines=1)
 
 # =========================================================================
 # 3. CIRCULAR HUB & SPOKE MESH CLUSTER
@@ -646,23 +1227,25 @@ def _render_circular_hub_mesh(draw: ImageDraw.Draw, data: Dict[str, Any], progre
             sat_coords.append((sx, sy, sat))
 
     # Draw Satellites Cards
+    pal = _ACTIVE_PAL
     for sx, sy, sat in sat_coords:
         sw, sh = 280, 110
         color = _hex_to_rgb(sat.get("color", "#38BDF8"))
-        draw.rounded_rectangle((sx - sw//2, sy - sh//2, sx + sw//2, sy + sh//2), radius=18, fill=CARD_BG, outline=color, width=3)
-        draw_wrapped_text(draw, sat.get("name", ""), get_font(24, bold=True), sx - sw//2 + 10, sy - sh//2 + 18, sw - 20, TEXT_PRIMARY, align="center", max_lines=1)
-        draw_wrapped_text(draw, sat.get("role", ""), get_font(18), sx - sw//2 + 10, sy - sh//2 + 56, sw - 20, TEXT_MUTED, align="center", max_lines=1)
+        draw.rounded_rectangle((sx - sw//2, sy - sh//2, sx + sw//2, sy + sh//2), radius=18, fill=pal["card_bg"], outline=color, width=3)
+        draw_wrapped_text(draw, sat.get("name", ""), get_font(24, bold=True), sx - sw//2 + 10, sy - sh//2 + 18, sw - 20, pal["text"], align="center", max_lines=1)
+        draw_wrapped_text(draw, sat.get("role", ""), get_font(18), sx - sw//2 + 10, sy - sh//2 + 56, sw - 20, pal["muted"], align="center", max_lines=1)
 
     # Center Hub Core (Pulsing Glow)
     hub_r = 110
-    draw.ellipse((center_x - hub_r - 6, center_y - hub_r - 6, center_x + hub_r + 6, center_y + hub_r + 6), fill=(56, 189, 248, 40))
-    draw.ellipse((center_x - hub_r, center_y - hub_r, center_x + hub_r, center_y + hub_r), fill=(15, 23, 42, 250), outline=NEON_CYAN, width=5)
-    draw_wrapped_text(draw, hub_name, get_font(30, bold=True), center_x - 90, center_y - 25, 180, NEON_CYAN, align="center", max_lines=2)
+    draw.ellipse((center_x - hub_r - 6, center_y - hub_r - 6, center_x + hub_r + 6, center_y + hub_r + 6), fill=(*pal["cyan"], 40))
+    draw.ellipse((center_x - hub_r, center_y - hub_r, center_x + hub_r, center_y + hub_r), fill=pal["card_bg"], outline=pal["cyan"], width=5)
+    draw_wrapped_text(draw, hub_name, get_font(30, bold=True), center_x - 90, center_y - 25, 180, pal["cyan"], align="center", max_lines=2)
 
 # =========================================================================
 # 4. METRIC GAUGE HUD (Speedometer / Radial Telemetry)
 # =========================================================================
 def _render_metric_gauge_hud(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    pal = _ACTIVE_PAL
     main_val = data.get("main_value", "1,500,000")
     main_unit = data.get("main_unit", "EVENTS / SEC")
     gauge_pct = float(data.get("gauge_percent", 94))
@@ -671,39 +1254,38 @@ def _render_metric_gauge_hud(draw: ImageDraw.Draw, data: Dict[str, Any], progres
         {"label": "DATA LOSS", "val": "0.00%"},
         {"label": "FAILOVER", "val": "< 1s"}
     ])
-    
+
     panel_w = 940
     px = (VIDEO_WIDTH - panel_w) // 2
     py = 440
-    
+
     # Circular Gauge Arc
     arc_cx = VIDEO_WIDTH // 2
     arc_cy = 660
     arc_r = 210
-    
-    # Outer Background Arc
-    draw.arc((arc_cx - arc_r, arc_cy - arc_r, arc_cx + arc_r, arc_cy + arc_r), start=140, end=400, fill=(30, 41, 59), width=28)
-    
-    # Animated Filled Arc
+
+    arc_track = (203, 213, 225) if pal.get("is_light") else (30, 41, 59)
+    draw.arc((arc_cx - arc_r, arc_cy - arc_r, arc_cx + arc_r, arc_cy + arc_r), start=140, end=400, fill=arc_track, width=28)
+
     fill_end = 140 + int((400 - 140) * (gauge_pct / 100.0) * min(1.0, progress * 1.5))
-    draw.arc((arc_cx - arc_r, arc_cy - arc_r, arc_cx + arc_r, arc_cy + arc_r), start=140, end=fill_end, fill=NEON_EMERALD, width=28)
-    
+    draw.arc((arc_cx - arc_r, arc_cy - arc_r, arc_cx + arc_r, arc_cy + arc_r), start=140, end=fill_end, fill=pal["emerald"], width=28)
+
     # Center Big Stat
-    draw.text((arc_cx - 200, arc_cy - 45), main_val, fill=TEXT_PRIMARY, font=get_font(68, bold=True))
-    draw.text((arc_cx - 130, arc_cy + 45), main_unit, fill=NEON_EMERALD, font=get_font(28, bold=True))
-    
+    draw_wrapped_text(draw, str(main_val), get_font(68, bold=True), arc_cx - 210, arc_cy - 45, 420, pal["text"], align="center", max_lines=1)
+    draw_wrapped_text(draw, str(main_unit), get_font(28, bold=True), arc_cx - 200, arc_cy + 45, 400, pal["emerald"], align="center", max_lines=1)
+
     # 3 Telemetry Cards below
     card_w = 285
     card_h = 170
     card_y = 960
-    
+
     for i, t in enumerate(telemetry[:3]):
         if progress < (0.35 + i * 0.18):
             continue
         cx = px + (i * (card_w + 42))
-        draw.rounded_rectangle((cx, card_y, cx + card_w, card_y + card_h), radius=20, fill=CARD_BG, outline=CARD_BORDER, width=2)
-        draw.text((cx + 25, card_y + 25), t.get("label", ""), fill=TEXT_MUTED, font=get_font(22, bold=True))
-        draw.text((cx + 25, card_y + 75), t.get("val", ""), fill=NEON_CYAN, font=get_font(46, bold=True))
+        draw.rounded_rectangle((cx, card_y, cx + card_w, card_y + card_h), radius=20, fill=pal["card_bg"], outline=pal["card_border"], width=2)
+        draw.text((cx + 25, card_y + 25), t.get("label", ""), fill=pal["muted"], font=get_font(22, bold=True))
+        draw.text((cx + 25, card_y + 75), t.get("val", ""), fill=pal["cyan"], font=get_font(46, bold=True))
 
 # =========================================================================
 # 5. DATA STRUCTURE / MEMORY BUFFER / PARTITIONS
@@ -786,32 +1368,34 @@ def _render_sql_table(draw: ImageDraw.Draw, data: Dict[str, Any], progress: floa
             ["104", f"{topic_title[:8]} D", "80,000", "3"]
         ]
     
+    pal = _ACTIVE_PAL
     qx, qy, qw, qh = 70, 440, 940, 140
-    draw.rounded_rectangle((qx, qy, qx + qw, qy + qh), radius=20, fill=CARD_BG, outline=NEON_PURPLE, width=3)
-    draw.text((qx + 30, qy + 18), "PIPELINE LOGIC:", fill=NEON_PURPLE, font=get_font(22, bold=True))
-    draw_wrapped_text(draw, code, get_font(26, bold=True), qx + 30, qy + 58, 880, TEXT_PRIMARY, max_lines=2)
-    
+    draw.rounded_rectangle((qx, qy, qx + qw, qy + qh), radius=20, fill=pal["card_bg"], outline=pal["purple"], width=3)
+    q_lbl = str(data.get("query_label") or "SQL QUERY").upper()
+    draw.text((qx + 30, qy + 18), q_lbl, fill=pal["purple"], font=get_font(22, bold=True))
+    draw_wrapped_text(draw, code, get_font(26, bold=True), qx + 30, qy + 58, 880, pal["text"], max_lines=2)
+
     tx, ty, tw = 70, 610, 940
     col_w = tw // max(1, len(headers))
     row_h = 90
-    
-    draw.rounded_rectangle((tx, ty, tx + tw, ty + row_h), radius=16, fill=(30, 41, 59, 240), outline=CARD_BORDER, width=2)
+
+    draw.rounded_rectangle((tx, ty, tx + tw, ty + row_h), radius=16, fill=pal["card_alt"], outline=pal["card_border"], width=2)
     for c_idx, h in enumerate(headers):
         h_str = str(h).upper()
-        draw.text((tx + (c_idx * col_w) + 20, ty + 28), h_str, fill=NEON_CYAN, font=get_font(26, bold=True))
-        
+        draw.text((tx + (c_idx * col_w) + 20, ty + 28), h_str, fill=pal["cyan"], font=get_font(26, bold=True))
+
     active_row = int((progress * len(rows)) % len(rows)) if rows else 0
     for r_idx, row in enumerate(rows[:4]):
         if progress < (0.14 + r_idx * 0.18):
             continue
         ry = ty + ((r_idx + 1) * row_h) + 12
         is_highlighted = (r_idx == active_row)
-        bg = (56, 189, 248, 45) if is_highlighted else CARD_BG
-        border = NEON_AMBER if is_highlighted else CARD_BORDER
-        
+        bg = pal["cyan_bg"] if is_highlighted else pal["card_bg"]
+        border = pal["amber"] if is_highlighted else pal["card_border"]
+
         draw.rounded_rectangle((tx, ry, tx + tw, ry + row_h - 10), radius=14, fill=bg, outline=border, width=3 if is_highlighted else 1)
         for c_idx, cell in enumerate(row[:len(headers)]):
-            txt_color = NEON_AMBER if (is_highlighted and c_idx == len(row) - 1) else TEXT_PRIMARY
+            txt_color = pal["amber"] if (is_highlighted and c_idx == len(row) - 1) else pal["text"]
             draw.text((tx + (c_idx * col_w) + 20, ry + 24), str(cell), fill=txt_color, font=get_font(24))
 
 # =========================================================================
@@ -953,7 +1537,9 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
     else:
         node_h, gap, start_y = 135, 180, 405
     
+    pal = _ACTIVE_PAL
     node_coords = []
+    edges = data.get("edges") or []
     # Progressive step-by-step reveal: Node 0 visible from 0.0s -> Arrow 0->1 -> Node 1 -> Arrow 1->2 -> Node 2
     step_span = 0.85 / max(1, n_count)
     for i, node in enumerate(nodes):
@@ -966,25 +1552,27 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
         accent_rgb = _hex_to_rgb(color_hex)
         is_current_focus = (node_start <= progress < node_start + step_span)
 
-        draw.rounded_rectangle((center_x, ny, center_x + node_w, ny + node_h), radius=22, fill=CARD_BG, outline=accent_rgb, width=4 if is_current_focus else 2)
+        draw.rounded_rectangle((center_x, ny, center_x + node_w, ny + node_h), radius=22, fill=pal["card_bg"], outline=accent_rgb, width=4 if is_current_focus else 2)
         draw.ellipse((center_x + 35, ny + (node_h - 45) // 2, center_x + 80, ny + (node_h + 45) // 2), fill=accent_rgb)
-        
-        draw_wrapped_text(draw, node.get("label", ""), font_title, center_x + 100, ny + 22, 720, TEXT_PRIMARY, max_lines=1)
-        sub_text = node.get("sub") or "Pipeline Stage"
-        # Preserve acronyms like JSON, SQL, RAG, LLM, AWS instead of calling .title()
-        draw_wrapped_text(draw, str(sub_text), font_sub, center_x + 100, ny + 70, 720, TEXT_MUTED, max_lines=2)
+
+        draw_wrapped_text(draw, node.get("label", ""), font_title, center_x + 100, ny + 22, 720, pal["text"], max_lines=1)
+        sub_text = node.get("sub") or ""
+        if sub_text:
+            draw_wrapped_text(draw, str(sub_text), font_sub, center_x + 100, ny + 70, 720, pal["muted"], max_lines=2)
 
     for idx_pos in range(len(node_coords) - 1):
         i_src, x1, y1 = node_coords[idx_pos]
         _, x2, y2 = node_coords[idx_pos + 1]
         arrow_start = 0.04 + (i_src * step_span) + (step_span * 0.45)
         arrow_t = _stage_reveal(progress, arrow_start, arrow_start + (step_span * 0.55))
+        e_lbl = str(edges[i_src]) if i_src < len(edges) else str(nodes[i_src].get("edge", "")) if isinstance(nodes[i_src], dict) else ""
         _draw_data_packet_arrow(
             draw,
             (x1, y1 + node_h // 2),
             (x2, y2 - node_h // 2),
+            label=e_lbl,
             progress=progress,
-            color=NEON_CYAN,
+            color=pal["cyan"],
             reveal_t=arrow_t
         )
 
@@ -992,14 +1580,11 @@ def _render_architecture_flow(draw: ImageDraw.Draw, data: Dict[str, Any], progre
 # 10. CONCEPT COMPARISON CARDS (with Warning Box & CTA Support)
 # =========================================================================
 def _render_concept_cards(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    pal = _ACTIVE_PAL
     raw_bullets = data.get("bullets") or data.get("points") or data.get("key_points") or data.get("features") or data.get("concepts") or []
     if not raw_bullets:
-        topic_title = data.get("title") or "Key Engineering Principles"
-        raw_bullets = [
-            f"{topic_title}: Core execution mechanism",
-            "Structured Pattern: Predictable & deterministic output",
-            "Production Ready: Balanced latency and cost"
-        ]
+        topic_title = data.get("title") or "Key Concepts"
+        raw_bullets = [topic_title]
     font_head = get_font(33, bold=True)
     font_sub = get_font(25)
     card_w = 940
@@ -1009,7 +1594,7 @@ def _render_concept_cards(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
     start_y = 420
     gap = card_h + 28
     cx = (VIDEO_WIDTH - card_w) // 2
-    
+
     for i, bullet in enumerate(raw_bullets[:3]):
         card_start = 0.0 if i == 0 else (i * 0.24)
         if progress < card_start:
@@ -1019,24 +1604,25 @@ def _render_concept_cards(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
         parts = bullet.split(":", 1) if ":" in bullet else (bullet.split("—", 1) if "—" in bullet else [bullet, ""])
         headline = parts[0].strip()
         subtext = parts[1].strip() if len(parts) > 1 else ""
-        
-        draw.rounded_rectangle((cx, cy, cx + card_w, cy + card_h), radius=24, fill=CARD_BG, outline=NEON_CYAN if is_focused else CARD_BORDER, width=4 if is_focused else 2)
+
+        draw.rounded_rectangle((cx, cy, cx + card_w, cy + card_h), radius=24, fill=pal["card_bg"], outline=pal["cyan"] if is_focused else pal["card_border"], width=4 if is_focused else 2)
         _draw_vector_check(draw, cx + 68, cy + card_h // 2, radius=30)
         if subtext:
-            draw_wrapped_text(draw, headline, font_head, cx + 128, cy + 28, 765, TEXT_PRIMARY, max_lines=1)
-            draw_wrapped_text(draw, subtext, font_sub, cx + 128, cy + 78, 765, TEXT_MUTED, max_lines=2)
+            draw_wrapped_text(draw, headline, font_head, cx + 128, cy + 28, 765, pal["text"], max_lines=1)
+            draw_wrapped_text(draw, subtext, font_sub, cx + 128, cy + 78, 765, pal["muted"], max_lines=2)
         else:
-            draw_wrapped_text(draw, headline, font_head, cx + 128, cy + (card_h // 2) - 24, 765, TEXT_PRIMARY, max_lines=2)
+            draw_wrapped_text(draw, headline, font_head, cx + 128, cy + (card_h // 2) - 24, 765, pal["text"], max_lines=2)
 
     last_y = start_y + (min(3, len(raw_bullets)) * gap) + 12
 
-    # Optional Amber Warning Callout Box (e.g. "NOT for live facts or frequent policy updates")
+    # Optional Amber Warning Callout Box
     if has_warn and progress >= 0.68:
         warn_h = 145
         wy = min(1140, last_y)
-        draw.rounded_rectangle((cx, wy, cx + card_w, wy + warn_h), radius=22, fill=(32, 22, 12, 245), outline=NEON_AMBER, width=3)
-        draw_wrapped_text(draw, "!  IMPORTANT LIMITATION", get_font(21, bold=True), cx + 36, wy + 22, 860, NEON_AMBER, max_lines=1)
-        draw_wrapped_text(draw, str(data["warning_box"]), get_font(27, bold=True), cx + 36, wy + 60, 860, TEXT_PRIMARY, max_lines=2)
+        draw.rounded_rectangle((cx, wy, cx + card_w, wy + warn_h), radius=22, fill=pal["warn_bg"], outline=pal["amber"], width=3)
+        warn_hdr = str(data.get("warning_title") or "KEY NOTE").upper()
+        draw_wrapped_text(draw, warn_hdr, get_font(21, bold=True), cx + 36, wy + 22, 860, pal["amber"], max_lines=1)
+        draw_wrapped_text(draw, str(data["warning_box"]), get_font(27, bold=True), cx + 36, wy + 60, 860, pal["text"], max_lines=2)
         last_y = wy + warn_h + 24
 
     # Optional Metrics HUD only when explicitly supplied in visual_data
@@ -1044,118 +1630,140 @@ def _render_concept_cards(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
         metrics = data["metrics"]
         hud_w, hud_h = 940, 145
         hy = min(1120, last_y)
-        draw.rounded_rectangle((cx, hy, cx + hud_w, hy + hud_h), radius=24, fill=(11, 18, 33, 245), outline=NEON_EMERALD, width=3)
+        draw.rounded_rectangle((cx, hy, cx + hud_w, hy + hud_h), radius=24, fill=pal["card_bg"], outline=pal["emerald"], width=3)
         if isinstance(metrics, list) and len(metrics) >= 2:
-            draw_wrapped_text(draw, str(metrics[0].get("label", "METRIC 1")).upper(), get_font(20, bold=True), cx + 45, hy + 24, 420, NEON_EMERALD, max_lines=1)
-            draw_wrapped_text(draw, str(metrics[0].get("val", "")), get_font(38, bold=True), cx + 45, hy + 62, 420, TEXT_PRIMARY, max_lines=1)
-            draw_wrapped_text(draw, str(metrics[1].get("label", "METRIC 2")).upper(), get_font(20, bold=True), cx + 510, hy + 24, 400, NEON_CYAN, max_lines=1)
-            draw_wrapped_text(draw, str(metrics[1].get("val", "")), get_font(38, bold=True), cx + 510, hy + 62, 400, NEON_CYAN, max_lines=1)
+            draw_wrapped_text(draw, str(metrics[0].get("label", "")).upper(), get_font(20, bold=True), cx + 45, hy + 24, 420, pal["emerald"], max_lines=1)
+            draw_wrapped_text(draw, str(metrics[0].get("val", "")), get_font(38, bold=True), cx + 45, hy + 62, 420, pal["text"], max_lines=1)
+            draw_wrapped_text(draw, str(metrics[1].get("label", "")).upper(), get_font(20, bold=True), cx + 510, hy + 24, 400, pal["cyan"], max_lines=1)
+            draw_wrapped_text(draw, str(metrics[1].get("val", "")), get_font(38, bold=True), cx + 510, hy + 62, 400, pal["cyan"], max_lines=1)
 
-    # Optional Bottom CTA Strip (e.g. "Save • Share • Follow for More")
+    # Optional Bottom CTA Strip
     if has_cta and progress >= 0.65:
         cta_txt = str(data.get("footer_cta") or data.get("cta_text")).replace("•", " | ")
         cta_y = max(last_y + 10, 1210)
         cta_h = 84
-        draw.rounded_rectangle((cx + 40, cta_y, cx + card_w - 40, cta_y + cta_h), radius=42, fill=(15, 32, 48, 245), outline=NEON_CYAN, width=3)
-        draw_wrapped_text(draw, cta_txt.upper(), get_font(28, bold=True), cx + 60, cta_y + 24, card_w - 120, TEXT_PRIMARY, align="center", max_lines=1)
+        draw.rounded_rectangle((cx + 40, cta_y, cx + card_w - 40, cta_y + cta_h), radius=42, fill=pal["cyan_bg"], outline=pal["cyan"], width=3)
+        draw_wrapped_text(draw, cta_txt.upper(), get_font(28, bold=True), cx + 60, cta_y + 24, card_w - 120, pal["text"], align="center", max_lines=1)
 
 
 # =========================================================================
-# 11. HERO HOOK (Question Card + Side Pills + Stat Callout — Replaces Boring Red Circle!)
+# 11. HERO HOOK (Question Card + Dynamic Pills + Optional Stat — Zero Canned Labels!)
 # =========================================================================
 def _render_hero_hook(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    question = data.get("question") or data.get("title") or "Which Architecture Wins?"
-    left_pill = data.get("left_pill") or "Approach A"
-    right_pill = data.get("right_pill") or "Approach B"
-    stat_badge = data.get("stat_badge") or "CRITICAL ENGINEERING CHOICE"
+    pal = _ACTIVE_PAL
+    question = data.get("question") or data.get("title") or ""
+    eyebrow = str(data.get("eyebrow") or data.get("kicker") or "").strip().upper()
+    pills = data.get("pills")
+    if not isinstance(pills, list):
+        pills = [p for p in [data.get("left_pill"), data.get("right_pill")] if p]
+    stat_badge = str(data.get("stat_badge") or "").strip()
     sub_callouts = data.get("sub_callouts") or []
+    show_vs = bool(data.get("show_vs", (" vs " in question.lower()) and len(pills) == 2))
 
     # 1. Center Hero Question Card (visible immediately at 0.0s!)
-    cw, ch = 940, 270
+    cw, ch = 940, 260
     cx = (VIDEO_WIDTH - cw) // 2
     cy = 430
-    draw.rounded_rectangle((cx - 3, cy - 3, cx + cw + 3, cy + ch + 3), radius=30, fill=(99, 102, 241, 35))
-    draw.rounded_rectangle((cx, cy, cx + cw, cy + ch), radius=28, fill=(15, 23, 42, 248), outline=(99, 102, 241), width=4)
-    draw_wrapped_text(draw, "CORE ENGINEERING DILEMMA", get_font(21, bold=True), cx + 40, cy + 28, cw - 80, NEON_CYAN, align="center", max_lines=1)
-    draw_wrapped_text(draw, question, get_font(40, bold=True), cx + 45, cy + 78, cw - 90, TEXT_PRIMARY, align="center", max_lines=3, line_spacing=8)
+    draw.rounded_rectangle((cx, cy, cx + cw, cy + ch), radius=28, fill=pal["card_bg"], outline=pal["accent"], width=4)
+    if eyebrow:
+        draw_wrapped_text(draw, eyebrow, get_font(21, bold=True), cx + 40, cy + 26, cw - 80, pal["cyan"], align="center", max_lines=1)
+        draw_wrapped_text(draw, question, get_font(40, bold=True), cx + 45, cy + 74, cw - 90, pal["text"], align="center", max_lines=3, line_spacing=8)
+    else:
+        draw_wrapped_text(draw, question, get_font(42, bold=True), cx + 45, cy + 56, cw - 90, pal["text"], align="center", max_lines=3, line_spacing=8)
 
-    # 2. Comparison Side Pills + VS Connector (reveals cleanly 16% -> 45%)
-    if progress >= 0.16:
-        pw, ph = 390, 125
-        py = 760
-        lx = 70
-        rx = VIDEO_WIDTH - 70 - pw
-        # Left Pill
-        draw.rounded_rectangle((lx, py, lx + pw, py + ph), radius=24, fill=(12, 32, 48, 245), outline=NEON_CYAN, width=3)
-        draw_wrapped_text(draw, left_pill, get_font(30, bold=True), lx + 20, py + 40, pw - 40, NEON_CYAN, align="center", max_lines=1)
+    # 2. Dynamic Topic Pills (1, 2, or 3 pills — NO forced VS unless actually comparing two options!)
+    next_y = cy + ch + 52
+    if pills and progress >= 0.16:
+        clean_pills = [str(p) for p in pills[:3] if str(p).strip()]
+        n_p = len(clean_pills)
+        ph = 115
+        pill_cols = [pal["cyan"], pal["purple"], pal["emerald"]]
+        if n_p == 2 and show_vs:
+            pw = 390
+            lx, rx = 70, VIDEO_WIDTH - 70 - pw
+            draw.rounded_rectangle((lx, next_y, lx + pw, next_y + ph), radius=24, fill=pal["card_bg"], outline=pill_cols[0], width=3)
+            draw_wrapped_text(draw, clean_pills[0], get_font(30, bold=True), lx + 20, next_y + 36, pw - 40, pill_cols[0], align="center", max_lines=1)
+            if progress >= 0.28:
+                vx, vy = VIDEO_WIDTH // 2, next_y + ph // 2
+                draw.ellipse((vx - 36, vy - 36, vx + 36, vy + 36), fill=pal["bg"], outline=pal["amber"], width=4)
+                draw.text((vx - 20, vy - 17), "VS", fill=pal["amber"], font=get_font(25, bold=True))
+                draw.rounded_rectangle((rx, next_y, rx + pw, next_y + ph), radius=24, fill=pal["card_bg"], outline=pill_cols[1], width=3)
+                draw_wrapped_text(draw, clean_pills[1], get_font(30, bold=True), rx + 20, next_y + 36, pw - 40, pill_cols[1], align="center", max_lines=1)
+        elif n_p >= 1:
+            total_w = 940
+            pgap = 20
+            pw = (total_w - (n_p - 1) * pgap) // n_p
+            sx0 = (VIDEO_WIDTH - total_w) // 2
+            for pi, ptxt in enumerate(clean_pills):
+                if progress < (0.16 + pi * 0.10):
+                    continue
+                px = sx0 + pi * (pw + pgap)
+                pc = pill_cols[pi % len(pill_cols)]
+                draw.rounded_rectangle((px, next_y, px + pw, next_y + ph), radius=22, fill=pal["card_bg"], outline=pc, width=3)
+                draw_wrapped_text(draw, ptxt, get_font(28 if n_p <= 2 else 23, bold=True), px + 14, next_y + 36, pw - 28, pal["text"], align="center", max_lines=2)
+        next_y += ph + 44
 
-        if progress >= 0.28:
-            # Animated glowing VS circle
-            vx, vy = VIDEO_WIDTH // 2, py + ph // 2
-            draw.ellipse((vx - 38, vy - 38, vx + 38, vy + 38), fill=(15, 23, 42), outline=NEON_AMBER, width=4)
-            draw.text((vx - 20, vy - 17), "VS", fill=NEON_AMBER, font=get_font(26, bold=True))
-
-            # Right Pill
-            draw.rounded_rectangle((rx, py, rx + pw, py + ph), radius=24, fill=(28, 16, 46, 245), outline=NEON_PURPLE, width=3)
-            draw_wrapped_text(draw, right_pill, get_font(30, bold=True), rx + 20, py + 40, pw - 40, NEON_PURPLE, align="center", max_lines=1)
-
-    # 3. Highlight Callout Stat Badge (e.g. "90% Candidates Confused") (reveals >= 45%)
-    if progress >= 0.45:
-        bw, bh = 860, 105
+    # 3. Optional Highlight Callout Stat Badge
+    if stat_badge and progress >= 0.45:
+        bw, bh = 880, 100
         bx = (VIDEO_WIDTH - bw) // 2
-        by = 945
-        draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=24, fill=(40, 26, 12, 245), outline=NEON_AMBER, width=3)
-        draw_wrapped_text(draw, f"!  {stat_badge.upper()}", get_font(29, bold=True), bx + 30, by + 32, bw - 60, NEON_AMBER, align="center", max_lines=1)
+        draw.rounded_rectangle((bx, next_y, bx + bw, next_y + bh), radius=22, fill=pal["warn_bg"], outline=pal["amber"], width=3)
+        draw_wrapped_text(draw, stat_badge.upper(), get_font(28, bold=True), bx + 30, next_y + 32, bw - 60, pal["amber"], align="center", max_lines=1)
+        next_y += bh + 34
 
-    # 4. Trap / Takeaway Sub-Callouts (reveals >= 68%)
+    # 4. Optional Trap / Takeaway Sub-Callouts
     if sub_callouts and progress >= 0.68:
-        sy = 1095
         for idx, sc_txt in enumerate(sub_callouts[:2]):
             if progress < (0.68 + idx * 0.14):
                 continue
-            row_y = sy + (idx * 85)
-            draw.rounded_rectangle((100, row_y, VIDEO_WIDTH - 100, row_y + 70), radius=16, fill=CARD_BG, outline=NEON_ROSE if idx == 0 else CARD_BORDER, width=2)
-            draw_wrapped_text(draw, str(sc_txt), get_font(24, bold=True), 130, row_y + 20, VIDEO_WIDTH - 260, TEXT_PRIMARY, align="center", max_lines=1)
+            row_y = next_y + (idx * 85)
+            draw.rounded_rectangle((100, row_y, VIDEO_WIDTH - 100, row_y + 70), radius=16, fill=pal["card_bg"], outline=pal["rose"] if idx == 0 else pal["card_border"], width=2)
+            draw_wrapped_text(draw, str(sc_txt), get_font(24, bold=True), 130, row_y + 20, VIDEO_WIDTH - 260, pal["text"], align="center", max_lines=1)
 
 
 # =========================================================================
 # 12. HYBRID MERGE DIAGRAM (Left Pillar + Right Pillar -> Merged System -> Outcomes)
 # =========================================================================
 def _render_hybrid_merge(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    lp = data.get("left_pillar") or {"label": "Fine-Tuning", "sub": "Structure & Tone"}
-    rp = data.get("right_pillar") or {"label": "RAG System", "sub": "Fresh Data & Rules"}
-    merged = data.get("merged_label") or "Unified Production System"
-    outcomes = data.get("outcomes") or ["Accuracy", "Consistency", "Freshness"]
+    pal = _ACTIVE_PAL
+    lp = data.get("left_pillar") or {"label": "Pillar 1", "sub": ""}
+    rp = data.get("right_pillar") or {"label": "Pillar 2", "sub": ""}
+    merged = data.get("merged_label") or "Combined System"
+    merge_badge = str(data.get("merge_badge") or "").strip().upper()
+    outcomes = data.get("outcomes") or []
 
     pw, ph = 420, 175
     top_y = 435
     lx, rx = 75, VIDEO_WIDTH - 75 - pw
 
-    # 1. Left & Right Input Pillars (Left immediate at 0.0, Right reveals at 0.14)
-    draw.rounded_rectangle((lx, top_y, lx + pw, top_y + ph), radius=24, fill=(28, 18, 45, 245), outline=NEON_PURPLE, width=3)
-    draw_wrapped_text(draw, str(lp.get("label", "Pillar 1")), get_font(30, bold=True), lx + 20, top_y + 36, pw - 40, NEON_PURPLE, align="center", max_lines=1)
-    draw_wrapped_text(draw, str(lp.get("sub", "")), get_font(22), lx + 20, top_y + 88, pw - 40, TEXT_PRIMARY, align="center", max_lines=2)
+    # 1. Left & Right Input Pillars
+    draw.rounded_rectangle((lx, top_y, lx + pw, top_y + ph), radius=24, fill=pal["card_bg"], outline=pal["purple"], width=3)
+    draw_wrapped_text(draw, str(lp.get("label", "Pillar 1")), get_font(30, bold=True), lx + 20, top_y + 36, pw - 40, pal["purple"], align="center", max_lines=1)
+    draw_wrapped_text(draw, str(lp.get("sub", "")), get_font(22), lx + 20, top_y + 88, pw - 40, pal["text"], align="center", max_lines=2)
 
     if progress >= 0.14:
-        draw.ellipse((VIDEO_WIDTH // 2 - 28, top_y + ph // 2 - 28, VIDEO_WIDTH // 2 + 28, top_y + ph // 2 + 28), fill=(15, 23, 42), outline=NEON_AMBER, width=3)
-        draw.text((VIDEO_WIDTH // 2 - 11, top_y + ph // 2 - 20), "+", fill=NEON_AMBER, font=get_font(36, bold=True))
+        draw.ellipse((VIDEO_WIDTH // 2 - 28, top_y + ph // 2 - 28, VIDEO_WIDTH // 2 + 28, top_y + ph // 2 + 28), fill=pal["bg"], outline=pal["amber"], width=3)
+        draw.text((VIDEO_WIDTH // 2 - 11, top_y + ph // 2 - 20), "+", fill=pal["amber"], font=get_font(36, bold=True))
 
-        draw.rounded_rectangle((rx, top_y, rx + pw, top_y + ph), radius=24, fill=(12, 32, 48, 245), outline=NEON_CYAN, width=3)
-        draw_wrapped_text(draw, str(rp.get("label", "Pillar 2")), get_font(30, bold=True), rx + 20, top_y + 36, pw - 40, NEON_CYAN, align="center", max_lines=1)
-        draw_wrapped_text(draw, str(rp.get("sub", "")), get_font(22), rx + 20, top_y + 88, pw - 40, TEXT_PRIMARY, align="center", max_lines=2)
+        draw.rounded_rectangle((rx, top_y, rx + pw, top_y + ph), radius=24, fill=pal["card_bg"], outline=pal["cyan"], width=3)
+        draw_wrapped_text(draw, str(rp.get("label", "Pillar 2")), get_font(30, bold=True), rx + 20, top_y + 36, pw - 40, pal["cyan"], align="center", max_lines=1)
+        draw_wrapped_text(draw, str(rp.get("sub", "")), get_font(22), rx + 20, top_y + 88, pw - 40, pal["text"], align="center", max_lines=2)
 
     # 2. Converging Dotted/Glowing Merge Arrows -> Merged Block
     merge_y = 770
     mw, mh = 700, 150
     mx = (VIDEO_WIDTH - mw) // 2
     arr_t = _stage_reveal(progress, 0.28, 0.48)
-    _draw_data_packet_arrow(draw, (lx + pw // 2, top_y + ph), (mx + 160, merge_y), progress=progress, color=NEON_PURPLE, reveal_t=arr_t)
-    _draw_data_packet_arrow(draw, (rx + pw // 2, top_y + ph), (mx + mw - 160, merge_y), progress=progress, color=NEON_CYAN, reveal_t=arr_t)
+    _draw_data_packet_arrow(draw, (lx + pw // 2, top_y + ph), (mx + 160, merge_y), progress=progress, color=pal["purple"], reveal_t=arr_t)
+    _draw_data_packet_arrow(draw, (rx + pw // 2, top_y + ph), (mx + mw - 160, merge_y), progress=progress, color=pal["cyan"], reveal_t=arr_t)
 
     if progress >= 0.42:
-        draw.rounded_rectangle((mx, merge_y, mx + mw, merge_y + mh), radius=26, fill=(11, 28, 26, 248), outline=NEON_EMERALD, width=4)
-        draw_wrapped_text(draw, "HYBRID ENGINE MERGE", get_font(20, bold=True), mx + 30, merge_y + 24, mw - 60, NEON_EMERALD, align="center", max_lines=1)
-        draw_wrapped_text(draw, str(merged), get_font(34, bold=True), mx + 30, merge_y + 66, mw - 60, TEXT_PRIMARY, align="center", max_lines=1)
+        draw.rounded_rectangle((mx, merge_y, mx + mw, merge_y + mh), radius=26, fill=pal["emerald_bg"], outline=pal["emerald"], width=4)
+        if merge_badge:
+            draw_wrapped_text(draw, merge_badge, get_font(20, bold=True), mx + 30, merge_y + 24, mw - 60, pal["emerald"], align="center", max_lines=1)
+            draw_wrapped_text(draw, str(merged), get_font(34, bold=True), mx + 30, merge_y + 66, mw - 60, pal["text"], align="center", max_lines=1)
+        else:
+            draw_wrapped_text(draw, str(merged), get_font(36, bold=True), mx + 30, merge_y + 52, mw - 60, pal["text"], align="center", max_lines=1)
 
     # 3. Three Outcome Badges popping in one by one
     if outcomes and progress >= 0.60:
@@ -1163,29 +1771,35 @@ def _render_hybrid_merge(draw: ImageDraw.Draw, data: Dict[str, Any], progress: f
         bw = 290
         gap = 25
         start_x = (VIDEO_WIDTH - (bw * 3 + gap * 2)) // 2
-        colors = [NEON_EMERALD, NEON_CYAN, NEON_AMBER]
+        colors = [pal["emerald"], pal["cyan"], pal["amber"]]
         for idx, out_lbl in enumerate(outcomes[:3]):
             if progress < (0.60 + idx * 0.11):
                 continue
             bx = start_x + idx * (bw + gap)
             c = colors[idx % len(colors)]
-            draw.rounded_rectangle((bx, out_y, bx + bw, out_y + 135), radius=22, fill=CARD_BG, outline=c, width=3)
+            draw.rounded_rectangle((bx, out_y, bx + bw, out_y + 135), radius=22, fill=pal["card_bg"], outline=c, width=3)
             _draw_vector_check(draw, bx + bw // 2, out_y + 42, radius=18)
-            draw_wrapped_text(draw, str(out_lbl).upper(), get_font(22, bold=True), bx + 12, out_y + 80, bw - 24, TEXT_PRIMARY, align="center", max_lines=1)
+            draw_wrapped_text(draw, str(out_lbl).upper(), get_font(22, bold=True), bx + 12, out_y + 80, bw - 24, pal["text"], align="center", max_lines=1)
 
 def _draw_vector_warning(draw: ImageDraw.Draw, cx: int, cy: int, radius: int = 34) -> None:
-    draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(244, 63, 94, 60), outline=NEON_ROSE, width=4)
-    draw.line((cx, cy - 14, cx, cy + 5), fill=TEXT_PRIMARY, width=5)
-    draw.ellipse((cx - 3, cy + 12, cx + 3, cy + 18), fill=TEXT_PRIMARY)
+    pal = _ACTIVE_PAL
+    rose = pal["rose"]
+    ink = pal["text"]
+    draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(rose[0], rose[1], rose[2], 45), outline=rose, width=4)
+    draw.line((cx, cy - max(8, int(radius * 0.42)), cx, cy + max(3, int(radius * 0.15))), fill=ink, width=4)
+    draw.ellipse((cx - 3, cy + max(6, int(radius * 0.30)), cx + 3, cy + max(12, int(radius * 0.48))), fill=ink)
 
 def _draw_vector_check(draw: ImageDraw.Draw, cx: int, cy: int, radius: int = 34) -> None:
-    draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(16, 185, 129, 60), outline=NEON_EMERALD, width=4)
+    pal = _ACTIVE_PAL
+    em = pal["emerald"]
+    ink = pal["text"]
+    draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=(em[0], em[1], em[2], 45), outline=em, width=4)
     points = [
         (cx - radius * 0.45, cy),
         (cx - radius * 0.1, cy + radius * 0.35),
         (cx + radius * 0.5, cy - radius * 0.35)
     ]
-    draw.line(points, fill=TEXT_PRIMARY, width=5)
+    draw.line(points, fill=ink, width=4)
 
 def _hex_to_rgb(hex_code: str) -> Tuple[int, int, int]:
     hex_code = hex_code.lstrip("#")
@@ -1195,28 +1809,34 @@ def _hex_to_rgb(hex_code: str) -> Tuple[int, int, int]:
 
 
 # =========================================================================
-# 13. KINETIC STATEMENT (Minimalist High-Impact Typographic Focus — No Card Clutter!)
+# 13. KINETIC STATEMENT (Minimalist High-Impact Typographic Focus — Full Reveal Guaranteed)
 # =========================================================================
 def _render_kinetic_statement(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
-    kicker = str(data.get("kicker") or "CORE ENGINEERING RULE").upper()
-    statement = str(data.get("statement") or data.get("title") or "Architecture Follows Access Patterns.")
+    pal = _ACTIVE_PAL
+    kicker = str(data.get("kicker") or "").strip().upper()
+    statement = str(data.get("statement") or data.get("title") or "").strip()
     hl_word = str(data.get("highlight_word") or "").strip().lower()
     tags = data.get("bottom_tags") or []
 
     # Expanding luminous divider line across center stage
-    line_w = int(680 * _stage_reveal(progress, 0.0, 0.25))
+    line_w = int(680 * _stage_reveal(progress, 0.0, 0.22))
     lx_mid = VIDEO_WIDTH // 2
-    draw.line((lx_mid - line_w // 2, 455, lx_mid + line_w // 2, 455), fill=NEON_AMBER, width=4)
-    draw_wrapped_text(draw, kicker, get_font(26, bold=True), 120, 405, VIDEO_WIDTH - 240, NEON_AMBER, align="center", max_lines=1)
+    draw.line((lx_mid - line_w // 2, 455, lx_mid + line_w // 2, 455), fill=pal["amber"], width=4)
+    if kicker:
+        draw_wrapped_text(draw, kicker, get_font(26, bold=True), 120, 405, VIDEO_WIDTH - 240, pal["amber"], align="center", max_lines=1)
 
-    # Big kinetic word-by-word reveal of the focal statement
+    # Reveal 100% of statement words well before scene end (by progress >= 0.65)
     words = statement.split()
     total_w = len(words)
-    vis_words = max(2, int(math.ceil(total_w * min(1.0, 0.15 + progress * 1.15))))
+    vis_words = total_w if progress >= 0.65 else max(2, int(math.ceil(total_w * min(1.0, 0.25 + progress * 1.25))))
     shown_words = words[:vis_words]
 
-    font_big = get_font(56, bold=True)
-    # Measure and wrap into balanced centered lines
+    # Dynamic font scaling so longer takeaways never truncate or overflow
+    font_size = 56 if total_w <= 9 else (48 if total_w <= 15 else 42)
+    font_big = get_font(font_size, bold=True)
+    line_h = font_size + 24
+
+    # Measure and wrap ALL words cleanly into balanced centered lines
     lines = []
     cur = []
     for w in shown_words:
@@ -1230,43 +1850,44 @@ def _render_kinetic_statement(draw: ImageDraw.Draw, data: Dict[str, Any], progre
     if cur:
         lines.append(cur)
 
-    y_cursor = 540
-    for line_words in lines[:4]:
+    y_cursor = 525
+    for line_words in lines[:6]:
         line_str = " ".join(line_words)
         line_bbox = font_big.getbbox(line_str)
         line_px = line_bbox[2] - line_bbox[0]
         cur_x = (VIDEO_WIDTH - line_px) // 2
         for w in line_words:
-            is_hl = hl_word and hl_word in w.lower()
-            fill_c = NEON_CYAN if is_hl else TEXT_PRIMARY
+            is_hl = bool(hl_word and hl_word in w.lower())
+            fill_c = pal["cyan"] if is_hl else pal["text"]
             w_draw = w + " "
             draw.text((cur_x, y_cursor), w_draw, fill=fill_c, font=font_big)
             if is_hl:
                 wb = font_big.getbbox(w)
-                draw.line((cur_x, y_cursor + 66, cur_x + (wb[2] - wb[0]), y_cursor + 66), fill=NEON_AMBER, width=5)
+                draw.line((cur_x, y_cursor + font_size + 10, cur_x + (wb[2] - wb[0]), y_cursor + font_size + 10), fill=pal["amber"], width=5)
             cur_x += font_big.getbbox(w_draw)[2] - font_big.getbbox(w_draw)[0]
-        y_cursor += 82
+        y_cursor += line_h
 
-    # Clean floating bottom accent tags (appear progressively >= 0.55)
-    if tags and progress >= 0.55:
-        tag_y = 1040
+    # Clean floating bottom accent tags (appear progressively >= 0.42 so all 3 are visible cleanly)
+    if tags and progress >= 0.42:
+        tag_y = max(y_cursor + 50, 1030)
         spacing = 24
         tag_w = 270
         visible_tags = tags[:3]
         total_tags_w = len(visible_tags) * tag_w + (len(visible_tags) - 1) * spacing
         tx0 = (VIDEO_WIDTH - total_tags_w) // 2
         for idx, tg in enumerate(visible_tags):
-            if progress < (0.55 + idx * 0.12):
+            if progress < (0.42 + idx * 0.08):
                 continue
             bx = tx0 + idx * (tag_w + spacing)
-            draw.rounded_rectangle((bx, tag_y, bx + tag_w, tag_y + 72), radius=36, fill=(15, 30, 45, 240), outline=NEON_EMERALD, width=3)
-            draw_wrapped_text(draw, str(tg).upper(), get_font(21, bold=True), bx + 12, tag_y + 22, tag_w - 24, TEXT_PRIMARY, align="center", max_lines=1)
+            draw.rounded_rectangle((bx, tag_y, bx + tag_w, tag_y + 72), radius=36, fill=pal["card_bg"], outline=pal["emerald"], width=3)
+            draw_wrapped_text(draw, str(tg).upper(), get_font(21, bold=True), bx + 12, tag_y + 22, tag_w - 24, pal["text"], align="center", max_lines=1)
 
 
 # =========================================================================
 # 14. STEP TIMELINE (Glowing Vertical Progress Rail + Numbered Milestones)
 # =========================================================================
 def _render_step_timeline(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:
+    pal = _ACTIVE_PAL
     steps = data.get("steps") or data.get("nodes") or []
     if not steps:
         steps = [
@@ -1283,11 +1904,12 @@ def _render_step_timeline(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
     end_y = start_y + (n - 1) * gap
 
     # Background vertical rail + animated glowing active progress fill
-    draw.line((rail_x, start_y, rail_x, end_y), fill=(51, 65, 85, 220), width=8)
+    rail_track = (203, 213, 225, 220) if pal.get("is_light") else (51, 65, 85, 220)
+    draw.line((rail_x, start_y, rail_x, end_y), fill=rail_track, width=8)
     fill_y = start_y + int((end_y - start_y) * min(1.0, progress * 1.05))
-    draw.line((rail_x, start_y, rail_x, fill_y), fill=NEON_CYAN, width=8)
+    draw.line((rail_x, start_y, rail_x, fill_y), fill=pal["cyan"], width=8)
 
-    colors = [NEON_CYAN, NEON_PURPLE, NEON_AMBER, NEON_EMERALD]
+    colors = [pal["cyan"], pal["purple"], pal["amber"], pal["emerald"]]
     for i, st_item in enumerate(steps):
         gate = 0.0 if i == 0 else (i * (0.80 / max(1, n - 1)))
         if progress < gate:
@@ -1301,7 +1923,7 @@ def _render_step_timeline(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
 
         # Glowing milestone circle node
         r = 38 if is_active else 34
-        draw.ellipse((rail_x - r, sy - r, rail_x + r, sy + r), fill=(15, 23, 42, 250), outline=c, width=4)
+        draw.ellipse((rail_x - r, sy - r, rail_x + r, sy + r), fill=pal["card_bg"], outline=c, width=4)
         nb = get_font(26, bold=True).getbbox(num_txt)
         draw.text((rail_x - (nb[2] - nb[0]) // 2, sy - 16), num_txt, fill=c, font=get_font(26, bold=True))
 
@@ -1309,10 +1931,10 @@ def _render_step_timeline(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
         draw.line((rail_x + r, sy, rail_x + r + 35, sy), fill=c, width=3)
         rx = rail_x + r + 48
         rw = VIDEO_WIDTH - rx - 80
-        draw.rounded_rectangle((rx, sy - 62, rx + rw, sy + 62), radius=18, fill=CARD_BG, outline=c if is_active else CARD_BORDER, width=3 if is_active else 1)
-        draw_wrapped_text(draw, st_title, get_font(31, bold=True), rx + 26, sy - 42, rw - 52, TEXT_PRIMARY, max_lines=1)
+        draw.rounded_rectangle((rx, sy - 62, rx + rw, sy + 62), radius=18, fill=pal["card_bg"], outline=c if is_active else pal["card_border"], width=3 if is_active else 1)
+        draw_wrapped_text(draw, st_title, get_font(31, bold=True), rx + 26, sy - 42, rw - 52, pal["text"], max_lines=1)
         if st_desc:
-            draw_wrapped_text(draw, st_desc, get_font(23), rx + 26, sy + 6, rw - 52, TEXT_MUTED, max_lines=2)
+            draw_wrapped_text(draw, st_desc, get_font(23), rx + 26, sy + 6, rw - 52, pal["muted"], max_lines=2)
 
 # =========================================================================
 # ALL-IN-ONE TECH CANVAS VECTOR SHAPES & 2D MOTION GRAPHICS
@@ -1549,14 +2171,15 @@ def _draw_cloud_vpc_boundary(
     label: str = "AWS VPC REGION (us-east-1)",
     color: Tuple[int, int, int] = NEON_CYAN
 ) -> None:
-    """Draws a dashed glowing cloud/VPC security boundary enclosing services."""
-    draw.rounded_rectangle((x, y, x + w, y + h), radius=28, fill=(15, 23, 42, 130), outline=color, width=2)
+    """Draws a crisp dark-embedded glowing cloud/VPC security boundary enclosing vector nodes."""
+    fill_col = (15, 23, 42, 245) if _ACTIVE_PAL.get("is_light") else (15, 23, 42, 165)
+    draw.rounded_rectangle((x, y, x + w, y + h), radius=28, fill=fill_col, outline=color, width=3)
     clean_lbl = label.strip()
     lbl_font = get_font(17, bold=True)
     bbox = lbl_font.getbbox(clean_lbl)
     text_w = bbox[2] - bbox[0]
     badge_w = min(680, text_w + 52)
-    draw.rounded_rectangle((x + 28, y - 18, x + 28 + badge_w, y + 18), radius=14, fill=(15, 23, 42, 240), outline=color, width=2)
+    draw.rounded_rectangle((x + 28, y - 18, x + 28 + badge_w, y + 18), radius=14, fill=(15, 23, 42, 248), outline=color, width=2)
     draw.ellipse((x + 42, y - 6, x + 54, y + 6), fill=color)
     draw.text((x + 62, y - 11), clean_lbl, fill=color, font=lbl_font)
 
@@ -1781,30 +2404,22 @@ def _render_all_in_one_tech_canvas(draw: ImageDraw.Draw, data: Dict[str, Any], p
         px, py, plbl = 810, 978, "STEP 5: OUTPUT"
     _draw_motion_pointer(draw, px, py, label=plbl, progress=progress, color=NEON_AMBER)
 
-    # 5. Bottom Status Tag or Telemetry HUD (reveals cleanly near end of scene)
+    # 5. Optional Bottom Status Tag or explicit HUD (zero fake placeholder metrics!)
     if show_hud:
+        pal = _ACTIVE_PAL
         hx, hy, hw, hh = 50, 1265, 980, 155
         status_tag = data.get("status_tag") or data.get("bottom_tag")
+        hud_items = data.get("hud_items")
         if status_tag:
-            draw.rounded_rectangle((hx, hy + 20, hx + hw, hy + 115), radius=22, fill=(11, 28, 26, 245), outline=NEON_EMERALD, width=3)
-            draw_wrapped_text(draw, str(status_tag).upper(), get_font(26, bold=True), hx + 30, hy + 52, hw - 60, NEON_EMERALD, align="center", max_lines=1)
-        else:
-            draw.rounded_rectangle((hx, hy, hx + hw, hy + hh), radius=22, fill=(11, 18, 33, 245), outline=NEON_EMERALD, width=3)
-            col_w = hw // 3
-            draw_wrapped_text(draw, "* PIPELINE FLOW", get_font(17, bold=True), hx + 25, hy + 18, col_w - 40, NEON_CYAN, max_lines=1)
-            draw_wrapped_text(draw, "Async Stream", get_font(25, bold=True), hx + 25, hy + 48, col_w - 40, TEXT_PRIMARY, max_lines=1)
-            draw_wrapped_text(draw, "Progressive Sync", get_font(15), hx + 25, hy + 88, col_w - 40, TEXT_MUTED, max_lines=1)
-
-            draw_wrapped_text(draw, "* LATENCY TARGET", get_font(17, bold=True), hx + col_w + 25, hy + 18, col_w - 40, NEON_AMBER, max_lines=1)
-            draw_wrapped_text(draw, "Low Overhead", get_font(25, bold=True), hx + col_w + 25, hy + 48, col_w - 40, NEON_AMBER, max_lines=1)
-            draw_wrapped_text(draw, "Optimized Execution", get_font(15), hx + col_w + 25, hy + 88, col_w - 40, TEXT_MUTED, max_lines=1)
-
-            draw_wrapped_text(draw, "* RELIABILITY", get_font(17, bold=True), hx + (col_w * 2) + 25, hy + 18, col_w - 40, NEON_EMERALD, max_lines=1)
-            draw_wrapped_text(draw, "Production Ready", get_font(25, bold=True), hx + (col_w * 2) + 25, hy + 48, col_w - 40, NEON_EMERALD, max_lines=1)
-            draw_wrapped_text(draw, "Zero Data Loss", get_font(15), hx + (col_w * 2) + 25, hy + 88, col_w - 40, TEXT_MUTED, max_lines=1)
-
-            draw.rounded_rectangle((hx + 20, hy + hh - 36, hx + hw - 20, hy + hh - 10), radius=8, fill=(16, 185, 129, 45), outline=NEON_EMERALD, width=1)
-            draw_wrapped_text(draw, "REAL-TIME PROGRESSIVE ARCHITECTURE", get_font(15, bold=True), hx + 40, hy + hh - 32, hw - 80, TEXT_PRIMARY, align="center", max_lines=1)
+            draw.rounded_rectangle((hx, hy + 20, hx + hw, hy + 115), radius=22, fill=pal["emerald_bg"], outline=pal["emerald"], width=3)
+            draw_wrapped_text(draw, str(status_tag).upper(), get_font(26, bold=True), hx + 30, hy + 52, hw - 60, pal["emerald"], align="center", max_lines=1)
+        elif isinstance(hud_items, list) and len(hud_items) >= 2:
+            draw.rounded_rectangle((hx, hy, hx + hw, hy + hh), radius=22, fill=pal["card_bg"], outline=pal["accent"], width=3)
+            col_w = hw // min(3, len(hud_items))
+            for h_idx, h_it in enumerate(hud_items[:3]):
+                DrawX = hx + (col_w * h_idx) + 25
+                draw_wrapped_text(draw, str(h_it.get("label", "")).upper(), get_font(18, bold=True), DrawX, hy + 24, col_w - 40, pal["accent"], max_lines=1)
+                draw_wrapped_text(draw, str(h_it.get("val", "")), get_font(28, bold=True), DrawX, hy + 62, col_w - 40, pal["text"], max_lines=1)
 
 
 def _draw_watermark(
@@ -1813,49 +2428,49 @@ def _draw_watermark(
     canvas_h: int,
     watermark_text: str = DEFAULT_WATERMARK
 ) -> None:
-    """Draws a sleek, glassmorphic channel watermark in the top-right corner."""
+    """Draws a sleek channel watermark in the top-right corner adapted to light/dark art style."""
     if not watermark_text:
         return
+    pal = _ACTIVE_PAL
     font_wm = get_font(24, bold=True)
     text = watermark_text.strip()
     bbox = font_wm.getbbox(text)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
-    
+
     pad_x = 16
     pad_y = 8
-    badge_w = tw + (pad_x * 2) + 16  # room for cyan dot
+    badge_w = tw + (pad_x * 2) + 16
     badge_h = th + (pad_y * 2)
-    
-    # Top-right corner, below the top progress bar
+
     bx = canvas_w - badge_w - 36
     by = 44
-    
-    # Outer glow
+    accent = pal["accent"]
+    fill_bg = (255, 255, 255, 235) if pal.get("is_light") else (15, 23, 42, 220)
+    txt_col = pal["text"]
+
     draw.rounded_rectangle(
         (bx - 1, by - 1, bx + badge_w + 1, by + badge_h + 1),
         radius=badge_h // 2,
-        fill=(56, 189, 248, 40)
+        fill=(*accent, 38)
     )
-    # Glassmorphic dark card
     draw.rounded_rectangle(
         (bx, by, bx + badge_w, by + badge_h),
         radius=badge_h // 2,
-        fill=(15, 23, 42, 220),
-        outline=(56, 189, 248, 180),
+        fill=fill_bg,
+        outline=(*accent, 180),
         width=2
     )
-    
-    # Glowing neon cyan dot
+
     dot_r = 4
     dot_x = bx + pad_x + 4
     dot_y = by + (badge_h // 2)
-    draw.ellipse((dot_x - dot_r, dot_y - dot_r, dot_x + dot_r, dot_y + dot_r), fill=(56, 189, 248, 255))
-    
-    # Text
+    draw.ellipse((dot_x - dot_r, dot_y - dot_r, dot_x + dot_r, dot_y + dot_r), fill=(*accent, 255))
+
     tx = dot_x + dot_r + 8
     ty = by + pad_y - 2
-    draw.text((tx, ty), text, fill=(248, 250, 252, 240), font=font_wm)
+    draw.text((tx, ty), text, fill=txt_col, font=font_wm)
+
 
 def generate_thumbnail_9_16(
     topic: str,
@@ -1865,125 +2480,53 @@ def generate_thumbnail_9_16(
     output_path: Any = None
 ) -> Path:
     """
-    Generates a high-impact 1080x1920 (9:16) thumbnail image for YouTube Shorts & Instagram Reels:
-    - High-contrast viral topic headline
-    - Cyber-tech neon border & background styling
-    - Channel watermark @Code_With_Mangesh in top corner
-    - Centerpiece tech architecture/code/comparison graphic card
-    - Bottom punchy badge hook
+    Generates a high-impact 1080x1920 (9:16) thumbnail image matching the reel's
+    art_style and centerpiece visual (supports custom_scene & all modular engines).
     """
     import time
     canvas_w = 1080
     canvas_h = 1920
-    im = Image.new("RGB", (canvas_w, canvas_h), COLOR_BG_DARK)
+    art_style = str(timeline.get("art_style", "editorial_dark")) if isinstance(timeline, dict) else "editorial_dark"
+    im, theme_cfg = _build_themed_canvas(canvas_w, canvas_h, "cyber_cyan", art_style=art_style)
+    pal = _ACTIVE_PAL
     draw = ImageDraw.Draw(im, "RGBA")
-    
-    # Outer modern neon frame (inset 24px)
-    draw.rounded_rectangle((24, 24, canvas_w - 24, canvas_h - 24), radius=36, outline=(56, 189, 248, 120), width=4)
-    draw.rounded_rectangle((32, 32, canvas_w - 32, canvas_h - 32), radius=30, outline=(168, 85, 247, 50), width=2)
-    
-    # Story progress bar at top
-    _draw_story_progress_bar(draw, total_scenes=4, current_scene=1, progress=0.25)
-    
-    # Top-right watermark (@Code_With_Mangesh)
+    accent = pal["accent"]
+
+    # Top story progress bar & watermark
+    _draw_story_progress_bar(draw, total_scenes=4, current_scene=1, progress=0.25, canvas_w=canvas_w, accent=accent)
     _draw_watermark(draw, canvas_w, canvas_h, watermark)
-    
-    # Top category pill badge
-    badge_text = "⚡ SYSTEM DESIGN & ARCHITECTURE"
-    if timeline and isinstance(timeline, dict) and "scenes" in timeline and len(timeline["scenes"]) > 0:
-        first_sc = timeline["scenes"][0]
-        badge_text = first_sc.get("visual_data", {}).get("badge", badge_text)
-    
-    font_badge = get_font(28, bold=True)
-    badge_bbox = font_badge.getbbox(badge_text)
-    bw = min(880, (badge_bbox[2] - badge_bbox[0]) + 50)
-    bh = 54
-    bx = (canvas_w - bw) // 2
-    by = 120
-    draw.rounded_rectangle((bx - 2, by - 2, bx + bw + 2, by + bh + 2), radius=27, fill=(56, 189, 248, 45))
-    draw.rounded_rectangle((bx, by, bx + bw, by + bh), radius=26, fill=(15, 23, 42, 240), outline=NEON_CYAN, width=3)
-    draw.text((bx + (bw - (badge_bbox[2] - badge_bbox[0])) // 2, by + 11), badge_text, fill=NEON_CYAN, font=font_badge)
-    
-    # Viral Topic Title (Large, 58pt bold)
-    title_text = topic.strip()
-    if len(title_text) > 90:
-        title_text = title_text[:87] + "..."
-    font_title = get_font(58, bold=True)
-    max_title_w = 920
-    title_x = (canvas_w - max_title_w) // 2
-    title_y = by + 85
-    draw_wrapped_text(draw, title_text, font_title, title_x, title_y, max_title_w, TEXT_PRIMARY, line_spacing=12, align="center", max_lines=3)
-    
-    # Center Graphic (Render scene visual at progress 1.0)
+
+    # Top category badge & headline
+    badge_text = ""
+    if timeline and isinstance(timeline, dict) and timeline.get("scenes"):
+        badge_text = str(timeline["scenes"][0].get("visual_data", {}).get("badge", ""))
+    _draw_header(draw, badge_text, topic.strip()[:85], accent=accent, art_style=art_style)
+
+    # Centerpiece graphic (render scene visual at progress 1.0)
     target_scene = None
-    if timeline and isinstance(timeline, dict) and "scenes" in timeline:
+    if timeline and isinstance(timeline, dict) and timeline.get("scenes"):
         for sc in timeline["scenes"]:
-            if sc.get("visual_type") in ["architecture_flow", "code_terminal", "sql_table", "split_comparison", "benchmark_chart"]:
+            if sc.get("visual_type") in ["custom_scene", "architecture_flow", "code_terminal", "sql_table", "split_comparison", "benchmark_chart", "hero_hook"]:
                 target_scene = sc
                 break
-        if not target_scene and len(timeline["scenes"]) > 0:
+        if not target_scene:
             target_scene = timeline["scenes"][0]
-            
-    if not target_scene:
-        target_scene = {
-            "visual_type": "architecture_flow",
-            "visual_data": {
-                "badge": "SYSTEM DESIGN",
-                "title": topic[:40],
-                "nodes": [
-                    {"id": "src", "label": "Client / Ingestion", "sub": "Requests & Traffic", "color": "#38BDF8"},
-                    {"id": "eng", "label": "Core Engine", "sub": "Zero-Downtime Pipeline", "color": "#FBBF24"},
-                    {"id": "dst", "label": "Distributed Store", "sub": "HA Cluster & Cache", "color": "#34D399"}
-                ]
-            }
-        }
-        
-    v_type = target_scene.get("visual_type", "architecture_flow")
-    v_data = target_scene.get("visual_data", {})
-    
-    if v_type == "split_comparison":
-        _render_split_comparison(draw, v_data, 1.0)
-    elif v_type == "benchmark_chart":
-        _render_benchmark_chart(draw, v_data, 1.0)
-    elif v_type == "circular_hub_mesh":
-        _render_circular_hub_mesh(draw, v_data, 1.0)
-    elif v_type == "metric_gauge_hud":
-        _render_metric_gauge_hud(draw, v_data, 1.0)
-    elif v_type == "data_structure_memory":
-        _render_data_structure_memory(draw, v_data, 1.0)
-    elif v_type == "sql_table":
-        _render_sql_table(draw, v_data, 1.0)
-    elif v_type == "code_terminal":
-        _render_code_terminal(draw, v_data, 1.0)
-    elif v_type == "alert_diagram":
-        _render_alert_diagram(draw, v_data, 1.0)
-    elif v_type == "architecture_flow":
-        _render_architecture_flow(draw, v_data, 1.0)
-    elif v_type == "all_in_one_tech_canvas":
-        _render_all_in_one_tech_canvas(draw, v_data, 1.0)
-    else:
-        _render_concept_cards(draw, v_data, 1.0)
-        
-    # Bottom Viral Callout Card (y = 1540 to y = 1780)
+
+    if target_scene:
+        _dispatch_visual_renderer(draw, target_scene.get("visual_type", "custom_scene"), target_scene.get("visual_data", {}), 1.0)
+
+    # Clean bottom channel footer card (zero canned slogans)
     card_w = 940
-    card_h = 240
+    card_h = 150
     cx = (canvas_w - card_w) // 2
-    cy = 1540
-    
-    draw.rounded_rectangle((cx - 2, cy - 2, cx + card_w + 2, cy + card_h + 2), radius=32, fill=(56, 189, 248, 50))
-    draw.rounded_rectangle((cx, cy, cx + card_w, cy + card_h), radius=30, fill=(15, 23, 42, 245), outline=NEON_CYAN, width=3)
-    
-    tag_font = get_font(26, bold=True)
-    draw.text((cx + 50, cy + 30), "🔥 100% PRODUCTION ARCHITECTURE", fill=NEON_AMBER, font=tag_font)
-    
-    hook_font = get_font(38, bold=True)
-    draw_wrapped_text(draw, "Explain Like a Staff Engineer • Zero Fluff", hook_font, cx + 50, cy + 72, 840, TEXT_PRIMARY, max_lines=1)
-    
-    ch_font = get_font(30, bold=True)
-    draw.text((cx + 50, cy + 145), f"🎬 Follow {watermark} for Daily Tech Reels", fill=NEON_CYAN, font=ch_font)
-    
+    cy = 1600
+    draw.rounded_rectangle((cx, cy, cx + card_w, cy + card_h), radius=26, fill=pal["card_bg"], outline=accent, width=3)
+    draw_wrapped_text(draw, str(timeline.get("hook_headline") or topic.strip())[:70] if isinstance(timeline, dict) else topic.strip()[:70], get_font(34, bold=True), cx + 40, cy + 28, card_w - 80, pal["text"], align="center", max_lines=1)
+    if watermark:
+        draw_wrapped_text(draw, watermark, get_font(26, bold=True), cx + 40, cy + 84, card_w - 80, accent, align="center", max_lines=1)
+
     if output_path is None:
         output_path = OUTPUT_DIR / f"thumbnail_9x16_{int(time.time())}.png"
-        
+
     im.save(output_path, "PNG", quality=98)
     return output_path

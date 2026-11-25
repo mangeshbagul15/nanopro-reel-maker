@@ -7,12 +7,14 @@ def generate_ass_subtitles(
     output_path: Path = None,
     format_ratio: str = "9:16",
     tone: str = "auto_dynamic",
-    aligned_scenes: List[Dict[str, Any]] = None
+    aligned_scenes: List[Dict[str, Any]] = None,
+    art_style: str = "editorial_dark"
 ) -> Path:
     """
     Generates an Advanced SubStation Alpha (.ass) subtitle file with viral
-    TikTok / Instagram Reels style synchronized to aspect ratio AND script tone:
+    TikTok / Instagram Reels style synchronized to aspect ratio, visual art_style AND script tone:
     - Dynamic highlight colors & kinetic pop matched to chosen/per-scene tone
+    - High-contrast opaque pill backing when art_style == 'light_whiteboard'
     - Safe-zone positioning adapted to aspect ratio (9:16, 16:9, 1:1)
     - Devanagari (Hindi/Marathi) + English technical terms cleanly rendered
     """
@@ -32,6 +34,12 @@ def generate_ass_subtitles(
         font_size = 62
         margin_v = 420
 
+    # Light-mode canvas needs solid dark pill / heavier outline so white+yellow karaoke text pops cleanly
+    is_light_canvas = (str(art_style).lower().strip() == "light_whiteboard")
+    border_style = 3 if is_light_canvas else 1
+    outline_px = 12 if is_light_canvas else 5
+    back_col = "&HC80F172A" if is_light_canvas else "&H90000000"
+
     # ASS Header & Styles - strictly constrained to chosen aspect ratio safe frame
     ass_content = [
         "[Script Info]",
@@ -42,7 +50,7 @@ def generate_ass_subtitles(
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        f"Style: ReelHighlight,Nirmala UI,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,5,2,2,80,80,{margin_v},1",
+        f"Style: ReelHighlight,Nirmala UI,{font_size},&H00FFFFFF,&H0000FFFF,&H000F172A,{back_col},-1,0,0,0,100,100,1,0,{border_style},{outline_px},2,2,80,80,{margin_v},1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"

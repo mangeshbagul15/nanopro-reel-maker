@@ -192,6 +192,21 @@ Select the most appropriate visual_type for each scene from the following suppor
     "accent_theme": "cyber_cyan"
   }
 
+- "custom_scene":
+  visual_data: {
+    "badge": "SCENE CATEGORY",
+    "title": "Concise Scene Title",
+    "art_style": "light_whiteboard / editorial_dark / blueprint_grid / neon_fireship",
+    "blocks": [
+      {"block": "big_stat", "number": "3", "label": "QUESTIONS ASKED IN SOC INTERVIEWS", "sub": "", "stage": 1},
+      {"block": "question_card", "eyebrow": "", "text": "Your exact focal question or hook line", "stage": 1},
+      {"block": "pills", "items": ["Item 1", "Item 2", "Item 3"], "mode": "row / grid / vs", "stage": 2},
+      {"block": "flow_chain", "nodes": [{"title": "Node A", "sub": "Detail"}, {"title": "Node B", "sub": "Detail"}], "arrows": ["Action Label ->"], "stage": 2},
+      {"block": "list_cards", "items": [{"title": "Point 1", "desc": "Exact detail", "kind": "check / warn / info"}], "stage": 3},
+      {"block": "banner", "text": "Bottom CTA or Warning Callout", "tone": "cta / warn / highlight", "stage": 4}
+    ]
+  }
+
 - "all_in_one_tech_canvas":
   visual_data: {
     "badge": "SYSTEM ARCHITECTURE",
@@ -217,7 +232,8 @@ STRICT JSON OUTPUT FORMAT ONLY:
 Output a single valid JSON object matching this structure:
 {
   "title": "Topic Title",
-  "topic_category": "cloud / database / programming / system_design",
+  "topic_category": "cloud / database / programming / system_design / security / ai",
+  "art_style": "editorial_dark / blueprint_grid / light_whiteboard / neon_fireship",
   "total_target_seconds": 60,
   "scenes": [
     {
@@ -225,7 +241,7 @@ Output a single valid JSON object matching this structure:
       "role": "hook",
       "scene_tone": "fireship_octane / dramatic_performance / staff_engineer / conversational_casual / interview_prep",
       "narration": "Narration text with natural pauses...",
-      "visual_type": "hero_hook",
+      "visual_type": "custom_scene",
       "choreography": {
         "mode": "progressive_node_edge",
         "triggers": [
@@ -238,8 +254,9 @@ Output a single valid JSON object matching this structure:
       "visual_data": {
         "badge": "BADGE TEXT",
         "title": "Scene Title",
+        "art_style": "editorial_dark / blueprint_grid / light_whiteboard / neon_fireship",
         "accent_theme": "indigo_cyan / cyber_cyan / emerald_matrix / gold_purple / crimson_alert",
-        "...": "Fields strictly populated from the schema above"
+        "...": "Fields strictly populated from the schema above (for big_stat ALWAYS use 'value' key)"
       }
     }
   ]
@@ -248,22 +265,20 @@ Output a single valid JSON object matching this structure:
 
 ENGINE_STYLE_DIRECTIVES = {
     "auto_dynamic": (
-        "AI AUTONOMOUS VISUAL & CHOREOGRAPHY DIRECTOR MODE (RECOMMENDED): "
-        "You have full creative & architectural autonomy to make EVERY video look distinct, non-repetitive, and tightly mapped to what is spoken! "
-        "ANTI-REPETITION RULE: NEVER start every video with the same red radar `alert_diagram`! "
-        "Pick the Scene-1 Hook dynamically:\n"
-        "  - Use `hero_hook` for interview questions, dilemmas, 'X vs Y' debates, or conceptual questions (shows hero question card + 2 side pills + stat callout!).\n"
-        "  - Use `split_comparison` when comparing two approaches directly.\n"
-        "  - Use `benchmark_chart` when leading with a 10x speedup/performance hook.\n"
-        "  - Use `code_terminal` or `sql_table` when starting with a query/code bug.\n"
-        "  - ONLY use `alert_diagram` when the topic is specifically a production server crash, deadlock, or outage!\n"
-        "For subsequent scenes, mix `step_timeline` (glowing vertical 01->04 timeline), `kinetic_statement` (huge high-impact typographic slide without boxes), `architecture_flow`, "
-        "`all_in_one_tech_canvas` (rich cloud/microservices ecosystems), `hybrid_merge` (combining 2 pillars into unified outcomes), "
-        "`split_comparison`, `concept_cards` (with `warning_box` and/or `footer_cta` when appropriate), `sql_table`, `data_structure_memory`, `code_terminal`, and `circular_hub_mesh`.\n"
-        "NEVER use generic textbook phrases like 'Which architecture pattern fits your production requirements?' on-screen — always put the user's REAL question, REAL Hinglish/English terms, and REAL examples!\n"
-        "Always vary `accent_theme` (`indigo_cyan`, `emerald_matrix`, `gold_purple`, `cyber_cyan`, `crimson_alert`) and per-scene `scene_tone` across scenes so text, voice emotion, and storyboard visuals stay genuinely dynamic! "
-        "If the user provided a Custom Script / Visuals / Progressive Flow, honor their exact scene structure, labels, warning boxes, and CTAs! "
-        "MANDATORY AUDIO-VISUAL SYNC CHOREOGRAPHY: For EVERY scene, output `choreography` with `mode` and `triggers` containing 4 chronological keywords copied verbatim from that scene's `narration`."
+        "AI AUTONOMOUS VISUAL & STORYBOARD COMPOSER MODE (ZERO HARDCODED TEMPLATES): "
+        "Every topic and custom script MUST feel visually unique in composition, typography, color world, and layout! "
+        "1. MATCH `art_style` TO THE TOPIC DOMAIN (never default every topic to the same style!):\n"
+        "   - `blueprint_grid`: Deep sapphire CAD grid (best for cybersecurity, SOC, networking, infra, Cloud/K8s, SRE, systems internals).\n"
+        "   - `editorial_dark`: Sleek charcoal matte keynote with bold left-aligned editorial type (best for interviews, career advice, trade-offs, staff engineering stories).\n"
+        "   - `light_whiteboard`: Clean off-white ByteByteGo whiteboard paper (best for step-by-step tutorials, ML/AI comparisons, RAG/data pipelines, conceptual diagrams).\n"
+        "   - `neon_fireship`: High-energy cyber streaks (best for rapid coding comparisons, hot takes, benchmarks, debugging bugs).\n"
+        "2. PREFER COMPOSABLE `custom_scene` OR VARIED ENGINES PER SCENE:\n"
+        "   - NEVER force non-comparison lists (like '3 questions', '3 rules', '4 stages') into a `VS` template!\n"
+        "   - For 3-item hooks or custom user Visuals/Progressive Flow specs, use `custom_scene` with exact `blocks` (`big_stat`, `question_card`, `pills` with mode='row'/'grid'/'vs', `flow_chain`, `list_cards`, `banner`).\n"
+        "   - Also mix `step_timeline`, `kinetic_statement`, `split_comparison` (set `neutral_mode: true` & `show_vs: true/false` appropriately), `sql_table`, `code_terminal`, `benchmark_chart`, `hybrid_merge`, `circular_hub_mesh`, and `all_in_one_tech_canvas`.\n"
+        "   - ONLY use `alert_diagram` for real production crashes/outages.\n"
+        "3. ZERO CANNED FILLER TEXT: Put the user's ACTUAL question, Hinglish/Marathi/English terms, CTAs ('Comment SOC...'), and warnings verbatim into visual_data.\n"
+        "4. MANDATORY AUDIO-VISUAL SYNC CHOREOGRAPHY: For EVERY scene, output `scene_tone` and `choreography.triggers` (4 chronological keywords from `narration`)."
     ),
     "all_in_one_tech_canvas": (
         "CRITICAL MANDATORY INSTRUCTION: The user explicitly selected 'All-in-One Tech Canvas'. "
@@ -632,7 +647,18 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
         "timeline": "step_timeline",
         "steps": "step_timeline",
         "step_flow": "step_timeline",
+        "custom": "custom_scene",
+        "storyboard": "custom_scene",
+        "composable": "custom_scene",
+        "custom_canvas": "custom_scene",
     }
+
+    # Deterministically pick a fresh visual art_style from topic hash if AI omitted one
+    art_styles = ["light_whiteboard", "editorial_dark", "blueprint_grid", "neon_fireship"]
+    topic_art_style = timeline.get("art_style") or art_styles[abs(hash(topic.strip().lower())) % len(art_styles)]
+    if topic_art_style not in art_styles:
+        topic_art_style = art_styles[0]
+    timeline["art_style"] = topic_art_style
 
     role_tone_defaults = ["fireship_octane", "staff_engineer", "dramatic_performance", "interview_prep", "conversational_casual"]
     for idx, sc in enumerate(scenes):
@@ -642,7 +668,9 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
             sc["scene_tone"] = role_tone_defaults[idx % len(role_tone_defaults)]
 
         v_data = sc.get("visual_data", {})
-        raw_vtype = str(sc.get("visual_type", "concept_cards")).lower().strip()
+        if not v_data.get("art_style"):
+            v_data["art_style"] = topic_art_style
+        raw_vtype = str(sc.get("visual_type", "custom_scene")).lower().strip()
         current_vtype = vtype_aliases.get(raw_vtype, raw_vtype)
         sc["visual_type"] = current_vtype
         
@@ -656,17 +684,23 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 sc["visual_type"] = target_type
                 current_vtype = target_type
 
-        # Anti-Repetition Safety in auto_dynamic: if Scene 1 defaulted to alert_diagram on non-outage topics, upgrade to hero_hook
+        # Anti-Repetition Safety in auto_dynamic: if Scene 1 defaulted to alert_diagram on non-outage topics, use custom_scene
         if engine_style == "auto_dynamic" and idx == 0 and current_vtype == "alert_diagram":
             topic_l = topic.lower()
             outage_kw = ["crash", "outage", "down", "lock", "deadlock", "incident", "failure", "oom"]
             if not any(kw in topic_l for kw in outage_kw):
-                sc["visual_type"] = "hero_hook"
-                current_vtype = "hero_hook"
+                sc["visual_type"] = "custom_scene"
+                current_vtype = "custom_scene"
+                if not v_data.get("blocks"):
+                    q_title = v_data.get("problem_title") or v_data.get("title") or topic[:60]
+                    v_data["blocks"] = [
+                        {"block": "question_card", "text": q_title, "stage": 1},
+                        {"block": "banner", "text": v_data.get("challenge") or sc.get("narration", "")[:70], "tone": "highlight", "stage": 2}
+                    ]
 
         # Ensure required data structures are present and rich for the active visual_type
         title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
-        default_badge = "TECH ARCHITECTURE" if engine_style in ["auto_dynamic", "hybrid_modern"] else engine_style.replace("_", " ").upper()
+        default_badge = "" if engine_style in ["auto_dynamic", "hybrid_modern"] else engine_style.replace("_", " ").upper()
         badge = v_data.get("badge") or default_badge
         v_data["title"] = title
         v_data["badge"] = badge
@@ -766,12 +800,17 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
 
         elif current_vtype == "hero_hook":
             v_data["question"] = v_data.get("question") or v_data.get("problem_title") or title
-            v_data["left_pill"] = v_data.get("left_pill") or "Approach A"
-            v_data["right_pill"] = v_data.get("right_pill") or "Approach B"
-            v_data["stat_badge"] = v_data.get("stat_badge") or v_data.get("challenge") or "KEY ENGINEERING DECISION"
-            v_data["sub_callouts"] = v_data.get("sub_callouts") or [
-                v_data.get("problem_desc") or "Choose based on data freshness & behavior",
-            ]
+            # Do NOT inject fake "Approach A / B" or "KEY ENGINEERING DECISION" filler!
+            if "pills" not in v_data and (v_data.get("left_pill") or v_data.get("right_pill")):
+                v_data["pills"] = [p for p in [v_data.get("left_pill"), v_data.get("right_pill")] if p]
+
+        elif current_vtype == "custom_scene":
+            if not v_data.get("blocks"):
+                bullets = [s.strip() for s in sc.get("narration", "").split(".") if len(s.strip()) > 6][:3]
+                v_data["blocks"] = [
+                    {"block": "question_card", "text": title, "stage": 1},
+                    {"block": "list_cards", "items": [{"title": b[:48], "desc": "", "kind": "info"} for b in bullets], "stage": 2}
+                ]
 
         elif current_vtype == "hybrid_merge":
             v_data["left_pillar"] = v_data.get("left_pillar") or {"label": "Core Logic / Style", "sub": "Consistent Output"}

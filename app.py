@@ -509,11 +509,13 @@ with tab_create:
             # STEP 4: Video Stitching via Local Hardware / Cloud
             status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 with karaoke captions & Lo-Fi audio...")
             progress_bar.progress(80)
+            art_style_val = timeline.get("art_style", "editorial_dark") if isinstance(timeline, dict) else "editorial_dark"
             subtitles_path = generate_ass_subtitles(
                 word_timestamps,
                 format_ratio=aspect_ratio[0],
                 tone=chosen_tone,
-                aligned_scenes=aligned_scenes
+                aligned_scenes=aligned_scenes,
+                art_style=art_style_val
             )
             
             final_video_path = render_final_reel(
