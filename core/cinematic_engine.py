@@ -195,16 +195,16 @@ def _draw_studio_header(
     text_fx: str = "clean_fade",
     progress: float = 1.0,
 ) -> None:
-    """Draws Callout Badge pill + Neon Rim Light + 14-FX Kinetic Studio Title."""
+    """Draws Callout Badge pill + Neon Rim Light + 14-FX Kinetic Studio Title cleanly above STAGE_Y0."""
     w = stage.world
     lx = 68
-    y_cur = 104
+    y_cur = 96
     badge_s = str(badge or callout or "").strip().upper()
     if badge_s:
-        f_b = _get_font(23, bold=True)
+        f_b = _get_font(22, bold=True)
         bb = f_b.getbbox(badge_s)
         pw = min(860, (bb[2] - bb[0]) + 56)
-        pill_box = (lx, y_cur, lx + pw, y_cur + 40)
+        pill_box = (lx, y_cur, lx + pw, y_cur + 38)
         stage.add_glow_box(pill_box, accent, radius=14, alpha=65)
         stage.draw.rounded_rectangle(
             pill_box, radius=14,
@@ -212,13 +212,13 @@ def _draw_studio_header(
             outline=_with_alpha(accent, 0.85 * stage.t_alpha),
             width=2,
         )
-        stage.draw.ellipse((lx + 14, y_cur + 15, lx + 24, y_cur + 25), fill=_with_alpha(accent, stage.t_alpha))
+        stage.draw.ellipse((lx + 14, y_cur + 14, lx + 24, y_cur + 24), fill=_with_alpha(accent, stage.t_alpha))
         stage.draw.text((lx + 34, y_cur + 7), badge_s, fill=_with_alpha(accent, stage.t_alpha), font=f_b)
-        y_cur += 54
+        y_cur += 48
 
     if title:
         draw_kinetic_text(
-            stage, str(title), (lx, y_cur), 940, _get_font(46, bold=True),
+            stage, str(title), (lx, y_cur), 940, _get_font(45, bold=True),
             accent, progress=progress, fx=text_fx, world=w,
             _with_alpha_fn=_with_alpha, _draw_wrapped_fn=_draw_wrapped_text,
         )

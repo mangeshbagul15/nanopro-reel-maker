@@ -212,7 +212,7 @@ EXTRA_32_LAYOUTS: Tuple[str, ...] = (
 )
 
 _ACCENT_CYCLE = ("cyan", "purple", "emerald", "amber", "rose")
-SX0, SY0, SX1, SY1 = 64, 358, 1016, 1426
+SX0, SY0, SX1, SY1 = 64, 328, 1016, 1406
 SW, SH = SX1 - SX0, SY1 - SY0
 
 

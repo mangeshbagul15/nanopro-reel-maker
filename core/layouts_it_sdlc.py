@@ -22,7 +22,7 @@ IT_SDLC_35_LAYOUTS: Tuple[str, ...] = (
 )
 
 _ACCENT = ("cyan", "purple", "emerald", "amber", "rose")
-SX0, SY0, SX1, SY1 = 64, 358, 1016, 1426
+SX0, SY0, SX1, SY1 = 64, 328, 1016, 1406
 SW, SH = SX1 - SX0, SY1 - SY0
 
 
@@ -47,7 +47,7 @@ def _render_horizontal_pipeline(
     n = min(5, len(items))
     if n <= 0:
         return
-    rh = min(232, (SH - 36) // n)
+    rh = min(232, (SH - (140 if n <= 4 else 36)) // n)
     prev_out = None
     prev_edge = ""
     for i, it in enumerate(items[:5]):
@@ -66,14 +66,19 @@ def _render_horizontal_pipeline(
         if prev_out is not None:
             in_x = 460 if is_left else 620
             _bezier(stage, prev_out, (in_x, cy - 58), col, reveal=gt, progress=progress, phase=i * 0.2, label=prev_edge, world=world)
-        stage.draw_glass_card((cb_x0, cy - 52, cb_x1, cy + 54), radius=20, accent_col=col, alpha_mul=gt, active=active)
+        stage.draw_glass_card((cb_x0, cy - 54, cb_x1, cy + 56), radius=20, accent_col=col, alpha_mul=gt, active=active)
         _draw_vis(stage, scx, cy - 16, 44, 20, 30, col, gt, shape=it.get("shape", default_shape), icon=it.get("icon", ""), label=it.get("name", ""), active=active, progress=progress, phase=i * 0.5)
         stage.draw.line((scx + (52 if is_left else -52), cy, cb_x0 if is_left else cb_x1, cy), fill=_with_alpha(col, gt), width=3)
-        _draw_wrapped(stage.draw, (cb_x0 + 22, cy - 34), str(it.get("name") or it.get("title") or ""), _get_font(25, bold=True), _with_alpha(world["text"], gt), cb_x1 - cb_x0 - 44, max_lines=1)
-        if it.get("sub"):
-            _draw_wrapped(stage.draw, (cb_x0 + 22, cy + 6), str(it["sub"]), _get_font(20), _with_alpha(world["muted"], gt), cb_x1 - cb_x0 - 44, max_lines=2)
+        sub_txt = str(it.get("sub") or it.get("desc") or "").strip()
+        _draw_wrapped(stage.draw, (cb_x0 + 22, cy - 36), str(it.get("name") or it.get("title") or ""), _get_font(25, bold=True), _with_alpha(world["text"], gt), cb_x1 - cb_x0 - 44, max_lines=1 if sub_txt else 2)
+        if sub_txt:
+            _draw_wrapped(stage.draw, (cb_x0 + 22, cy + 6), sub_txt, _get_font(20), _with_alpha(world["muted"], gt), cb_x1 - cb_x0 - 44, max_lines=2)
         prev_out = (460 if is_left else 620, cy + 56)
         prev_edge = str(it.get("edge", ""))
+    if n <= 4:
+        g0 = _ease(min(1.0, progress / 0.25))
+        stage.draw_glass_card((80, SY1 - 122, 1000, SY1 - 22), radius=20, accent_col=world["emerald"], alpha_mul=g0, active=True)
+        _draw_wrapped(stage.draw, (112, SY1 - 88), "Continuous Real-Time Pipeline • Zero Production Locks", _get_font(24, bold=True), _with_alpha(world["emerald"], g0), 856, align="center", max_lines=1)
 
 
 def _render_tiered_zones(

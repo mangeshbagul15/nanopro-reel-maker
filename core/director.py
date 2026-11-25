@@ -265,24 +265,24 @@ Output a single valid JSON object matching this structure:
 
 ENGINE_STYLE_DIRECTIVES = {
     "studio_300_domain": (
-        "UNLIMITED STUDIO MAX + ZERO-TEMPLATE HYBRID ENGINE (OPTION 1 + OPTION 2 COMBINED — 320+ DOMAIN LAYOUTS + DIAGRAM GRAMMAR + CUSTOM WEBGL/HTML5 + AI <svg>): "
-        "Mix bespoke zero-template scenes (`web_scene`, `svg_scene`, `spatial_canvas`) AND specialized 320+ Domain Layouts + Composable Diagram Grammar (`grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`) across every scene!\n"
-        "1. COLOR WORLDS: Any of 46 curated worlds OR `#HEX` / `visual_data.palette: {\"stops\":[\"#...\",\"#...\"],\"mode\":\"dark\"|\"light\"}`.\n"
+        "UNLIMITED STUDIO MAX + ZERO-TEMPLATE HYBRID ENGINE (OPTION 1 + OPTION 2 COMBINED — 320+ DOMAIN LAYOUTS + DIAGRAM GRAMMAR + BESPOKE WEBGL/HTML5 + AI <svg>): "
+        "Mix bespoke zero-template scenes (`web_scene`, `svg_scene`, `spatial_canvas`) AND specialized 320+ Domain Layouts across every scene! NEVER use the same layout twice in one reel!\n"
+        "1. COLOR WORLDS: Any of 46 curated worlds (`obsidian_studio`, `sapphire_3d`, `aurora_borealis`, `synthwave_84`, `studio_white`, `emerald_matrix`, `cobalt_blueprint`, `midnight_gold`, etc.) OR `#HEX`.\n"
         "2. BACKDROP, TRANSITION & TEXT FX: Vary `backdrop` (18 styles), `transition` (12 styles), and `text_fx` (14 styles) per scene.\n"
-        "3. USE CUSTOM CODE OR 320+ DOMAIN LAYOUTS:\n"
-        "   - Zero-Template Custom: `web_scene` (`visual_data.html` interactive HTML5/CSS3/Canvas3D + `window.__setStudioProgress(p,t,e)`), `svg_scene` (custom `<svg>` + `svg_animations`), `spatial_canvas`.\n"
-        "   - 320+ Domain Layouts across DSA (`consistent_hashing_ring`, `b_plus_tree_pages`, `lsm_tree_compaction`, `bloom_filter_bits`), Distributed (`raft_leader_election`, `cap_theorem_triangle`, `circuit_breaker_states`, `rate_limiter_token_bucket`), OS/Hardware (`virtual_memory_paging`, `epoll_event_loop`, `cuda_gpu_warp_grid`), Security (`oauth2_pkce_flow`, `tls_13_handshake`, `passkey_webauthn_fido2`), Web (`http1_vs_http2_vs_http3`, `webrtc_ice_stun_turn`), AI (`transformer_multihead_attn`, `lora_qlora_adapters`, `mcp_tool_protocol`, `multi_agent_supervisor`), Networking/Data/SDLC (`osi_7_layers`, `client_server_cluster`, `medallion_lakehouse`, `etl_elt_pipeline`, `sdlc_cycle_wheel`, `cicd_pipeline_stages`), Cloud (`k8s_control_plane`, `docker_overlayfs_layers`, `iceberg_snapshot_manifest`).\n"
+        "3. USE DIVERSE VISUAL TYPES ACROSS SCENES (populate rich schema fields for whichever you pick!):\n"
+        "   - Zero-Template Custom: `web_scene` (bespoke animated HTML5/Canvas3D), `svg_scene`, `spatial_canvas` (`elements` 0..1000 + `connections`).\n"
+        "   - 320+ Domain Layouts: NEVER fall back to bare `alert_diagram` without `alerts`! Populate `nodes`/`stages`/`items` (with `icon` like `'postgres'`, `'aws_rds'`, `'kafka'`, `'docker'`, `'kubernetes'`, `'router'`, `'server'` & `shape` like `'server_rack'`, `'router'`, `'network_switch'`, `'laptop'`, `'database_cluster'`). Examples: `cdc_debezium_flow`, `client_server_cluster`, `etl_elt_pipeline`, `medallion_lakehouse`, `hardware_rack_diagram`, `osi_7_layers`, `sdlc_cycle_wheel`, `cicd_pipeline_stages`, `consistent_hashing_ring`, `raft_leader_election`, `circuit_breaker_states`, `write_ahead_log_wal`, `mesh_3d_stage`, `sequence_diagram`, `layer_stack_3d`, `benchmark_3d`, `radial_gauge`.\n"
         "   - Diagram Grammar: `grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`, `grammar:tree:3`, `grammar:slots:5`.\n"
-        "   - 145 3D Shapes (`laptop`, `desktop`, `mobile`, `router`, `network_switch`, `hub`, `server_rack`, `torus_3d`, `dna_helix`, etc.) + 160+ auto-extruded Iconify SVGs (`python`, `java`, `spark`, `kafka`, `aws_s3`, `kubernetes`, etc.).\n"
         "4. Populate `scene_tone` & 4 `choreography.triggers` per scene."
     ),
     "pure_zero_template": (
-        "PURE ZERO-TEMPLATE AI CODE-AS-VIDEO ENGINE (OPTION 1 — STRICTLY ∞ CUSTOM DESIGNS, NO FIXED TEMPLATES): "
-        "CRITICAL RULE: NEVER repeat generic fixed layout cards! For EVERY scene, generate bespoke visuals uniquely crafted for the topic:\n"
-        "1. PREFERRED `visual_type=\"web_scene\"`: Write crisp self-contained `visual_data.html` (`1080x1920`, `overflow:hidden`) using rich HTML5 + CSS3 + Canvas 2D/3D WebGL + inline SVG + spring keyframe motion synchronized to `window.__setStudioProgress = function(p, curTime, energy) { ... }` (where `p` goes `0.0 -> 1.0`, leaving bottom 280px clean for subtitles).\n"
-        "2. ALTERNATE `visual_type=\"svg_scene\"`: Write a full bespoke `<svg viewBox=\"0 0 880 840\">` illustration with `<g id=\"stage_1\">`..`<g id=\"stage_6\">` + `svg_animations` (`scale_from`, `rotate_deg`, `float_amp`, `pulse`).\n"
-        "3. ALTERNATE `visual_type=\"spatial_canvas\"`: Compose freeform normalized `elements` (`0..1000`) + Bezier `connections` + 3D-extruded Iconify SVGs.\n"
-        "4. Set distinct `art_style` (46 worlds / `#HEX`), `backdrop`, `transition`, `text_fx`, `scene_tone`, and 4 `choreography.triggers`."
+        "PURE ZERO-TEMPLATE AI CODE-AS-VIDEO ENGINE (OPTION 1 — STRICTLY INFINITE BESPOKE SCENES, ZERO REPEATING TEMPLATES): "
+        "CRITICAL RULE: NEVER repeat the same layout or generic placeholders across scenes! Write rich, topic-specific structured details in `visual_data` for EVERY scene so our dedicated AI HTML5/Canvas3D Code Synthesizer builds a completely unique interactive visual composition per scene:\n"
+        "- Scene 1 (Hook/Problem): Use `alert_diagram` or `split_comparison` with real production dilemma, risk blips (`alerts`), `left_points`/`right_points`, or metrics.\n"
+        "- Scene 2 (Architecture/Flow): Use `architecture_flow`, `cdc_debezium_flow`, or `circular_hub_mesh` with concrete `nodes`/`stages`/`satellites` and service icons (`postgres`, `kafka`, `aws`, `router`, `server`).\n"
+        "- Scene 3 (Internals/Code/Stream): Use `data_structure_memory` (`entries` with hex offsets/LSN), `code_terminal` (`command`, `code_snippet`, `output`), or `sql_table`.\n"
+        "- Scene 4 (Proof/Metrics/Switch): Use `benchmark_chart` (`bars` with numeric `value`, unit `display`, `is_winner`, `winner_badge`), `metric_gauge_hud` (`main_value`, `gauge_percent`, `telemetry`), or `step_timeline`.\n"
+        "Optionally provide `visual_data.html` or `visual_data.svg` directly, AND vary `art_style`, `backdrop`, `transition`, `text_fx`, `scene_tone`, and 4 `choreography.triggers` per scene!"
     ),
     "studio_domain_library": (
         "DOMAIN LAYOUT LIBRARY PRO (OPTION 2 — 320+ SPECIALIZED DOMAIN LAYOUTS + DIAGRAM GRAMMAR): "
@@ -547,7 +547,7 @@ def generate_timeline(
                     raw_text = response.text.strip() if response.text else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone)
+                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
                         clean_json["meta_director"] = {
                             "model_used": model_name,
                             "engine_style": engine_style,
@@ -584,7 +584,7 @@ def generate_timeline(
                     raw_text = g_res.choices[0].message.content.strip() if g_res.choices else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone)
+                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
                         clean_json["meta_director"] = {
                             "model_used": f"groq/{g_model}",
                             "engine_style": engine_style,
@@ -629,7 +629,7 @@ def generate_timeline(
                         raw_text = res_json["choices"][0]["message"]["content"].strip()
                         clean_json = _extract_json(raw_text)
                         if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone)
+                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio)
                             clean_json["meta_director"] = {
                                 "model_used": f"openrouter/{or_model}",
                                 "engine_style": engine_style,
@@ -648,10 +648,121 @@ def generate_timeline(
     err_summary = "; ".join(last_errors) if last_errors else "No valid API keys configured."
     raise RuntimeError(f"Failed to generate video timeline from AI Director. Details: {err_summary}")
 
-def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: str, tone: str = "auto_dynamic") -> Dict[str, Any]:
+def _synthesize_bespoke_web_scenes(
+    scenes: List[Dict[str, Any]],
+    topic: str,
+    format_ratio: str = "9:16",
+) -> None:
+    """
+    Parallel Zero-Template Code-as-Video Enricher (Option 1 + Both Combined):
+    Asks Gemini/Groq to author bespoke interactive HTML5 + Canvas/SVG motion code for scenes
+    marked `web_scene` that lack custom HTML. Falls back seamlessly to multi-archetype 3D Canvas
+    synthesizer if any request fails or times out.
+    """
+    from core.config import FORMAT_SPECS
+    spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
+    w, h = spec.get("width", 1080), spec.get("height", 1920)
+    sub_safe = 500 if h >= 1600 else 160
+
+    targets: List[Tuple[int, Dict[str, Any]]] = []
+    for idx, sc in enumerate(scenes):
+        vd = sc.get("visual_data") or {}
+        if str(sc.get("visual_type", "")).lower().strip() == "web_scene" and not str(vd.get("html") or vd.get("web_code") or "").strip():
+            targets.append((idx, sc))
+    if not targets:
+        return
+    if not (GEMINI_API_KEY or GROQ_API_KEY):
+        return
+
+    archetype_hints = [
+        "Interactive Failure/Problem Alert Simulation (pulsing alert nodes, bottleneck counter, impact cards)",
+        "Animated System Architecture Flow (connected service boxes, animated flowing SVG Bezier data packets, live labels)",
+        "Low-level Memory/Buffer/Terminal Inspector OR Live Telemetry Stream (animated hex/log rows scanning live)",
+        "Before-vs-After Benchmark Arena OR Switchover Timeline (animated bar chart, speedup badge, checklist cards)",
+    ]
+
+    def _gen_one(item: Tuple[int, Dict[str, Any]]) -> Tuple[int, str]:
+        idx, sc = item
+        vd = sc.get("visual_data") or {}
+        narr = str(sc.get("narration") or "")
+        hint = archetype_hints[idx % len(archetype_hints)]
+        compact_vd = {k: v for k, v in vd.items() if k not in ("html", "web_code", "svg", "svg_code")}
+        prompt = f"""Build ONE self-contained interactive HTML5 motion-graphic scene (`<!DOCTYPE html>...</html>`) for a {w}x{h} tech video frame.
+Topic: {topic}
+Scene {idx + 1} Role ({sc.get('role', 'explain')}): {hint}
+Spoken Narration: "{narr}"
+Scene Data: {json.dumps(compact_vd, ensure_ascii=False)[:900]}
+
+STRICT ENGINEERING & LAYOUT RULES:
+1. Viewport MUST be exact {w}x{h}px (`overflow:hidden; margin:0; padding:112px 58px {sub_safe}px; box-sizing:border-box`).
+2. TOP 100px is reserved for system HUD (do NOT draw header nav bars/watermarks there). BOTTOM {sub_safe}px MUST BE 100% EMPTY (no text boxes, no subtitles, no narration captions at bottom — ASS subtitles render there!).
+3. Define `window.__setStudioProgress = function(p, curTime, energy) {{ ... }}` cleanly with ZERO errors for ANY `p` in `0.0..1.0`! Animate SVG paths (`stroke-dashoffset`), glowing packets, counters, cards, or 2D/3D Canvas shapes driven strictly by `p` (never `requestAnimationFrame` alone, because Chromium captures frames by calling `__setStudioProgress(p)`).
+4. Zero CDN `<script src>` dependencies (pure inline HTML/CSS/SVG/Canvas JS only so offline rendering is 100% deterministic).
+5. Visual text must strictly match THIS scene's topic/narration in crisp English — NEVER generic labels or filler.
+Output ONLY the raw HTML starting with <!DOCTYPE html> and ending with </html>."""
+
+        html_out = ""
+        if GEMINI_API_KEY:
+            try:
+                from google import genai
+                client = genai.Client(api_key=GEMINI_API_KEY)
+                for m in ["gemini-3.1-flash-lite", "gemini-flash-latest"]:
+                    try:
+                        res = client.models.generate_content(model=m, contents=prompt)
+                        raw = str(getattr(res, "text", "") or "").strip()
+                        m_html = re.search(r"(<!DOCTYPE html[\s\S]*?</html>|<html[\s\S]*?</html>)", raw, re.IGNORECASE)
+                        if m_html:
+                            cand = m_html.group(1)
+                            if "__setStudioProgress" in cand and ("<svg" in cand.lower() or "<canvas" in cand.lower()):
+                                html_out = cand
+                                break
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+        if not html_out and GROQ_API_KEY:
+            try:
+                from groq import Groq
+                gc = Groq(api_key=GROQ_API_KEY)
+                res = gc.chat.completions.create(
+                    model="openai/gpt-oss-120b",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.6,
+                    timeout=12,
+                )
+                raw = res.choices[0].message.content.strip() if res.choices else ""
+                m_html = re.search(r"(<!DOCTYPE html[\s\S]*?</html>|<html[\s\S]*?</html>)", raw, re.IGNORECASE)
+                if m_html and "__setStudioProgress" in m_html.group(1):
+                    html_out = m_html.group(1)
+            except Exception:
+                pass
+        return idx, html_out
+
+    try:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(max_workers=min(4, len(targets))) as pool:
+            futs = [pool.submit(_gen_one, t) for t in targets[:6]]
+            for fut in as_completed(futs, timeout=22):
+                try:
+                    idx, h_code = fut.result(timeout=1)
+                    if h_code:
+                        scenes[idx].setdefault("visual_data", {})["html"] = h_code
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+
+def _enforce_engine_style(
+    timeline: Dict[str, Any],
+    engine_style: str,
+    topic: str,
+    tone: str = "auto_dynamic",
+    format_ratio: str = "9:16",
+) -> Dict[str, Any]:
     """
     Guarantees that every scene in the timeline strictly adheres to the user-selected Visual Engine & Style,
-    adapting visual_type, scene_tone, and populating rich topic-specific visual_data fields.
+    adapting visual_type, scene_tone, backdrop/transition variety, and populating rich topic-specific visual_data fields.
     """
     if not timeline or "scenes" not in timeline:
         return timeline
@@ -738,7 +849,14 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
             topic_art_style = art_styles[0]
     timeline["art_style"] = topic_art_style
 
+    if engine_style in _STUDIO_SET:
+        from core.mesh_shader_engine import ALL_BACKDROPS
+        from core.layouts_pro import ALL_TRANSITIONS, ALL_TEXT_FX
+    else:
+        ALL_BACKDROPS, ALL_TRANSITIONS, ALL_TEXT_FX = (), (), ()
+
     role_tone_defaults = ["fireship_octane", "staff_engineer", "dramatic_performance", "interview_prep", "conversational_casual"]
+    used_vtypes: set = set()
     for idx, sc in enumerate(scenes):
         if tone != "auto_dynamic":
             sc["scene_tone"] = tone
@@ -748,10 +866,24 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
         v_data = sc.get("visual_data", {})
         if not v_data.get("art_style"):
             v_data["art_style"] = topic_art_style
+        if engine_style in _STUDIO_SET and ALL_BACKDROPS:
+            if not v_data.get("backdrop") and not sc.get("backdrop"):
+                bd = ALL_BACKDROPS[(idx * 3 + abs(hash(topic))) % len(ALL_BACKDROPS)]
+                sc["backdrop"] = bd
+                v_data["backdrop"] = bd
+            if not v_data.get("transition") and not sc.get("transition"):
+                tr = ALL_TRANSITIONS[(idx * 2 + 1) % len(ALL_TRANSITIONS)]
+                sc["transition"] = tr
+                v_data["transition"] = tr
+            if not v_data.get("text_fx") and not sc.get("text_fx"):
+                tfx = ALL_TEXT_FX[(idx * 3 + 2) % len(ALL_TEXT_FX)]
+                sc["text_fx"] = tfx
+                v_data["text_fx"] = tfx
+
         raw_vtype = str(sc.get("visual_type", "custom_scene")).lower().strip()
         current_vtype = vtype_aliases.get(raw_vtype, raw_vtype)
         sc["visual_type"] = current_vtype
-        
+
         # If user explicitly chose a single-focus engine (not hybrid/auto), enforce it
         if target_type:
             if engine_style == "bytebytego_dsl" and current_vtype in ["architecture_flow", "circular_hub_mesh"]:
@@ -761,17 +893,6 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
             else:
                 sc["visual_type"] = target_type
                 current_vtype = target_type
-
-        if engine_style == "pure_zero_template" and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-            if v_data.get("html") or v_data.get("web_code"):
-                current_vtype = "web_scene"
-            elif v_data.get("svg") or v_data.get("svg_code"):
-                current_vtype = "svg_scene"
-            elif v_data.get("elements") or v_data.get("zones"):
-                current_vtype = "spatial_canvas"
-            else:
-                current_vtype = "web_scene"
-            sc["visual_type"] = current_vtype
 
         # Anti-Repetition Safety in auto/studio modes: if Scene 1 defaulted to alert_diagram on non-outage topics, use custom_scene
         if engine_style in ["auto_dynamic", "studio_300_domain", "studio_domain_library", "cinematic_studio", "dual_generative"] and idx == 0 and current_vtype == "alert_diagram":
@@ -881,15 +1002,23 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                     {"label": "AVAILABILITY", "val": "99.999%"}
                 ]
 
-        elif current_vtype == "alert_diagram":
+        elif current_vtype in ("alert_diagram", "incident_radar"):
             if not v_data.get("challenge"):
                 v_data["problem_title"] = v_data.get("problem_title") or f"Production Bottleneck: {title}"
                 v_data["problem_desc"] = v_data.get("problem_desc") or "High concurrency spikes caused thread contention and system degradation."
                 v_data["challenge"] = "How to achieve 100% availability without sacrificing latency?"
+            if not v_data.get("alerts") and not v_data.get("blips"):
+                pt = str(v_data.get("problem_title") or title)
+                ch = str(v_data.get("challenge") or "")
+                v_data["alerts"] = [
+                    {"title": pt[:24], "severity": "critical", "sub": str(v_data.get("problem_desc") or "")[:95]},
+                    {"title": "Table Lock Risk", "severity": "high"},
+                    {"title": "Downtime Impact", "severity": "warn"},
+                    {"title": ch[:22] if ch else "Zero-Lock Need", "severity": "warn"},
+                ]
 
         elif current_vtype == "hero_hook":
             v_data["question"] = v_data.get("question") or v_data.get("problem_title") or title
-            # Do NOT inject fake "Approach A / B" or "KEY ENGINEERING DECISION" filler!
             if "pills" not in v_data and (v_data.get("left_pill") or v_data.get("right_pill")):
                 v_data["pills"] = [p for p in [v_data.get("left_pill"), v_data.get("right_pill")] if p]
 
@@ -939,6 +1068,12 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
             v_data["arrow3_label"] = v_data.get("arrow3_label") or "State Write"
             v_data["arrow4_label"] = v_data.get("arrow4_label") or "Event Sync"
 
+        if engine_style == "pure_zero_template" and current_vtype not in ("svg_scene", "spatial_canvas"):
+            v_data.setdefault("_intent", current_vtype)
+            sc["visual_type"] = "web_scene"
+        else:
+            used_vtypes.add(sc["visual_type"])
+
         sc["visual_data"] = v_data
 
         # Ensure Audio-Visual Choreography triggers exist for voice-synced Progressive Reveal
@@ -959,6 +1094,9 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
                 "mode": "node_edge_traversal" if current_vtype in ["all_in_one_tech_canvas", "architecture_flow", "circular_hub_mesh"] else "progressive_build",
                 "triggers": auto_triggers
             }
+
+    if engine_style in ("pure_zero_template", "dual_generative", "studio_300_domain"):
+        _synthesize_bespoke_web_scenes(scenes, topic, format_ratio=format_ratio)
 
     return timeline
 

@@ -3,7 +3,7 @@ import re
 from typing import Any, Dict, List, Tuple
 
 _ACCENT = ("cyan", "purple", "emerald", "amber", "rose")
-SX0, SY0, SX1, SY1 = 64, 358, 1016, 1426
+SX0, SY0, SX1, SY1 = 64, 328, 1016, 1406
 SW, SH = SX1 - SX0, SY1 - SY0
 
 # =========================================================================
@@ -315,9 +315,26 @@ def _render_archetype(
     _bezier = helpers["_draw_bezier_comet"]
     _draw_vis = helpers["_draw_node_visual"]
 
-    user_items = list(data.get("items") or data.get("nodes") or data.get("steps") or data.get("stages") or [])
+    user_items = list(
+        data.get("items") or data.get("nodes") or data.get("steps") or data.get("stages")
+        or data.get("satellites") or data.get("bullets") or data.get("layers") or data.get("tiers") or []
+    )
+    if not user_items and isinstance(data.get("entries"), list):
+        user_items = [{"name": e.get("op"), "sub": f"{e.get('address','')} • {e.get('table','')}"} for e in data["entries"] if isinstance(e, dict)]
+    if not user_items and isinstance(data.get("bars"), list):
+        user_items = [{"name": b.get("label"), "sub": str(b.get("display") or b.get("value") or "")} for b in data["bars"] if isinstance(b, dict)]
     items = user_items if user_items else [{"name": s} for s in raw_items]
-    norm: List[Dict[str, Any]] = [{"name": x} if isinstance(x, str) else dict(x) for x in items]
+    norm: List[Dict[str, Any]] = []
+    for x in items:
+        if isinstance(x, str):
+            norm.append({"name": x})
+        else:
+            d_it = dict(x)
+            if not d_it.get("sub") and d_it.get("desc"):
+                d_it["sub"] = d_it["desc"]
+            elif not d_it.get("sub") and d_it.get("role"):
+                d_it["sub"] = d_it["role"]
+            norm.append(d_it)
     g0 = _ease(min(1.0, progress / 0.18))
 
     # Optional architectural subtitle strip at top of stage
@@ -329,7 +346,7 @@ def _render_archetype(
     # 1. FLOW / CODE_FLOW -> Zigzag vertical stages with clear non-overlapping central Bezier pills
     if arch in ("flow", "code_flow"):
         n = min(5, len(norm))
-        rh = min(215, (SH - y_off - 24) // max(1, n))
+        rh = min(225, (SH - y_off - (135 if n <= 3 else 24)) // max(1, n))
         prev_pt = None
         for i, it in enumerate(norm[:5]):
             gt = _ease(_spring_gate(progress, i, n, 0.22))
@@ -343,19 +360,22 @@ def _render_archetype(
             active = (int(progress * n) == i)
             if prev_pt is not None:
                 _bezier(stage, prev_pt, (460 if is_left else 620, cy - 52), col, reveal=gt, progress=progress, phase=i * 0.2, world=world)
-            stage.draw_glass_card((cx0, cy - 48, cx1, cy + 50), radius=19, accent_col=col, alpha_mul=gt, active=active)
+            stage.draw_glass_card((cx0, cy - 52, cx1, cy + 54), radius=19, accent_col=col, alpha_mul=gt, active=active)
             _draw_vis(stage, scx, cy - 14, 42, 18, 28, col, gt, shape=it.get("shape", ""), icon=it.get("icon", ""), label=str(it.get("name", "")), active=active, progress=progress)
             stage.draw.line((scx + (50 if is_left else -50), cy, cx0 if is_left else cx1, cy), fill=_with_alpha(col, gt), width=3)
-            _draw_wrapped(stage.draw, (cx0 + 22, cy - 30), str(it.get("name") or it.get("title") or ""), _get_font(24, bold=True), _with_alpha(world["text"], gt), cx1 - cx0 - 44, max_lines=2)
+            _draw_wrapped(stage.draw, (cx0 + 22, cy - 34), str(it.get("name") or it.get("title") or ""), _get_font(24, bold=True), _with_alpha(world["text"], gt), cx1 - cx0 - 44, max_lines=1 if it.get("sub") else 2)
             if it.get("sub"):
-                _draw_wrapped(stage.draw, (cx0 + 22, cy + 10), str(it["sub"]), _get_font(19), _with_alpha(world["muted"], gt), cx1 - cx0 - 44, max_lines=1)
-            prev_pt = (460 if is_left else 620, cy + 52)
+                _draw_wrapped(stage.draw, (cx0 + 22, cy + 6), str(it["sub"]), _get_font(19), _with_alpha(world["muted"], gt), cx1 - cx0 - 44, max_lines=2)
+            prev_pt = (460 if is_left else 620, cy + 54)
+        if n <= 3:
+            stage.draw_glass_card((80, SY1 - 120, 1000, SY1 - 24), radius=20, accent_col=world["emerald"], alpha_mul=g0, active=True)
+            _draw_wrapped(stage.draw, (112, SY1 - 92), title_sub or "End-to-End Architecture Pipeline", _get_font(25, bold=True), _with_alpha(world["emerald"], g0), 856, align="center", max_lines=1)
         return
 
     # 2. TIERS -> Horizontal architectural stack / memory layers
     if arch == "tiers":
         n = min(6, len(norm))
-        rh = min(185, (SH - y_off - 24) // max(1, n))
+        rh = min(210, (SH - y_off - 24) // max(1, n))
         for i, it in enumerate(norm[:6]):
             gt = _ease(_spring_gate(progress, i, n, 0.20))
             if gt <= 0.03:
@@ -366,7 +386,10 @@ def _render_archetype(
             stage.draw_glass_card((80, y, 1000, y + h), radius=18, accent_col=col, alpha_mul=gt, active=(int(progress * n) == i))
             _draw_vis(stage, 146, y + h // 2 - 12, 32, 14, 22, col, gt, shape=it.get("shape", "layers_wafer"), icon=it.get("icon", ""), label=str(it.get("name", "")), active=(int(progress * n) == i), progress=progress)
             stage.draw_pill(242, y + h // 2, f"0{i+1}", (*col[:3], 42), col, border_col=col, font=_get_font(19, bold=True), alpha_mul=gt)
-            _draw_wrapped(stage.draw, (296, y + max(12, h // 2 - 22)), str(it.get("name") or ""), _get_font(24, bold=True), _with_alpha(world["text"], gt), 680, max_lines=2)
+            sub_txt = str(it.get("sub") or "").strip()
+            _draw_wrapped(stage.draw, (296, y + (max(14, h // 2 - 38) if sub_txt else max(12, h // 2 - 22))), str(it.get("name") or ""), _get_font(24, bold=True), _with_alpha(world["text"], gt), 680, max_lines=1 if sub_txt else 2)
+            if sub_txt:
+                _draw_wrapped(stage.draw, (296, y + h // 2 + 8), sub_txt, _get_font(19), _with_alpha(world["muted"], gt), 680, max_lines=2)
         return
 
     # 3. RING -> Circular Raft / Circuit Breaker / Event Loop / Consistent Hash Ring
@@ -435,19 +458,24 @@ def _render_archetype(
             stage.draw_glass_card((x0, slot_y, x0 + cw, slot_y + 290), radius=18, accent_col=col, alpha_mul=gt, active=(int(progress * n) == i))
             stage.draw_pill(x0 + cw // 2, slot_y + 38, f"[{i}]", (*col[:3], 42), col, border_col=col, font=_get_font(19, bold=True, mono=True), alpha_mul=gt)
             _draw_wrapped(stage.draw, (x0 + 12, slot_y + 92), str(it.get("name") or ""), _get_font(21 if n <= 4 else 18, bold=True), _with_alpha(world["text"], gt), cw - 24, align="center", max_lines=4)
-        # Detail callout strip below memory array
+        # Detail callout strip + Insight Summary Footer below memory/array slots
         active_i = min(n - 1, int(progress * n))
         ac_col = _res_col(world, _ACCENT[active_i % len(_ACCENT)])
-        stage.draw_glass_card((80, slot_y + 340, 1000, slot_y + 520), radius=22, accent_col=ac_col, alpha_mul=g0, active=True)
-        _draw_wrapped(stage.draw, (112, slot_y + 390), f"Active Step [{active_i}]: {norm[active_i].get('name', '')}", _get_font(29, bold=True), _with_alpha(world["text"], g0), 856, align="center", max_lines=2)
+        stage.draw_glass_card((80, slot_y + 330, 1000, slot_y + 520), radius=22, accent_col=ac_col, alpha_mul=g0, active=True)
+        act_sub = str(norm[active_i].get("sub") or title_sub or "Live State Execution").strip()
+        _draw_wrapped(stage.draw, (112, slot_y + 372), f"Step [{active_i+1}/{n}]: {norm[active_i].get('name', '')}", _get_font(29, bold=True), _with_alpha(world["text"], g0), 856, align="center", max_lines=2)
+        _draw_wrapped(stage.draw, (112, slot_y + 448), act_sub, _get_font(21), _with_alpha(ac_col, g0), 856, align="center", max_lines=1)
+        if slot_y + 545 < SY1 - 95:
+            stage.draw_glass_card((80, slot_y + 545, 1000, SY1 - 24), radius=20, accent_col=world["cyan"], alpha_mul=g0)
+            _draw_wrapped(stage.draw, (112, slot_y + 578), "Deterministic Production Mechanics", _get_font(23, bold=True), _with_alpha(world["muted"], g0), 856, align="center", max_lines=1)
         return
 
     # 7. TREE -> Root -> Children Hierarchy
     if arch == "tree":
         root_n = norm[0]
         children = norm[1:4] if len(norm) > 1 else [{"name": "Left Subtree"}, {"name": "Right Subtree"}]
-        stage.draw_glass_card((310, SY0 + y_off + 20, 770, SY0 + y_off + 135), radius=22, accent_col=world["cyan"], alpha_mul=g0, active=True)
-        _draw_wrapped(stage.draw, (330, SY0 + y_off + 54), str(root_n.get("name") or ""), _get_font(26, bold=True), _with_alpha(world["text"], g0), 420, align="center", max_lines=2)
+        stage.draw_glass_card((300, SY0 + y_off + 20, 780, SY0 + y_off + 145), radius=22, accent_col=world["cyan"], alpha_mul=g0, active=True)
+        _draw_wrapped(stage.draw, (320, SY0 + y_off + 54), str(root_n.get("name") or ""), _get_font(26, bold=True), _with_alpha(world["text"], g0), 440, align="center", max_lines=2)
         cn = len(children)
         cw = (SW - (cn - 1) * 24) // cn
         for i, ch in enumerate(children):
@@ -456,10 +484,15 @@ def _render_archetype(
                 continue
             bx0 = SX0 + i * (cw + 24)
             col = _res_col(world, ch.get("color"), _ACCENT[(i + 1) % len(_ACCENT)])
-            _bezier(stage, (540, SY0 + y_off + 136), (bx0 + cw // 2, SY0 + y_off + 310), col, reveal=gt, progress=progress, world=world)
-            stage.draw_glass_card((bx0, SY0 + y_off + 312, bx0 + cw, SY0 + y_off + 530), radius=20, accent_col=col, alpha_mul=gt, active=(int(progress * cn) == i))
-            _draw_vis(stage, bx0 + cw // 2, SY0 + y_off + 382, 40, 18, 26, col, gt, shape=ch.get("shape", "hexagon"), progress=progress)
+            _bezier(stage, (540, SY0 + y_off + 146), (bx0 + cw // 2, SY0 + y_off + 310), col, reveal=gt, progress=progress, world=world)
+            stage.draw_glass_card((bx0, SY0 + y_off + 312, bx0 + cw, SY0 + y_off + 585), radius=20, accent_col=col, alpha_mul=gt, active=(int(progress * cn) == i))
+            _draw_vis(stage, bx0 + cw // 2, SY0 + y_off + 382, 42, 18, 28, col, gt, shape=ch.get("shape", "hexagon"), progress=progress)
             _draw_wrapped(stage.draw, (bx0 + 16, SY0 + y_off + 448), str(ch.get("name") or ""), _get_font(22, bold=True), _with_alpha(world["text"], gt), cw - 32, align="center", max_lines=2)
+            if ch.get("sub"):
+                _draw_wrapped(stage.draw, (bx0 + 16, SY0 + y_off + 516), str(ch["sub"]), _get_font(18), _with_alpha(world["muted"], gt), cw - 32, align="center", max_lines=2)
+        stage.draw_glass_card((80, SY1 - 245, 1000, SY1 - 24), radius=22, accent_col=world["emerald"], alpha_mul=g0, active=True)
+        _draw_wrapped(stage.draw, (112, SY1 - 190), f"Hierarchy: {root_n.get('name', '')}", _get_font(28, bold=True), _with_alpha(world["text"], g0), 856, align="center", max_lines=2)
+        _draw_wrapped(stage.draw, (112, SY1 - 110), title_sub or "Balanced Branch Decomposition", _get_font(21), _with_alpha(world["emerald"], g0), 856, align="center", max_lines=1)
         return
 
     # 8. TRIANGLE -> Three-Corner Tradeoff (CAP Theorem)
