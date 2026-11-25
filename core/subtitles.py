@@ -47,19 +47,27 @@ def generate_ass_subtitles(
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
     ]
 
+    # Filter out standalone punctuation tokens (e.g. ",", ".", "!") before chunking
+    filtered_words = []
+    for w in word_timestamps:
+        raw = w.get("word", "").strip()
+        cleaned = "".join(ch for ch in raw if ch.isalnum())
+        if cleaned:
+            filtered_words.append(w)
+
     # Intelligent chunking: 1 word for long tech words (>= 8 chars), 2 words for short words
     i = 0
     chunks = []
-    while i < len(word_timestamps):
-        current = word_timestamps[i]
+    while i < len(filtered_words):
+        current = filtered_words[i]
         curr_text = current.get("word", "").strip()
         
         # If long word, give it its own chunk to guarantee 0 overflow
         if len(curr_text) >= 8:
             chunks.append([current])
             i += 1
-        elif i + 1 < len(word_timestamps):
-            next_w = word_timestamps[i + 1]
+        elif i + 1 < len(filtered_words):
+            next_w = filtered_words[i + 1]
             next_text = next_w.get("word", "").strip()
             # If combined length would be too wide, keep separate
             if len(curr_text) + len(next_text) > 13:

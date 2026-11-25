@@ -236,25 +236,53 @@ def render_scene_frames(
 
 
 def _dispatch_visual_renderer(draw: ImageDraw.Draw, visual_type: str, visual_data: Dict[str, Any], progress: float) -> None:
-    if visual_type == "split_comparison":
+    aliases = {
+        "service_topology": "architecture_flow",
+        "topology": "architecture_flow",
+        "pipeline": "architecture_flow",
+        "pipeline_flow": "architecture_flow",
+        "data_flow": "architecture_flow",
+        "memory_buffer": "data_structure_memory",
+        "memory_internals": "data_structure_memory",
+        "wal_log": "data_structure_memory",
+        "buffer": "data_structure_memory",
+        "terminal": "code_terminal",
+        "cli": "code_terminal",
+        "code": "code_terminal",
+        "comparison": "split_comparison",
+        "trade_off": "split_comparison",
+        "chart": "benchmark_chart",
+        "benchmark": "benchmark_chart",
+        "mesh": "circular_hub_mesh",
+        "hub_spoke": "circular_hub_mesh",
+        "gauge": "metric_gauge_hud",
+        "metrics": "metric_gauge_hud",
+        "kpi": "metric_gauge_hud",
+        "alert": "alert_diagram",
+        "incident": "alert_diagram",
+        "bottleneck": "alert_diagram",
+        "sql": "sql_table",
+    }
+    vt = aliases.get(str(visual_type).lower().strip(), visual_type)
+    if vt == "split_comparison":
         _render_split_comparison(draw, visual_data, progress)
-    elif visual_type == "benchmark_chart":
+    elif vt == "benchmark_chart":
         _render_benchmark_chart(draw, visual_data, progress)
-    elif visual_type == "circular_hub_mesh":
+    elif vt == "circular_hub_mesh":
         _render_circular_hub_mesh(draw, visual_data, progress)
-    elif visual_type == "metric_gauge_hud":
+    elif vt == "metric_gauge_hud":
         _render_metric_gauge_hud(draw, visual_data, progress)
-    elif visual_type == "data_structure_memory":
+    elif vt == "data_structure_memory":
         _render_data_structure_memory(draw, visual_data, progress)
-    elif visual_type == "sql_table":
+    elif vt == "sql_table":
         _render_sql_table(draw, visual_data, progress)
-    elif visual_type == "code_terminal":
+    elif vt == "code_terminal":
         _render_code_terminal(draw, visual_data, progress)
-    elif visual_type == "alert_diagram":
+    elif vt == "alert_diagram":
         _render_alert_diagram(draw, visual_data, progress)
-    elif visual_type == "architecture_flow":
+    elif vt == "architecture_flow":
         _render_architecture_flow(draw, visual_data, progress)
-    elif visual_type == "all_in_one_tech_canvas":
+    elif vt == "all_in_one_tech_canvas":
         _render_all_in_one_tech_canvas(draw, visual_data, progress)
     else:
         _render_concept_cards(draw, visual_data, progress)
@@ -652,7 +680,14 @@ def _render_code_terminal(draw: ImageDraw.Draw, data: Dict[str, Any], progress: 
     draw.ellipse((tx + 30, ty + 24, tx + 52, ty + 46), fill=(239, 68, 68))
     draw.ellipse((tx + 65, ty + 24, tx + 87, ty + 46), fill=(245, 158, 11))
     draw.ellipse((tx + 100, ty + 24, tx + 122, ty + 46), fill=(16, 185, 129))
-    draw.text((tx + 140, ty + 20), "terminal.py — Execution Output", fill=TEXT_MUTED, font=get_font(26))
+    upper_code = raw_code.upper()
+    if any(kw in upper_code for kw in ["CREATE TABLE", "SELECT ", "INSERT INTO", "ALTER TABLE"]):
+        term_title = "migration.sql — Query Execution"
+    elif raw_code.lstrip().startswith("$") or any(kw in raw_code for kw in ["aws ", "docker ", "kubectl ", "python -m"]):
+        term_title = "terminal.sh — CLI Execution"
+    else:
+        term_title = "terminal.py — Execution Output"
+    draw.text((tx + 140, ty + 20), term_title, fill=TEXT_MUTED, font=get_font(26))
     
     font_code = get_font(30)
     total_chars = len(raw_code)
@@ -905,9 +940,9 @@ def _draw_database_cylinder(
     led_y = y1 + ellipse_h // 2
     draw.ellipse((led_x - 5, led_y - 5, led_x + 5, led_y + 5), fill=NEON_EMERALD if led_blink else (51, 65, 85))
 
-    # Text Labels
-    draw_wrapped_text(draw, label, get_font(21, bold=True), x1 + 10, cy - 14, w - 20, TEXT_PRIMARY, align="center", max_lines=1)
-    draw_wrapped_text(draw, sub, get_font(15), x1 + 10, cy + 14, w - 20, color, align="center", max_lines=1)
+    # Text Labels (wider box + 2 lines allowed so full names don't truncate)
+    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 15, cy - 18, w + 30, TEXT_PRIMARY, align="center", max_lines=2, line_spacing=2)
+    draw_wrapped_text(draw, sub, get_font(15), x1 - 15, cy + 28, w + 30, color, align="center", max_lines=1)
 
 
 def _draw_server_rack(
@@ -949,7 +984,7 @@ def _draw_server_rack(
         draw.ellipse((x2 - 22, by1 + 8, x2 - 14, by1 + 16), fill=NEON_CYAN if led2 else (30, 60, 90))
 
     # Central Label Badge
-    draw_wrapped_text(draw, label, get_font(20, bold=True), x1 + 10, y2 - 40, w - 20, TEXT_PRIMARY, align="center", max_lines=1)
+    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 10, y2 - 42, w + 20, TEXT_PRIMARY, align="center", max_lines=2, line_spacing=2)
 
 
 def _draw_ai_robot(
@@ -999,8 +1034,8 @@ def _draw_ai_robot(
         draw.line((bx, y2 - 25, bx, y2 - 25 - bar_h), fill=NEON_EMERALD, width=3)
 
     # Label
-    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 20, y2 + 8, size + 40, TEXT_PRIMARY, align="center", max_lines=1)
-    draw_wrapped_text(draw, sub, get_font(15), x1 - 20, y2 + 30, size + 40, NEON_PURPLE, align="center", max_lines=1)
+    draw_wrapped_text(draw, label, get_font(18, bold=True), x1 - 45, y2 + 6, size + 90, TEXT_PRIMARY, align="center", max_lines=2, line_spacing=2)
+    draw_wrapped_text(draw, sub, get_font(14), x1 - 45, y2 + 48, size + 90, NEON_PURPLE, align="center", max_lines=1)
 
 
 def _draw_python_chip(
@@ -1032,8 +1067,8 @@ def _draw_python_chip(
     draw.ellipse((cx + 10, cy + 24, cx + 16, cy + 30), fill=COLOR_BG_DARK)
 
     # Label
-    draw_wrapped_text(draw, label, get_font(19, bold=True), x1 - 20, y2 + 8, size + 40, TEXT_PRIMARY, align="center", max_lines=1)
-    draw_wrapped_text(draw, sub, get_font(15), x1 - 20, y2 + 30, size + 40, NEON_AMBER, align="center", max_lines=1)
+    draw_wrapped_text(draw, label, get_font(18, bold=True), x1 - 45, y2 + 6, size + 90, TEXT_PRIMARY, align="center", max_lines=2, line_spacing=2)
+    draw_wrapped_text(draw, sub, get_font(14), x1 - 45, y2 + 48, size + 90, NEON_AMBER, align="center", max_lines=1)
 
 
 def _draw_s3_bucket(
@@ -1091,10 +1126,13 @@ def _draw_cloud_vpc_boundary(
     """Draws a dashed glowing cloud/VPC security boundary enclosing services."""
     draw.rounded_rectangle((x, y, x + w, y + h), radius=28, fill=(15, 23, 42, 130), outline=color, width=2)
     clean_lbl = label.strip()
-    badge_w = min(560, len(clean_lbl) * 11 + 54)
+    lbl_font = get_font(17, bold=True)
+    bbox = lbl_font.getbbox(clean_lbl)
+    text_w = bbox[2] - bbox[0]
+    badge_w = min(680, text_w + 52)
     draw.rounded_rectangle((x + 28, y - 18, x + 28 + badge_w, y + 18), radius=14, fill=(15, 23, 42, 240), outline=color, width=2)
     draw.ellipse((x + 42, y - 6, x + 54, y + 6), fill=color)
-    draw.text((x + 62, y - 11), clean_lbl, fill=color, font=get_font(17, bold=True))
+    draw.text((x + 62, y - 11), clean_lbl, fill=color, font=lbl_font)
 
 
 def _draw_data_packet_arrow(
@@ -1197,7 +1235,14 @@ def _draw_motion_pointer(
     draw.line((cx, cy + 13, cx, cy + 22), fill=color, width=2)
 
     if label:
-        draw_wrapped_text(draw, f">> {label}", get_font(15, bold=True), cx - 115, cy + 26, 230, color, align="center", max_lines=1)
+        lbl_font = get_font(14, bold=True)
+        lbl_txt = f">> {label}"
+        bbox = lbl_font.getbbox(lbl_txt)
+        tw = bbox[2] - bbox[0]
+        pw = tw + 20
+        ly = cy - 46
+        draw.rounded_rectangle((cx - pw // 2, ly - 12, cx + pw // 2, ly + 12), radius=10, fill=(11, 15, 25, 235), outline=color, width=1)
+        draw.text((cx - tw // 2, ly - 9), lbl_txt, fill=color, font=lbl_font)
 
 
 def _render_all_in_one_tech_canvas(draw: ImageDraw.Draw, data: Dict[str, Any], progress: float) -> None:

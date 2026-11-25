@@ -507,9 +507,39 @@ def _enforce_engine_style(timeline: Dict[str, Any], engine_style: str, topic: st
 
     target_type = engine_type_map.get(engine_style)
 
+    vtype_aliases = {
+        "service_topology": "architecture_flow",
+        "topology": "architecture_flow",
+        "pipeline": "architecture_flow",
+        "pipeline_flow": "architecture_flow",
+        "data_flow": "architecture_flow",
+        "memory_buffer": "data_structure_memory",
+        "memory_internals": "data_structure_memory",
+        "wal_log": "data_structure_memory",
+        "buffer": "data_structure_memory",
+        "terminal": "code_terminal",
+        "cli": "code_terminal",
+        "code": "code_terminal",
+        "comparison": "split_comparison",
+        "trade_off": "split_comparison",
+        "chart": "benchmark_chart",
+        "benchmark": "benchmark_chart",
+        "mesh": "circular_hub_mesh",
+        "hub_spoke": "circular_hub_mesh",
+        "gauge": "metric_gauge_hud",
+        "metrics": "metric_gauge_hud",
+        "kpi": "metric_gauge_hud",
+        "alert": "alert_diagram",
+        "incident": "alert_diagram",
+        "bottleneck": "alert_diagram",
+        "sql": "sql_table",
+    }
+
     for idx, sc in enumerate(scenes):
         v_data = sc.get("visual_data", {})
-        current_vtype = sc.get("visual_type", "concept_cards")
+        raw_vtype = str(sc.get("visual_type", "concept_cards")).lower().strip()
+        current_vtype = vtype_aliases.get(raw_vtype, raw_vtype)
+        sc["visual_type"] = current_vtype
         
         # If user explicitly chose a single-focus engine (not hybrid), enforce it
         if target_type:
