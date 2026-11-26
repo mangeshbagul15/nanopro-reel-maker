@@ -588,68 +588,37 @@ ENGINE_STYLE_DIRECTIVES = {
 
 TONE_DIRECTIVES = {
     "dual_dialogue_curious": (
-        "DUAL VOICE HINGLISH CONVERSATION (EMPATHETIC PROBLEM SOLVER + CURIOUS QUESTIONER) MANDATE:\n"
-        "Create a vivid, deeply relatable TWO-PERSON Hinglish conversation on every scene between:\n"
-        "- FEMALE (`\"speaker\": \"female\"`): A bright, curious learner who voices genuine feelings, overwhelm, real-world confusion, and sharp follow-up doubts (e.g., 'Yaar honestly, mujhe yeh concept thoda overwhelming lag raha hai...', 'Wait, par agar 10,000 requests ek saath aa jayein toh system hang nahi hoga?', 'Par iska asli catch kya hai?').\n"
-        "- MALE (`\"speaker\": \"male\"`): A warm, emotionally intelligent mentor & problem solver who FIRST validates her feelings gently ('Relax, main samajhta hoon pehli baar dekhne mein yeh tricky lagta hai... Tension mat lo, saath mein decode karte hain'), responds directly to her exact question with patience and warmth, explains the mechanics clearly step-by-step, and checks in ('Bilkul sahi pucha! Ab clear hua?').\n"
-        "STRICT OUTPUT STRUCTURE FOR EVERY SCENE:\n"
-        "1. Every scene MUST include a `\"dialogue\"` array with 2 to 4 alternating turns (`female` -> `male` -> optional `female` -> `male`).\n"
-        "2. NEVER write speaker prefixes like 'Female:', 'Male:', 'She:', 'He:' inside `dialogue[].text` or `narration` — write pure spoken words only!\n"
-        "3. Set `\"narration\"` to the clean concatenation of all dialogue turns in order (`' '.join(turn['text'])`), and populate 4-5 `choreography.triggers` synced across those conversational beats.\n"
-        "4. Mix conversational UI visual types (`chat_thread_ai`, `hero_hook`, `architecture_flow`, `split_comparison`, `sequence_diagram`, `concept_cards`) so the screen animates every Q&A exchange live. Set `scene_tone` to `dual_dialogue_curious`."
+        "DUAL VOICE TECHNICAL CONVERSATION (PURE CONTENT, ZERO FLUFF): "
+        "Two speakers discuss the exact technical topic directly with zero scripted catchphrases, zero filler pleasantries, and zero emotional fluff:\n"
+        "- FEMALE (`\"speaker\": \"female\"`): Raises sharp, topic-specific architectural or engineering questions (e.g., comparing storage models, failure modes, throughput bottlenecks).\n"
+        "- MALE (`\"speaker\": \"male\"`): Gives clear, accurate, step-by-step technical explanations, concrete internals, and trade-offs directly answering her question.\n"
+        "RULES: Include `\"dialogue\"` (2-4 alternating turns `female` -> `male`) and set `\"narration\"` to their clean concatenation. NEVER start with clichés like 'overwhelm', 'main hoon na', 'relax', or 'save this reel'. Keep every word strictly focused on technical substance."
     ),
     "peaceful_human_guide": (
-        "PEACEFUL HUMAN GUIDE & CURIOUS MINDSET SYNC MANDATE: "
-        "Calm, happy, curious, and deeply human Hinglish voice with a peaceful, clear, and effective mentor vibe — like a thoughtful guide and supportive problem solver who FIRST understands the viewer's mindset before answering and reassures them gently ('Don't worry, main hoon na', 'Tension mat lo, dekhte hain') before saying 'Chalo tod ke samajhte hain'.\n"
-        "1. 00:00 SECRET / CLEVER SHORTCUT HOOK: Open Scene 1 immediately with an intriguing secret, hidden hack, or clever engineering shortcut ('Ek secret shortcut bataun jo 90% engineers miss kar dete hain?... [pause] Relax. Chalo tod ke samajhte hain.').\n"
-        "2. NATURAL MICRO-CUE WORDS + REAL BREATH PAUSES (`... [pause]`): Weave concise human mindset cues naturally with pauses where they sharpen understanding (do NOT spam all in one sentence; pick 2-3 fitting cues per scene):\n"
-        "   - Reassurance / Calm Down: 'Relax.', 'Chill.', 'Easy.', 'Simple.', 'Sorted.', 'Clear.'\n"
-        "   - Breaking It Down: 'Step-by-step.', 'Chunk-by-chunk.', 'Piece-by-piece.', 'Basics.', 'Layers.', 'Flow.'\n"
-        "   - Transition & Spotlight: 'Wait.', 'Look.', 'Listen.', 'Asli twist yahan hai...', 'Ek chhota sa catch hai...', 'Bas itna sa farak hai...', 'Boom.', 'Done.'\n"
-        "   - Q&A / Check-In: 'Samjha?', 'Clear?', 'Think.', 'Guess?', 'Why?', 'How?'\n"
-        "3. PROGRESSIVE STORYBOARD LOCKSTEP: Write each scene's `narration` in 4-5 sequential clauses (`Clause 1 -> Clause 2 -> Clause 3 -> Clause 4`) so every box, card, label, bezier link, thought/warning/pro-tip bubble, and bottom footer reveals RIGHT ON THE SPOKEN WORD! Set each scene's `scene_tone` to `peaceful_human_guide`."
+        "CALM, CLEAR TECHNICAL EXPLAINER (PURE CONTENT, ZERO FLUFF): "
+        "Deliver calm, crystal-clear technical explanations in clean Hinglish with crisp English engineering nouns. "
+        "Focus 100% on the topic's actual architecture, mechanics, and trade-offs — NEVER insert filler catchphrases like 'secret shortcut', 'tension mat lo', 'chill', 'boom', 'sorted', or 'samjha?'. Use natural breath pauses (`...`) only where clauses shift."
     ),
     "trusted_dost_guide": (
-        "TRUSTED DOST, HAPPY CURIOUS HINGLISH & PEACEFUL GUIDE MANDATE: "
-        "Speak with a happy, deeply human, curious Hinglish voice — like a trusted best friend (`dost / yaar`), peaceful guide, and supportive problem solver who understands the viewer's mindset and walks through every intuition warmly ('Chill yaar, ekdam easy tarike se tod ke samajhte hain!').\n"
-        "1. 00:00 CLEVER SECRET / SHORTCUT HOOK: Open Scene 1 immediately with an exciting secret or smart engineering shortcut ('Ek chhota sa secret shortcut bataun?... [pause]').\n"
-        "2. MINDSET CHECK-INS & SPOTLIGHT SHIFTS: Use punchy curious shifts with micro-pauses ('Wait... [pause] Asli twist yahan hai!', 'Ek chhota sa catch hai... Why?', 'Bas itna sa farak hai! Samjha?', 'Boom — Sorted!').\n"
-        "3. ENJOYABLE VISIONARY FLOW + SPOKEN-WORD VISUAL SYNC: Build curiosity -> clarity -> mastery step-by-step with 4-5 progressive cards/topologies and 5 exact `choreography.triggers`. Set each scene's `scene_tone` to `trusted_dost_guide`."
+        "FRIENDLY TECHNICAL EXPLAINER (PURE CONTENT, ZERO FLUFF): "
+        "Warm, approachable Hinglish peer voice explaining the topic's real internals, architecture flow, and trade-offs directly. "
+        "Avoid canned catchphrases ('secret shortcut', 'chill yaar', 'boom', 'asli twist'); stay 100% focused on clear engineering explanation."
     ),
     "purposeful_hinglish_mentor": (
-        "PURPOSEFUL HINGLISH MENTOR ('MUST UNDERSTAND' CLARITY + EDGE CASES) MANDATE: "
-        "Speak with a warm, authoritative yet approachable Hinglish male mentor voice delivered at a slightly brisk, purposeful pace that stays crystal clear and ensures the viewer genuinely understands every concept ('must understand'). "
-        "Write `narration` in clean Roman Hinglish mixed naturally with crisp English technical terms and ASCII numbers, using brief intentional pauses (`...` / `[pause]`) only for rhetorical weight so pacing stays tight and cohesive.\n"
-        "1. 00:00 SHARP INTERVIEW-TRAP / REAL-WORLD HOOK (Scene 1): Open immediately at 00:00 with a concrete interview trap or production failure scenario (e.g., 'Interview mein jab puchte hain ki 100K RPS par connection pool kyun choke hota hai... [pause] 85% engineers yahin galti karte hain!').\n"
-        "2. ZERO-SKIP STEP-BY-STEP MECHANICS (Middle Scenes): Explain every essential step, internal data flow, and mental model clearly from A to B without jumping steps, seamlessly bridging each scene's conclusion into the next scene's visual transition.\n"
-        "3. EDGE CASES, TRADE-OFFS & PRACTICAL FIX (Deep Scene -> Close): Explicitly break down edge cases, latency/cost/memory trade-offs, and an actionable production fix (`split_comparison`, `code_diff_split`, `sql_studio`, or domain diagrams) so the viewer walks away with complete mastery.\n"
-        "4. TIGHT VISUAL SYNC: Populate 4 exact `choreography.triggers` per scene synced to key spoken terms, matching progressive diagrams, highlights, and transitions from start to finish. Set each scene's `scene_tone` to `purposeful_hinglish_mentor`."
+        "PURPOSEFUL HINGLISH MENTOR (CLEAR MECHANICS + EDGE CASES, ZERO FLUFF): "
+        "Warm, authoritative Hinglish technical mentor explaining step-by-step system mechanics, real trade-offs, and production edge cases directly from Scene 1 without corporate throat-clearing or scripted slogans."
     ),
     "senior_hinglish_mentor": (
-        "SENIOR HINGLISH MENTOR & TECHNICAL STORYTELLER MANDATE: "
-        "Adopt a warm, brisk yet crisp conversational Hinglish persona with a confident senior-engineer/mentor vibe and natural crisp English tech terms (`latency`, `throughput`, `race condition`, `index`, `cache invalidation`, `trade-off`). "
-        "Unless the selected Voice Persona explicitly specifies Devanagari Hindi/Marathi or pure English, write `narration` in natural, clean conversational Hinglish (Roman script + crisp English technical terms, with tight intentional `...` / `[pause]` breath cues). "
-        "FOLLOW THIS EXACT 4-ACT STORY ARC ACROSS SCENES:\n"
-        "1. 00:00 HOOK (Scene 1): Start immediately with a crisp interview-trap or real-world production problem hook (e.g., 'Interview mein 90% log yahin phaste hain... [pause] ek simple query production DB ko kaise freeze kar sakti hai?').\n"
-        "2. BRISK STEP-BY-STEP WALKTHROUGH (Middle Scenes): Move seamlessly into a crisp, step-by-step walkthrough with smooth scene-to-scene connectors using progressive UI cards, animated diagrams/flow chains, and crisp key-term emphasis.\n"
-        "3. CANDID ANALYTICAL TRADE-OFFS & FIXES (Pre-Closing / Deep Scene): Cover real trade-offs, edge cases, and practical fixes cleanly (`split_comparison`, `data_structure_memory`, `code_terminal`, or `benchmark_chart`).\n"
-        "4. FRIENDLY DIRECT CTA (Final Scene): End cleanly with a direct CTA ('Save this reel for your next interview aur comment karo apna next topic!').\n"
-        "CRITICAL SYNC: Populate 4 exact `choreography.triggers` matching key spoken terms per scene so progressive UI cards & diagrams emphasize each concept in tight lockstep, and set each scene's `scene_tone` to `senior_hinglish_mentor`."
+        "SENIOR HINGLISH MENTOR & ARCHITECTURAL BREAKDOWN (PURE CONTENT): "
+        "Crisp senior-engineer Hinglish explanation covering real problem statement, internal architecture stages, engineering trade-offs, and practical production takeaway directly on the topic."
     ),
     "youth_friend_turbo": (
-        "YOUTH DOST, ENERGETIC Q&A DETAILER & BALANCED SYNC EXPLAINER MANDATE (COMPLETE + ZERO RUSH/SKIP): "
-        "Speak like a smart, energetic young friend (`dost / yaar`) delivering an engaging story-driven tech breakdown — lively, crystal clear, relatable, and complete with zero rushed truncation or skipped ideas!\n"
-        "1. STRUCTURED FRIENDLY Q&A IN EVERY SCENE: Open scenes with a crisp relatable question ('Socho zara — ek saath 10,000 requests aane par checkout slow kyun padta hai?'), insert ONE clean breath beat ('... [pause]'), then deliver the full step-by-step answer and concrete internals (`WAL`, `lsn`, exact latency ms, tradeoffs) clearly.\n"
-        "2. COMPLETE SENTENCES & SMOOTH SCENE BRIDGES (ZERO GHAI-GADBAD): Never compress too many disconnected buzzwords into one rushed breath! Use smooth, complete 12-16 word conversational sentences with explicit scene transitions ('Ab yahan asli magic shuru hota hai -> let's trace step 2!') so voice, visuals, effects, and karaoke finish cleanly together.\n"
-        "3. FULL VISUAL SYNC: Populate 4 balanced visual items (`nodes`, `stages`, `bars`, `entries`, `bullets`) + 4 exact `choreography.triggers` spaced evenly across the sentence timings so zero cards or words ever skip.\n"
-        "Set each scene's `scene_tone` to `youth_friend_turbo`."
+        "LIVELY TECHNICAL EXPLAINER (CLEAR & COMPLETE, ZERO FILLER): "
+        "Natural, upbeat Hinglish pacing with complete 12-16 word technical sentences covering concrete architecture details and trade-offs cleanly synced with visuals."
     ),
     "mentor_storyteller": (
-        "STUDENT-BOND MENTOR & EXCITING STORYTELLING MANDATE: Speak directly to one curious student like their favorite energetic mentor — warm, simple, electric, and deeply intuitive! "
-        "1. SIMPLE HUMAN LANGUAGE: Zero stiff textbook jargon. Explain concepts with everyday relatable analogies and speak directly ('you', 'socho zara', 'लक्षात घ्या') as if sitting right beside the listener. "
-        "2. INTENTIONAL BREATH PAUSES (`...` / `[pause]`): Build curiosity, then insert 1-2 short natural breathing pauses (`...`) RIGHT BEFORE revealing the core twist or 'aha!' insight so the learner absorbs why it matters before hearing the answer (e.g., 'Wait... why did everything freeze? [pause] Look closely—every user was waiting on a single lock!'). "
-        "3. INFECTIOUS EXCITEMENT & BONDING: Sound genuinely excited when the concept clicks ('Boom—latency drops 10x!', 'And here is the magic part!'). Keep sentences rhythmic, punchy, and human. "
-        "Set each scene's `scene_tone` to `mentor_storyteller` and compose engaging progressive visuals (`custom_scene`, `iso_architecture`, `step_timeline`, `kinetic_statement`)."
+        "INTUITIVE TECHNICAL STORYTELLER (PURE CONCEPT CLARITY): "
+        "Explain complex systems in plain language with relatable real-world engineering intuition and brief pauses (`...`) before key architectural insights. Focus 100% on the technical concept without filler catchphrases."
     ),
     "auto_dynamic": (
         "DYNAMIC PER-SCENE TONE & VOICE CHOREOGRAPHY (RECOMMENDED): "
@@ -1384,6 +1353,50 @@ def _extract_voice_facts(narration: str, topic: str, title: str, dialogue: Any =
     }
 
 
+def _classify_omni_domain(topic: str, ctx_l: str) -> Dict[str, bool]:
+    """Classifies primary engineering domain from topic first, preventing casual narration words from misrouting."""
+    top_l = str(topic or "").lower()
+
+    def _tok(txt: str, *kws: str) -> bool:
+        return any(re.search(rf"\b{re.escape(kw)}\b", txt) for kw in kws)
+
+    is_comparison = _tok(top_l, "vs", "versus", "difference", "compare", "comparison")
+    is_lakehouse = _tok(top_l, "data lake", "data warehouse", "warehouse", "lakehouse", "medallion", "iceberg", "delta lake", "snowflake", "bigquery", "parquet", "dbt", "olap") or ("lake" in top_l and "warehouse" in top_l)
+    is_streaming = (not is_lakehouse) and _tok(top_l, "kafka", "cdc", "debezium", "flink", "spark", "streaming", "event-driven", "queue")
+    is_sql = _tok(top_l, "sql", "postgres", "mysql", "dense_rank", "window function", "cte", "query optimization", "indexing")
+    is_ai = _tok(top_l, "llm", "rag", "agent", "agents", "mcp", "embedding", "vector", "transformer", "attention", "kv cache", "gpt", "diffusion")
+    is_distributed = _tok(top_l, "raft", "paxos", "quorum", "consistent hashing", "shard", "sharding", "vitess", "saga", "redis", "lock", "distributed", "microservice", "kubernetes", "k8s", "envoy", "grpc", "rate limiter", "token bucket")
+    is_security = _tok(top_l, "zero trust", "oauth", "pkce", "mtls", "jwt", "tls", "ecdh", "encryption", "firewall", "security", "auth")
+    return {
+        "comparison": is_comparison,
+        "lakehouse": is_lakehouse,
+        "streaming": is_streaming,
+        "sql": is_sql,
+        "ai": is_ai,
+        "distributed": is_distributed,
+        "security": is_security,
+    }
+
+
+def _pick_topic_opt1_archetype(topic: str, run_num: int, idx: int, recent_vtypes: set) -> str:
+    """Selects a strictly topic-appropriate Option 1 WebGL/SVG/Spatial archetype (never unrelated cryptography on Lakehouse/Data)."""
+    dom = _classify_omni_domain(topic, topic.lower())
+    if dom["lakehouse"]:
+        pool = ("svg_medallion_funnel", "svg_iceberg_manifest_tree", "svg_parquet_rowgroups", "spatial_lakehouse_tiers", "web_cloud_circuit")
+    elif dom["streaming"]:
+        pool = ("web_kafka_partition_lag", "svg_event_sourcing_log", "web_timeline_ribbon", "svg_flink_watermark_gate", "web_outbox_cdc_flow")
+    elif dom["ai"]:
+        pool = ("web_neural_synapse", "svg_transformer_attention", "svg_hnsw_skip_layers", "web_rag_hybrid_fusion", "spatial_constellation")
+    elif dom["security"]:
+        pool = ("svg_ecdh_key_exchange", "svg_tls_handshake_arcs", "web_oauth_pkce_flow", "spatial_zero_trust_zones")
+    elif dom["distributed"]:
+        pool = ("web_raft_quorum_vote", "web_consistent_ring", "web_saga_choreography", "spatial_constellation", "web_cloud_circuit")
+    else:
+        pool = ("web_cloud_circuit", "web_slo_burn_speedometer", "spatial_constellation", "spatial_orbit_carousel", "web_dual_topology")
+    fresh = [a for a in pool if a not in recent_vtypes] or list(pool)
+    return fresh[(run_num * 3 + idx) % len(fresh)]
+
+
 def _route_omni_best_scene(
     sc: Dict[str, Any],
     idx: int,
@@ -1397,17 +1410,16 @@ def _route_omni_best_scene(
     used_geometries: Optional[set] = None,
 ) -> Tuple[str, str]:
     """
-    Omni Smart Director v2 — Full-Vault 6-Geometry Semantic Router across 1,179 visual layouts:
-    Ensures every scene uses a genuinely distinct visual silhouette (UI/Hook -> Domain Topology ->
-    Flow/Sequence/Chart/SQL -> Code Diff/Memory/Telemetry/SVG -> Geometric Grammar/Comparison ->
-    Option 1 Interactive 3D WebGL) while exploiting all 18 engineering domains & 158 grammars.
-    Returns `(chosen_visual_type, human_readable_routed_engine_label)`.
+    Omni Smart Director v3 — Topic-First Semantic Router across 1,179 visual layouts:
+    Respects primary topic domain (`Data Lakehouse vs Warehouse`, `Streaming`, `Distributed`, `AI`, `SQL`)
+    without casual narration words hijacking unrelated engines, and prevents repeating geometries across scenes.
     """
-    narr_l = str(sc.get("narration") or "").lower()
+    raw_narr = str(sc.get("narration") or "")
+    narr_l = raw_narr.lower()
     role_l = str(sc.get("role") or "").lower()
-    cur_v = str(sc.get("visual_type") or "").lower().strip()
     ctx_l = f"{topic.lower()} {narr_l} {str(v_data.get('title') or '').lower()}"
     geoms = used_geometries if used_geometries is not None else set()
+    dom = _classify_omni_domain(topic, ctx_l)
 
     def _pick_fresh(pool: Tuple[str, ...]) -> str:
         cands = [x for x in pool if x not in used_vtypes and x not in recent_vtypes]
@@ -1418,84 +1430,106 @@ def _route_omni_best_scene(
     def _has_kw(txt: str, *kws: str) -> bool:
         return any(re.search(rf"\b{re.escape(kw)}\b", txt) for kw in kws)
 
-    # 1. Scene 1 (Hook): Rotate distinct visual hook geometries (UI Chat, Radar Alert, Triangle, Browser/Mobile Mockup, Hero)
+    # 1. Hook Scene -> Topic-appropriate visual hook (never random crypto/unrelated widget)
     if idx == 0 or role_l == "hook":
         geoms.add("hook_ui")
+        if dom["comparison"]:
+            v = _pick_fresh(("venn_overlap", "cap_theorem_triangle", "split_comparison", "hero_hook"))
+            return v, "Comparison Hook & Scope"
         if tone == "dual_dialogue_curious":
-            v = _pick_fresh(("chat_thread_ai", "browser_window", "hero_hook", "mobile_app_mockup", "iso_comparison"))
-            return v, "Interactive Q&A UI & Hook"
-        v = _pick_fresh(("incident_radar", "cap_theorem_triangle", "browser_window", "dora_metrics_four_keys", "mobile_app_mockup", "hero_hook"))
-        return v, "Kinetic Visual Hook & Radar"
+            v = _pick_fresh(("chat_thread_ai", "hero_hook", "iso_comparison", "mobile_app_mockup"))
+            return v, "Interactive Q&A Hook"
+        v = _pick_fresh(("hero_hook", "incident_radar", "cap_theorem_triangle", "kinetic_statement"))
+        return v, "Kinetic Concept Hook"
 
-    # 2. Explicit SQL / Dataset scene (rotate rich SQL & Schema visualizers)
-    if v_data.get("table_data") or _has_kw(narr_l, "sql", "select", "dense_rank", "window function", "group by", "query plan"):
+    # 2. Scene-Accurate SQL Schema (ONLY if this scene actually speaks SQL syntax/schema — prevents hijacking streaming/lakehouse scenes)
+    scene_sql_kw = bool(
+        re.search(r"\bSELECT\b.+\bFROM\b|\bDENSE_RANK\b|\bGROUP BY\b|\bCREATE INDEX\b|\bEXPLAIN ANALYZE\b|\bWINDOW\s+FUNCTION\b", raw_narr, re.IGNORECASE)
+        or (dom["sql"] and role_l in ("implementation", "deep_dive", "query", "schema"))
+        or (dom["sql"] and not dom["streaming"] and not dom["lakehouse"] and _has_kw(narr_l, "sql", "postgres", "query", "schema", "index", "table"))
+    )
+    has_explicit_sql = bool(v_data.get("table_data") or scene_sql_kw)
+    if has_explicit_sql and "sql_schema" not in geoms:
         geoms.add("sql_schema")
-        v = _pick_fresh(("sql_studio", "sql_window_partition", "er_schema", "sql_table"))
+        v = _pick_fresh(("sql_studio", "sql_table", "sql_window_partition", "er_schema"))
         return v, "SQL Studio & Query Schema"
 
-    # 3. Explicit Benchmark / Latency / Speedup (mix 3D Bars, Radial Gauges, CDF Curves, Pareto, Heatmaps)
-    if v_data.get("bars") or role_l in ("benchmark", "metrics") or _has_kw(narr_l, "benchmark", "speedup", "10x", "15x", "p99", "throughput", "latency drops", "ms lag"):
-        geoms.add("charts_metrics")
-        v = _pick_fresh(("benchmark_3d", "radial_gauge", "p99_tail_cdf_curve", "slo_burn_rate_gauge", "donut_3d", "radar_spider", "benchmark_chart"))
-        return v, "Benchmark Charts & Telemetry"
-
-    # 4. Explicit Code / CLI / Implementation (prefer rich split diffs + terminal studios)
-    if v_data.get("code_snippet") or v_data.get("command") or _has_kw(narr_l, "terminal", "cli", "command", "kubectl", "docker", "python", "async def", "bash", "curl", "lua"):
-        geoms.add("code_diff")
-        v = _pick_fresh(("code_diff_split", "diff_mutex_to_atomic", "code_terminal", "diff_n_plus_one_fix", "terminal_studio"))
-        return v, "Code Diff & Terminal Studio"
-
-    # 5. Memory / WAL / Cache / Storage Internals
-    if v_data.get("entries") or _has_kw(narr_l, "wal", "write-ahead", "buffer pool", "lsn", "ring buffer", "slab", "page cache"):
-        geoms.add("memory_slots")
-        v = _pick_fresh(("memory_wal_checkpoint", "memory_ring_buffer", "b_plus_tree_pages", "memory_lsm_memtable", "write_ahead_log_wal"))
-        return v, "Memory Internals & WAL Slots"
-
-    # 6. Trade-offs / Comparisons -> Alternate 3D Iso vs Venn vs Grammar Quadrant / Dual Matrix
-    if (v_data.get("left_points") and v_data.get("right_points")) or role_l in ("tradeoff", "comparison") or _has_kw(narr_l, "trade-off", "tradeoff", "legacy", "versus", "vs", "compare", "guardrail", "catch hai", "farq"):
+    # 3. Comparison / Problem Trade-off -> Data Lake vs Warehouse, Sync vs Async, 2x2 Matrix
+    if ("compare_matrix" not in geoms) and (
+        (v_data.get("left_points") and v_data.get("right_points"))
+        or role_l in ("tradeoff", "comparison")
+        or (dom["comparison"] and role_l in ("problem", "deep_dive"))
+        or _has_kw(narr_l, "trade-off", "tradeoff", "versus", "vs")
+    ):
         geoms.add("compare_matrix")
-        v = _pick_fresh(("iso_comparison", "venn_overlap", "grammar:quadrant:2x2", "compare_sync_vs_async", "compare_b_tree_vs_lsm", "split_comparison"))
-        return v, "Architectural Trade-Off Matrix"
+        if dom["lakehouse"]:
+            v = _pick_fresh(("split_comparison", "iso_comparison", "grammar:quadrant:2x2", "venn_overlap"))
+        else:
+            v = _pick_fresh(("iso_comparison", "venn_overlap", "grammar:quadrant:2x2", "compare_sync_vs_async", "compare_b_tree_vs_lsm", "split_comparison"))
+        return v, "Architectural Trade-Off Comparison"
 
-    # 7. Alerts / Incidents
-    if v_data.get("alerts") or _has_kw(narr_l, "outage", "crash", "deadlock", "lock contention", "oom", "failover", "incident", "spike", "choke"):
-        if "alert_radar" not in geoms:
-            geoms.add("alert_radar")
-            v = _pick_fresh(("circuit_breaker_states", "incident_thundering_herd", "incident_connection_exhaust", "chaos_monkey_fault_inj", "alert_diagram"))
-            return v, "Resilience & Fault Radar"
-
-    # 8. Scene 2 / Architecture -> Deep 18-Domain + IT/SDLC + 30 Dual-Plane Topologies
-    if "topology" not in geoms and (idx == 1 or role_l in ("architecture", "system", "flow", "mechanics")):
+    # 4. Data Architecture / Domain Topology (Topic-First Domain Accuracy!)
+    if "topology" not in geoms and (idx in (1, 2) or role_l in ("architecture", "system", "flow", "mechanics", "problem")):
         geoms.add("topology")
-        if _has_kw(ctx_l, "kafka", "cdc", "debezium", "flink", "spark", "lakehouse", "iceberg", "dbt", "etl", "elt", "clickhouse", "stream", "streaming"):
-            v = _pick_fresh(("cdc_debezium_flow", "medallion_lakehouse", "topo_flink_cep_iceberg_lake", "topo_kafka_isr_quorum_dlq", "topo_outbox_debezium_snowflake", "flink_watermarks_window"))
+        if dom["lakehouse"]:
+            v = _pick_fresh(("medallion_lakehouse", "iceberg_snapshot_tables", "data_warehouse_cluster", "columnar_parquet_blocks", "star_snowflake_schema", "etl_elt_pipeline"))
+            return v, "Data Lakehouse & Storage Architecture"
+        if dom["streaming"]:
+            v = _pick_fresh(("cdc_debezium_flow", "topo_kafka_isr_quorum_dlq", "flink_watermarks_window", "topo_outbox_debezium_snowflake", "kafka_event_backbone"))
             return v, "Data & Streaming Dual-Plane"
-        if _has_kw(ctx_l, "rag", "llm", "agent", "agents", "mcp", "embedding", "vector", "tokenization", "transformer", "attention", "kv cache", "ai"):
+        if dom["ai"]:
             v = _pick_fresh(("transformer_self_attn", "rag_chunk_overlap_pipe", "topo_rag_hybrid_rerank", "topo_agent_mcp_tool_sandbox", "hnsw_vector_graph", "mcp_client_host_server"))
             return v, "AI / LLM & RAG Architecture"
-        if _has_kw(ctx_l, "raft", "paxos", "quorum", "consistent hashing", "shard", "sharding", "vitess", "saga", "redis", "lock", "distributed", "microservice", "kubernetes", "k8s", "envoy", "grpc", "rate limiter", "token bucket", "fencing"):
+        if dom["distributed"]:
             v = _pick_fresh(("topo_sharded_vitess_vtgate", "consistent_hashing_ring", "raft_leader_election", "topo_redis_cluster_sentinel", "rate_limiter_token_bucket", "topo_saga_choreo_compensate"))
             return v, "Distributed Systems Topology"
-        if _has_kw(ctx_l, "network", "dns", "http", "quic", "tls", "mtls", "vpc", "cdn", "firewall", "zero trust", "security", "oauth", "jwt"):
-            v = _pick_fresh(("osi_7_layers", "quic_http3_0rtt", "topo_zero_trust_spiffe_mtls", "topo_cdn_edge_origin_shield", "vpc_subnet_topology", "oauth_pkce_jwks_rotator"))
-            return v, "Networking & Zero-Trust Infra"
-        v = _pick_fresh(("all_in_one_tech_canvas", "topo_ingress_mesh_wal", "service_mesh_envoy_proxy", "k8s_pod_scheduling", "iso_observability_mesh", "iso_event_backbone"))
-        return v, "3D System Topology"
+        if dom["security"]:
+            v = _pick_fresh(("osi_7_layers", "quic_http3_0rtt", "topo_zero_trust_spiffe_mtls", "oauth_pkce_jwks_rotator", "zero_trust_proxy"))
+            return v, "Security & Zero-Trust Architecture"
+        v = _pick_fresh(("all_in_one_tech_canvas", "topo_ingress_mesh_wal", "service_mesh_envoy_proxy", "k8s_pod_scheduling", "iso_observability_mesh"))
+        return v, "System Topology Architecture"
 
-    # 9. Geometric Grammar / Interactive Diagram / Pro 3D Chart Variety for middle & closing scenes
-    if idx == total_scenes - 1 or role_l in ("cta", "summary", "takeaway", "checklist"):
+    # 5. Benchmark / Telemetry Metrics
+    if "charts_metrics" not in geoms and (v_data.get("bars") or role_l in ("benchmark", "metrics") or _has_kw(narr_l, "benchmark", "speedup", "10x", "15x", "p99", "throughput", "ms lag")):
+        geoms.add("charts_metrics")
+        v = _pick_fresh(("benchmark_3d", "p99_tail_cdf_curve", "radar_spider", "donut_3d", "benchmark_chart"))
+        return v, "Benchmark Charts & Telemetry"
+
+    # 6. Explicit Code / CLI / Implementation
+    if "code_diff" not in geoms and (v_data.get("code_snippet") or v_data.get("command") or re.search(r"\b(?:kubectl|python\s+-m|docker\s+run|async\s+def|curl\s+http)\b", raw_narr, re.IGNORECASE)):
+        geoms.add("code_diff")
+        v = _pick_fresh(("code_diff_split", "diff_mutex_to_atomic", "code_terminal", "diff_n_plus_one_fix"))
+        return v, "Code Diff & Terminal Studio"
+
+    # 7. Memory / Storage Internals
+    if "memory_slots" not in geoms and (v_data.get("entries") or _has_kw(narr_l, "wal", "write-ahead", "buffer pool", "lsn", "ring buffer", "page cache", "parquet")):
+        geoms.add("memory_slots")
+        if dom["lakehouse"]:
+            v = _pick_fresh(("columnar_parquet_blocks", "iceberg_snapshot_tables", "data_quality_lineage"))
+        else:
+            v = _pick_fresh(("memory_wal_checkpoint", "memory_ring_buffer", "b_plus_tree_pages", "memory_lsm_memtable"))
+        return v, "Storage & Memory Internals"
+
+    # 8. Closing Summary / Resolution
+    if idx == total_scenes - 1 or role_l in ("cta", "summary", "takeaway", "resolution", "checklist"):
         geoms.add("grammar_summary")
-        v = _pick_fresh(("grammar:pyramid:4", "grammar:ring:6", "checklist_prod_readiness", "sdlc_cycle_wheel", "roadmap_zero_to_billion", "grammar:funnel:4"))
-        return v, "Geometric Summary & Checklist"
+        if dom["lakehouse"]:
+            v = _pick_fresh(("medallion_lakehouse", "grammar:pyramid:3", "checklist_prod_readiness", "grammar:tiers:3"))
+        else:
+            v = _pick_fresh(("grammar:pyramid:4", "grammar:ring:6", "checklist_prod_readiness", "sdlc_cycle_wheel", "grammar:funnel:4"))
+        return v, "Summary & Decision Checklist"
 
-    # Pick an unseen geometric family (Cycle -> Sankey/Radar/Sequence -> Mesh3D -> Grammar Funnel/Chevron/Swimlane)
+    # 9. Deep-Dive Diagram / Radar / Pyramid / Sankey Variety (Domain-Aware!)
     if "diagram_viz" not in geoms:
         geoms.add("diagram_viz")
-        v = _pick_fresh(("sequence_diagram", "sankey_flow", "radar_spider", "mesh_3d_stage", "donut_3d", "neural_net_layers", "attention_heatmap", "circular_hub_mesh", "git_branch_tree"))
+        if dom["lakehouse"]:
+            v = _pick_fresh(("radar_spider", "sankey_flow", "columnar_parquet_blocks", "grammar:tiers:3", "donut_3d", "data_quality_lineage"))
+            return v, "Data Feature & Cost Matrix"
+        v = _pick_fresh(("sequence_diagram", "sankey_flow", "radar_spider", "mesh_3d_stage", "donut_3d", "circular_hub_mesh", "git_branch_tree"))
         return v, "Interactive Diagram & 3D Mesh"
 
     geoms.add("grammar_geom")
-    v = _pick_fresh(("grammar:chevron:5", "grammar:swimlane:3", "grammar:waterfall:5", "grammar:funnel:4", "grammar:pyramid:4", "grammar:ring:5", "grammar:ladder:4"))
+    v = _pick_fresh(("grammar:chevron:5", "grammar:swimlane:3", "grammar:funnel:4", "grammar:pyramid:4", "grammar:ring:5", "grammar:ladder:4"))
     return v, "Composable Diagram Grammar"
 
 
@@ -2132,14 +2166,8 @@ def _enforce_engine_style(
             used_vtypes.add(current_vtype)
             used_vtypes.add(chosen_opt1)
         elif engine_style == "omni_smart_director" and idx == len(scenes) - 1 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-            # Showcase full-diversity Option 1 WebGL/SVG archetypes (Icosahedron 3D Hub, Speedometer Telemetry, Orbital Rings, Constellation, Waterfall, Pyramid) — never boring matrix_grid!
-            _SHOWCASE_OPT1_POOL = (
-                "web_neural_synapse", "web_cloud_circuit", "web_slo_burn_speedometer",
-                "spatial_orbit_carousel", "svg_gossip_epidemic_net", "svg_ecdh_key_exchange",
-                "svg_hnsw_skip_layers", "web_kafka_partition_lag", "spatial_constellation",
-            )
-            web_pool = [a for a in _SHOWCASE_OPT1_POOL if a not in recent_vtypes] or list(_SHOWCASE_OPT1_POOL)
-            w_pick = web_pool[(run_num * 3 + idx) % len(web_pool)]
+            # Pick a strictly topic-aligned Option 1 WebGL/SVG archetype (e.g. Lakehouse layers for Data, never cryptography!)
+            w_pick = _pick_topic_opt1_archetype(topic, run_num, idx, recent_vtypes)
             v_data.setdefault("_intent", current_vtype)
             v_data.setdefault("option1_archetype", w_pick)
             sc["visual_type"] = "web_scene"
@@ -2244,14 +2272,14 @@ def _enforce_engine_style(
                 )
                 role_s = str(sc.get("role") or "").lower()
                 if role_s == "hook" or idx == 0:
-                    q_txt = f"Yaar sach bataun toh mujhe yeh {title[:32]} concept dekh ke thoda confusion ho raha hai — yeh scale par fail kyun hota hai?"
-                    a_txt = f"Main samajhta hoon pehli baar dekhne mein yeh tricky lagta hai. Relax, saath mein decode karte hain — {narr_clean or f'{title[:28]} ko cleanly samajhna bilkul easy hai!'}"
+                    q_txt = f"{title[:38]} ka core problem kya hai aur yeh scale par kaise behave karta hai?"
+                    a_txt = narr_clean or f"{title[:34]} mein exact architecture aur data flow step-by-step dekhte hain."
                 elif role_s == "cta" or idx == len(scenes) - 1:
-                    q_txt = f"Waah, ab picture ekdam clear ho gayi! Par production mein sabse zaroori rule kaunsa yaad rakhun?"
-                    a_txt = f"Smart question! {narr_clean or 'Bas bounded limits, clear observability aur retry safeguards yaad rakho — aur is reel ko save zaroor kar lena!'}"
+                    q_txt = f"{title[:34]} mein production architecture finalize karte waqt kaunsa pattern choose karna chahiye?"
+                    a_txt = narr_clean or "Workload ke throughput, ACID guarantees aur cost trade-offs ke basis par pattern decide hota hai."
                 else:
-                    q_txt = f"Wait, par ek doubt hai — {title[:34]} mein jab traffic achanak badhta hai toh bottleneck kahan aata hai?"
-                    a_txt = f"Bilkul valid doubt pucha tumne! {narr_clean or 'Chalo step-by-step dekhte hain ki request flow kaise smooth rehta hai.'}"
+                    q_txt = f"{title[:36]} ke internal pipeline mein key components kaise interact karte hain?"
+                    a_txt = narr_clean or f"{title[:30]} ki execution layer state consistency aur latency maintain karti hai."
                 clean_dlg = [
                     {"speaker": "female", "text": q_txt},
                     {"speaker": "male", "text": a_txt},
@@ -2407,18 +2435,18 @@ def _build_emergency_fallback_timeline(
                 "role": "hook",
                 "scene_tone": "dual_dialogue_curious",
                 "dialogue": [
-                    {"speaker": "female", "text": f"Yaar honestly, {clean_topic} naam sunte hi mujhe thoda overwhelm feel hota hai... yeh production mein itna tricky kyun lagta hai?"},
-                    {"speaker": "male", "text": f"Main samajhta hoon, pehli baar dekhne mein har kisi ko aisa hi lagta hai. Relax, main hoon na — chalo bilkul real story ki tarah {clean_topic} ko tod ke samajhte hain."},
+                    {"speaker": "female", "text": f"{clean_topic} mein production architecture design karte waqt sabse badi limitation kahan aati hai?"},
+                    {"speaker": "male", "text": f"{clean_topic} mein raw ingestion aur query serving ke beech contention hoti hai — aao iske internal stages decode karte hain."},
                 ],
-                "narration": f"Yaar honestly, {clean_topic} naam sunte hi mujhe thoda overwhelm feel hota hai... yeh production mein itna tricky kyun lagta hai? Main samajhta hoon, pehli baar dekhne mein har kisi ko aisa hi lagta hai. Relax, main hoon na — chalo bilkul real story ki tarah {clean_topic} ko tod ke samajhte hain.",
+                "narration": f"{clean_topic} mein production architecture design karte waqt sabse badi limitation kahan aati hai? {clean_topic} mein raw ingestion aur query serving ke beech contention hoti hai — aao iske internal stages decode karte hain.",
                 "visual_type": "hero_hook",
                 "visual_data": {
-                    "badge": "CURIOUS Q & MENTOR FIX",
+                    "badge": "ARCHITECTURE QUESTION",
                     "title": clean_topic,
-                    "question": f"Why does {clean_topic} feel confusing at scale?",
-                    "left_pill": "Her Doubt: Why Overload?",
-                    "right_pill": "Mentor Clarity: Step-by-Step",
-                    "stat_badge": "Empathetic Deep Breakdown",
+                    "question": f"Core Architectural Choice in {clean_topic}",
+                    "left_pill": "Naive Pattern",
+                    "right_pill": "Production Pattern",
+                    "stat_badge": "System Design Breakdown",
                 },
             },
             {
@@ -2426,21 +2454,21 @@ def _build_emergency_fallback_timeline(
                 "role": "architecture",
                 "scene_tone": "dual_dialogue_curious",
                 "dialogue": [
-                    {"speaker": "female", "text": "Wait, par agar ek saath 10,000 requests aa jayein toh system beech mein hang ya lock kyun nahi hota?"},
-                    {"speaker": "male", "text": f"Bahut smart doubt pucha! Yahan {clean_topic} request ko direct database par bhejne ke bajay 4 clean stages mein handle karta hai — edge routing, in-memory queue, state engine, aur synced storage."},
+                    {"speaker": "female", "text": "High concurrency requests handle karte waqt data pipeline aur storage layer kaise sync rehte hain?"},
+                    {"speaker": "male", "text": f"{clean_topic} mein requests directly DB lock nahi karte; edge routing, async buffer, state engine, aur replicated storage 4 stages mein chalte hain."},
                 ],
-                "narration": f"Wait, par agar ek saath 10,000 requests aa jayein toh system beech mein hang ya lock kyun nahi hota? Bahut smart doubt pucha! Yahan {clean_topic} request ko direct database par bhejne ke bajay 4 clean stages mein handle karta hai — edge routing, in-memory queue, state engine, aur synced storage.",
+                "narration": f"High concurrency requests handle karte waqt data pipeline aur storage layer kaise sync rehte hain? {clean_topic} mein requests directly DB lock nahi karte; edge routing, async buffer, state engine, aur replicated storage 4 stages mein chalte hain.",
                 "visual_type": "architecture_flow",
                 "visual_data": {
-                    "badge": "LIVE MECHANICS Q&A",
+                    "badge": "SYSTEM ARCHITECTURE",
                     "title": f"{clean_topic} Flow",
                     "nodes": [
-                        {"id": "in", "label": "Edge Router", "sub": "Rate limit & auth check", "edge": "Buffer", "color": "#38BDF8"},
-                        {"id": "buf", "label": "Async Queue", "sub": "Smooth traffic bursts", "edge": "Compute", "color": "#818CF8"},
-                        {"id": "core", "label": f"{clean_topic[:18]} Engine", "sub": "Lock-free fast worker", "edge": "Commit", "color": "#FBBF24"},
-                        {"id": "out", "label": "Synced Replica", "sub": "Zero-loss state write", "color": "#34D399"},
+                        {"id": "in", "label": "Edge Router", "sub": "Rate limit & validation", "edge": "Buffer", "color": "#38BDF8"},
+                        {"id": "buf", "label": "Async Queue", "sub": "Burst smoothing", "edge": "Compute", "color": "#818CF8"},
+                        {"id": "core", "label": f"{clean_topic[:18]} Engine", "sub": "Lock-free processing", "edge": "Commit", "color": "#FBBF24"},
+                        {"id": "out", "label": "Synced Store", "sub": "Consistent replication", "color": "#34D399"},
                     ],
-                    "footer": "Question Resolved: Queue + Worker prevents lock freeze",
+                    "footer": "Ingress -> Async Queue -> Engine -> Consistent Store",
                 },
             },
             {
@@ -2448,18 +2476,18 @@ def _build_emergency_fallback_timeline(
                 "role": "tradeoff",
                 "scene_tone": "dual_dialogue_curious",
                 "dialogue": [
-                    {"speaker": "female", "text": "Achha samjhi! Par kya ismein koi hidden catch ya trade-off bhi hota hai?"},
-                    {"speaker": "male", "text": "Bilkul sahi pakda tumne! Latency 10x fast ho jaati hai, par memory limits, bounded queues aur idempotent retries set karna zaroori hota hai taaki koi event miss na ho."},
+                    {"speaker": "female", "text": "Is architecture ke main performance trade-offs aur reliability guarantees kya hain?"},
+                    {"speaker": "male", "text": "Latency 10x kam hoti hai, lekin bounded queues, idempotency keys aur retry safeguards enforce karna zaroori hai."},
                 ],
-                "narration": "Achha samjhi! Par kya ismein koi hidden catch ya trade-off bhi hota hai? Bilkul sahi pakda tumne! Latency 10x fast ho jaati hai, par memory limits, bounded queues aur idempotent retries set karna zaroori hota hai taaki koi event miss na ho.",
+                "narration": "Is architecture ke main performance trade-offs aur reliability guarantees kya hain? Latency 10x kam hoti hai, lekin bounded queues, idempotency keys aur retry safeguards enforce karna zaroori hai.",
                 "visual_type": "split_comparison",
                 "visual_data": {
-                    "badge": "EDGE CASES & TRADE-OFFS",
-                    "title": "Hidden Catch vs Mentor Fix",
-                    "left_label": "WITHOUT GUARDRAILS",
-                    "left_points": ["Silent memory buildup", "Duplicate retry storms", "Unbounded P99 latency", "Hard cascading crashes"],
-                    "right_label": "MENTOR SOLUTION",
-                    "right_points": ["Strict bounded queues", "Idempotency keys", "10x lower P99 latency", "Graceful circuit breaker"],
+                    "badge": "ARCHITECTURE TRADE-OFFS",
+                    "title": "Trade-Off Comparison",
+                    "left_label": "UNBOUNDED",
+                    "left_points": ["Memory growth", "Duplicate retries", "High P99 tail latency", "Cascade failures"],
+                    "right_label": "GUARDED DESIGN",
+                    "right_points": ["Bounded queues", "Idempotency keys", "Low P99 latency", "Circuit breakers"],
                 },
             },
             {
@@ -2467,21 +2495,21 @@ def _build_emergency_fallback_timeline(
                 "role": "cta",
                 "scene_tone": "dual_dialogue_curious",
                 "dialogue": [
-                    {"speaker": "female", "text": "Wow yaar, ab yeh poora concept dimaag mein crystal clear baith gaya — thank you itna patiently samjhane ke liye!"},
-                    {"speaker": "male", "text": "Always happy to help! Bas yeh checklist save kar lo taaki interview ya production mein kabhi confusion na ho — aur next topic comment mein batao!"},
+                    {"speaker": "female", "text": "Toh production deployment ke liye final architectural takeaway kya rahega?"},
+                    {"speaker": "male", "text": f"{clean_topic} ke liye decoupled ingestion, clear schema governance aur bounded concurrency hi key design principles hain."},
                 ],
-                "narration": "Wow yaar, ab yeh poora concept dimaag mein crystal clear baith gaya — thank you itna patiently samjhane ke liye! Always happy to help! Bas yeh checklist save kar lo taaki interview ya production mein kabhi confusion na ho — aur next topic comment mein batao!",
+                "narration": f"Toh production deployment ke liye final architectural takeaway kya rahega? {clean_topic} ke liye decoupled ingestion, clear schema governance aur bounded concurrency hi key design principles hain.",
                 "visual_type": "concept_cards",
                 "visual_data": {
-                    "badge": "CRYSTAL CLEAR RECAP",
-                    "title": f"{clean_topic} Sorted",
+                    "badge": "KEY TAKEAWAYS",
+                    "title": f"{clean_topic} Summary",
                     "bullets": [
-                        "Doubt 1 Solved: Edge queue absorbs 10,000+ burst spikes",
-                        "Doubt 2 Solved: Lock-free worker keeps hot paths smooth",
-                        "Hidden Catch: Always enforce idempotency & queue caps",
-                        "Next Action: Save reel & drop your next doubt below!",
+                        "Decouple ingestion from serving path",
+                        "Preserve schema governance & durability",
+                        "Enforce bounded queues & idempotency",
+                        "Measure P95/P99 latency under load",
                     ],
-                    "footer_cta": "Save • Share • Drop Your Next Question",
+                    "footer_cta": "Production Architecture Blueprint",
                 },
             },
         ]
@@ -2496,24 +2524,24 @@ def _build_emergency_fallback_timeline(
 
     if is_marathi:
         narrs = [
-            (f"मित्रांनो, {clean_topic} मध्ये 90% engineers एका common trap मध्ये अडकतात... [pause] ते कसे टाळायचे?", f"Mitrano, {clean_topic} madhe 90% engineers eka common trap madhe adaktat... [pause] te kase talayche?"),
-            (f"{clean_topic} चे core architecture 3 simple steps मध्ये काम करते — request routing, state sync, आणि fast execution.", f"{clean_topic} che core architecture 3 simple steps madhe kaam karte — request routing, state sync, ani fast execution."),
-            (f"Pan trade-off लक्षात ठेवा: latency 50% कमी होते, पण edge cases साठी proper limits सेट करा.", f"Pan trade-off lakshat theva: latency 50% kami hote, pan edge cases saathi proper limits set kara."),
-            (f"ही reel save करा आणि comment मध्ये तुमचा next topic सांगा!", f"Hi reel save kara ani comment madhe tumcha next topic sanga!"),
+            (f"{clean_topic} मध्ये production scale वर मुख्य architectural bottleneck कुठे तयार होतो ते समजून घेऊया.", f"{clean_topic} madhe production scale var mukhya architectural bottleneck kuthe tayar hoto te samjun gheuya."),
+            (f"{clean_topic} चे core architecture तीन स्पष्ट stages मध्ये काम करते — request routing, state sync, आणि fast execution.", f"{clean_topic} che core architecture teen spashta stages madhe kaam karte — request routing, state sync, ani fast execution."),
+            (f"याचा मुख्य trade-off म्हणजे latency 50% कमी होते, पण edge cases साठी proper backpressure limits आवश्यक असतात.", f"Yacha mukhya trade-off mhanje latency 50% kami hote, pan edge cases saathi proper backpressure limits avashyak astat."),
+            (f"{clean_topic} मध्ये decoupled execution आणि clear observability मुळे system reliable राहते.", f"{clean_topic} madhe decoupled execution ani clear observability mule system reliable rahte."),
         ]
     elif is_hindi:
         narrs = [
-            (f"Interview में 90% लोग {clean_topic} के एक simple question में फंस जाते हैं... [pause] आइए reason समझते हैं।", f"Interview mein 90% log {clean_topic} ke ek simple question mein phans jaate hain... [pause] aaiye reason samajhte hain."),
+            (f"{clean_topic} में production scale पर मुख्य architectural bottleneck कहां आता है, आइए समझते हैं।", f"{clean_topic} mein production scale par mukhya architectural bottleneck kahan aata hai, aaiye samajhte hain."),
             (f"{clean_topic} की architecture 3 clear stages में चलती है — fast ingestion, core engine processing, और reliable storage sync.", f"{clean_topic} ki architecture 3 clear stages mein chalti hai — fast ingestion, core engine processing, aur reliable storage sync."),
-            (f"Real trade-off ये है कि latency 10x कम होती है, लेकिन production edge cases के लिए retry और limits ज़रूरी हैं।", f"Real trade-off yeh hai ki latency 10x kam hoti hai, lekin production edge cases ke liye retry aur limits zaroori hain."),
-            (f"इस reel को save करें और next interview topic comment करें!", f"Is reel ko save karein aur next interview topic comment karein!"),
+            (f"इसका real trade-off यह है कि latency 10x कम होती है, लेकिन edge cases के लिए retry और limits ज़रूरी हैं।", f"Iska real trade-off yeh hai ki latency 10x kam hoti hai, lekin edge cases ke liye retry aur limits zaroori hain."),
+            (f"{clean_topic} में decoupled queues और schema governance system को stable रखते हैं।", f"{clean_topic} mein decoupled queues aur schema governance system ko stable rakhte hain."),
         ]
     else:
         narrs = [
-            (f"90% engineers hit a hidden bottleneck in {clean_topic}... [pause] let's see why systems freeze under load.", ""),
+            (f"Let's break down the core architectural bottleneck in {clean_topic} under production scale.", ""),
             (f"{clean_topic} works in 3 clean stages: request routing, in-memory processing, and resilient state sync.", ""),
-            (f"The real trade-off: latency drops by 10x, while proper backpressure and limits protect edge cases.", ""),
-            (f"Save this breakdown for your next interview and comment your next topic below!", ""),
+            (f"The real trade-off: latency drops by 10x, while bounded backpressure and limits protect edge cases.", ""),
+            (f"Decoupled execution and clear governance keep {clean_topic} predictable at scale.", ""),
         ]
 
     scenes = [

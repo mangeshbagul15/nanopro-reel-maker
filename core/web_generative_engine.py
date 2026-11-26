@@ -873,33 +873,11 @@ window.__setStudioProgress=function(p, curTime, energy, gates, curWord, fxLabel,
       bn.querySelectorAll('.bt-sub').forEach(s=>{{s.style.opacity=Math.max(0,Math.min(1,(bg-0.42)/0.48));}});
     }});
   }}
-  // Spoken Keyword Pill + Interactive Contextual Bubble + Bezier Cursor Pointer
-  let fxHud=document.getElementById('npFxHud');
-  if(!fxHud){{
-    fxHud=document.createElement('div'); fxHud.id='npFxHud';
-    fxHud.style.cssText='position:fixed;right:40px;top:290px;z-index:90;display:flex;gap:10px;align-items:center;pointer-events:none;';
-    document.body.appendChild(fxHud);
-  }}
-  const cleanW=curWord?String(curWord).replace(/[^A-Za-z0-9\\-+\\.%]/g,'').slice(0,18):'';
-  const showBub=fxLabel?`<span style="padding:7px 14px;border-radius:999px;background:${{PAL.cardAlt}};border:2px solid ${{PAL.purple}};color:${{PAL.amber}};font-weight:800;font-size:18px;box-shadow:0 8px 20px rgba(0,0,0,0.35);">${{fxLabel}}</span>`:'';
-  const showKw=cleanW?`<span style="padding:7px 16px;border-radius:14px;background:${{PAL.cardAlt}};border:2px solid ${{PAL.cyan}};color:${{PAL.text}};font-weight:800;font-size:19px;border-bottom:3px solid ${{PAL.emerald}};">• ${{cleanW.toUpperCase()}}</span>`:'';
-  fxHud.innerHTML=(p>0.02&&p<0.98)?(showBub+showKw):'';
-  let curPtr=document.getElementById('npBezierCursor');
-  if(!curPtr){{
-    curPtr=document.createElement('div'); curPtr.id='npBezierCursor';
-    curPtr.style.cssText='position:fixed;z-index:92;pointer-events:none;transition:left 0.14s ease-out, top 0.14s ease-out;';
-    curPtr.innerHTML=`<svg width="30" height="36" viewBox="0 0 24 28"><polygon points="2,2 22,12 13,16 18,26 13,28 8,18 2,23" fill="#ffffff" stroke="${{PAL.cyan}}" stroke-width="2"/></svg>`;
-    document.body.appendChild(curPtr);
-  }}
-  const actEl=animNodes[activeIdx];
-  if(actEl&&p>0.03&&p<0.96){{
-    const rc=actEl.getBoundingClientRect();
-    curPtr.style.display='block';
-    curPtr.style.left=Math.round(rc.left+rc.width*0.86)+'px';
-    curPtr.style.top=Math.round(rc.top+rc.height*0.42)+'px';
-  }} else {{
-    curPtr.style.display='none';
-  }}
+  // Keep interactive card highlighting clean without distracting blinking GUI mouse pointer or overlapping word clouds
+  const _oldFxHud=document.getElementById('npFxHud');
+  if(_oldFxHud) _oldFxHud.style.display='none';
+  const _oldCurPtr=document.getElementById('npBezierCursor');
+  if(_oldCurPtr) _oldCurPtr.style.display='none';
   document.querySelectorAll('.hero-footer').forEach(ft=>{{
     const fg=Math.max(0,Math.min(1,(p-0.72)/0.22));
     const fe=1-Math.pow(1-fg,3);

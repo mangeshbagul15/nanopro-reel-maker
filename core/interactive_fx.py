@@ -383,118 +383,37 @@ def render_interactive_fx_overlay(
     ctrl_pt = ((px + tx) * 0.5 + (65 if tgt_idx % 2 == 0 else -65), min(py, ty) - 45)
     cx, cy = _bezier_pt((float(px), float(py)), ctrl_pt, (float(tx), float(ty)), glide_t)
 
-    # 1. Click Ripple & Pulse Ring on active spoken component
-    if 0.03 < ripple_t < 0.96:
-        r1 = int(18 + 62 * _ease_out_cubic(ripple_t))
-        r2 = int(10 + 40 * _ease_out_cubic(ripple_t))
-        fade = (1.0 - ripple_t) * 0.85
-        draw.ellipse((tx - r1, ty - r1, tx + r1, ty + r1), outline=_rgba(cyan, fade), width=3)
-        draw.ellipse((tx - r2, ty - r2, tx + r2, ty + r2), outline=_rgba(emerald, fade * 0.8), width=2)
+    # Clean, distraction-free HUD: keep dual-speaker pill steady without blinking GUI mouse cursor, click ripples, or noisy popups.
+    # Optional pointer/bubble FX only renders when explicitly enabled via `fx_state["show_pointer_fx"] = True`.
+    if bool(fx_state.get("show_pointer_fx", False)):
+        if 0.03 < ripple_t < 0.96:
+            r1 = int(18 + 62 * _ease_out_cubic(ripple_t))
+            r2 = int(10 + 40 * _ease_out_cubic(ripple_t))
+            fade = (1.0 - ripple_t) * 0.85
+            draw.ellipse((tx - r1, ty - r1, tx + r1, ty + r1), outline=_rgba(cyan, fade), width=3)
+            draw.ellipse((tx - r2, ty - r2, tx + r2, ty + r2), outline=_rgba(emerald, fade * 0.8), width=2)
+        if 0.02 < p < 0.96:
+            c_pts = [
+                (cx, cy), (cx + 22, cy + 12), (cx + 12, cy + 16), (cx + 18, cy + 28),
+                (cx + 12, cy + 31), (cx + 6, cy + 19), (cx, cy + 26),
+            ]
+            draw.polygon(c_pts, fill=_rgba((255, 255, 255), 0.94), outline=_rgba(cyan, 0.95), width=2)
 
-    # 2. Active Drag/Focus Glow Dot at anchor handle
-    pulse = 0.5 + 0.5 * math.sin(p * math.pi * 8.0)
-    draw.ellipse((tx - 9, ty - 9, tx + 9, ty + 9), fill=_rgba(cyan, 0.28 + 0.25 * pulse), outline=_rgba(cyan, 0.85), width=2)
-
-    # 2b. Drag-and-Drop Dashed Connector Preview + Hover Preview Pill toward upcoming stage during cursor glide
-    if n_a > tgt_idx + 1 and 0.04 < p < 0.88:
-        nx, ny, _ = dedup[tgt_idx + 1]
-        steps_d = 8
-        for si in range(steps_d):
-            if si % 2 == 0:
-                f0, f1 = si / steps_d, (si + 0.7) / steps_d
-                sx0, sy0 = int(cx + (nx - cx) * f0), int(cy + (ny - cy) * f0)
-                sx1, sy1 = int(cx + (nx - cx) * f1), int(cy + (ny - cy) * f1)
-                draw.line((sx0, sy0, sx1, sy1), fill=_rgba(purple, 0.42), width=2)
-        draw.ellipse((nx - 7, ny - 7, nx + 7, ny + 7), outline=_rgba(purple, 0.65), width=2)
-        nxt_lbl = (fx_state.get("labels") or [])[min(len(fx_state.get("labels") or []) - 1, tgt_idx + 1)] if fx_state.get("labels") else ""
-        if nxt_lbl and ripple_t < 0.55:
-            f_hp = _fx_font(16, bold=True)
-            htxt = f"NEXT -> {nxt_lbl[:18]}"
-            hbb = f_hp.getbbox(htxt)
-            hw = (hbb[2] - hbb[0]) + 22
-            hx = max(60, min(stage_img.width - hw - 60, int(cx + 18)))
-            hy = max(390, int(cy + 34))
-            draw.rounded_rectangle((hx, hy, hx + hw, hy + 28), radius=10, fill=_rgba(card_alt, 0.85), outline=_rgba(purple, 0.72), width=1)
-            draw.text((hx + 10, hy + 5), htxt, font=f_hp, fill=_rgba(text_col, 0.90))
-
-    # 3. Clean Bezier Vector Cursor Arrow at (cx, cy)
-    if 0.02 < p < 0.96:
-        c_pts = [
-            (cx, cy),
-            (cx + 22, cy + 12),
-            (cx + 12, cy + 16),
-            (cx + 18, cy + 28),
-            (cx + 12, cy + 31),
-            (cx + 6, cy + 19),
-            (cx, cy + 26),
-        ]
-        draw.polygon(c_pts, fill=_rgba((255, 255, 255), 0.94), outline=_rgba(cyan, 0.95), width=2)
-
-    # 4. Spoken Key-Term Pop + Marker Underline Swipe (Right of Scene Header, y=318..366)
-    clean_kw = re.sub(r"[^A-Za-z0-9\-\+\.%]", "", cur_word)[:18]
-    if clean_kw and 0.02 < p < 0.98:
-        f_kw = _fx_font(20, bold=True)
-        kw_txt = f"• {clean_kw.upper()}"
-        kbb = f_kw.getbbox(kw_txt)
-        kw_w = min(310, (kbb[2] - kbb[0]) + 34)
-        kx1 = stage_img.width - 44
-        kx0 = kx1 - kw_w
-        ky0, ky1 = 316, 356
-        draw.rounded_rectangle((kx0, ky0, kx1, ky1), radius=14, fill=_rgba(card_alt, 0.92), outline=_rgba(amber, 0.85), width=2)
-        draw.text((kx0 + 14, ky0 + 8), kw_txt, font=f_kw, fill=_rgba(amber, 0.98))
-        # Animated Marker Underline Swipe inside badge
-        swipe_t = _ease_out_cubic(min(1.0, (p * 12.0) % 1.0 + 0.25))
-        draw.line((kx0 + 14, ky1 - 5, int(kx0 + 14 + (kw_w - 28) * swipe_t), ky1 - 5), fill=_rgba(cyan, 0.95), width=3)
-
-    # 4b. Dual Dialogue Live Speaker Pill (Top-Left HUD beside Spoken Keyword Pop, y=316..356)
+    # Active Dual-Dialogue Speaker HUD Pill (Top-Left, steady & high-contrast, zero blinking)
     active_speaker = str(fx_state.get("speaker") or "").strip().lower()
     if active_speaker in ("female", "male") and 0.01 < p < 0.99:
         f_sp = _fx_font(19, bold=True)
         if active_speaker == "female":
-            sp_txt = "SHE ASKS ?"
+            sp_txt = "QUESTION"
             sp_col = rose
         else:
-            sp_txt = "MENTOR SOLVES"
+            sp_txt = "EXPLANATION"
             sp_col = emerald
         sbb = f_sp.getbbox(sp_txt)
-        sp_w = (sbb[2] - sbb[0]) + 46
+        sp_w = (sbb[2] - sbb[0]) + 42
         sx0, sy0, sy1 = 68, 316, 356
         draw.rounded_rectangle((sx0, sy0, sx0 + sp_w, sy1), radius=14, fill=_rgba(card_alt, 0.92), outline=_rgba(sp_col, 0.88), width=2)
         draw.ellipse((sx0 + 14, sy0 + 14, sx0 + 26, sy0 + 26), fill=_rgba(sp_col, 0.96))
         draw.text((sx0 + 34, sy0 + 8), sp_txt, font=f_sp, fill=_rgba(sp_col, 0.98))
-
-    # 5. Contextual Thought Cloud / Mini Quiz / Warning / Pro-Tip / Status+Sparkle Burst / Split Delta Bubble
-    if fx_type != "none" and fx_label and 0.04 < p < 0.95:
-        b_col = rose if fx_type == "warn" else (purple if fx_type in ("quiz", "thought") else (emerald if fx_type in ("status", "delta") else amber))
-        f_bub = _fx_font(19, bold=True)
-        bbb = f_bub.getbbox(fx_label)
-        bw = (bbb[2] - bbb[0]) + 36
-        bx = max(84, min(stage_img.width - bw - 84, int(tx - bw // 2)))
-        by = max(368, int(ty - 114))
-        pop_a = _ease_out_back(min(1.0, ripple_t * 2.2)) * 0.95
-        if fx_type == "thought":
-            # Cloud scalloped thought bubble with trailing circles
-            draw.rounded_rectangle((bx, by, bx + bw, by + 38), radius=19, fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
-            draw.ellipse((bx + 6, by - 10, bx + 32, by + 16), fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
-            draw.ellipse((bx + bw - 34, by - 10, bx + bw - 8, by + 16), fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
-            draw.ellipse((int(tx) - 5, by + 40, int(tx) + 5, by + 50), fill=_rgba(b_col, pop_a))
-            draw.ellipse((int(tx) - 3, by + 54, int(tx) + 3, by + 60), fill=_rgba(b_col, pop_a))
-        else:
-            draw.rounded_rectangle((bx, by, bx + bw, by + 38), radius=19, fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
-            tail_x = max(bx + 14, min(bx + bw - 14, int(tx)))
-            draw.polygon([(tail_x - 6, by + 37), (tail_x + 6, by + 37), (tail_x, by + 46)], fill=_rgba(b_col, pop_a))
-        draw.text((bx + 18, by + 8), fx_label, font=f_bub, fill=_rgba(b_col, pop_a))
-        if fx_type == "status" and ripple_t < 0.72:
-            # Radial Neon Vector Sparkle Burst (Emoji/Burst FX)
-            for bi in range(8):
-                ang = bi * (math.pi / 4.0)
-                r_in = int(26 + 26 * ripple_t)
-                r_out = int(38 + 38 * ripple_t)
-                sc_col = emerald if bi % 2 == 0 else cyan
-                draw.line(
-                    (int(tx + r_in * math.cos(ang)), int(ty + r_in * math.sin(ang)),
-                     int(tx + r_out * math.cos(ang)), int(ty + r_out * math.sin(ang))),
-                    fill=_rgba(sc_col, (1.0 - ripple_t) * 0.9), width=3,
-                )
 
     return Image.alpha_composite(stage_img.convert("RGBA"), overlay)
