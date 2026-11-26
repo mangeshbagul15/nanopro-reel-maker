@@ -218,6 +218,9 @@ def _render_horizontal_pipeline(
     _bezier = helpers["_draw_bezier_comet"]
     _draw_vis = helpers["_draw_node_visual"]
 
+    _sub_gate = helpers.get("_sub_gate") or (lambda g, part="box": _ease(min(1.0, max(0.0, g / 0.45))) if part == "box" else _ease(g))
+    _footer_gate = helpers.get("_footer_gate") or (lambda p: _ease(min(1.0, max(0.0, (p - 0.74) / 0.22))))
+
     n = min(5, len(items))
     if n <= 0:
         return
@@ -227,32 +230,40 @@ def _render_horizontal_pipeline(
     for i, it in enumerate(items[:5]):
         if isinstance(it, str):
             it = {"name": it}
-        gt = _ease(_spring_gate(progress, i, n, 0.22))
-        if gt <= 0.03:
+        g_raw = _spring_gate(progress, i, n, 0.22)
+        g_box = _sub_gate(g_raw, "box")
+        if g_box <= 0.03:
             continue
+        g_badge = _sub_gate(g_raw, "badge")
+        g_title = _sub_gate(g_raw, "title")
+        g_sub = _sub_gate(g_raw, "sub")
         col = _res_col(world, it.get("color"), _ACCENT[i % len(_ACCENT)])
         cy = SY0 + 78 + i * rh
         is_left = (i % 2 == 0)
         scx = 185 if is_left else 895
         cb_x0 = 285 if is_left else 84
         cb_x1 = 996 if is_left else 795
-        active = (int(progress * n) == i)
-        if prev_out is not None:
+        active = (int(min(n - 1, progress * n)) == i)
+        if prev_out is not None and g_box > 0.05:
             in_x = 460 if is_left else 620
-            _bezier(stage, prev_out, (in_x, cy - 58), col, reveal=gt, progress=progress, phase=i * 0.2, label=prev_edge, world=world)
-        stage.draw_glass_card((cb_x0, cy - 54, cb_x1, cy + 56), radius=20, accent_col=col, alpha_mul=gt, active=active)
-        _draw_vis(stage, scx, cy - 16, 44, 20, 30, col, gt, shape=it.get("shape", default_shape), icon=it.get("icon", ""), label=it.get("name", ""), active=active, progress=progress, phase=i * 0.5)
-        stage.draw.line((scx + (52 if is_left else -52), cy, cb_x0 if is_left else cb_x1, cy), fill=_with_alpha(col, gt), width=3)
+            _bezier(stage, prev_out, (in_x, cy - 58), col, reveal=g_box, progress=progress, phase=i * 0.2, label=prev_edge, world=world)
+        stage.draw_glass_card((cb_x0, cy - 54, cb_x1, cy + 56), radius=20, accent_col=col, alpha_mul=g_box, active=active)
+        if g_badge > 0.03:
+            _draw_vis(stage, scx, cy - 16, 44, 20, 30, col, g_badge, shape=it.get("shape", default_shape), icon=it.get("icon", ""), label=it.get("name", ""), active=active, progress=progress, phase=i * 0.5)
+            cur_stub_x1 = int((scx + (52 if is_left else -52)) + ((cb_x0 if is_left else cb_x1) - (scx + (52 if is_left else -52))) * g_badge)
+            stage.draw.line((scx + (52 if is_left else -52), cy, cur_stub_x1, cy), fill=_with_alpha(col, g_badge), width=3)
         sub_txt = str(it.get("sub") or it.get("desc") or "").strip()
-        _draw_wrapped(stage.draw, (cb_x0 + 22, cy - 36), str(it.get("name") or it.get("title") or ""), _get_font(25, bold=True), _with_alpha(world["text"], gt), cb_x1 - cb_x0 - 44, max_lines=1 if sub_txt else 2)
-        if sub_txt:
-            _draw_wrapped(stage.draw, (cb_x0 + 22, cy + 6), sub_txt, _get_font(20), _with_alpha(world["muted"], gt), cb_x1 - cb_x0 - 44, max_lines=2)
+        if g_title > 0.03:
+            _draw_wrapped(stage.draw, (cb_x0 + 22, cy - 36), str(it.get("name") or it.get("title") or ""), _get_font(25, bold=True), _with_alpha(world["text"], g_title), cb_x1 - cb_x0 - 44, max_lines=1 if sub_txt else 2)
+        if sub_txt and g_sub > 0.03:
+            _draw_wrapped(stage.draw, (cb_x0 + 22, cy + 6), sub_txt, _get_font(20), _with_alpha(world["muted"], g_sub), cb_x1 - cb_x0 - 44, max_lines=2)
         prev_out = (460 if is_left else 620, cy + 56)
         prev_edge = str(it.get("edge", ""))
     if n <= 4:
-        g0 = _ease(min(1.0, progress / 0.25))
-        stage.draw_glass_card((80, SY1 - 122, 1000, SY1 - 22), radius=20, accent_col=world["emerald"], alpha_mul=g0, active=True)
-        _draw_wrapped(stage.draw, (112, SY1 - 88), "Continuous Real-Time Pipeline • Zero Production Locks", _get_font(24, bold=True), _with_alpha(world["emerald"], g0), 856, align="center", max_lines=1)
+        gf = _footer_gate(progress)
+        if gf > 0.03:
+            stage.draw_glass_card((80, SY1 - 122, 1000, SY1 - 22), radius=20, accent_col=world["emerald"], alpha_mul=gf, active=True)
+            _draw_wrapped(stage.draw, (112, SY1 - 88), "Continuous Real-Time Pipeline • Zero Production Locks", _get_font(24, bold=True), _with_alpha(world["emerald"], gf), 856, align="center", max_lines=1)
 
 
 def _render_tiered_zones(
@@ -270,6 +281,7 @@ def _render_tiered_zones(
     _ease = helpers["_ease_out_cubic"]
     _res_col = helpers["resolve_world_color"]
     _draw_vis = helpers["_draw_node_visual"]
+    _sub_gate = helpers.get("_sub_gate") or (lambda g, part="box": _ease(min(1.0, max(0.0, g / 0.45))) if part == "box" else _ease(g))
 
     n = min(7, len(zones))
     if n <= 0:
@@ -278,19 +290,25 @@ def _render_tiered_zones(
     for i, zn in enumerate(zones[:7]):
         if isinstance(zn, str):
             zn = {"name": zn}
-        gt = _ease(_spring_gate(progress, i, n, 0.20))
-        if gt <= 0.03:
+        g_raw = _spring_gate(progress, i, n, 0.20)
+        g_box = _sub_gate(g_raw, "box")
+        if g_box <= 0.03:
             continue
+        g_badge = _sub_gate(g_raw, "badge")
+        g_title = _sub_gate(g_raw, "title")
+        g_sub = _sub_gate(g_raw, "sub")
         col = _res_col(world, zn.get("color"), _ACCENT[i % len(_ACCENT)])
         y = SY0 + 20 + i * rh
         h = rh - 14
-        active = (int(progress * n) == i)
-        stage.draw_glass_card((80, y, 1000, y + h), radius=18, accent_col=col, alpha_mul=gt, active=active)
-        _draw_vis(stage, 142, y + h // 2 - 12, 30, 14, 20, col, gt, shape=zn.get("shape", "box"), icon=zn.get("icon", ""), label=zn.get("name", ""), active=active, progress=progress)
-        stage.draw_pill(248, y + h // 2, str(zn.get("tag") or f"L{n - i}")[:10], (*col[:3], 42), col, border_col=col, font=_get_font(18, bold=True), alpha_mul=gt)
-        _draw_wrapped(stage.draw, (318, y + max(10, h // 2 - 26)), str(zn.get("name") or zn.get("title") or ""), _get_font(24 if n <= 5 else 21, bold=True), _with_alpha(world["text"], gt), 430, max_lines=1)
-        if zn.get("sub") or zn.get("proto"):
-            _draw_wrapped(stage.draw, (755, y + max(12, h // 2 - 18)), str(zn.get("sub") or zn.get("proto")), _get_font(19, mono=True), _with_alpha(col, gt), 228, align="right", max_lines=2)
+        active = (int(min(n - 1, progress * n)) == i)
+        stage.draw_glass_card((80, y, 1000, y + h), radius=18, accent_col=col, alpha_mul=g_box, active=active)
+        if g_badge > 0.03:
+            _draw_vis(stage, 142, y + h // 2 - 12, 30, 14, 20, col, g_badge, shape=zn.get("shape", "box"), icon=zn.get("icon", ""), label=zn.get("name", ""), active=active, progress=progress)
+            stage.draw_pill(248, y + h // 2, str(zn.get("tag") or f"L{n - i}")[:10], (*col[:3], 42), col, border_col=col, font=_get_font(18, bold=True), alpha_mul=g_badge)
+        if g_title > 0.03:
+            _draw_wrapped(stage.draw, (318, y + max(10, h // 2 - 26)), str(zn.get("name") or zn.get("title") or ""), _get_font(24 if n <= 5 else 21, bold=True), _with_alpha(world["text"], g_title), 430, max_lines=1)
+        if (zn.get("sub") or zn.get("proto")) and g_sub > 0.03:
+            _draw_wrapped(stage.draw, (755, y + max(12, h // 2 - 18)), str(zn.get("sub") or zn.get("proto")), _get_font(19, mono=True), _with_alpha(col, g_sub), 228, align="right", max_lines=2)
 
 
 def render_it_sdlc_layout(

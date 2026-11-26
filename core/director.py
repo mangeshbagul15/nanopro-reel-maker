@@ -165,10 +165,11 @@ SYSTEM_PROMPT = """You are an elite Tech Content Director and Visual Storyteller
 Your mission is to analyze any technical topic and autonomously design a realistic, topic-accurate, deeply engaging storyboard blueprint JSON.
 
 CRITICAL DIRECTING PRINCIPLES:
-1. PERFECT VOICE & VISUAL CORRESPONDENCE (MANDATORY):
-   - In EVERY scene, the `visual_data` MUST DIRECTLY and PRECISELY reflect the exact technical concept, architecture, code, schema, or system component being spoken in that scene's `narration`.
-   - Never output generic placeholder text (e.g., "Client Ingestion", "Block #101", "Pipeline logic"). Use the REAL service names, REAL SQL queries, REAL code syntax, REAL performance metrics, and REAL architecture components relevant to the user's specific prompt.
-   - What the viewer SEES on the screen must match 100% with what the narrator is SAYING at that exact moment.
+1. PERFECT VOICE & VISUAL CORRESPONDENCE + COMPONENT-BY-COMPONENT SYNC (MANDATORY):
+   - In EVERY scene, design DEEP, multi-section visual breakdowns (**4 to 5 richly detailed progressive components/steps/layers/nodes** per scene + clear `edge` connector labels + a concrete bottom `footer` / `summary` insight!). Never produce bare 2-card summaries!
+   - Structure each scene's `narration` in **4 to 5 sequential spoken clauses** matching each component on screen in exact chronological order (`Clause 1` explains Box 1 -> `Clause 2` traces Link + Box 2 -> `Clause 3` reveals Box 3 metrics/code -> `Clause 4` explains Box 4 + takeaway).
+   - Provide **4 to 5 exact chronological `choreography.triggers`** keywords (from start, middle, deep-detail, and closing clauses of `narration`) so every box, label, text, and connector link appears progressively RIGHT AS THE NARRATOR SPEAKS IT — never everything all at once!
+   - Never output generic placeholder text (e.g., "Client Ingestion", "Block #101", "Pipeline logic"). Use REAL service names, SQL queries, commands, latency numbers, and real architectural internals.
 
 2. DURATION & SCENE FLOW (ZERO ARTIFICIAL 60-SECOND LIMIT):
    - The video should naturally cover the depth required for the topic.
@@ -1107,45 +1108,93 @@ Output ONLY the raw HTML starting with <!DOCTYPE html> and ending with </html>."
         pass
 
 
+def _split_narration_clauses(narration: str, target_count: int = 4) -> List[str]:
+    """Splits a narration string cleanly into sequential spoken clauses for progressive visuals."""
+    raw = str(narration or "").strip()
+    if not raw:
+        return []
+    parts = [p.strip() for p in re.split(r"[.!?\n;]+|\s+[—-]\s+|,\s+(?=[A-Za-z0-9])", raw) if len(p.strip()) > 6]
+    if len(parts) < target_count:
+        words = raw.split()
+        if len(words) >= target_count * 3:
+            step = max(3, len(words) // target_count)
+            parts = [" ".join(words[i:i + step]).strip(" ,.;:-") for i in range(0, len(words), step)][:5]
+    return [p for p in parts if len(p) > 4][:5]
+
+
 def _mirror_items_for_domain_layout(v_data: Dict[str, Any], sc: Dict[str, Any], title: str) -> None:
-    """Ensures any rotated 320+ Domain / Grammar layout has structured `items` grounded in the scene data."""
-    if v_data.get("items") or v_data.get("nodes") or v_data.get("steps") or v_data.get("stages"):
+    """Ensures any rotated 320+ Domain / Grammar layout has 4-5 rich progressive stages grounded in narration."""
+    existing = v_data.get("items") or v_data.get("nodes") or v_data.get("steps") or v_data.get("stages")
+    clauses = _split_narration_clauses(sc.get("narration", ""), target_count=5)
+    if isinstance(existing, list) and len(existing) >= 4:
+        for idx, it in enumerate(existing[:5]):
+            if isinstance(it, dict) and not it.get("sub") and idx < len(clauses):
+                it["sub"] = clauses[idx][:64]
         return
+
     mirrored: List[Dict[str, Any]] = []
-    if v_data.get("satellites"):
-        for s in v_data["satellites"][:5]:
-            mirrored.append({"name": s.get("name", ""), "sub": s.get("role", ""), "color": s.get("color", "")})
-    elif v_data.get("left_points") or v_data.get("right_points"):
-        lp = v_data.get("left_points") or []
-        rp = v_data.get("right_points") or []
-        for pt in lp[:2]:
-            mirrored.append({"name": str(pt), "sub": str(v_data.get("left_label") or "Legacy"), "color": "#F43F5E"})
-        for pt in rp[:2]:
-            mirrored.append({"name": str(pt), "sub": str(v_data.get("right_label") or "Modern"), "color": "#34D399"})
-    elif v_data.get("bars"):
-        for b in v_data["bars"][:4]:
-            mirrored.append({"name": f"{b.get('label', '')}: {b.get('display', b.get('value', ''))}", "sub": "Benchmark", "color": b.get("color", "")})
-    elif v_data.get("entries"):
-        for e in v_data["entries"][:4]:
-            mirrored.append({"name": f"{e.get('op', '')} ({e.get('address', '')})", "sub": f"{e.get('table', '')} • {e.get('status', '')}"})
-    elif v_data.get("bullets"):
-        for b in v_data["bullets"][:4]:
-            mirrored.append({"name": str(b), "sub": ""})
-    elif v_data.get("blocks"):
-        for blk in v_data["blocks"]:
-            if not isinstance(blk, dict):
-                continue
-            for it in (blk.get("items") or blk.get("nodes") or []):
-                if isinstance(it, dict):
-                    mirrored.append({"name": str(it.get("title") or it.get("name") or ""), "sub": str(it.get("desc") or it.get("sub") or "")})
-                elif isinstance(it, str):
-                    mirrored.append({"name": it, "sub": ""})
-            if blk.get("text") and len(mirrored) < 4:
-                mirrored.append({"name": str(blk["text"])[:48], "sub": str(blk.get("eyebrow") or "")})
+    if isinstance(existing, list):
+        for it in existing:
+            if isinstance(it, dict):
+                mirrored.append(dict(it))
+            elif isinstance(it, str) and it.strip():
+                mirrored.append({"name": it.strip(), "sub": ""})
+
     if not mirrored:
-        sents = [s.strip() for s in re.split(r"[.!?\n]+", str(sc.get("narration") or "")) if len(s.strip()) > 6][:4]
-        mirrored = [{"name": s[:44], "sub": title[:28]} for s in sents] or [{"name": title[:40], "sub": "Architecture"}]
+        if v_data.get("satellites"):
+            for s in v_data["satellites"][:5]:
+                mirrored.append({"name": s.get("name", ""), "sub": s.get("role", ""), "color": s.get("color", "")})
+        elif v_data.get("left_points") or v_data.get("right_points"):
+            lp = v_data.get("left_points") or []
+            rp = v_data.get("right_points") or []
+            for pt in lp[:2]:
+                mirrored.append({"name": str(pt), "sub": str(v_data.get("left_label") or "Legacy"), "color": "#F43F5E"})
+            for pt in rp[:3]:
+                mirrored.append({"name": str(pt), "sub": str(v_data.get("right_label") or "Modern"), "color": "#34D399"})
+        elif v_data.get("bars"):
+            for b in v_data["bars"][:5]:
+                mirrored.append({"name": f"{b.get('label', '')}: {b.get('display', b.get('value', ''))}", "sub": "Benchmark", "color": b.get("color", "")})
+        elif v_data.get("entries"):
+            for e in v_data["entries"][:5]:
+                mirrored.append({"name": f"{e.get('op', '')} ({e.get('address', '')})", "sub": f"{e.get('table', '')} • {e.get('status', '')}"})
+        elif v_data.get("bullets"):
+            for b in v_data["bullets"][:5]:
+                mirrored.append({"name": str(b), "sub": ""})
+        elif v_data.get("blocks"):
+            for blk in v_data["blocks"]:
+                if not isinstance(blk, dict):
+                    continue
+                for it in (blk.get("items") or blk.get("nodes") or []):
+                    if isinstance(it, dict):
+                        mirrored.append({"name": str(it.get("title") or it.get("name") or ""), "sub": str(it.get("desc") or it.get("sub") or "")})
+                    elif isinstance(it, str):
+                        mirrored.append({"name": it, "sub": ""})
+                if blk.get("text") and len(mirrored) < 5:
+                    mirrored.append({"name": str(blk["text"])[:48], "sub": str(blk.get("eyebrow") or "")})
+
+    # Top-up to 4-5 sequential stages from narration clauses so components enter progressively with the voice
+    c_idx = 0
+    while len(mirrored) < 4 and c_idx < len(clauses):
+        cl = clauses[c_idx]
+        c_idx += 1
+        words = cl.split()
+        head = " ".join(words[:5]).strip(" ,.;:-")
+        if any(head.lower() in str(m.get("name", "")).lower() for m in mirrored):
+            continue
+        mirrored.append({"name": head[:40], "sub": cl[:68]})
+
+    if not mirrored:
+        mirrored = [{"name": s[:42], "sub": title[:28]} for s in clauses] or [{"name": title[:40], "sub": "Architecture"}]
+
+    for idx, m in enumerate(mirrored[:5]):
+        if not m.get("sub") and idx < len(clauses):
+            m["sub"] = clauses[idx][:68]
+        if idx + 1 < len(mirrored) and not m.get("edge"):
+            m["edge"] = ["Ingest", "Process", "Route", "Verify"][idx % 4]
+
     v_data["items"] = mirrored[:5]
+    if not v_data.get("footer") and clauses:
+        v_data["footer"] = clauses[-1][:64]
 
 
 def _enforce_engine_style(
@@ -1562,25 +1611,52 @@ def _enforce_engine_style(
         else:
             used_vtypes.add(sc["visual_type"])
 
+        # Guarantee deep multi-section content (4-5 progressive stages + connector labels + footer)
+        clauses = _split_narration_clauses(sc.get("narration", ""), target_count=5)
+        for col_key in ("nodes", "steps", "stages"):
+            seq = v_data.get(col_key)
+            if isinstance(seq, list) and 0 < len(seq) < 4 and clauses:
+                norm_seq = [dict(x) if isinstance(x, dict) else {"name": str(x)} for x in seq]
+                c_i = 0
+                while len(norm_seq) < 4 and c_i < len(clauses):
+                    cl = clauses[c_i]
+                    c_i += 1
+                    head = " ".join(cl.split()[:5]).strip(" ,.;:-")
+                    if any(head.lower() in str(x.get("name", "")).lower() for x in norm_seq):
+                        continue
+                    norm_seq.append({"name": head[:38], "sub": cl[:64]})
+                for x_i, x in enumerate(norm_seq):
+                    if not x.get("sub") and x_i < len(clauses):
+                        x["sub"] = clauses[x_i][:64]
+                    if x_i + 1 < len(norm_seq) and not x.get("edge"):
+                        x["edge"] = ["Ingest", "Route", "Process", "Commit"][x_i % 4]
+                v_data[col_key] = norm_seq[:5]
+        if not v_data.get("footer") and clauses:
+            v_data["footer"] = clauses[-1][:64]
+
         sc["visual_data"] = v_data
 
-        # Ensure Audio-Visual Choreography triggers exist for voice-synced Progressive Reveal
+        # Ensure Audio-Visual Choreography triggers exist for voice-synced Progressive Reveal (4-5 chronological beats)
         choreo = sc.get("choreography")
-        if not isinstance(choreo, dict) or not choreo.get("triggers"):
+        existing_trig = list(choreo.get("triggers") or []) if isinstance(choreo, dict) else []
+        if len(existing_trig) < 4:
             narration_words = [
                 re.sub(r"[^a-zA-Z0-9_\u0900-\u097F-]", "", w)
                 for w in sc.get("narration", "").split()
             ]
             narration_words = [w for w in narration_words if len(w) >= 4]
             auto_triggers = []
-            if len(narration_words) >= 4:
-                step = len(narration_words) / 4.0
-                for st_i in range(4):
+            if len(narration_words) >= 5:
+                step = len(narration_words) / 5.0
+                for st_i in range(5):
                     kw = narration_words[min(len(narration_words) - 1, int(st_i * step))]
+                    auto_triggers.append({"stage": st_i + 1, "keyword": kw.lower()})
+            elif len(narration_words) >= 2:
+                for st_i, kw in enumerate(narration_words[:5]):
                     auto_triggers.append({"stage": st_i + 1, "keyword": kw.lower()})
             sc["choreography"] = {
                 "mode": "node_edge_traversal" if current_vtype in ["all_in_one_tech_canvas", "architecture_flow", "circular_hub_mesh"] else "progressive_build",
-                "triggers": auto_triggers
+                "triggers": existing_trig if len(existing_trig) >= len(auto_triggers) else auto_triggers
             }
 
     if engine_style in ("pure_zero_template", "dual_generative", "studio_300_domain", "auto_dynamic", "hybrid_modern"):
@@ -1739,10 +1815,12 @@ def _build_emergency_fallback_timeline(
                 "badge": "SYSTEM TOPOLOGY",
                 "title": f"{clean_topic} Pipeline",
                 "nodes": [
-                    {"id": "in", "label": "Client Requests", "sub": "Ingress & Validation", "color": "#38BDF8"},
-                    {"id": "core", "label": f"{clean_topic[:18]} Core", "sub": "Fast State Engine", "color": "#FBBF24"},
-                    {"id": "out", "label": "Persistent Store", "sub": "Consistent Output", "color": "#34D399"},
+                    {"id": "in", "label": "Client Requests", "sub": "Auth & Edge Routing", "edge": "Route", "color": "#38BDF8"},
+                    {"id": "buf", "label": "In-Memory Queue", "sub": "Batch & Backpressure", "edge": "Process", "color": "#818CF8"},
+                    {"id": "core", "label": f"{clean_topic[:18]} Core", "sub": "Fast State Engine", "edge": "Persist", "color": "#FBBF24"},
+                    {"id": "out", "label": "Persistent Store", "sub": "Consistent Replica Sync", "color": "#34D399"},
                 ],
+                "footer": "Ingress -> Queue -> Compute -> Persistent Sync",
             },
         },
         {
@@ -1756,9 +1834,9 @@ def _build_emergency_fallback_timeline(
                 "badge": "TRADE-OFFS & FIX",
                 "title": "Latency vs Reliability",
                 "left_label": "UNOPTIMIZED",
-                "left_points": ["Blocking contention", "High tail latency", "Cascade failures"],
+                "left_points": ["Blocking lock contention", "High P99 tail latency", "Cascade retry failures", "Unbounded memory growth"],
                 "right_label": "PRODUCTION FIX",
-                "right_points": ["10x lower latency", "Bounded queues", "Graceful fallback"],
+                "right_points": ["10x lower P99 latency", "Bounded backpressure queues", "Idempotent circuit breaker", "Graceful edge fallback"],
             },
         },
         {
@@ -1772,8 +1850,10 @@ def _build_emergency_fallback_timeline(
                 "badge": "KEY TAKEAWAYS",
                 "title": f"{clean_topic} Checklist",
                 "bullets": [
-                    "Measure bottlenecks before optimizing",
-                    "Guard edge cases with explicit limits",
+                    "Measure bottlenecks: Profile P95/P99 before optimizing",
+                    "Protect edges: Set strict timeouts & bounded retries",
+                    "Eliminate locks: Isolate hot paths into async stages",
+                    "Verify in staging: Replay traffic spikes safely",
                 ],
                 "footer_cta": "Save • Share • Comment Next Topic",
             },

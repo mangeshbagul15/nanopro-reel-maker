@@ -731,7 +731,17 @@ function renderArchetype(){{
       const el=document.createElement('div'); el.className='gcard';
       el.innerHTML=`<div style="display:flex;align-items:center;gap:20px;"><div class="pill-num" style="background:linear-gradient(135deg,${{col}},${{ACCENTS[(i+1)%ACCENTS.length]}})">${{c.tag||('0'+(i+1))}}</div><div style="flex:1;"><div class="ctitle">${{c.title}}</div>${{c.sub?`<div class="csub">${{c.sub}}</div>`:''}}</div>${{c.val?`<span style="padding:8px 16px;border-radius:999px;border:1.5px solid ${{col}};font-weight:800;font-size:20px;color:${{col}}">${{c.val}}</span>`:''}}</div>`;
       mount.appendChild(el); animNodes.push(el);
+      if(i < P.cards.length - 1){{
+        const ln=document.createElement('div');
+        ln.style.cssText='display:flex;justify-content:center;align-items:center;height:24px;';
+        ln.innerHTML=`<svg viewBox="0 0 120 24" width="120" height="24"><line x1="60" y1="0" x2="60" y2="24" stroke="${{col}}" stroke-width="3" stroke-linecap="round"/></svg>`;
+        mount.appendChild(ln);
+      }}
     }});
+    const ft=document.createElement('div'); ft.className='hero-footer';
+    const ftSummary=P.footer||(P.cards.length?`${{P.cards[0].title}} → ${{P.cards[P.cards.length-1].title}}`:P.title);
+    ft.innerHTML=`<div style="font-size:23px;color:${{PAL.emerald}};font-weight:900;">${{ftSummary}}</div>`;
+    mount.appendChild(ft);
   }}
 }}
 renderArchetype();
@@ -742,11 +752,34 @@ window.__setStudioProgress=function(p, curTime, energy){{
   // Subtle Volumetric Shaded 3D Backdrop Sphere/Torus centered harmoniously behind the glass stage
   drawLitPoly3D(W*0.5, Math.round(H*0.52), 255, 78, p*Math.PI*2.0, 0.55, '{_rgba_css(world["cyan"],0.5)}', '{_rgba_css(world["purple"],0.5)}', P.archetype==='hub_mesh'?'icosa':'torus');
 
+  const nCards=Math.max(1, animNodes.length);
+  const activeIdx=Math.min(nCards-1, Math.floor(Math.max(0, Math.min(0.999, p))*nCards));
   animNodes.forEach((el,i)=>{{
-    const g=Math.max(0,Math.min(1,(p-i*0.11)/0.22));
-    const ease=1-Math.pow(1-g,3);
-    el.style.opacity=ease;
-    el.style.transform=`translateY(${{(1-ease)*28}}px) scale(${{0.95+0.05*ease}})`;
+    const st=0.04+(i/nCards)*0.70;
+    const g=Math.max(0,Math.min(1,(p-st)/0.22));
+    const easeBox=1-Math.pow(1-Math.min(1,g/0.48),3);
+    const easeTitle=Math.max(0,Math.min(1,(g-0.24)/0.44));
+    const easeSub=Math.max(0,Math.min(1,(g-0.44)/0.50));
+    el.style.opacity=easeBox;
+    el.style.transform=`translateY(${{(1-easeBox)*26}}px) scale(${{0.94+0.06*easeBox}})`;
+    el.classList.toggle('active', i===activeIdx && p>0.03);
+    el.querySelectorAll('.pill-num').forEach(b=>{{b.style.opacity=Math.min(1,g*2.1);b.style.transform=`scale(${{0.72+0.28*Math.min(1,g*2.0)}})`;}});
+    el.querySelectorAll('.ctitle').forEach(t=>{{t.style.opacity=easeTitle;}});
+    el.querySelectorAll('.csub').forEach(s=>{{s.style.opacity=easeSub;}});
+    el.querySelectorAll('svg line, svg path').forEach((ln,li)=>{{
+      try{{
+        const len=ln.getTotalLength?ln.getTotalLength():420;
+        const lg=Math.max(0,Math.min(1,(p-(0.08+li*0.14))/0.26));
+        ln.style.strokeDasharray=String(len);
+        ln.style.strokeDashoffset=String(len*(1-lg));
+      }}catch(e){{}}
+    }});
+  }});
+  document.querySelectorAll('.hero-footer').forEach(ft=>{{
+    const fg=Math.max(0,Math.min(1,(p-0.72)/0.22));
+    const fe=1-Math.pow(1-fg,3);
+    ft.style.opacity=fe;
+    ft.style.transform=`translateY(${{(1-fe)*22}}px)`;
   }});
 
   if(P.archetype==='memory_wal'&&animNodes.length){{

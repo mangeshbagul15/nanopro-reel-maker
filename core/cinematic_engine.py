@@ -79,25 +79,46 @@ def _fade_transition_alpha(linear_p: float) -> float:
 def _build_anchors(duration: float, scene: Dict[str, Any], scene_words: List[Dict[str, Any]] = None) -> List[Tuple[float, float]]:
     if not scene_words:
         return [(0.0, 0.0), (1.0, 1.0)]
-    choreo = scene.get("choreography", {})
-    triggers = choreo.get("triggers", []) if isinstance(choreo, dict) else []
-    if not triggers:
-        return [(0.0, 0.0), (1.0, 1.0)]
-
     sc_start = float(scene.get("start_time", 0.0))
     clean_words = []
     for w in scene_words:
         txt = "".join(ch for ch in str(w.get("word", "")).lower() if ch.isalnum() or "\u0900" <= ch <= "\u097f")
-        clean_words.append((txt, float(w.get("start", sc_start))))
+        if txt:
+            clean_words.append((txt, float(w.get("start", sc_start))))
+    if not clean_words:
+        return [(0.0, 0.0), (1.0, 1.0)]
+
+    choreo = scene.get("choreography", {})
+    triggers = list(choreo.get("triggers", []) if isinstance(choreo, dict) else [])[:5]
+    # Supplement triggers automatically from visual_data node/step labels when sparse
+    if len(triggers) < 4:
+        vd = scene.get("visual_data") or {}
+        auto_kws: List[str] = []
+        for k in ("nodes", "steps", "stages", "items", "bullets", "satellites", "layers", "tiers"):
+            raw = vd.get(k)
+            if isinstance(raw, list):
+                for it in raw[:5]:
+                    lbl = str(it.get("name") or it.get("title") or it.get("label") or "" if isinstance(it, dict) else it)
+                    toks = ["".join(c for c in t.lower() if c.isalnum()) for t in lbl.split()]
+                    for tk in toks:
+                        if len(tk) >= 4 and tk not in auto_kws:
+                            auto_kws.append(tk)
+                            break
+        if auto_kws:
+            triggers = [{"stage": i + 1, "keyword": kw} for i, kw in enumerate(auto_kws[:5])]
+
+    if not triggers:
+        return [(0.0, 0.0), (1.0, 1.0)]
 
     anchors = [(0.0, 0.0)]
-    target_stages = [0.06, 0.28, 0.54, 0.78]
+    m_trigs = max(1, len(triggers))
     cursor = 0
     prev_t = 0.0
-    for idx, trig in enumerate(triggers[:4]):
+    for idx, trig in enumerate(triggers):
         kw = "".join(ch for ch in str(trig.get("keyword", "")).lower() if ch.isalnum() or "\u0900" <= ch <= "\u097f")
         if not kw:
             continue
+        stage_target = round(0.08 + (idx / max(1, m_trigs)) * 0.78, 3)
         matched_t = None
         for wi in range(cursor, len(clean_words)):
             wt, ws = clean_words[wi]
@@ -106,9 +127,9 @@ def _build_anchors(duration: float, scene: Dict[str, Any], scene_words: List[Dic
                 cursor = wi + 1
                 break
         if matched_t is not None:
-            tc = max(prev_t + 0.06, min(0.90, matched_t))
+            tc = max(prev_t + 0.06, min(0.92, matched_t))
             prev_t = tc
-            anchors.append((tc, target_stages[idx]))
+            anchors.append((tc, stage_target))
     anchors.append((1.0, 1.0))
     return anchors
 
@@ -138,11 +159,11 @@ def _voice_progress(
     cur_t = sc_start + (linear_p * duration)
     spoken = sum(1 for w in scene_words if float(w.get("start", 0.0)) <= cur_t)
     word_p = spoken / max(1, len(scene_words))
-    # Voice-speed adaptive velocity: faster narration scales builds smoothly without skipping steps
+    # Voice-locked cadence: visuals stay strictly synchronized with spoken words/clauses
     wps = len(scene_words) / max(0.5, duration)
-    pace_boost = max(0.96, min(1.12, wps / 2.85))
-    blended = 0.50 * choreo_p + 0.35 * word_p + 0.15 * linear_p
-    if linear_p >= 0.94:
+    pace_boost = max(0.96, min(1.06, wps / 3.05))
+    blended = 0.62 * choreo_p + 0.30 * word_p + 0.08 * linear_p
+    if linear_p >= 0.97:
         return 1.0
     return _clamp01(blended * pace_boost)
 

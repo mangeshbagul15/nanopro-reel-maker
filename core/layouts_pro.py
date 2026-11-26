@@ -469,26 +469,33 @@ def render_pro_layout(
     _with_alpha = helpers["_with_alpha"]
     _spring_gate = helpers["_spring_gate"]
     _ease = helpers["_ease_out_cubic"]
+    _sub_gate = helpers.get("_sub_gate") or (lambda g, p="box": _ease(g))
+    _footer_gate = helpers.get("_footer_gate") or (lambda p: _ease(max(0.0, min(1.0, (p - 0.72) / 0.22))))
     _anim_num = helpers["_animate_counter_text"]
     _res_col = helpers["resolve_world_color"]
     _bezier = helpers["_draw_bezier_comet"]
     _draw_vis = helpers["_draw_node_visual"]
-    g0 = _ease(min(1.0, progress / 0.20))
+    g0 = _ease(min(1.0, progress / 0.16))
+    gf = _footer_gate(progress)
 
     # --- 1. TRUE NUMPY 3D MESH STAGE & SCIENCE 3D MODELS ---
     if l in ("mesh_3d_stage", "atom_orbit_3d", "dna_helix_3d"):
         mesh_kind = d.get("mesh") or d.get("shape") or ("atom_orbit" if l == "atom_orbit_3d" else ("dna_helix" if l == "dna_helix_3d" else "torus_3d"))
-        stage.draw_glass_card((80, SY0 + 20, 1000, SY0 + 690), radius=30, accent_col=world["cyan"], alpha_mul=g0, active=True, layered=True)
-        draw_procedural_3d_mesh(stage, 540, SY0 + 350, 265, str(mesh_kind), _res_col(world, d.get("color"), "cyan"), progress=progress, active=True, alpha_mul=g0, secondary_color=world["purple"])
+        stage.draw_glass_card((80, SY0 + 20, 1000, SY0 + 670), radius=30, accent_col=world["cyan"], alpha_mul=g0, active=True, layered=True)
+        draw_procedural_3d_mesh(stage, 540, SY0 + 340, 260, str(mesh_kind), _res_col(world, d.get("color"), "cyan"), progress=progress, active=True, alpha_mul=g0, secondary_color=world["purple"])
         cap = str(d.get("caption") or d.get("formula") or mesh_kind.replace("_", " ").title())
-        stage.draw_pill(540, SY0 + 640, cap[:30], world["card_alt"], world["text"], border_col=world["cyan"], font=_get_font(23, bold=True), alpha_mul=g0)
-        pts = list(d.get("points") or d.get("items") or d.get("notes") or [])[:3]
+        stage.draw_pill(540, SY0 + 625, cap[:30], world["card_alt"], world["text"], border_col=world["cyan"], font=_get_font(23, bold=True), alpha_mul=_sub_gate(_spring_gate(progress, 0, 4, 0.22), "badge"))
+        pts = list(d.get("points") or d.get("items") or d.get("notes") or [])[:4]
         for i, pt in enumerate(pts):
-            gt = _ease(_spring_gate(progress, i + 1, len(pts) + 1, 0.24))
-            y = SY0 + 720 + i * 112
+            gt = _spring_gate(progress, i + 1, len(pts) + 1, 0.22)
+            if gt <= 0.02:
+                continue
+            g_b, g_t = _sub_gate(gt, "box"), _sub_gate(gt, "title")
+            y = SY0 + 695 + i * 96
             col = _res_col(world, _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
-            stage.draw_glass_card((80, y, 1000, y + 94), radius=20, accent_col=col, alpha_mul=gt)
-            _draw_wrapped(stage.draw, (112, y + 26), str(pt.get("title") if isinstance(pt, dict) else pt), _get_font(25, bold=True), _with_alpha(world["text"], gt), 850, max_lines=2)
+            stage.draw_glass_card((80, y, 1000, y + 82), radius=20, accent_col=col, alpha_mul=g_b, active=(int(progress * len(pts)) == i))
+            if g_t > 0.02:
+                _draw_wrapped(stage.draw, (112, y + 20), str(pt.get("title") if isinstance(pt, dict) else pt), _get_font(24, bold=True), _with_alpha(world["text"], g_t), 850, max_lines=2)
         return True
 
     # --- 2. NEURAL NET & AGENT / RAG / MINDMAP / ORBIT PIPELINES ---
@@ -496,51 +503,69 @@ def render_pro_layout(
         layers = list(d.get("layers") or [4, 6, 5, 3])[:5]
         names = list(d.get("layer_names") or [f"Layer {i+1}" for i in range(len(layers))])
         n_l = len(layers)
-        stage.draw_glass_card((74, SY0 + 18, 1006, SY1 - 30), radius=26, accent_col=world["purple"], alpha_mul=g0)
+        stage.draw_glass_card((74, SY0 + 18, 1006, SY1 - 92), radius=26, accent_col=world["purple"], alpha_mul=g0)
         lx_xs = [int(165 + i * (750 / max(1, n_l - 1))) for i in range(n_l)]
         pts_per_layer: List[List[Tuple[int, int]]] = []
         for i, cnt in enumerate(layers):
             c_cnt = min(6, max(2, int(cnt)))
-            ys = [int(860 - (c_cnt - 1) * 58 + k * 116) for k in range(c_cnt)]
+            ys = [int(840 - (c_cnt - 1) * 56 + k * 112) for k in range(c_cnt)]
             pts_per_layer.append([(lx_xs[i], y) for y in ys])
         for i in range(n_l - 1):
-            gt = _ease(_spring_gate(progress, i, n_l, 0.24))
-            if gt <= 0.03:
+            gt = _spring_gate(progress, i, n_l, 0.22)
+            g_lnk = _sub_gate(gt, "link")
+            if g_lnk <= 0.02:
                 continue
             c_line = _res_col(world, _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
             for p0 in pts_per_layer[i]:
                 for p1 in pts_per_layer[i + 1]:
-                    stage.draw.line((p0[0], p0[1], p1[0], p1[1]), fill=_with_alpha((*c_line[:3], 85), gt), width=2)
+                    ex = int(p0[0] + (p1[0] - p0[0]) * g_lnk)
+                    ey = int(p0[1] + (p1[1] - p0[1]) * g_lnk)
+                    stage.draw.line((p0[0], p0[1], ex, ey), fill=_with_alpha((*c_line[:3], 95), g_lnk), width=2)
         for i, layer_pts in enumerate(pts_per_layer):
-            gt = _ease(_spring_gate(progress, i, n_l, 0.24))
+            gt = _spring_gate(progress, i, n_l, 0.22)
+            if gt <= 0.02:
+                continue
+            g_b, g_t = _sub_gate(gt, "box"), _sub_gate(gt, "title")
             nc = _res_col(world, _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
-            stage.draw_pill(lx_xs[i], SY0 + 70, str(names[i] if i < len(names) else f"L{i+1}")[:12], world["card_alt"], nc, border_col=nc, font=_get_font(20, bold=True), alpha_mul=gt)
+            if g_t > 0.02:
+                stage.draw_pill(lx_xs[i], SY0 + 70, str(names[i] if i < len(names) else f"L{i+1}")[:12], world["card_alt"], nc, border_col=nc, font=_get_font(20, bold=True), alpha_mul=g_t)
             for px, py in layer_pts:
-                stage.draw.ellipse((px - 18, py - 18, px + 18, py + 18), fill=_with_alpha(nc, gt), outline=_with_alpha(world["glass_rim"], gt), width=2)
+                stage.draw.ellipse((px - 18, py - 18, px + 18, py + 18), fill=_with_alpha(nc, g_b), outline=_with_alpha(world["glass_rim"], g_b), width=2)
+        ft_txt = str(d.get("footer") or d.get("summary") or " -> ".join(str(x)[:14] for x in names[:4]))
+        if gf > 0.03 and ft_txt:
+            stage.draw_glass_card((80, SY1 - 78, 1000, SY1 - 16), radius=18, accent_col=world["emerald"], alpha_mul=gf, active=True)
+            _draw_wrapped(stage.draw, (112, SY1 - 60), ft_txt[:60], _get_font(22, bold=True), _with_alpha(world["emerald"], gf), 856, align="center", max_lines=1)
         return True
 
     if l in ("rag_pipeline_3d", "agent_loop_3d", "mindmap_radial", "orbit_ecosystem"):
         hub = str(d.get("center") or d.get("hub_name") or l.replace("_", " ").title()).strip()
         items = list(d.get("nodes") or d.get("steps") or d.get("branches") or d.get("satellites") or ["Plan", "Tool", "Observe", "Refine"])[:6]
-        cx, cy, rad = 540, 880, 325
-        for rr in (180, 295, 390):
+        cx, cy, rad = 540, 845, 315
+        for rr in (180, 290, 385):
             stage.draw.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), outline=_with_alpha((*world["cyan"][:3], 42), g0), width=2)
+        draw_procedural_3d_mesh(stage, cx, cy - 18, 68, "geodesic_sphere" if l != "agent_loop_3d" else "atom_orbit", world["cyan"], progress=progress, active=True, alpha_mul=g0)
+        stage.draw_pill(cx, cy + 56, hub[:20], world["card_alt"], world["text"], border_col=world["cyan"], font=_get_font(22, bold=True), alpha_mul=g0)
         n = len(items)
         for i, it in enumerate(items):
             if isinstance(it, str):
                 it = {"name": it}
-            gt = _ease(_spring_gate(progress, i, n, 0.24))
-            if gt <= 0.03:
+            gt_raw = _spring_gate(progress, i, n, 0.22)
+            if gt_raw <= 0.02:
                 continue
+            g_b, g_ico, g_t, g_lnk = _sub_gate(gt_raw, "box"), _sub_gate(gt_raw, "badge"), _sub_gate(gt_raw, "title"), _sub_gate(gt_raw, "link")
             ang = -math.pi / 2.0 + i * (2.0 * math.pi / n) + (progress * 0.28 if l == "orbit_ecosystem" else 0.0)
             px, py = int(cx + rad * math.cos(ang)), int(cy + rad * math.sin(ang))
             col = _res_col(world, it.get("color"), _ACCENT_CYCLE[(i + 1) % len(_ACCENT_CYCLE)])
-            _bezier(stage, (cx, cy), (px, py), col, reveal=gt, progress=progress, phase=i * 0.2, label=str(it.get("edge", "")), curve_bend=24, world=world)
-            stage.draw_glass_card((px - 135, py - 46, px + 135, py + 48), radius=20, accent_col=col, alpha_mul=gt, active=(int(progress * n) == i))
-            _draw_vis(stage, px, py - 74, 34, 16, 22, col, gt, shape=it.get("shape", "hexagon"), icon=it.get("icon", ""), label=it.get("name", ""), progress=progress)
-            _draw_wrapped(stage.draw, (px - 122, py - 24), str(it.get("name") or it.get("title") or ""), _get_font(22, bold=True), _with_alpha(world["text"], gt), 244, align="center", max_lines=2)
-        draw_procedural_3d_mesh(stage, cx, cy - 18, 68, "geodesic_sphere" if l != "agent_loop_3d" else "atom_orbit", world["cyan"], progress=progress, active=True, alpha_mul=g0)
-        stage.draw_pill(cx, cy + 56, hub[:20], world["card_alt"], world["text"], border_col=world["cyan"], font=_get_font(22, bold=True), alpha_mul=g0)
+            _bezier(stage, (cx, cy), (px, py), col, reveal=max(g_b, g_lnk), progress=progress, phase=i * 0.2, label=str(it.get("edge", "")), curve_bend=24, world=world)
+            stage.draw_glass_card((px - 135, py - 46, px + 135, py + 48), radius=20, accent_col=col, alpha_mul=g_b, active=(int(progress * n) == i))
+            if g_ico > 0.02:
+                _draw_vis(stage, px, py - 74, 34, 16, 22, col, g_ico, shape=it.get("shape", "hexagon"), icon=it.get("icon", ""), label=it.get("name", ""), progress=progress)
+            if g_t > 0.02:
+                _draw_wrapped(stage.draw, (px - 122, py - 24), str(it.get("name") or it.get("title") or ""), _get_font(22, bold=True), _with_alpha(world["text"], g_t), 244, align="center", max_lines=2)
+        ft_txt = str(d.get("footer") or d.get("summary") or f"{hub} • {len(items)} Connected Stages")
+        if gf > 0.03 and ft_txt:
+            stage.draw_glass_card((80, SY1 - 80, 1000, SY1 - 16), radius=18, accent_col=world["emerald"], alpha_mul=gf, active=True)
+            _draw_wrapped(stage.draw, (112, SY1 - 60), ft_txt[:60], _get_font(22, bold=True), _with_alpha(world["emerald"], gf), 856, align="center", max_lines=1)
         return True
 
     # --- 3. MATRIX / HEATMAPS / SCATTER / CHARTS ---
@@ -647,28 +672,33 @@ def render_pro_layout(
     if l == "donut_3d":
         slices = list(d.get("slices") or d.get("items") or [{"label": "Compute", "value": 45}, {"label": "Storage", "value": 30}, {"label": "Network", "value": 25}])[:5]
         tot = sum(max(1.0, float(s.get("value", 20))) for s in slices)
-        cx, cy, rad = 540, 680, 220
+        cx, cy, rad = 540, 660, 215
         cur_ang = -90.0
         for i, sl in enumerate(slices):
-            gt = _ease(_spring_gate(progress, i, len(slices), 0.25))
+            gt_raw = _spring_gate(progress, i, len(slices), 0.24)
+            if gt_raw <= 0.02:
+                continue
+            g_b, g_t, g_s = _sub_gate(gt_raw, "box"), _sub_gate(gt_raw, "title"), _sub_gate(gt_raw, "sub")
             v = float(sl.get("value", 20))
-            ang = (v / tot) * 360.0 * gt
+            ang = (v / tot) * 360.0 * g_b
             col = _res_col(world, sl.get("color"), _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
             if ang > 1.0:
-                stage.draw.pieslice((cx - rad, cy - rad, cx + rad, cy + rad), start=cur_ang, end=cur_ang + ang, fill=_with_alpha(col, gt), outline=_with_alpha(world["bg_top"], gt), width=4)
-            cur_ang += ang
-            ly = 980 + i * 74
-            stage.draw_glass_card((110, ly, 970, ly + 60), radius=16, accent_col=col, alpha_mul=gt)
-            stage.draw.ellipse((136, ly + 18, 160, ly + 42), fill=_with_alpha(col, gt))
-            stage.draw.text((182, ly + 15), str(sl.get("label") or "")[:30], font=_get_font(23, bold=True), fill=_with_alpha(world["text"], gt))
-            stage.draw.text((830, ly + 15), f"{int(round(v/tot*100))}%", font=_get_font(23, bold=True), fill=_with_alpha(col, gt))
-        stage.draw.ellipse((cx - 110, cy - 110, cx + 110, cy + 110), fill=_with_alpha(world["bg_top"], g0), outline=_with_alpha(world["border"], g0), width=3)
+                stage.draw.pieslice((cx - rad, cy - rad, cx + rad, cy + rad), start=cur_ang, end=cur_ang + ang, fill=_with_alpha(col, g_b), outline=_with_alpha(world["bg_top"], g_b), width=4)
+            cur_ang += (v / tot) * 360.0
+            ly = 940 + i * 74
+            stage.draw_glass_card((110, ly, 970, ly + 60), radius=16, accent_col=col, alpha_mul=g_b, active=(int(progress * len(slices)) == i))
+            stage.draw.ellipse((136, ly + 18, 160, ly + 42), fill=_with_alpha(col, g_b))
+            if g_t > 0.02:
+                stage.draw.text((182, ly + 15), str(sl.get("label") or "")[:30], font=_get_font(23, bold=True), fill=_with_alpha(world["text"], g_t))
+            if g_s > 0.02:
+                stage.draw.text((830, ly + 15), f"{int(round(v/tot*100))}%", font=_get_font(23, bold=True), fill=_with_alpha(col, g_s))
+        stage.draw.ellipse((cx - 108, cy - 108, cx + 108, cy + 108), fill=_with_alpha(world["bg_top"], g0), outline=_with_alpha(world["border"], g0), width=3)
         _draw_wrapped(stage.draw, (cx - 90, cy - 22), str(d.get("center") or "TOTAL"), _get_font(26, bold=True), _with_alpha(world["text"], g0), 180, align="center", max_lines=2)
         return True
 
     if l == "radar_spider":
         axes = list(d.get("axes") or d.get("metrics") or [{"label": "Speed", "value": 92}, {"label": "Scale", "value": 85}, {"label": "Cost", "value": 78}, {"label": "Safety", "value": 90}, {"label": "DX", "value": 88}])[:6]
-        cx, cy, rad = 540, 860, 290
+        cx, cy, rad = 540, 845, 285
         n = len(axes)
         for ring in (0.33, 0.66, 1.0):
             poly = [(cx + int(rad * ring * math.cos(-math.pi / 2 + i * 2 * math.pi / n)), cy + int(rad * ring * math.sin(-math.pi / 2 + i * 2 * math.pi / n))) for i in range(n)]
@@ -677,27 +707,36 @@ def render_pro_layout(
         for i, ax in enumerate(axes):
             if isinstance(ax, str):
                 ax = {"label": ax, "value": 75}
-            val = max(10.0, min(100.0, float(ax.get("value", 75)))) * min(1.0, progress / 0.45)
+            gt_raw = _spring_gate(progress, i, n, 0.22)
+            g_b, g_t = _sub_gate(gt_raw, "box"), _sub_gate(gt_raw, "title")
+            val = max(10.0, min(100.0, float(ax.get("value", 75)))) * max(0.15, g_b)
             ang = -math.pi / 2 + i * 2 * math.pi / n
             vx, vy = int(cx + rad * (val / 100.0) * math.cos(ang)), int(cy + rad * (val / 100.0) * math.sin(ang))
             v_poly.append((vx, vy))
-            lx, ly = int(cx + (rad + 58) * math.cos(ang)), int(cy + (rad + 58) * math.sin(ang))
-            stage.draw_pill(lx, ly, str(ax.get("label") or "")[:12], world["card_alt"], world["text"], border_col=world["cyan"], font=_get_font(19, bold=True), alpha_mul=g0)
+            if g_t > 0.02:
+                lx, ly = int(cx + (rad + 58) * math.cos(ang)), int(cy + (rad + 58) * math.sin(ang))
+                stage.draw_pill(lx, ly, str(ax.get("label") or "")[:12], world["card_alt"], world["text"], border_col=world["cyan"], font=_get_font(19, bold=True), alpha_mul=g_t)
         if len(v_poly) >= 3:
-            stage.draw.polygon(v_poly, fill=_with_alpha((*world["cyan"][:3], 92), g0), outline=_with_alpha(world["cyan"], g0), width=4)
+            gp = _ease(min(1.0, max(0.2, progress * 1.15)))
+            stage.draw.polygon(v_poly, fill=_with_alpha((*world["cyan"][:3], 92), gp), outline=_with_alpha(world["cyan"], gp), width=4)
         return True
 
     if l == "sankey_flow":
         flows = list(d.get("flows") or [{"from": "Direct", "to": "Signup", "weight": 0.55}, {"from": "Organic", "to": "Signup", "weight": 0.45}, {"from": "Signup", "to": "Paid", "weight": 0.62}])[:5]
         for i, fl in enumerate(flows):
-            gt = _ease(_spring_gate(progress, i, len(flows), 0.24))
-            y0 = SY0 + 60 + i * 165
+            gt_raw = _spring_gate(progress, i, len(flows), 0.22)
+            if gt_raw <= 0.02:
+                continue
+            g_b, g_t, g_lnk = _sub_gate(gt_raw, "box"), _sub_gate(gt_raw, "title"), _sub_gate(gt_raw, "link")
+            y0 = SY0 + 50 + i * 162
             col = _res_col(world, _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
-            stage.draw_glass_card((80, y0, 340, y0 + 110), radius=18, accent_col=col, alpha_mul=gt)
-            _draw_wrapped(stage.draw, (96, y0 + 36), str(fl.get("from", "Source")), _get_font(23, bold=True), _with_alpha(world["text"], gt), 228, align="center", max_lines=2)
-            stage.draw_glass_card((740, y0, 1000, y0 + 110), radius=18, accent_col=world["emerald"], alpha_mul=gt)
-            _draw_wrapped(stage.draw, (756, y0 + 36), str(fl.get("to", "Target")), _get_font(23, bold=True), _with_alpha(world["text"], gt), 228, align="center", max_lines=2)
-            _bezier(stage, (345, y0 + 55), (735, y0 + 55), col, reveal=gt, progress=progress, label=str(fl.get("label") or f"{int(float(fl.get('weight', 0.5))*100)}%"), world=world)
+            stage.draw_glass_card((80, y0, 340, y0 + 106), radius=18, accent_col=col, alpha_mul=g_b)
+            if g_t > 0.02:
+                _draw_wrapped(stage.draw, (96, y0 + 34), str(fl.get("from", "Source")), _get_font(23, bold=True), _with_alpha(world["text"], g_t), 228, align="center", max_lines=2)
+            if g_lnk > 0.02:
+                _bezier(stage, (345, y0 + 53), (735, y0 + 53), col, reveal=g_lnk, progress=progress, label=str(fl.get("label") or f"{int(float(fl.get('weight', 0.5))*100)}%"), world=world)
+                stage.draw_glass_card((740, y0, 1000, y0 + 106), radius=18, accent_col=world["emerald"], alpha_mul=g_lnk)
+                _draw_wrapped(stage.draw, (756, y0 + 34), str(fl.get("to", "Target")), _get_font(23, bold=True), _with_alpha(world["text"], g_lnk), 228, align="center", max_lines=2)
         return True
 
     # --- 4. UI / SOCIAL / PRODUCT MOCKUPS ---
@@ -734,15 +773,18 @@ def render_pro_layout(
         for i, m in enumerate(msgs):
             if isinstance(m, str):
                 m = {"role": "ai" if i % 2 else "user", "text": m}
-            gt = _ease(_spring_gate(progress, i, len(msgs), 0.22))
-            if gt <= 0.03:
+            gt_raw = _spring_gate(progress, i, len(msgs), 0.22)
+            if gt_raw <= 0.02:
                 continue
+            g_b, g_bdg, g_t = _sub_gate(gt_raw, "box"), _sub_gate(gt_raw, "badge"), _sub_gate(gt_raw, "title")
             is_user = str(m.get("role", "")).lower() in ("user", "human", "right")
             bx0, bx1 = (240, 990) if is_user else (86, 840)
             col = world["cyan"] if is_user else world["emerald"]
-            stage.draw_glass_card((bx0, y, bx1, y + 165), radius=24, accent_col=col, alpha_mul=gt, active=(i == len(msgs) - 1))
-            stage.draw_pill(bx0 + 82, y + 32, "YOU" if is_user else "AI STUDIO", (*col[:3], 42), col, border_col=col, font=_get_font(17, bold=True), alpha_mul=gt)
-            _draw_wrapped(stage.draw, (bx0 + 26, y + 66), str(m.get("text") or ""), _get_font(23), _with_alpha(world["text"], gt), (bx1 - bx0) - 52, max_lines=3)
+            stage.draw_glass_card((bx0, y, bx1, y + 165), radius=24, accent_col=col, alpha_mul=g_b, active=(int(progress * len(msgs)) == i))
+            if g_bdg > 0.02:
+                stage.draw_pill(bx0 + 82, y + 32, "YOU" if is_user else "AI STUDIO", (*col[:3], 42), col, border_col=col, font=_get_font(17, bold=True), alpha_mul=g_bdg)
+            if g_t > 0.02:
+                _draw_wrapped(stage.draw, (bx0 + 26, y + 66), str(m.get("text") or ""), _get_font(23), _with_alpha(world["text"], g_t), (bx1 - bx0) - 52, max_lines=3)
             y += 188
         return True
 
@@ -754,29 +796,41 @@ def render_pro_layout(
             for i, it in enumerate(items):
                 if isinstance(it, str):
                     it = {"title": it}
-                gt = _ease(_spring_gate(progress, i, n, 0.22))
+                gt_raw = _spring_gate(progress, i, n, 0.22)
+                if gt_raw <= 0.02:
+                    continue
+                g_b, g_t = _sub_gate(gt_raw, "box"), _sub_gate(gt_raw, "title")
                 x0 = SX0 + i * (cw + 20)
                 col = _res_col(world, _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
-                stage.draw_glass_card((x0, SY0 + 40, x0 + cw, SY1 - 60), radius=22, accent_col=col, alpha_mul=gt, active=(i == n - 1))
-                _draw_wrapped(stage.draw, (x0 + 16, SY0 + 70), str(it.get("title") or it.get("name") or ""), _get_font(25, bold=True), _with_alpha(col, gt), cw - 32, align="center", max_lines=2)
+                stage.draw_glass_card((x0, SY0 + 40, x0 + cw, SY1 - 60), radius=22, accent_col=col, alpha_mul=g_b, active=(int(progress * n) == i))
+                if g_t > 0.02:
+                    _draw_wrapped(stage.draw, (x0 + 16, SY0 + 70), str(it.get("title") or it.get("name") or ""), _get_font(25, bold=True), _with_alpha(col, g_t), cw - 32, align="center", max_lines=2)
                 sub_list = it.get("cards") or it.get("features") or ([it.get("sub")] if it.get("sub") else [])
                 for j, c_txt in enumerate(list(sub_list)[:4]):
+                    cj_g = _sub_gate(_spring_gate(progress, i + j * 0.25, n + 1, 0.20), "sub")
+                    if cj_g <= 0.02:
+                        continue
                     cy = SY0 + 160 + j * 145
-                    stage.draw_glass_card((x0 + 16, cy, x0 + cw - 16, cy + 120), radius=16, accent_col=col, alpha_mul=gt)
-                    _draw_wrapped(stage.draw, (x0 + 28, cy + 28), str(c_txt), _get_font(21), _with_alpha(world["text"], gt), cw - 56, align="center", max_lines=3)
+                    stage.draw_glass_card((x0 + 16, cy, x0 + cw - 16, cy + 120), radius=16, accent_col=col, alpha_mul=cj_g)
+                    _draw_wrapped(stage.draw, (x0 + 28, cy + 28), str(c_txt), _get_font(21), _with_alpha(world["text"], cj_g), cw - 56, align="center", max_lines=3)
         else:
             rh = min(175, (SH - 60) // max(1, n))
             for i, it in enumerate(items):
                 if isinstance(it, str):
                     it = {"title": it}
-                gt = _ease(_spring_gate(progress, i, n, 0.22))
+                gt_raw = _spring_gate(progress, i, n, 0.22)
+                if gt_raw <= 0.02:
+                    continue
+                g_b, g_ico, g_t, g_s = _sub_gate(gt_raw, "box"), _sub_gate(gt_raw, "badge"), _sub_gate(gt_raw, "title"), _sub_gate(gt_raw, "sub")
                 y = SY0 + 40 + i * rh
                 col = _res_col(world, it.get("color"), _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
-                stage.draw_glass_card((80, y, 1000, y + rh - 18), radius=22, accent_col=col, alpha_mul=gt, active=(int(progress * n) == i))
-                draw_vector_glyph(stage, 136, y + (rh - 18) // 2, str(it.get("icon") or "bell"), 22, col, gt)
-                _draw_wrapped(stage.draw, (186, y + 26), str(it.get("title") or it.get("name") or ""), _get_font(26, bold=True), _with_alpha(world["text"], gt), 780, max_lines=1)
-                if it.get("sub") or it.get("range"):
-                    _draw_wrapped(stage.draw, (186, y + 68), str(it.get("sub") or it.get("range")), _get_font(21), _with_alpha(world["muted"], gt), 780, max_lines=2)
+                stage.draw_glass_card((80, y, 1000, y + rh - 18), radius=22, accent_col=col, alpha_mul=g_b, active=(int(progress * n) == i))
+                if g_ico > 0.02:
+                    draw_vector_glyph(stage, 136, y + (rh - 18) // 2, str(it.get("icon") or "bell"), 22, col, g_ico)
+                if g_t > 0.02:
+                    _draw_wrapped(stage.draw, (186, y + 26), str(it.get("title") or it.get("name") or ""), _get_font(26, bold=True), _with_alpha(world["text"], g_t), 780, max_lines=1)
+                if (it.get("sub") or it.get("range")) and g_s > 0.02:
+                    _draw_wrapped(stage.draw, (186, y + 68), str(it.get("sub") or it.get("range")), _get_font(21), _with_alpha(world["muted"], g_s), 780, max_lines=2)
         return True
 
     # --- 5. QUOTE / SPLIT SCREEN / EQUATION / BEFORE-AFTER / COUNTDOWN ---
