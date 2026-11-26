@@ -38,7 +38,8 @@ for mod_name in list(sys.modules.keys()):
             pass
 
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
-from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, UI_TONE_OPTIONS, collect_sfx_timeline
+from core.presets import load_creator_presets, save_custom_creator_preset
+from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles, load_visual_history, reset_visual_history
 from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS, VOICE_CATALOG
 from core.animator import render_scene_frames, generate_thumbnail_9_16
@@ -107,6 +108,75 @@ with st.sidebar:
         value=DEFAULT_WATERMARK,
         help="Channel watermark displayed in the corner of every video frame and thumbnail."
     )
+
+    # ---------------------------------------------------------------------
+    # 1-Click Creator Brand Presets (loads & applies cleanly BEFORE widgets)
+    # ---------------------------------------------------------------------
+    _all_presets = load_creator_presets()
+    _preset_keys = list(_all_presets.keys())
+    st.session_state.setdefault("creator_preset_select", "custom")
+    _chosen_preset_key = st.selectbox(
+        "💾 Quick Creator Profile Preset",
+        _preset_keys,
+        format_func=lambda k: _all_presets.get(k, {}).get("label", k),
+        key="creator_preset_select",
+        help="Apply a complete 1-click creator setup (Tone, Voice, Format, BGM, Caption Style, Platform Safe-Zone, Audience & CTA), or configure manually and save below."
+    )
+    _prev_preset_key = st.session_state.get("_prev_creator_preset", "custom")
+    if _chosen_preset_key != _prev_preset_key and _chosen_preset_key != "custom":
+        _ps = dict(_all_presets.get(_chosen_preset_key, {}).get("settings") or {})
+        if _ps.get("tone_key") in TONE_PROFILES:
+            _tk = _ps["tone_key"]
+            st.session_state["tone_option_select"] = (_tk, TONE_PROFILES[_tk]["label"])
+            st.session_state["_prev_tone_option"] = _tk
+        if _ps.get("voice_provider"):
+            st.session_state["voice_provider_radio"] = _ps["voice_provider"]
+        if _ps.get("lang_filter"):
+            st.session_state["lang_filter_pills"] = _ps["lang_filter"]
+        if _ps.get("gender_filter"):
+            st.session_state["gender_filter_pills"] = _ps["gender_filter"]
+        if _ps.get("edge_voice_id"):
+            _match_ev = next(
+                ((v["id"], v["label"]) for v in VOICE_CATALOG.get("edge_tts", []) if v["id"] == _ps["edge_voice_id"]),
+                None,
+            )
+            if _match_ev:
+                st.session_state["edge_voice_select"] = _match_ev
+        _fmt_opts_map = {
+            "9:16": ("9:16", "📱 9:16 Vertical (Reels / Shorts / TikTok - 1080x1920)"),
+            "16:9": ("16:9", "🖥️ 16:9 Widescreen (YouTube / Landscape - 1920x1080)"),
+            "1:1": ("1:1", "⏹️ 1:1 Square (Instagram / LinkedIn Post - 1080x1080)"),
+        }
+        _dur_opts_map = {
+            "auto": ("auto", "⚡ Dynamic / Auto (AI Decides Length & Scenes • No Limit) [Recommended]"),
+            "short": ("short", "⏱️ Quick Pacing (~30-45 sec • AI Decides Scenes)"),
+            "standard": ("standard", "🎬 Standard Pacing (~60-90 sec • AI Decides Scenes)"),
+            "deep_dive": ("deep_dive", "🧠 Deep-Dive Architecture (~90-240+ sec • AI Decides Scenes)"),
+        }
+        if _ps.get("aspect_ratio") in _fmt_opts_map:
+            st.session_state["format_aspect_select"] = _fmt_opts_map[_ps["aspect_ratio"]]
+        if _ps.get("duration_mode") in _dur_opts_map:
+            st.session_state["duration_depth_select"] = _dur_opts_map[_ps["duration_mode"]]
+        if _ps.get("visual_mode") == "pin_specialist":
+            st.session_state["visual_engine_mode_radio"] = "🎛️ Pin Single Specialist Engine (24 Modes)"
+        elif _ps.get("visual_mode") == "auto_omni":
+            st.session_state["visual_engine_mode_radio"] = "🧠 Auto Omni Smart Director (All Engines Unified) [Recommended]"
+        for _sk, _wk in (
+            ("bgm_style", "bgm_style_select"),
+            ("bgm_volume_pct", "bgm_volume_slider"),
+            ("caption_style", "caption_style_select"),
+            ("platform_safe_zone", "platform_safe_zone_select"),
+            ("audience_level", "audience_level_select"),
+            ("hook_style", "hook_style_select"),
+            ("cta_style", "cta_style_select"),
+            ("cta_keyword", "cta_keyword_input"),
+            ("enable_cam_actions", "enable_cam_actions_chk"),
+            ("enable_micro_sfx", "enable_micro_sfx_chk"),
+        ):
+            if _sk in _ps:
+                st.session_state[_wk] = _ps[_sk]
+    st.session_state["_prev_creator_preset"] = _chosen_preset_key
+
     st.markdown("---")
     st.markdown("### 🎭 Script Tone & Emotion (2026 Viral Audio-Visual Sync)")
     tone_option = st.selectbox(
@@ -255,6 +325,7 @@ with st.sidebar:
                     chosen_voice = f"dual:{fem_pick[0]}+{male_pick[0]}"
                     voice_label = f"🗣️ Dual: {fem_pick[1].split('—')[0].strip()} + {male_pick[1].split('—')[0].strip()}"
     
+    st.session_state.setdefault("format_aspect_select", ("9:16", "📱 9:16 Vertical (Reels / Shorts / TikTok - 1080x1920)"))
     aspect_ratio = st.selectbox(
         "Format",
         [
@@ -262,9 +333,11 @@ with st.sidebar:
             ("16:9", "🖥️ 16:9 Widescreen (YouTube / Landscape - 1920x1080)"),
             ("1:1", "⏹️ 1:1 Square (Instagram / LinkedIn Post - 1080x1080)")
         ],
-        format_func=lambda x: x[1]
+        format_func=lambda x: x[1],
+        key="format_aspect_select",
     )
-    
+
+    st.session_state.setdefault("duration_depth_select", ("auto", "⚡ Dynamic / Auto (AI Decides Length & Scenes • No Limit) [Recommended]"))
     duration_option = st.selectbox(
         "Video Duration & Depth (Zero Scene Limit • AI Decides)",
         [
@@ -274,6 +347,7 @@ with st.sidebar:
             ("deep_dive", "🧠 Deep-Dive Architecture (~90-240+ sec • AI Decides Scenes)")
         ],
         format_func=lambda x: x[1],
+        key="duration_depth_select",
         help="ZERO artificial scene count cap in ANY mode! Dropdown guides target runtime pacing only — AI autonomously decides exact scenes needed based on topic depth."
     )
     
@@ -341,27 +415,125 @@ with st.sidebar:
             help="Force any single specialist visual engine across the entire video."
         )
 
-    with st.expander("🎬 2026 Motion, Camera & Micro-SFX Controls", expanded=True):
-        enable_camera_actions = st.checkbox(
-            "🎥 Virtual Camera Zoom + 12-Verb Action Overlays",
-            value=True,
-            key="enable_cam_actions_chk",
-            help="Follows speaking cards with smooth zoom/pan, 2s Hook Pattern Interrupt punch, Iconify SVG packet flight, and error screen-shake."
+    # ---------------------------------------------------------------------
+    # 3 Clean Compact Expanders (Audio/Captions · Audience/Hook/CTA · Overrides)
+    # ---------------------------------------------------------------------
+    st.session_state.setdefault("bgm_style_select", "lofi_cyber")
+    st.session_state.setdefault("bgm_volume_slider", 18)
+    st.session_state.setdefault("caption_style_select", "karaoke_pop")
+    st.session_state.setdefault("platform_safe_zone_select", "instagram_reels")
+    with st.expander("🎵 BGM & Caption Style Studio", expanded=False):
+        _bgm_labels = {
+            "lofi_cyber": "🎹 Chill Lo-Fi Coding (Balanced)",
+            "dark_cyber_suspense": "🚨 Dark Cyber Suspense (War Story)",
+            "upbeat_electro_pulse": "⚡ Upbeat Synth Pulse (Myth / Cage Match)",
+            "none": "🔇 Mute / No BGM (Pure Voice + Micro-SFX)",
+        }
+        chosen_bgm_style = st.selectbox(
+            "Background Music (BGM) Track",
+            list(_bgm_labels.keys()),
+            format_func=lambda k: _bgm_labels[k],
+            key="bgm_style_select",
         )
-        enable_micro_sfx = st.checkbox(
-            "🔊 Action-Synced Micro-SFX + 2s Hook Punch Audio",
-            value=True,
-            key="enable_micro_sfx_chk",
-            help="Mixes tactile pop_snap, alert_ping, key_tick, success_chime & whoosh SFX timed to Whisper words & scene cuts."
+        bgm_volume_pct = st.slider(
+            "BGM Ducking Volume (%)",
+            min_value=0, max_value=32, step=2,
+            key="bgm_volume_slider",
+            disabled=(chosen_bgm_style == "none"),
+            help="0% mutes BGM cleanly; 14-18% is balanced under voiceover."
         )
+        _cap_labels = {
+            "karaoke_pop": "⚡ Bold Karaoke Highlight (Reels / Shorts Pop)",
+            "clean_minimal": "🧼 Clean Minimal Pill (ByteByteGo / LinkedIn)",
+            "static_bottom": "🅰️ Calm Static Bar (No Bounce)",
+            "off": "🚫 Off (Clean Visuals Only — No Subtitles)",
+        }
+        chosen_caption_style = st.selectbox(
+            "Subtitle / Caption Style",
+            list(_cap_labels.keys()),
+            format_func=lambda k: _cap_labels[k],
+            key="caption_style_select",
+        )
+        _plat_labels = {
+            "instagram_reels": "📱 Instagram Reels Safe-Zone (Clears Right Icons & Caption)",
+            "youtube_shorts": "▶️ YouTube Shorts Safe-Zone (Clears Bottom Channel Bar)",
+            "linkedin_clean": "💼 LinkedIn Clean Frame (Low Minimal Margin)",
+        }
+        chosen_platform_zone = st.selectbox(
+            "Platform UI Safe-Zone",
+            list(_plat_labels.keys()),
+            format_func=lambda k: _plat_labels[k],
+            key="platform_safe_zone_select",
+        )
+
+    st.session_state.setdefault("audience_level_select", "working_dev")
+    st.session_state.setdefault("hook_style_select", "ai_auto")
+    st.session_state.setdefault("cta_style_select", "save_share")
+    st.session_state.setdefault("cta_keyword_input", "NOTES")
+    with st.expander("🎯 Audience, Hook & Viral CTA", expanded=False):
+        _aud_labels = {
+            "beginner_interview": "🎓 Beginner / College Interview (Analogies & Traps)",
+            "working_dev": "🛠️ Working Developer (Code, SQL & Practical Patterns)",
+            "staff_architect": "🏛️ Staff / Principal Architect (Scale, SLA & Cost Trade-Offs)",
+        }
+        chosen_audience = st.selectbox(
+            "Target Audience Depth",
+            list(_aud_labels.keys()),
+            format_func=lambda k: _aud_labels[k],
+            key="audience_level_select",
+        )
+        _hook_labels = {
+            "ai_auto": "🤖 AI Auto-Select (Matched to Scene 1 Tone)",
+            "contrarian_stop": "💥 Contrarian Myth ('Stop Doing X At Scale!')",
+            "outage_3am": "🚨 3AM Outage Story ('Friday 11:45 PM DB Locked...')",
+            "interview_question": "💼 FAANG Interview Challenge ('Asked at Google/Uber...')",
+            "shocking_stat": "🔢 Shocking Metric ('90% Teams Waste 4x Budget...')",
+        }
+        chosen_hook_style = st.selectbox(
+            "Opening 2s Hook Strategy",
+            list(_hook_labels.keys()),
+            format_func=lambda k: _hook_labels[k],
+            key="hook_style_select",
+        )
+        _cta_labels = {
+            "save_share": "📌 Save & Share Architecture Checklist",
+            "comment_keyword": "💬 Comment Keyword Trigger (ManyChat / Auto-DM Growth)",
+            "debate_poll": "⚔️ A vs B Opinion Poll Debate",
+            "clean_zero_cta": "🧼 Clean Zero-CTA (Pure Educational Takeaway)",
+        }
+        chosen_cta_style = st.selectbox(
+            "Ending CTA Strategy",
+            list(_cta_labels.keys()),
+            format_func=lambda k: _cta_labels[k],
+            key="cta_style_select",
+        )
+        chosen_cta_keyword = ""
+        if chosen_cta_style == "comment_keyword":
+            chosen_cta_keyword = st.text_input(
+                "Comment Keyword Trigger (e.g. SYSTEM, SQL, NOTES):",
+                key="cta_keyword_input",
+                help="AI weaves 'Comment <KEYWORD> below...' into final scene narration & end badge."
+            )
 
     manual_layout_choice = "auto"
     manual_world_choice = "auto"
     manual_backdrop_choice = "auto"
     manual_transition_choice = "auto"
     manual_text_fx_choice = "auto"
-    if visual_engine[0] in ("omni_smart_director", "studio_300_domain", "multi_topology_mix", "interactive_storyboard", "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern"):
-        with st.expander("🎛️ Manual Studio Overrides (Layout / Theme / FX)", expanded=False):
+    st.session_state.setdefault("enable_cam_actions_chk", True)
+    st.session_state.setdefault("enable_micro_sfx_chk", True)
+    with st.expander("🎛️ Manual Studio & Motion Overrides", expanded=False):
+        enable_camera_actions = st.checkbox(
+            "🎥 Virtual Camera Zoom + 12-Verb Action Overlays",
+            key="enable_cam_actions_chk",
+            help="Follows speaking cards with smooth zoom/pan, 2s Hook Pattern Interrupt punch, Iconify SVG packet flight, and error screen-shake."
+        )
+        enable_micro_sfx = st.checkbox(
+            "🔊 Action-Synced Micro-SFX + 2s Hook Punch Audio",
+            key="enable_micro_sfx_chk",
+            help="Mixes tactile pop_snap, alert_ping, key_tick, success_chime & whoosh SFX timed to Whisper words & scene cuts."
+        )
+        if visual_engine[0] in ("omni_smart_director", "studio_300_domain", "multi_topology_mix", "interactive_storyboard", "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern"):
             from core.cinematic_engine import (
                 ALL_BACKDROPS,
                 ALL_STUDIO_LAYOUTS,
@@ -370,7 +542,6 @@ with st.sidebar:
                 STUDIO_WORLDS,
             )
             layout_opts = ["auto", "web_scene", "svg_scene", "spatial_canvas", "grammar:flow:5", "grammar:grid:3x2", "grammar:ring:6"] + list(ALL_STUDIO_LAYOUTS)
-            # deduplicate preserving order
             layout_opts = list(dict.fromkeys(layout_opts))
             manual_layout_choice = st.selectbox(
                 f"Manual Scene Layout ({len(ALL_STUDIO_LAYOUTS)} Named + Grammar + ∞ Web/SVG)",
@@ -414,6 +585,36 @@ with st.sidebar:
                 reset_visual_history(st.session_state["visual_gen_history"])
                 st.rerun()
 
+    # Save Current Setup as Custom 1-Click Creator Preset
+    with st.expander("💾 Save Current Settings as My Preset", expanded=False):
+        _new_preset_name = st.text_input("Preset Name:", placeholder="e.g. My Marathi SQL Reels", key="save_preset_name_input")
+        if st.button("💾 Save Creator Preset", key="save_preset_btn", use_container_width=True):
+            _payload_settings = {
+                "tone_key": chosen_tone,
+                "voice_provider": voice_provider,
+                "lang_filter": lang_filter or "All",
+                "gender_filter": gender_filter or "All",
+                "edge_voice_id": chosen_voice if not str(chosen_voice).startswith("elevenlabs:") else "",
+                "aspect_ratio": aspect_ratio[0],
+                "duration_mode": duration_option[0],
+                "visual_mode": "auto_omni" if visual_engine[0] == "omni_smart_director" else "pin_specialist",
+                "bgm_style": chosen_bgm_style,
+                "bgm_volume_pct": bgm_volume_pct,
+                "caption_style": chosen_caption_style,
+                "platform_safe_zone": chosen_platform_zone,
+                "audience_level": chosen_audience,
+                "hook_style": chosen_hook_style,
+                "cta_style": chosen_cta_style,
+                "cta_keyword": chosen_cta_keyword,
+                "enable_cam_actions": enable_camera_actions,
+                "enable_micro_sfx": enable_micro_sfx,
+            }
+            _saved_slug = save_custom_creator_preset(_new_preset_name, _payload_settings)
+            st.session_state["creator_preset_select"] = _saved_slug
+            st.session_state["_prev_creator_preset"] = _saved_slug
+            st.success(f"✅ Saved preset! Selectable anytime above.")
+            st.rerun()
+
     custom_style_prompt = ""
     if visual_engine[0] == "custom_user_style":
         custom_style_prompt = st.text_input(
@@ -425,9 +626,11 @@ with st.sidebar:
         custom_style_prompt = f"Use layout '{manual_layout_choice}' across visuals where appropriate."
 
     # Live Synced Configuration Readout (guarantees all settings reflect immediately)
+    _eng_disp = "omni_smart_director" if visual_engine[0] == "omni_smart_director" else visual_engine[1].split("(")[0].strip()[:24]
     st.caption(
         f"🔗 **Active Sync:** `{chosen_tone}` • `{voice_label.split('—')[0].split('(')[0].strip()[:18]}` • "
-        f"`{aspect_ratio[0]}` • `{duration_option[0]}` • `{visual_engine[0]}`"
+        f"`{aspect_ratio[0]}` • `{chosen_bgm_style}` (`{bgm_volume_pct if chosen_bgm_style != 'none' else 0}%`) • "
+        f"`{chosen_caption_style}` ({chosen_platform_zone}) • `{chosen_audience}` • `{_eng_disp}`"
         + (f" • Override `{manual_layout_choice}`" if manual_layout_choice != "auto" else "")
     )
     
@@ -728,6 +931,10 @@ with tab_create:
                 voice=chosen_voice,
                 format_ratio=aspect_ratio[0],
                 visual_history=st.session_state["visual_gen_history"],
+                audience_level=chosen_audience,
+                hook_style=chosen_hook_style,
+                cta_style=chosen_cta_style,
+                cta_keyword=chosen_cta_keyword,
             )
 
             # Apply ALL manual overrides, color cadence & 2026 motion flags BEFORE UI preview table, TTS, & rendering!
@@ -855,7 +1062,7 @@ with tab_create:
                             st.image(str(_mid_f), caption=f"S{_si + 1}: {_r_eng}", use_container_width=True)
 
             # STEP 4: Video Stitching via Local Hardware / Cloud
-            status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 with karaoke captions, Micro-SFX & Lo-Fi audio...")
+            status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 ({chosen_caption_style}, {chosen_bgm_style} BGM, Micro-SFX)...")
             progress_bar.progress(80)
             art_style_val = timeline.get("art_style", "editorial_dark") if isinstance(timeline, dict) else "editorial_dark"
             subtitles_path = generate_ass_subtitles(
@@ -863,7 +1070,9 @@ with tab_create:
                 format_ratio=aspect_ratio[0],
                 tone=chosen_tone,
                 aligned_scenes=aligned_scenes,
-                art_style=art_style_val
+                art_style=art_style_val,
+                caption_style=chosen_caption_style,
+                platform_safe_zone=chosen_platform_zone,
             )
             sfx_events = collect_sfx_timeline(aligned_scenes, word_timestamps=word_timestamps, tone=chosen_tone) if enable_micro_sfx else []
 
@@ -889,6 +1098,8 @@ with tab_create:
                     subtitles_path=subtitles_path,
                     output_filename=f"nanopro_{aspect_ratio[0].replace(':', 'x')}_{int(time.time())}.mp4",
                     sfx_events=sfx_events,
+                    bgm_style=chosen_bgm_style,
+                    bgm_volume=(bgm_volume_pct / 100.0) if chosen_bgm_style != "none" else 0.0,
                 )
                 status_box.info("🖼️ Finalizing 9:16 thumbnail & viral metadata...")
                 progress_bar.progress(92)
@@ -1011,8 +1222,9 @@ with tab_create:
 
                     4. **⚡ Step 4 — Hardware FFmpeg Video Stitching & Captions:**
                        - **Video Encoder:** Hardware Accelerated High-Bitrate (Windows Media Foundation 8 Mbps / libx264 CRF 18)
-                       - **Karaoke Subtitles:** Advanced SubStation Alpha (`.ass`) with safe-zone margin adapted to {aspect_ratio[0]}
-                       - **Audio Mixing:** {len(sfx_events)} Action-Synced Micro-SFX cues (`pop_snap`, `alert_ping`, `key_tick`, `whoosh`, `success_chime`) + Lo-Fi Cyber BGM @ 18% under voiceover.
+                       - **Audience, Hook & CTA:** `{chosen_audience}` | `{chosen_hook_style}` | `{chosen_cta_style}`{(' (`' + chosen_cta_keyword + '`)') if chosen_cta_style == 'comment_keyword' and chosen_cta_keyword else ''}
+                       - **Karaoke / Captions:** `{chosen_caption_style}` adapted to `{chosen_platform_zone}` ({aspect_ratio[0]})
+                       - **Audio Mixing:** {len(sfx_events)} Action-Synced Micro-SFX cues + `{chosen_bgm_style}` BGM @ {bgm_volume_pct if chosen_bgm_style != 'none' else 0}% under voiceover.
 
                     5. **☁️ Step 5 — Deployment & Storage:**
                        - **Host Compute:** `{"Local NVIDIA RTX 3050 Laptop Studio (Windows)" if is_local_machine else "Online Cloud Studio Container (Linux)"}`

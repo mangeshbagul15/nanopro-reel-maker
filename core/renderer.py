@@ -53,16 +53,26 @@ def _get_encoder_args() -> List[str]:
     _CACHED_ENCODER_ARGS = ["-c:v", "libx264", "-preset", "faster", "-crf", "22", "-pix_fmt", "yuv420p"]
     return _CACHED_ENCODER_ARGS
 
+BGM_TRACK_MAP = {
+    "none": None,
+    "lofi_cyber": "lofi_cyber_bgm.wav",
+    "dark_cyber_suspense": "dark_cyber_suspense.wav",
+    "upbeat_electro_pulse": "upbeat_electro_pulse.wav",
+}
+
+
 def render_final_reel(
     all_scene_frame_dirs: List[Path],
     audio_path: Path,
     subtitles_path: Path = None,
     output_filename: str = None,
     sfx_events: Optional[List[Dict[str, Any]]] = None,
+    bgm_style: str = "lofi_cyber",
+    bgm_volume: float = 0.18,
 ) -> Path:
     """
-    Assembles all scene image frames, audio, micro-SFX cues, BGM, and karaoke subtitles into a polished
-    1080x1920 9:16 vertical MP4 video using high-speed FFmpeg hardware/software encoding.
+    Assembles all scene image frames, audio, micro-SFX cues, selected BGM track/volume,
+    and karaoke subtitles into a polished MP4 video using high-speed FFmpeg encoding.
     """
     timestamp = int(time.time())
     if not output_filename:
@@ -87,8 +97,10 @@ def render_final_reel(
             f.write("duration 1.0\n")
             f.write(f"file '{last_frame_path}'\n")
 
-    bgm_path = SFX_DIR / "lofi_cyber_bgm.wav"
-    has_bgm = bgm_path.exists()
+    bgm_file_name = BGM_TRACK_MAP.get(str(bgm_style or "lofi_cyber").lower().strip(), "lofi_cyber_bgm.wav")
+    bgm_vol = max(0.0, min(0.38, float(bgm_volume)))
+    bgm_path = (SFX_DIR / bgm_file_name) if bgm_file_name else None
+    has_bgm = (bgm_path is not None) and bgm_path.exists() and bgm_vol >= 0.005
     has_subs = subtitles_path is not None and subtitles_path.exists()
     safe_subs_path = str(subtitles_path.resolve()).replace("\\", "/").replace(":", "\\:") if has_subs else ""
 
@@ -130,7 +142,7 @@ def render_final_reel(
     filter_parts.append("[1:a]volume=1.0[speech]")
     sfx_base_idx = 2
     if has_bgm:
-        filter_parts.append("[2:a]volume=0.18[bgm]")
+        filter_parts.append(f"[2:a]volume={bgm_vol:.2f}[bgm]")
         mix_labels.append("[bgm]")
         sfx_base_idx = 3
 

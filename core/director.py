@@ -607,6 +607,10 @@ def generate_timeline(
     voice: str = "en-US-ChristopherNeural",
     format_ratio: str = "9:16",
     visual_history: Optional[Dict[str, Any]] = None,
+    audience_level: str = "working_dev",
+    hook_style: str = "ai_auto",
+    cta_style: str = "save_share",
+    cta_keyword: str = "",
 ) -> Dict[str, Any]:
     """
     Generates a structured video timeline blueprint using Gemini/Groq/OpenRouter models,
@@ -692,9 +696,36 @@ def generate_timeline(
     }
     dur_guidance = duration_instructions.get(duration_mode, duration_instructions["auto"])
 
-    # 3. Format & Universal Spoken English Numbers/Dates/Tech Rules
+    # 3. Format, Audience Depth, Hook Formula, Ending CTA & Universal Spoken English Rules
     format_directive = f"Target Aspect Ratio: '{format_ratio}'."
     tone_directive = get_tone_directive(tone)
+
+    _aud_map = {
+        "beginner_interview": "TARGET AUDIENCE LEVEL: Beginner / Interview Prep — explain with intuitive everyday analogies, zero unexplained jargon, and highlight classic interview pitfalls.",
+        "working_dev": "TARGET AUDIENCE LEVEL: Working Software / Data Engineer — focus on real production bugs, concrete SQL/code snippets, benchmarks, and practical architecture patterns.",
+        "staff_architect": "TARGET AUDIENCE LEVEL: Staff / Principal Systems Architect — focus on distributed invariants, P99 tail latency, consensus/quorum, failover RPO/RTO, and cost trade-offs.",
+    }
+    _hook_map = {
+        "ai_auto": "",
+        "contrarian_stop": "OPENING 2-SECOND HOOK FORMULA: Open Scene 1 immediately with a sharp contrarian truth ('Stop doing X at scale — here is why it breaks').",
+        "outage_3am": "OPENING 2-SECOND HOOK FORMULA: Open Scene 1 as a high-stakes 3AM production incident cold open ('Friday 11:45 PM — one config change dropped production latency by 10x').",
+        "interview_question": "OPENING 2-SECOND HOOK FORMULA: Open Scene 1 as a direct top-tier engineering interview challenge ('Asked at Google/Uber: Why does naive X fail under burst load?').",
+        "shocking_stat": "OPENING 2-SECOND HOOK FORMULA: Open Scene 1 with a concrete eye-opening engineering metric/threshold ('90% teams waste 4x budget by skipping partition pruning').",
+    }
+    clean_kw = re.sub(r"[^A-Za-z0-9_-]", "", str(cta_keyword or "").strip()).upper()[:18] or "NOTES"
+    _cta_map = {
+        "save_share": "CLOSING CTA MANDATE: End final scene cleanly inviting builders to save/share the architecture checklist.",
+        "comment_keyword": f"CLOSING CTA MANDATE (GROWTH TRIGGER): End final scene explicitly telling viewers: 'Comment {clean_kw} below for full architecture notes and code' AND set final scene `footer_cta` to `Comment {clean_kw} for Notes & Code`.",
+        "debate_poll": "CLOSING CTA MANDATE: End final scene with a crisp A-vs-B engineering poll question inviting comments on their production stack choice.",
+        "clean_zero_cta": "CLOSING CTA MANDATE: End crisply with the core engineering takeaway ONLY — ZERO social-media 'like/follow/comment/save' filler.",
+    }
+    creator_controls_directive = "\n".join(
+        line for line in (
+            _aud_map.get(str(audience_level or "working_dev").lower().strip(), ""),
+            _hook_map.get(str(hook_style or "ai_auto").lower().strip(), ""),
+            _cta_map.get(str(cta_style or "save_share").lower().strip(), ""),
+        ) if line
+    )
     english_tech_num_rule = (
         "UNIVERSAL SPOKEN ENGLISH NUMBERS, DATES & TECH TERMS MANDATE (APPLIES TO ALL VOICES): "
         "In EVERY scene's `narration`, ALL numbers, counts, percentages, latencies, capacities, versions, dates, months, years, days, time durations, and technical words "
@@ -743,6 +774,7 @@ def generate_timeline(
     user_prompt = (
         f"Topic: '{topic}'.\n"
         f"{tone_directive}\n"
+        f"{creator_controls_directive}\n"
         f"Selected Visual Engine: '{engine_style}'.\n"
         f"Selected Voice Persona: '{voice}'.\n"
         f"{lang_directive}\n"
@@ -799,7 +831,7 @@ def generate_timeline(
                         raw_text = response.text.strip() if getattr(response, "text", None) else ""
                         clean_json = _extract_json(raw_text)
                         if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num)
+                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num, cta_style=cta_style, cta_keyword=cta_keyword)
                             _save_visual_history(hist, clean_json, session_history=visual_history)
                             clean_json["meta_director"] = {
                                 "model_used": model_name,
@@ -863,7 +895,7 @@ def generate_timeline(
                     raw_text = (g_res.choices[0].message.content or "").strip() if g_res.choices else ""
                     clean_json = _extract_json(raw_text)
                     if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num)
+                        clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num, cta_style=cta_style, cta_keyword=cta_keyword)
                         _save_visual_history(hist, clean_json, session_history=visual_history)
                         clean_json["meta_director"] = {
                             "model_used": f"groq/{g_model}",
@@ -918,7 +950,7 @@ def generate_timeline(
                         raw_text = (msg.get("content") or msg.get("reasoning") or "").strip()
                         clean_json = _extract_json(raw_text)
                         if clean_json and "scenes" in clean_json and len(clean_json["scenes"]) > 0:
-                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num)
+                            clean_json = _enforce_engine_style(clean_json, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num, cta_style=cta_style, cta_keyword=cta_keyword)
                             _save_visual_history(hist, clean_json, session_history=visual_history)
                             clean_json["meta_director"] = {
                                 "model_used": f"openrouter/{or_model}",
@@ -949,7 +981,7 @@ def generate_timeline(
         voice=voice,
         format_ratio=format_ratio,
     )
-    fallback_tl = _enforce_engine_style(fallback_tl, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num)
+    fallback_tl = _enforce_engine_style(fallback_tl, engine_style, topic, tone=tone, format_ratio=format_ratio, visual_history=hist, run_num=run_num, cta_style=cta_style, cta_keyword=cta_keyword)
     _save_visual_history(hist, fallback_tl, session_history=visual_history)
     fallback_tl["meta_director"] = {
         "model_used": "emergency_deterministic_composer",
@@ -1347,10 +1379,12 @@ def _enforce_engine_style(
     timeline: Dict[str, Any],
     engine_style: str,
     topic: str,
-    tone: str = "auto_dynamic",
+    tone: str = DEFAULT_TONE_KEY,
     format_ratio: str = "9:16",
     visual_history: Optional[Dict[str, Any]] = None,
     run_num: int = 1,
+    cta_style: str = "save_share",
+    cta_keyword: str = "",
 ) -> Dict[str, Any]:
     """
     Guarantees that every scene in the timeline strictly adheres to the user-selected Visual Engine & Style,
@@ -2151,6 +2185,19 @@ def _enforce_engine_style(
 
     if engine_style in ("omni_smart_director", "pure_zero_template", "dual_generative", "studio_300_domain", "auto_dynamic", "hybrid_modern"):
         _synthesize_bespoke_web_scenes(scenes, topic, format_ratio=format_ratio, run_num=run_num)
+
+    if scenes:
+        last_vd = scenes[-1].setdefault("visual_data", {})
+        c_cta = str(cta_style or "save_share").lower().strip()
+        if c_cta == "comment_keyword":
+            clean_kw = re.sub(r"[^A-Za-z0-9_-]", "", str(cta_keyword or "").strip()).upper()[:18] or "NOTES"
+            cta_line = f"Comment {clean_kw} for Notes & Code"
+            last_vd["footer_cta"] = cta_line
+            last_vd["footer"] = cta_line
+            if not re.search(rf"\bcomment\b.*\b{re.escape(clean_kw.lower())}\b", str(scenes[-1].get("narration") or "").lower()):
+                scenes[-1]["narration"] = str(scenes[-1].get("narration") or "").rstrip(".") + f". Comment {clean_kw} below for full architecture notes!"
+        elif c_cta == "clean_zero_cta":
+            last_vd.pop("footer_cta", None)
 
     return timeline
 

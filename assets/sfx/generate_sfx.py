@@ -164,6 +164,56 @@ def generate_success_chime(output_path: Path):
     wavfile.write(str(output_path), SAMPLE_RATE, int_audio)
 
 
+def generate_dark_cyber_suspense(output_path: Path, duration_sec: float = 70.0):
+    """Deep eerie minor sub-bass drone + filtered tension pulse for 3AM War Stories."""
+    total_samples = int(SAMPLE_RATE * duration_sec)
+    t = np.linspace(0, duration_sec, total_samples, endpoint=False)
+    drone = (
+        np.sin(2 * np.pi * 55.0 * t) * 0.42
+        + np.sin(2 * np.pi * 82.41 * t) * 0.25
+        + np.sin(2 * np.pi * 116.54 * t + 0.4 * np.sin(2 * np.pi * 0.22 * t)) * 0.16
+    )
+    beat_sec = 0.60
+    pulse = np.zeros_like(t, dtype=np.float32)
+    for bi in range(int(duration_sec / beat_sec)):
+        b_s = int(bi * beat_sec * SAMPLE_RATE)
+        k_len = int(0.14 * SAMPLE_RATE)
+        if b_s + k_len < total_samples:
+            kt = np.linspace(0, 0.14, k_len, endpoint=False)
+            amp = 0.34 if bi % 2 == 0 else 0.14
+            pulse[b_s:b_s + k_len] += np.sin(2 * np.pi * 68.0 * np.exp(-16.0 * kt) * kt) * np.exp(-18.0 * kt) * amp
+    sig = (drone + pulse) * np.minimum(1.0, t / 0.6)
+    sig = sig / (np.max(np.abs(sig)) + 1e-6) * 0.32
+    wavfile.write(str(output_path), SAMPLE_RATE, np.int16(sig * 32767))
+    print("Generated Dark Cyber Suspense BGM:", output_path)
+
+
+def generate_upbeat_electro_pulse(output_path: Path, duration_sec: float = 70.0):
+    """Energetic 118 BPM tech synth pulse + plucks for Myth-Buster & Cage Match reels."""
+    total_samples = int(SAMPLE_RATE * duration_sec)
+    t = np.linspace(0, duration_sec, total_samples, endpoint=False)
+    bpm = 118.0
+    step_sec = 60.0 / bpm / 2.0  # eighth notes
+    arp_freqs = [130.81, 155.56, 196.00, 233.08, 261.63, 233.08, 196.00, 155.56]
+    sig = np.sin(2 * np.pi * 65.41 * t) * 0.18
+    for si in range(int(duration_sec / step_sec)):
+        idx = int(si * step_sec * SAMPLE_RATE)
+        s_len = int(min(step_sec * 0.9, 0.20) * SAMPLE_RATE)
+        if idx + s_len < total_samples:
+            st_t = np.linspace(0, s_len / SAMPLE_RATE, s_len, endpoint=False)
+            f0 = arp_freqs[si % len(arp_freqs)]
+            pluck = (np.sin(2 * np.pi * f0 * st_t) * 0.6 + np.sin(2 * np.pi * f0 * 2.0 * st_t) * 0.2) * np.exp(-15.0 * st_t)
+            sig[idx:idx + s_len] += pluck * 0.32
+        if si % 2 == 0:
+            k_len = int(0.09 * SAMPLE_RATE)
+            if idx + k_len < total_samples:
+                kt = np.linspace(0, 0.09, k_len, endpoint=False)
+                sig[idx:idx + k_len] += np.sin(2 * np.pi * (95.0 * np.exp(-32.0 * kt) + 42.0) * kt) * np.exp(-26.0 * kt) * 0.28
+    sig = sig / (np.max(np.abs(sig)) + 1e-6) * 0.30
+    wavfile.write(str(output_path), SAMPLE_RATE, np.int16(sig * 32767))
+    print("Generated Upbeat Electro Pulse BGM:", output_path)
+
+
 if __name__ == "__main__":
     out_dir = Path(r"c:\Users\Mangesh\.gemini\antigravity\scratch\nanopro-reel-maker\assets\sfx")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -173,3 +223,5 @@ if __name__ == "__main__":
     generate_key_tick(out_dir / "key_tick.wav")
     generate_success_chime(out_dir / "success_chime.wav")
     generate_lofi_tech_bgm(out_dir / "lofi_cyber_bgm.wav", duration_sec=70.0)
+    generate_dark_cyber_suspense(out_dir / "dark_cyber_suspense.wav", duration_sec=70.0)
+    generate_upbeat_electro_pulse(out_dir / "upbeat_electro_pulse.wav", duration_sec=70.0)

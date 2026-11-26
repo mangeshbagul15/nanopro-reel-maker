@@ -394,42 +394,58 @@ def generate_ass_subtitles(
     format_ratio: str = "9:16",
     tone: str = "auto_2026_director",
     aligned_scenes: List[Dict[str, Any]] = None,
-    art_style: str = "editorial_dark"
-) -> Path:
+    art_style: str = "editorial_dark",
+    caption_style: str = "karaoke_pop",
+    platform_safe_zone: str = "instagram_reels",
+) -> Optional[Path]:
     """
-    Generates an Advanced SubStation Alpha (.ass) subtitle file with viral
-    TikTok / Instagram Reels style synchronized to aspect ratio, visual art_style AND script tone:
-    - Dynamic highlight colors & kinetic pop matched to chosen/per-scene tone
-    - High-contrast opaque pill backing when art_style == 'light_whiteboard'
-    - Safe-zone positioning adapted to aspect ratio (9:16, 16:9, 1:1)
-    - 100% Roman Hinglish & English rendering (zero Devanagari glyphs or numerals)
+    Generates an Advanced SubStation Alpha (.ass) subtitle file synchronized to
+    aspect ratio, platform UI safe-zone (`instagram_reels`, `youtube_shorts`, `linkedin_clean`),
+    visual `art_style`, `caption_style` (`karaoke_pop`, `clean_minimal`, `static_bottom`, `off`),
+    and 2026 script tone.
     """
     if output_path is None:
         output_path = OUTPUT_DIR / "subtitles.ass"
 
+    c_style = str(caption_style or "karaoke_pop").lower().strip()
+    if c_style == "off":
+        try:
+            if output_path.exists():
+                output_path.unlink()
+        except Exception:
+            pass
+        return None
+
     word_timestamps = normalize_hinglish_subtitle_words(word_timestamps, aligned_scenes=aligned_scenes)
 
+    p_zone = str(platform_safe_zone or "instagram_reels").lower().strip()
+    margin_r = 80
     if format_ratio == "16:9":
         res_x, res_y = 1920, 1080
-        font_size = 52
-        margin_v = 110
+        font_size = 50
+        margin_v = 100
     elif format_ratio == "1:1":
         res_x, res_y = 1080, 1080
-        font_size = 54
-        margin_v = 150
-    else:  # 9:16
+        font_size = 52
+        margin_v = 140
+    else:  # 9:16 adapted to platform safe zones
         res_x, res_y = 1080, 1920
-        font_size = 62
-        margin_v = 420
+        font_size = 56 if c_style == "clean_minimal" else (52 if c_style == "static_bottom" else 62)
+        if p_zone == "youtube_shorts":
+            margin_v, margin_r = 365, 110
+        elif p_zone == "linkedin_clean":
+            margin_v, margin_r = 250, 80
+        else:  # instagram_reels
+            margin_v, margin_r = 445, 125
 
     # Light/White/Light-Grey canvas needs solid dark pill / heavier outline so white+yellow karaoke text pops cleanly
     from core.palette_engine import is_light_studio_world
     is_light_canvas = is_light_studio_world(art_style)
-    border_style = 3 if is_light_canvas else 1
-    outline_px = 12 if is_light_canvas else 5
-    back_col = "&HC80F172A" if is_light_canvas else "&H90000000"
+    border_style = 3 if (is_light_canvas or c_style == "clean_minimal") else 1
+    outline_px = 12 if is_light_canvas else (10 if c_style == "clean_minimal" else 5)
+    back_col = "&HC80F172A" if (is_light_canvas or c_style == "clean_minimal") else "&H90000000"
 
-    # ASS Header & Styles - strictly constrained to chosen aspect ratio safe frame
+    # ASS Header & Styles - strictly constrained to chosen aspect ratio & platform safe frame
     ass_content = [
         "[Script Info]",
         "ScriptType: v4.00+",
@@ -439,7 +455,7 @@ def generate_ass_subtitles(
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        f"Style: ReelHighlight,Nirmala UI,{font_size},&H00FFFFFF,&H0000FFFF,&H000F172A,{back_col},-1,0,0,0,100,100,1,0,{border_style},{outline_px},2,2,80,80,{margin_v},1",
+        f"Style: ReelHighlight,Nirmala UI,{font_size},&H00FFFFFF,&H0000FFFF,&H000F172A,{back_col},-1,0,0,0,100,100,1,0,{border_style},{outline_px},2,2,80,{margin_r},{margin_v},1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
@@ -512,12 +528,28 @@ def generate_ass_subtitles(
         if not chunk:
             continue
 
+        if c_style == "static_bottom":
+            phrase_words = []
+            for w in chunk:
+                cw = w["word"].strip().replace("—", "-").replace("–", "-").replace("’", "'").replace("“", '"').replace("”", '"')
+                cw = cw.replace("{", "(").replace("}", ")").replace("\\", "/")
+                cw = "".join(ch for ch in cw if 32 <= ord(ch) <= 126)
+                if cw:
+                    phrase_words.append(cw)
+            if phrase_words:
+                ass_content.append(
+                    f"Dialogue: 0,{_format_ass_time(chunk[0]['start'])},{_format_ass_time(chunk[-1]['end'])},ReelHighlight,,0,0,0,,{' '.join(phrase_words)}"
+                )
+            continue
+
         # For each word in the chunk, generate a micro-event highlighting that word
         for w_idx, current_word in enumerate(chunk):
             w_start = current_word["start"]
             w_end = current_word["end"]
             active_tone = _tone_for_time(w_start)
             hl_tag = tone_styles.get(active_tone, tone_styles["myth_buster_contrarian"])[0]
+            if c_style == "clean_minimal":
+                hl_tag = re.sub(r"\\fsc[xy]\d+", "", hl_tag) + r"\fscx100\fscy100"
 
             line_parts = []
             for j, w in enumerate(chunk):
