@@ -8,6 +8,45 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+# Zero-lag smart hot-reload: ONLY reload already-imported `core.*` modules when files on disk actually change
+# (fixes Streamlit Cloud git-pull hot-reloads without adding any latency to normal UI clicks).
+import importlib
+import os
+_APP_MTIME = os.path.getmtime(__file__)
+_PREV_APP_MTIME = getattr(sys, "_nanopro_app_mtime", None)
+_CORE_MTIMES = getattr(sys, "_nanopro_core_mtimes", {})
+_RELOAD_ORDER = [
+    "core.config", "core.presets", "core.tone_engine", "core.palette_engine",
+    "core.svg_engine", "core.mesh_shader_engine", "core.shapes_3d",
+    "core.layouts_pro", "core.layouts_it_sdlc", "core.layouts_domain_220",
+    "core.layouts_studio", "core.web_generative_engine", "core.cinematic_engine",
+    "core.director", "core.voice", "core.animator", "core.subtitles",
+    "core.renderer", "core.quality_gate", "core.studio_v2_director",
+    "core.studio_v2_vector", "core.studio_v2_isometric", "core.uploader",
+]
+_loaded_core = [m for m in _RELOAD_ORDER if m in sys.modules] + [
+    k for k in list(sys.modules.keys()) if k.startswith("core.") and k not in _RELOAD_ORDER
+]
+if _loaded_core:
+    _needs_reload = (_PREV_APP_MTIME != _APP_MTIME) or any(
+        (_CORE_MTIMES.get(m) != os.path.getmtime(getattr(sys.modules[m], "__file__", "")))
+        for m in _loaded_core
+        if getattr(sys.modules[m], "__file__", None) and os.path.exists(sys.modules[m].__file__)
+    )
+    if _needs_reload:
+        for _m in _loaded_core:
+            try:
+                importlib.reload(sys.modules[_m])
+            except Exception:
+                pass
+for _m in list(sys.modules.keys()):
+    if _m.startswith("core."):
+        _fp = getattr(sys.modules[_m], "__file__", None)
+        if _fp and os.path.exists(_fp):
+            _CORE_MTIMES[_m] = os.path.getmtime(_fp)
+sys._nanopro_app_mtime = _APP_MTIME
+sys._nanopro_core_mtimes = _CORE_MTIMES
+
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
 from core.presets import load_creator_presets, save_custom_creator_preset
 from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline, is_dual_tone
