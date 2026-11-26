@@ -1295,7 +1295,7 @@ def _route_omni_best_scene(
 
     # 1. Explicit code / SQL / memory / benchmark / incident / comparison semantic detection
     if v_data.get("table_data") or any(k in narr_l for k in ("sql ", "select ", "dense_rank", "window function", "group by", "join ", "query plan")):
-        v = _pick_fresh(("sql_table", "sql_studio", "er_schema", "star_snowflake_schema"))
+        v = _pick_fresh(("sql_table", "sql_studio", "er_schema"))
         return v, "SQL Studio & Dataset Execution"
 
     if (v_data.get("code_snippet") or v_data.get("command") or any(k in narr_l for k in ("terminal", "cli", "command", "kubectl", "docker ", "python ", "async def", "bash", "curl "))):
@@ -1351,6 +1351,22 @@ def _route_omni_best_scene(
 
     v = _pick_fresh(("all_in_one_tech_canvas", "topo_ingress_mesh_wal", "architecture_flow", "sequence_diagram", "circular_hub_mesh", "multi_topology_dual", "sankey_flow", "grammar:flow:5"))
     return v, "Multi-Topology System Architecture"
+
+
+def _extract_crisp_beat_label(clause: str, fallback_idx: int) -> str:
+    """Extracts a sharp, readable English/tech milestone title from a spoken clause without awkward trailing Hinglish prepositions."""
+    _STOP = {
+        "par", "aur", "karke", "mein", "hai", "hain", "ko", "ki", "ka", "ke", "se", "toh", "bhi",
+        "yeh", "woh", "jab", "tab", "ab", "bas", "bahut", "achha", "waah", "yaar", "honestly",
+        "relax", "simple", "ek", "do", "charo", "lagao", "karo", "deti", "dete", "hota", "hoti",
+    }
+    words = [re.sub(r"[^A-Za-z0-9_+.\-()/]", "", w) for w in clause.split()]
+    kept = [w for w in words if w and w.lower() not in _STOP]
+    pick = kept[:3] if kept else [w for w in words if w][:3]
+    lbl = " ".join(pick).strip(" .,:;-")
+    if len(lbl) < 4:
+        return f"Stage {fallback_idx + 1}"
+    return lbl[:30]
 
 
 def _enforce_engine_style(
@@ -1873,16 +1889,26 @@ def _enforce_engine_style(
             else:
                 sc["visual_type"] = "web_scene"
             used_vtypes.add(chosen_opt1)
-        elif engine_style in ("omni_smart_director", "studio_300_domain", "interactive_storyboard", "auto_dynamic", "hybrid_modern") and (idx + run_num) % 2 == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas", "sql_table", "sql_studio", "code_terminal", "terminal_studio", "chat_thread_ai", "split_comparison", "benchmark_3d", "benchmark_chart"):
-            # Omni / Combined / Interactive Max: alternate Option 1 web/svg/spatial archetypes with Option 2 domain/topology/grammar layouts cleanly!
+        elif engine_style in ("studio_300_domain", "interactive_storyboard", "auto_dynamic", "hybrid_modern") and (idx + run_num) % 2 == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas", "sql_table", "sql_studio", "code_terminal", "terminal_studio", "chat_thread_ai", "split_comparison", "benchmark_3d", "benchmark_chart"):
+            # Combined, Interactive Max & Dynamic Auto: alternate Option 1 web/svg/spatial archetypes cleanly!
             v_data.setdefault("_intent", current_vtype)
             v_data.setdefault("option1_archetype", chosen_opt1)
             sc["visual_type"] = "svg_scene" if chosen_opt1.startswith("svg_") else ("spatial_canvas" if chosen_opt1.startswith("spatial_") else "web_scene")
-            if engine_style == "omni_smart_director":
-                sc["routed_engine"] = "Option 1 WebGL / SVG / Spatial + Motion"
-                v_data["routed_engine"] = sc["routed_engine"]
             used_vtypes.add(current_vtype)
             used_vtypes.add(chosen_opt1)
+        elif engine_style == "omni_smart_director" and idx == len(scenes) - 1 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
+            # In Omni Smart Director, preserve specialized topologies/SQL/Terminal on content scenes and showcase full WebGL Option 1 (`web_*`) cleanly on closing scene when available
+            web_pool = [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a.startswith("web_") and a not in recent_vtypes] or [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a.startswith("web_")]
+            if web_pool:
+                w_pick = web_pool[(run_num * 3 + idx) % len(web_pool)]
+                v_data.setdefault("_intent", current_vtype)
+                v_data.setdefault("option1_archetype", w_pick)
+                sc["visual_type"] = "web_scene"
+                sc["routed_engine"] = "Option 1 WebGL / HTML5 Showcase"
+                v_data["routed_engine"] = sc["routed_engine"]
+                used_vtypes.add(w_pick)
+            else:
+                used_vtypes.add(sc["visual_type"])
         else:
             used_vtypes.add(sc["visual_type"])
 
@@ -1941,9 +1967,9 @@ def _enforce_engine_style(
         if not isinstance(existing_vb, list) or len(existing_vb) < 4:
             vb_list = []
             for c_idx, cl in enumerate(clauses[:5]):
-                head = " ".join(cl.split()[:4]).strip(" ,.;:-")[:32]
+                head = _extract_crisp_beat_label(cl, c_idx)
                 vb_list.append({
-                    "label": head or f"Stage {c_idx + 1}",
+                    "label": head,
                     "sub": cl[:64],
                     "edge": ["Next", "Process", "Verify", "Scale"][c_idx % 4] if c_idx + 1 < len(clauses[:5]) else "",
                 })
