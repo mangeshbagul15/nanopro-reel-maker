@@ -68,17 +68,25 @@ def _get_action_sprite(query: str, tint_hex: str, size_px: int = 38) -> Optional
         return None
 
 
-def get_story_beat_motion(role: Any, narration: Any) -> str:
-    """Chooses a non-uniform entrance motion physics profile based on scene role & narration."""
+def get_story_beat_motion(role: Any, narration: Any, tone: str = "") -> str:
+    """Chooses a non-uniform entrance motion physics profile from scene role, narration & 2026 tone profile."""
     r = str(role or "").lower().strip()
     n = str(narration or "").lower()
-    if r == "hook" or re.search(r"\b(trap|mistake|shock|percent|90%|freeze|why)\b", n):
-        return "pop_bounce"
-    if r in ("tradeoff", "comparison") or re.search(r"\b(vs|versus|trade-?off|compare|jabki)\b", n):
-        return "split_collide"
-    if re.search(r"\b(error|crash|fail|lock|timeout|deadlock|502|oom|alert)\b", n):
+    if re.search(r"\b(error|crash|fail|lock|timeout|deadlock|502|oom|alert|outage)\b", n):
         return "disrupt_shake"
-    if re.search(r"\b(warehouse|lake|layer|tier|stack|medallion|schema|build|docker)\b", n):
+    if tone:
+        try:
+            from core.tone_engine import get_tone_profile
+            t_prof = get_tone_profile(tone, role=r)
+            if t_prof.get("motion_profile"):
+                return str(t_prof["motion_profile"])
+        except Exception:
+            pass
+    if r == "hook" or re.search(r"\b(trap|mistake|shock|percent|90%|freeze|why|stop)\b", n):
+        return "pop_bounce"
+    if r in ("tradeoff", "comparison") or re.search(r"\b(vs|versus|trade-?off|compare|jabki|winner)\b", n):
+        return "split_collide"
+    if re.search(r"\b(warehouse|lake|layer|tier|stack|medallion|schema|build|docker|whiteboard)\b", n):
         return "stack_snap"
     return "flow_slide"
 
@@ -245,23 +253,37 @@ def compute_camera_transform(
     linear_p: float,
     canvas_w: int,
     canvas_h: int,
+    is_hook: bool = False,
+    tone: str = "",
 ) -> Dict[str, Any]:
     """
     Computes Dynamic Virtual Camera zoom/pan (`cam_zoom`, `cam_cx`, `cam_cy`) following
-    the currently active component, plus micro screen-shake `(dx, dy)` during `disrupt_shake`.
+    the currently active component, plus 2-Second Hook Pattern Interrupt punch and micro screen-shake `(dx, dy)`.
     """
     cam_zoom = 1.0
     cam_cx = canvas_w * 0.5
     cam_cy = canvas_h * 0.5
+    max_zoom_delta = 0.085
+    if tone:
+        try:
+            from core.tone_engine import get_tone_profile
+            max_zoom_delta = max(0.05, float(get_tone_profile(tone).get("camera_zoom_bias", 1.085)) - 1.0)
+        except Exception:
+            pass
 
-    # Track currently speaking/active anchor card gently inside [0.10..0.86], zoom out for finale
+    # 2-Second Hook Pattern Interrupt opening snap zoom (0.00 -> 0.14)
+    if is_hook and linear_p <= 0.14:
+        hook_t = 1.0 - _clamp01(linear_p / 0.14)
+        cam_zoom = 1.0 + 0.055 * (hook_t * hook_t)
+
+    # Track currently speaking/active anchor card gently inside [0.10..0.88], zoom out for finale
     act_card = None
     for c in anchor_cards or ():
         if c.get("active"):
             act_card = c
     if act_card is not None and 0.10 <= linear_p <= 0.88:
         env = math.sin(_clamp01((linear_p - 0.10) / 0.78) * math.pi)
-        cam_zoom = 1.0 + 0.085 * env
+        cam_zoom = max(cam_zoom, 1.0 + max_zoom_delta * env)
         # Gentle pan bias (40% toward active card center so stage stays framed)
         cam_cx = canvas_w * 0.5 + (float(act_card["cx"]) - canvas_w * 0.5) * 0.42 * env
         cam_cy = canvas_h * 0.5 + (float(act_card["cy"]) - canvas_h * 0.5) * 0.36 * env

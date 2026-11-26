@@ -311,12 +311,14 @@ def resolve_studio_world(
         return _enforce_world_contrast(STUDIO_WORLDS["obsidian_studio"])
 
     t = str(tone or "").lower().strip()
-    if t == "dramatic_performance":
-        return _enforce_world_contrast(STUDIO_WORLDS["crimson_studio"])
-    if t in ("staff_engineer", "senior_hinglish_mentor", "purposeful_hinglish_mentor"):
-        return _enforce_world_contrast(STUDIO_WORLDS["navy_studio"])
-    if t in ("mentor_storyteller", "trusted_dost_guide"):
-        return _enforce_world_contrast(STUDIO_WORLDS["obsidian_studio"])
+    if t:
+        try:
+            from core.tone_engine import get_tone_profile
+            pw = str(get_tone_profile(t).get("preferred_world") or "")
+            if pw in STUDIO_WORLDS:
+                return _enforce_world_contrast(STUDIO_WORLDS[pw])
+        except Exception:
+            pass
     if topic:
         return _enforce_world_contrast(generate_hsl_world(topic, mode="dark"))
     return _enforce_world_contrast(STUDIO_WORLDS["obsidian_studio"])

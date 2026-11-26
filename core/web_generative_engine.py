@@ -1021,7 +1021,7 @@ def render_web_generative_frames(
     format_ratio: str = "9:16",
     watermark: str = DEFAULT_WATERMARK,
     scene_words: List[Dict[str, Any]] = None,
-    tone: str = "auto_dynamic",
+    tone: str = "auto_2026_director",
 ) -> Optional[List[Path]]:
     """
     Renders true HTML5 / CSS3 / Canvas 3D / SVG motion graphics deterministically at 30fps via Playwright + Chromium.
@@ -1047,10 +1047,13 @@ def render_web_generative_frames(
     scene_frames_dir.mkdir(parents=True, exist_ok=True)
 
     visual_data = scene.get("visual_data") or {}
-    effective_tone = (scene.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
-    art_style = str(visual_data.get("art_style") or scene.get("art_style") or "editorial_dark").strip()
+    from core.tone_engine import get_tone_profile
+    t_prof = get_tone_profile(tone, scene_tone=scene.get("scene_tone"), role=scene.get("role"), idx=scene_idx - 1)
+    effective_tone = t_prof["key"]
+    art_style = str(visual_data.get("art_style") or scene.get("art_style") or t_prof.get("preferred_world") or "editorial_dark").strip()
     topic_seed = str(scene.get("topic") or visual_data.get("title") or "").strip()
     world = resolve_studio_world(art_style=art_style, tone=effective_tone, visual_data=visual_data, topic=topic_seed)
+    web_rev_pow = float(t_prof.get("reveal_power", 0.96))
 
     raw_html = str(visual_data.get("html") or visual_data.get("web_code") or "").strip()
     fallback_html = _build_default_webgl_html(
@@ -1108,14 +1111,7 @@ def render_web_generative_frames(
                         energy = 0.95
                 word_p = spoken / max(1, len(scene_words))
             raw_p = min(1.0, (0.65 * word_p + 0.35 * lin_p) * pace_boost)
-            if effective_tone == "youth_friend_turbo":
-                eff_p = 1.0 if lin_p >= 0.93 else min(1.0, (raw_p ** 0.92) * 1.04)
-            elif effective_tone in ("purposeful_hinglish_mentor", "senior_hinglish_mentor"):
-                eff_p = 1.0 if lin_p >= 0.94 else min(1.0, (raw_p ** 0.94) * 1.03)
-            elif effective_tone == "fireship_octane":
-                eff_p = 1.0 if lin_p >= 0.93 else min(1.0, raw_p * 1.06)
-            else:
-                eff_p = 1.0 if lin_p >= 0.95 else raw_p
+            eff_p = 1.0 if lin_p >= 0.94 else min(1.0, (raw_p ** web_rev_pow) * (1.05 if web_rev_pow < 0.95 else 1.02))
             fx_st = eval_voice_gates(voice_tl, lin_p)
             page.evaluate(
                 "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.p, args.t, args.e, args.g, args.w, args.fxl, args.act); }",

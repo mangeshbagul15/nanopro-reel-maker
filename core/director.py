@@ -2,6 +2,15 @@ import json
 import re
 from typing import Dict, Any, Optional, List, Tuple
 from core.config import GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, MISTRAL_API_KEY, OUTPUT_DIR
+from core.tone_engine import (
+    DEFAULT_CONCRETE_TONE,
+    DEFAULT_TONE_KEY,
+    DUAL_TONE_KEY,
+    TONE_PROFILES,
+    get_tone_directive,
+    get_tone_profile,
+    resolve_effective_tone,
+)
 
 VISUAL_HISTORY_PATH = OUTPUT_DIR / "visual_history.json"
 
@@ -398,11 +407,11 @@ Output a single valid JSON object matching this structure:
     {
       "scene_id": 1,
       "role": "hook",
-      "scene_tone": "fireship_octane / dramatic_performance / staff_engineer / conversational_casual / interview_prep / dual_dialogue_curious",
-      "narration": "Narration text with natural pauses (or full spoken transcript if dialogue array is used)...",
+      "scene_tone": "war_story_postmortem / myth_buster_contrarian / live_debug_pair / whiteboard_analogy / cage_match_vs / release_radar_tldr / bigtech_reverse_engineer / dual_creator_debate",
+      "narration": "Narration with crisp Hook-to-Climax cadence and natural '...' pauses (or full spoken transcript if dialogue array is used)...",
       "dialogue": [
-        {"speaker": "female", "text": "Optional for dual_dialogue_curious: Female curious relatable doubt/question..."},
-        {"speaker": "male", "text": "Optional for dual_dialogue_curious: Empathetic Male mentor acknowledging feelings & explaining clearly..."}
+        {"speaker": "female", "text": "Optional for dual_creator_debate: Builder's sharp engineering question/challenge..."},
+        {"speaker": "male", "text": "Optional for dual_creator_debate: Staff architect's direct mechanism & counter-proof..."}
       ],
       "visual_type": "custom_scene",
       "choreography": {
@@ -586,76 +595,14 @@ ENGINE_STYLE_DIRECTIVES = {
     )
 }
 
-TONE_DIRECTIVES = {
-    "dual_dialogue_curious": (
-        "DUAL VOICE TECHNICAL CONVERSATION (PURE CONTENT, ZERO FLUFF): "
-        "Two speakers discuss the exact technical topic directly with zero scripted catchphrases, zero filler pleasantries, and zero emotional fluff:\n"
-        "- FEMALE (`\"speaker\": \"female\"`): Raises sharp, topic-specific architectural or engineering questions (e.g., comparing storage models, failure modes, throughput bottlenecks).\n"
-        "- MALE (`\"speaker\": \"male\"`): Gives clear, accurate, step-by-step technical explanations, concrete internals, and trade-offs directly answering her question.\n"
-        "RULES: Include `\"dialogue\"` (2-4 alternating turns `female` -> `male`) and set `\"narration\"` to their clean concatenation. NEVER start with clichés like 'overwhelm', 'main hoon na', 'relax', or 'save this reel'. Keep every word strictly focused on technical substance."
-    ),
-    "peaceful_human_guide": (
-        "CALM, CLEAR TECHNICAL EXPLAINER (PURE CONTENT, ZERO FLUFF): "
-        "Deliver calm, crystal-clear technical explanations in clean Hinglish with crisp English engineering nouns. "
-        "Focus 100% on the topic's actual architecture, mechanics, and trade-offs — NEVER insert filler catchphrases like 'secret shortcut', 'tension mat lo', 'chill', 'boom', 'sorted', or 'samjha?'. Use natural breath pauses (`...`) only where clauses shift."
-    ),
-    "trusted_dost_guide": (
-        "FRIENDLY TECHNICAL EXPLAINER (PURE CONTENT, ZERO FLUFF): "
-        "Warm, approachable Hinglish peer voice explaining the topic's real internals, architecture flow, and trade-offs directly. "
-        "Avoid canned catchphrases ('secret shortcut', 'chill yaar', 'boom', 'asli twist'); stay 100% focused on clear engineering explanation."
-    ),
-    "purposeful_hinglish_mentor": (
-        "PURPOSEFUL HINGLISH MENTOR (CLEAR MECHANICS + EDGE CASES, ZERO FLUFF): "
-        "Warm, authoritative Hinglish technical mentor explaining step-by-step system mechanics, real trade-offs, and production edge cases directly from Scene 1 without corporate throat-clearing or scripted slogans."
-    ),
-    "senior_hinglish_mentor": (
-        "SENIOR HINGLISH MENTOR & ARCHITECTURAL BREAKDOWN (PURE CONTENT): "
-        "Crisp senior-engineer Hinglish explanation covering real problem statement, internal architecture stages, engineering trade-offs, and practical production takeaway directly on the topic."
-    ),
-    "youth_friend_turbo": (
-        "LIVELY TECHNICAL EXPLAINER (CLEAR & COMPLETE, ZERO FILLER): "
-        "Natural, upbeat Hinglish pacing with complete 12-16 word technical sentences covering concrete architecture details and trade-offs cleanly synced with visuals."
-    ),
-    "mentor_storyteller": (
-        "INTUITIVE TECHNICAL STORYTELLER (PURE CONCEPT CLARITY): "
-        "Explain complex systems in plain language with relatable real-world engineering intuition and brief pauses (`...`) before key architectural insights. Focus 100% on the technical concept without filler catchphrases."
-    ),
-    "auto_dynamic": (
-        "DYNAMIC PER-SCENE TONE & VOICE CHOREOGRAPHY (RECOMMENDED): "
-        "Dynamically shift emotional tone & pacing across the video storyboard: "
-        "Hook/Intro -> energetic (`fireship_octane` or `interview_prep`), Problem/Mistake -> suspenseful (`dramatic_performance`), "
-        "Architecture/Mechanism -> authoritative (`staff_engineer`), Closing Summary/CTA -> warm (`conversational_casual`). "
-        "Set each scene's `scene_tone` field accordingly so both TTS voice prosody AND visual motion/subtitle energy adapt per scene!"
-    ),
-    "fireship_octane": (
-        "SCRIPT TONE & VISUAL SYNC MANDATE: Write in high-octane Fireship style. "
-        "Punchy sentences, witty comparisons, rapid pacing, zero corporate throat-clearing. "
-        "Set each scene's `scene_tone` to `fireship_octane` and prefer fast kinetic visuals (`kinetic_statement`, `split_comparison`, `code_terminal`, `hero_hook`)."
-    ),
-    "dramatic_performance": (
-        "SCRIPT TONE & VISUAL SYNC MANDATE: Emotionally rich, theatrical, dramatic performance. "
-        "Build tension and suspense around the problem. Use natural dramatic pauses ('...') before revealing key insights. "
-        "Set each scene's `scene_tone` to `dramatic_performance` and use high-drama themes (`crimson_alert`, `gold_purple`) and dramatic story visuals (`alert_diagram`, `hero_hook`, `kinetic_statement`, `hybrid_merge`)."
-    ),
-    "staff_engineer": (
-        "SCRIPT TONE & VISUAL SYNC MANDATE: Senior Staff Engineer / ByteByteGo masterclass style. "
-        "Calm, deeply authoritative, mature technical confidence focusing on real-world trade-offs and internals. "
-        "Set each scene's `scene_tone` to `staff_engineer` and prefer structured diagrams (`step_timeline`, `architecture_flow`, `all_in_one_tech_canvas`, `data_structure_memory`)."
-    ),
-    "conversational_casual": (
-        "SCRIPT TONE & VISUAL SYNC MANDATE: Conversational, warm, and friendly, like explaining over coffee. "
-        "Set each scene's `scene_tone` to `conversational_casual` and use approachable `emerald_matrix`/`cyber_cyan` visuals (`concept_cards`, `step_timeline`, `hybrid_merge`)."
-    ),
-    "interview_prep": (
-        "SCRIPT TONE & VISUAL SYNC MANDATE: High-stakes FAANG Technical Interview Prep. "
-        "Clear interview question hook, candidate traps, crisp trade-offs, and a 30-second crisp answer. "
-        "Set each scene's `scene_tone` to `interview_prep` and use interview-aligned visuals (`hero_hook`, `split_comparison`, `concept_cards`, `hybrid_merge`)."
-    )
+# Canonical 2026 TONE_DIRECTIVES imported from core/tone_engine.py (Zero overlapping/legacy tones)
+TONE_DIRECTIVES: Dict[str, str] = {
+    k: str(v["directive"]) for k, v in TONE_PROFILES.items()
 }
 
 def generate_timeline(
     topic: str,
-    tone: str = "conversational",
+    tone: str = DEFAULT_TONE_KEY,
     engine_style: str = "hybrid_modern",
     duration_mode: str = "auto",
     custom_style_prompt: str = "",
@@ -685,23 +632,23 @@ def generate_timeline(
         style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["auto_dynamic"])
     
     # 1. Language & Dialect based on the selected Voice Persona & Tone
-    if tone == "dual_dialogue_curious" or str(voice).startswith("dual:"):
+    if tone == DUAL_TONE_KEY or str(voice).startswith("dual:"):
         v_low = str(voice).lower()
         if "mr-in" in v_low:
             lang_directive = (
                 "LANGUAGE & DIALECT MANDATE (DUAL VOICE MARATHI/MINGLISH DIALOGUE): "
-                "Generate alternating `dialogue` turns (`female` curious questioner + `male` empathetic mentor solver) in natural conversational Hinglish/Minglish Roman script mixed with crisp English tech terms (`Latency`, `Queue`, `Cache`, `Thread`) and ASCII numbers so Edge-TTS voices speak smoothly and subtitles stay 100% readable!"
+                "Generate alternating `dialogue` turns (`female` curious builder + `male` staff architect) in natural conversational Hinglish/Minglish Roman script mixed with crisp English tech terms (`Latency`, `Queue`, `Cache`, `Thread`) and ASCII numbers so Edge-TTS voices speak smoothly and subtitles stay 100% readable!"
             )
         elif "en-us-jenny" in v_low and "en-us-christopher" in v_low:
             lang_directive = (
-                "LANGUAGE & DIALECT MANDATE (DUAL VOICE ENGLISH TECH DIALOGUE): "
-                "Generate alternating `dialogue` turns (`female` curious developer asking real-world questions + `male` warm empathetic senior engineer solving step-by-step) in natural conversational American/Global tech English."
+                "LANGUAGE & DIALECT MANDATE (DUAL VOICE ENGLISH TECH DEBATE): "
+                "Generate alternating `dialogue` turns (`female` builder challenging production edge-cases + `male` staff engineer countering with architecture proofs) in natural high-signal tech English."
             )
         else:
             lang_directive = (
-                "LANGUAGE & DIALECT MANDATE (DUAL VOICE HINGLISH CONVERSATION): "
-                "Write EVERY turn inside `dialogue` (`speaker: 'female'` and `speaker: 'male'`) AND `narration` in warm, natural, deeply relatable **Roman Hinglish** mixed with crisp English engineering nouns (`Database`, `Latency`, `Lock`, `Retry`, `Scale`) and ASCII numbers (`100K`, `24ms`). "
-                "Do NOT use Devanagari letters or `Female:`/`Male:` prefixes so Hinglish/Hindi/Multilingual dual voices sound fluent and empathetic, and keep all on-screen `visual_data` in crisp English!"
+                "LANGUAGE & DIALECT MANDATE (DUAL VOICE HINGLISH DEBATE): "
+                "Write EVERY turn inside `dialogue` (`speaker: 'female'` and `speaker: 'male'`) AND `narration` in sharp, natural **Roman Hinglish** mixed with crisp English engineering nouns (`Database`, `Latency`, `Lock`, `Retry`, `Scale`) and ASCII numbers (`100K`, `24ms`). "
+                "Do NOT use Devanagari letters or `Female:`/`Male:` prefixes, and keep all on-screen `visual_data` in crisp English!"
             )
     elif voice.endswith("|hinglish") or voice == "en-IN-NeerjaExpressiveNeural":
         lang_directive = (
@@ -726,21 +673,13 @@ def generate_timeline(
             "ALSO include `\"narration_hinglish\"` on every scene with the exact natural Roman Minglish/Hinglish version of `narration` (e.g., 'Mitrano, aaj aapan pahnar aahot ki Database Migration Zero Downtime sobat kase chalte...') for karaoke captions! "
             "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
         )
-    elif tone in ("senior_hinglish_mentor", "purposeful_hinglish_mentor", "trusted_dost_guide", "youth_friend_turbo"):
-        lang_directive = (
-            f"LANGUAGE & DIALECT MANDATE ({tone}): Write the spoken `narration` in warm, clear, deeply human conversational Hinglish "
-            "using clean LATIN / ROMAN letters mixed naturally with crisp English technical terms and ASCII numbers "
-            "(e.g., 'Socho zara yaar... is complex concept ko 30 seconds mein crystal clear decode karte hain!'). "
-            "Express warmth through curious, uplifting clarity rather than repetitive reassurance clichés. "
-            "Keep all on-screen visual_data (titles, labels, code, queries, badges) in crisp English!"
-        )
     elif voice == "en-IN-PrabhatNeural":
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: Write in crisp, authoritative Indian Tech English with high technical clarity."
         )
     else:
         lang_directive = (
-            "LANGUAGE & DIALECT MANDATE: Write in natural, high-octane conversational tech English (Fireship / ByteByteGo style)."
+            "LANGUAGE & DIALECT MANDATE: Write in natural, high-octane 2026 conversational tech English (Fireship / ByteByteGo / Theo style)."
         )
 
     # 2. Duration & Depth guidance
@@ -758,7 +697,7 @@ def generate_timeline(
 
     # 3. Format & Universal Spoken English Numbers/Dates/Tech Rules
     format_directive = f"Target Aspect Ratio: '{format_ratio}'."
-    tone_directive = TONE_DIRECTIVES.get(tone, f"SCRIPT TONE & CADENCE: {tone}.")
+    tone_directive = get_tone_directive(tone)
     english_tech_num_rule = (
         "UNIVERSAL SPOKEN ENGLISH NUMBERS, DATES & TECH TERMS MANDATE (APPLIES TO ALL VOICES): "
         "In EVERY scene's `narration`, ALL numbers, counts, percentages, latencies, capacities, versions, dates, months, years, days, time durations, and technical words "
@@ -1535,7 +1474,6 @@ def _enforce_engine_style(
     else:
         ALL_BACKDROPS, ALL_TRANSITIONS, ALL_TEXT_FX = (), (), ()
 
-    role_tone_defaults = ["fireship_octane", "staff_engineer", "dramatic_performance", "interview_prep", "conversational_casual"]
     used_vtypes: set = set()
     used_bds_local: set = set()
     used_geoms_local: set = set()
@@ -1545,10 +1483,10 @@ def _enforce_engine_style(
     )
     multi_world_omni = (engine_style == "omni_smart_director") and bool(timeline.get("multi_world", True))
     for idx, sc in enumerate(scenes):
-        if tone != "auto_dynamic":
-            sc["scene_tone"] = tone
-        elif not sc.get("scene_tone"):
-            sc["scene_tone"] = role_tone_defaults[idx % len(role_tone_defaults)]
+        eff_scene_tone = resolve_effective_tone(tone, scene_tone=sc.get("scene_tone"), role=sc.get("role"), idx=idx)
+        sc["scene_tone"] = eff_scene_tone
+        t_prof = get_tone_profile(eff_scene_tone)
+        sc["sfx_cue"] = str(t_prof.get("default_sfx") or "whoosh")
 
         v_data = sc.get("visual_data", {})
         if multi_world_omni:
@@ -1674,7 +1612,7 @@ def _enforce_engine_style(
                 used_geoms_local.add(infer_geometry_family(routed_v))
             else:
                 routed_v, routed_lbl = select_semantic_scene_layout(
-                    sc, idx, len(scenes), topic, tone, run_num, used_vtypes, recent_vtypes, v_data, used_geometries=used_geoms_local
+                    sc, idx, len(scenes), topic, eff_scene_tone, run_num, used_vtypes, recent_vtypes, v_data, used_geometries=used_geoms_local
                 )
             current_vtype = routed_v
             sc["visual_type"] = routed_v
@@ -2136,9 +2074,9 @@ def _enforce_engine_style(
         if not v_data.get("footer") and clauses:
             v_data["footer"] = clauses[-1][:64]
 
-        # Guarantee clean Dual-Voice Conversation turns (`dialogue`) whenever `dual_dialogue_curious` is selected
-        if tone == "dual_dialogue_curious":
-            sc["scene_tone"] = "dual_dialogue_curious"
+        # Guarantee clean Dual-Voice Conversation turns (`dialogue`) whenever `dual_creator_debate` is selected
+        if tone == DUAL_TONE_KEY:
+            sc["scene_tone"] = DUAL_TONE_KEY
             raw_dlg = sc.get("dialogue")
             clean_dlg: List[Dict[str, str]] = []
             if isinstance(raw_dlg, list):
@@ -2308,7 +2246,7 @@ def _salvage_scenes_from_truncated_json(text: str, topic_hint: str = "") -> Dict
 
 def _build_emergency_fallback_timeline(
     topic: str,
-    tone: str = "senior_hinglish_mentor",
+    tone: str = DEFAULT_CONCRETE_TONE,
     engine_style: str = "studio_domain_library",
     duration_mode: str = "auto",
     voice: str = "en-IN-PrabhatNeural|hinglish",
@@ -2316,16 +2254,16 @@ def _build_emergency_fallback_timeline(
 ) -> Dict[str, Any]:
     """Deterministic multi-scene storyboard used only if every external LLM API fails simultaneously."""
     clean_topic = (topic or "System Design Architecture").strip()[:70]
-    scene_tone = tone if tone != "auto_dynamic" else "senior_hinglish_mentor"
+    scene_tone = resolve_effective_tone(tone)
     is_marathi = voice.startswith("mr-") or voice.endswith("|mr")
     is_hindi = voice.startswith("hi-") or voice.endswith("|hi")
 
-    if scene_tone == "dual_dialogue_curious" or str(voice).startswith("dual:"):
+    if scene_tone == DUAL_TONE_KEY or str(voice).startswith("dual:"):
         dual_scenes = [
             {
                 "scene_id": 1,
                 "role": "hook",
-                "scene_tone": "dual_dialogue_curious",
+                "scene_tone": DUAL_TONE_KEY,
                 "dialogue": [
                     {"speaker": "female", "text": f"{clean_topic} mein production architecture design karte waqt sabse badi limitation kahan aati hai?"},
                     {"speaker": "male", "text": f"{clean_topic} mein raw ingestion aur query serving ke beech contention hoti hai — aao iske internal stages decode karte hain."},
@@ -2344,7 +2282,7 @@ def _build_emergency_fallback_timeline(
             {
                 "scene_id": 2,
                 "role": "architecture",
-                "scene_tone": "dual_dialogue_curious",
+                "scene_tone": DUAL_TONE_KEY,
                 "dialogue": [
                     {"speaker": "female", "text": "High concurrency requests handle karte waqt data pipeline aur storage layer kaise sync rehte hain?"},
                     {"speaker": "male", "text": f"{clean_topic} mein requests directly DB lock nahi karte; edge routing, async buffer, state engine, aur replicated storage 4 stages mein chalte hain."},
@@ -2366,7 +2304,7 @@ def _build_emergency_fallback_timeline(
             {
                 "scene_id": 3,
                 "role": "tradeoff",
-                "scene_tone": "dual_dialogue_curious",
+                "scene_tone": DUAL_TONE_KEY,
                 "dialogue": [
                     {"speaker": "female", "text": "Is architecture ke main performance trade-offs aur reliability guarantees kya hain?"},
                     {"speaker": "male", "text": "Latency 10x kam hoti hai, lekin bounded queues, idempotency keys aur retry safeguards enforce karna zaroori hai."},
@@ -2385,7 +2323,7 @@ def _build_emergency_fallback_timeline(
             {
                 "scene_id": 4,
                 "role": "cta",
-                "scene_tone": "dual_dialogue_curious",
+                "scene_tone": DUAL_TONE_KEY,
                 "dialogue": [
                     {"speaker": "female", "text": "Toh production deployment ke liye final architectural takeaway kya rahega?"},
                     {"speaker": "male", "text": f"{clean_topic} ke liye decoupled ingestion, clear schema governance aur bounded concurrency hi key design principles hain."},
@@ -2440,7 +2378,7 @@ def _build_emergency_fallback_timeline(
         {
             "scene_id": 1,
             "role": "hook",
-            "scene_tone": scene_tone,
+            "scene_tone": resolve_effective_tone(tone, role="hook", idx=0),
             "narration": narrs[0][0],
             **({"narration_hinglish": narrs[0][1]} if narrs[0][1] else {}),
             "visual_type": "hero_hook",
@@ -2456,7 +2394,7 @@ def _build_emergency_fallback_timeline(
         {
             "scene_id": 2,
             "role": "architecture",
-            "scene_tone": scene_tone,
+            "scene_tone": resolve_effective_tone(tone, role="architecture", idx=1),
             "narration": narrs[1][0],
             **({"narration_hinglish": narrs[1][1]} if narrs[1][1] else {}),
             "visual_type": "architecture_flow",
@@ -2475,7 +2413,7 @@ def _build_emergency_fallback_timeline(
         {
             "scene_id": 3,
             "role": "tradeoff",
-            "scene_tone": scene_tone,
+            "scene_tone": resolve_effective_tone(tone, role="tradeoff", idx=2),
             "narration": narrs[2][0],
             **({"narration_hinglish": narrs[2][1]} if narrs[2][1] else {}),
             "visual_type": "split_comparison",
@@ -2491,7 +2429,7 @@ def _build_emergency_fallback_timeline(
         {
             "scene_id": 4,
             "role": "cta",
-            "scene_tone": scene_tone,
+            "scene_tone": resolve_effective_tone(tone, role="cta", idx=3),
             "narration": narrs[3][0],
             **({"narration_hinglish": narrs[3][1]} if narrs[3][1] else {}),
             "visual_type": "concept_cards",

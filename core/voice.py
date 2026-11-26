@@ -12,6 +12,15 @@ import requests
 import edge_tts
 from groq import Groq
 from core.config import GROQ_API_KEY, ELEVENLABS_API_KEY, OUTPUT_DIR, FFMPEG_EXE
+from core.tone_engine import (
+    DEFAULT_CONCRETE_TONE,
+    DEFAULT_TONE_KEY,
+    DUAL_TONE_KEY,
+    TONE_PROFILES,
+    get_clause_prosody,
+    get_tone_profile,
+    resolve_effective_tone,
+)
 
 DEFAULT_VOICE = "en-US-ChristopherNeural"
 DEFAULT_ELEVENLABS_MODEL = "eleven_flash_v2_5"
@@ -116,95 +125,13 @@ VOICE_CATALOG = {
     ]
 }
 
-# Dynamic Voice Parameters tailored to chosen Delivery Tone (ElevenLabs + Edge-TTS Prosody)
-TONE_VOICE_SETTINGS = {
-    "peaceful_human_guide": {
-        "stability": 0.42,
-        "similarity_boost": 0.84,
-        "style": 0.44,
-        "use_speaker_boost": True
-    },
-    "trusted_dost_guide": {
-        "stability": 0.44,
-        "similarity_boost": 0.82,
-        "style": 0.40,
-        "use_speaker_boost": True
-    },
-    "senior_hinglish_mentor": {
-        "stability": 0.48,
-        "similarity_boost": 0.84,
-        "style": 0.34,
-        "use_speaker_boost": True
-    },
-    "purposeful_hinglish_mentor": {
-        "stability": 0.50,
-        "similarity_boost": 0.84,
-        "style": 0.32,
-        "use_speaker_boost": True
-    },
-    "youth_friend_turbo": {
-        "stability": 0.42,
-        "similarity_boost": 0.82,
-        "style": 0.40,
-        "use_speaker_boost": True
-    },
-    "mentor_storyteller": {
-        "stability": 0.36,
-        "similarity_boost": 0.82,
-        "style": 0.46,
-        "use_speaker_boost": True
-    },
-    "dramatic_performance": {
-        "stability": 0.34,
-        "similarity_boost": 0.82,
-        "style": 0.42,
-        "use_speaker_boost": True
-    },
-    "fireship_octane": {
-        "stability": 0.44,
-        "similarity_boost": 0.78,
-        "style": 0.25,
-        "use_speaker_boost": True
-    },
-    "staff_engineer": {
-        "stability": 0.68,
-        "similarity_boost": 0.85,
-        "style": 0.10,
-        "use_speaker_boost": True
-    },
-    "conversational_casual": {
-        "stability": 0.52,
-        "similarity_boost": 0.78,
-        "style": 0.16,
-        "use_speaker_boost": True
-    },
-    "interview_prep": {
-        "stability": 0.56,
-        "similarity_boost": 0.82,
-        "style": 0.20,
-        "use_speaker_boost": True
-    },
-    "dual_dialogue_curious": {
-        "stability": 0.44,
-        "similarity_boost": 0.84,
-        "style": 0.42,
-        "use_speaker_boost": True
-    }
+# Canonical 2026 Dynamic Voice Parameters & Edge-TTS Prosody (from core/tone_engine.py)
+TONE_VOICE_SETTINGS: Dict[str, Dict[str, Any]] = {
+    k: dict(v["elevenlabs"]) for k, v in TONE_PROFILES.items()
 }
 
-EDGE_TTS_PROSODY = {
-    "dual_dialogue_curious": {"rate": "+3%", "pitch": "+0Hz"},
-    "peaceful_human_guide": {"rate": "+3%", "pitch": "+1Hz"},
-    "trusted_dost_guide": {"rate": "+4%", "pitch": "+1Hz"},
-    "senior_hinglish_mentor": {"rate": "+5%", "pitch": "+0Hz"},
-    "purposeful_hinglish_mentor": {"rate": "+5%", "pitch": "-1Hz"},
-    "youth_friend_turbo": {"rate": "+6%", "pitch": "+2Hz"},
-    "mentor_storyteller": {"rate": "+3%", "pitch": "+2Hz"},
-    "fireship_octane": {"rate": "+7%", "pitch": "+1Hz"},
-    "dramatic_performance": {"rate": "-2%", "pitch": "-3Hz"},
-    "staff_engineer": {"rate": "+2%", "pitch": "-2Hz"},
-    "conversational_casual": {"rate": "+4%", "pitch": "+0Hz"},
-    "interview_prep": {"rate": "+5%", "pitch": "+1Hz"},
+EDGE_TTS_PROSODY: Dict[str, Dict[str, str]] = {
+    k: dict(v["edge_base"]) for k, v in TONE_PROFILES.items()
 }
 
 def get_elevenlabs_usage() -> Dict[str, Any]:
@@ -547,13 +474,17 @@ def _clean_tts_text(text: str, preserve_pauses: bool = False) -> str:
     return cleaned
 
 
-def _split_pause_beats(text: str, max_beats: int = 6) -> List[str]:
-    """Splits narration along explicit pause cues ('...' or '[pause]') and punchy rhetorical micro-cues ('Wait.', 'Relax.', 'Samjha?')."""
+def _split_pause_beats(text: str, max_beats: int = 5) -> List[str]:
+    """Splits narration along pause cues ('...' / '[pause]'), rhetorical cues, or sentences for Hook-to-Climax clause speed curves."""
     normalized = re.sub(r'\[pause\]', ' ... ', text, flags=re.IGNORECASE)
-    # Insert subtle breathing pause breaks after punchy rhetorical cue hooks when followed by another clause
-    cue_split_re = r'\b(Relax|Chill|Easy|Sorted|Clear|Simple|Wait|Look|Listen|Twist|Catch|Boom|Done|Think|Why|How|Samjha)\s*([.?!])\s+(?=[A-Za-z0-9])'
+    cue_split_re = r'\b(Relax|Wait|Look|Listen|Stop|Twist|Catch|Boom|Done|Think|Why|How|Samjha|Actually|Result)\s*([.?!])\s+(?=[A-Za-z0-9])'
     normalized = re.sub(cue_split_re, r'\1\2 ... ', normalized, flags=re.IGNORECASE)
     raw_parts = [p.strip() for p in re.split(r'\s*\.{3,}\s*', normalized) if p and any(ch.isalnum() for ch in p)]
+    if len(raw_parts) <= 1 and len(normalized) >= 72:
+        # Sentence/em-dash fallback split so Hook-to-Climax prosody curve works cleanly even without explicit ellipses
+        sent_parts = [p.strip() for p in re.split(r'(?<=[.!?])\s+|\s+[—-]{1,2}\s+', normalized) if p and any(ch.isalnum() for ch in p)]
+        if len(sent_parts) >= 2:
+            raw_parts = sent_parts
     if len(raw_parts) <= 1:
         return [re.sub(r'\s+', ' ', normalized).strip()]
     if len(raw_parts) > max_beats:
@@ -562,7 +493,7 @@ def _split_pause_beats(text: str, max_beats: int = 6) -> List[str]:
         return merged
     return raw_parts
 
-def _get_cache_path(text: str, voice: str, model_id: str, tone: str = "conversational_casual") -> Path:
+def _get_cache_path(text: str, voice: str, model_id: str, tone: str = DEFAULT_CONCRETE_TONE) -> Path:
     """Generates a unique deterministic cache file path based on text, voice, model, and tone."""
     key = f"{voice}|{model_id}|{tone}|{text}".encode("utf-8")
     hash_str = hashlib.sha256(key).hexdigest()[:24]
@@ -573,7 +504,7 @@ def _synthesize_elevenlabs_sync(
     output_path: Path,
     voice_id: str,
     model_id: str,
-    tone: str = "conversational_casual",
+    tone: str = DEFAULT_CONCRETE_TONE,
     lang_code: str = ""
 ) -> bool:
     """
@@ -585,12 +516,13 @@ def _synthesize_elevenlabs_sync(
         print("[Voice] ElevenLabs API key missing, skipping ElevenLabs.")
         return False
 
-    cleaned_text = _clean_tts_text(text, preserve_pauses=(tone in ("trusted_dost_guide", "senior_hinglish_mentor", "purposeful_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller", "dramatic_performance")))
+    t_prof = get_tone_profile(tone)
+    cleaned_text = _clean_tts_text(text, preserve_pauses=True)
     if not cleaned_text:
         return False
 
     # 1. Check Cache First (Saves 100% of credits on re-runs)
-    cache_path = _get_cache_path(cleaned_text, f"{voice_id}:{lang_code}", model_id, tone)
+    cache_path = _get_cache_path(cleaned_text, f"{voice_id}:{lang_code}", model_id, t_prof["key"])
     if cache_path.exists() and cache_path.stat().st_size > 1000:
         try:
             shutil.copyfile(cache_path, output_path)
@@ -600,12 +532,7 @@ def _synthesize_elevenlabs_sync(
             pass
 
     # 2. Tone-tailored voice settings
-    voice_settings = TONE_VOICE_SETTINGS.get(tone, {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
-        "style": 0.10,
-        "use_speaker_boost": True
-    })
+    voice_settings = dict(t_prof["elevenlabs"])
 
     # 3. Call ElevenLabs API
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
@@ -625,9 +552,9 @@ def _synthesize_elevenlabs_sync(
         res = requests.post(url, json=payload, headers=headers, timeout=25)
         if res.status_code == 200 and len(res.content) > 1000:
             output_path.write_bytes(res.content)
-            if tone in ("youth_friend_turbo", "senior_hinglish_mentor", "purposeful_hinglish_mentor"):
+            tempo = str(t_prof.get("atempo") or "1.00")
+            if float(tempo) > 1.01:
                 fast_tmp = output_path.with_suffix(".fast.mp3")
-                tempo = "1.06" if tone == "youth_friend_turbo" else ("1.05" if tone == "senior_hinglish_mentor" else "1.04")
                 try:
                     t_res = subprocess.run(
                         [str(FFMPEG_EXE), "-y", "-i", str(output_path.resolve()), "-filter:a", f"atempo={tempo}", "-c:a", "libmp3lame", "-b:a", "192k", str(fast_tmp.resolve())],
@@ -643,7 +570,7 @@ def _synthesize_elevenlabs_sync(
                 shutil.copyfile(output_path, cache_path)
             except Exception:
                 pass
-            print(f"[Voice] ✅ ElevenLabs synthesized scene ({model_id}, tone: {tone}, {len(cleaned_text)} chars)")
+            print(f"[Voice] ✅ ElevenLabs synthesized scene ({model_id}, tone: {t_prof['key']}, {len(cleaned_text)} chars)")
             return True
         else:
             print(f"[Voice] ElevenLabs returned {res.status_code}: {res.text[:120]}")
@@ -652,76 +579,26 @@ def _synthesize_elevenlabs_sync(
         print(f"[Voice] ElevenLabs request failed ({e})")
         return False
 
-async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, tone: str = "conversational_casual") -> bool:
+async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, tone: str = DEFAULT_CONCRETE_TONE) -> bool:
     """
-    Synthesizes speech using Microsoft Edge-TTS with tone-matched rate & pitch prosody.
-    When explicit pause beats ('...' / '[pause]') exist or tone is 'mentor_storyteller',
-    splits along pause cues, applies per-phrase curiosity/excitement inflection, and inserts
-    genuine breathing silence between phrases via FFmpeg without clipping consonants.
+    Synthesizes speech using Microsoft Edge-TTS with 2026 Hook-to-Climax Clause Speed Curves
+    (energetic opening clause -> crisp core explanation -> emphatic closing verdict) + breathing pauses.
     """
-    preserve = (tone in ("peaceful_human_guide", "trusted_dost_guide", "senior_hinglish_mentor", "purposeful_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
-    cleaned_text = _clean_tts_text(text, preserve_pauses=preserve)
+    t_prof = get_tone_profile(tone)
+    cleaned_text = _clean_tts_text(text, preserve_pauses=True)
     if not cleaned_text:
         return False
 
-    prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+4%", "pitch": "+0Hz"})
-    rate = prosody["rate"]
-    pitch = prosody["pitch"]
-    pause_sec = (
-        "0.32" if tone in ("peaceful_human_guide", "mentor_storyteller")
-        else ("0.26" if tone in ("trusted_dost_guide", "purposeful_hinglish_mentor", "senior_hinglish_mentor")
-              else ("0.24" if tone == "youth_friend_turbo" else "0.28"))
-    )
+    rate = str(t_prof["edge_base"]["rate"])
+    pitch = str(t_prof["edge_base"]["pitch"])
+    pause_sec = str(t_prof.get("pause_sec") or "0.24")
 
-    beats = _split_pause_beats(cleaned_text, max_beats=5) if preserve else [cleaned_text]
+    beats = _split_pause_beats(cleaned_text, max_beats=4)
     if len(beats) > 1:
         beat_files: List[Path] = []
         try:
             for bi, beat_txt in enumerate(beats):
-                lower_bt = beat_txt.lower()
-                if tone == "peaceful_human_guide":
-                    if any(kw in lower_bt for kw in ("relax", "chill", "easy", "calm", "simple", "sorted", "tension mat", "don't worry", "here to help")):
-                        b_rate, b_pitch = "+1%", "+1Hz"
-                    elif beat_txt.endswith("?") or any(kw in lower_bt for kw in ("samjha", "clear", "think", "guess", "why", "how", "secret", "hack", "shortcut")):
-                        b_rate, b_pitch = "+3%", "+2Hz"
-                    elif any(kw in lower_bt for kw in ("wait", "twist", "catch", "farak", "boom", "done", "look", "listen")):
-                        b_rate, b_pitch = "+5%", "+2Hz"
-                    else:
-                        b_rate, b_pitch = rate, pitch
-                elif tone == "youth_friend_turbo":
-                    if beat_txt.endswith("?"):
-                        b_rate, b_pitch = "+5%", "+2Hz"
-                    elif "!" in beat_txt or any(kw in lower_bt for kw in ("boom", "magic", "secret", "finally", "exactly", "zero", "yaar", "dost", "wait")):
-                        b_rate, b_pitch = "+7%", "+2Hz"
-                    elif len(beat_txt) <= 36:
-                        b_rate, b_pitch = "+5%", "+1Hz"
-                    else:
-                        b_rate, b_pitch = rate, pitch
-                elif tone == "trusted_dost_guide":
-                    if any(kw in lower_bt for kw in ("easy", "relax", "simple", "chill", "saath", "clear", "clarity")):
-                        b_rate, b_pitch = "+2%", "+1Hz"
-                    elif beat_txt.endswith("?") or any(kw in lower_bt for kw in ("secret", "shortcut", "magic", "imagine", "vision", "twist")):
-                        b_rate, b_pitch = "+5%", "+2Hz"
-                    else:
-                        b_rate, b_pitch = rate, pitch
-                elif tone in ("senior_hinglish_mentor", "purposeful_hinglish_mentor"):
-                    if beat_txt.endswith("?") or any(kw in lower_bt for kw in ("trap", "interview", "socho", "freeze", "wait", "why")):
-                        b_rate, b_pitch = "+5%", "+1Hz"
-                    elif any(kw in lower_bt for kw in ("trade-off", "tradeoff", "edge case", "lekin", "problem", "catch", "fix", "must")):
-                        b_rate, b_pitch = "+4%", "-1Hz"
-                    else:
-                        b_rate, b_pitch = rate, pitch
-                elif tone == "mentor_storyteller":
-                    if beat_txt.endswith("?"):
-                        b_rate, b_pitch = "+3%", "+2Hz"
-                    elif "!" in beat_txt or any(kw in lower_bt for kw in ("boom", "magic", "secret", "finally", "exactly")):
-                        b_rate, b_pitch = "+6%", "+3Hz"
-                    elif len(beat_txt) <= 38:
-                        b_rate, b_pitch = "+2%", "+1Hz"
-                    else:
-                        b_rate, b_pitch = rate, pitch
-                else:
-                    b_rate, b_pitch = rate, pitch
+                b_rate, b_pitch = get_clause_prosody(t_prof["key"], bi, len(beats), beat_txt)
 
                 bp = output_path.parent / f"{output_path.stem}_beat{bi}.mp3"
                 ok = False
@@ -916,18 +793,18 @@ def _synthesize_single_scene(
     output_path: Path,
     voice: str,
     elevenlabs_model: str = DEFAULT_ELEVENLABS_MODEL,
-    tone: str = "conversational_casual",
+    tone: str = DEFAULT_CONCRETE_TONE,
     allow_elevenlabs: bool = True,
     dialogue: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Synthesizes speech for a single scene (single voice OR dual-speaker Female/Male dialogue):
     - Only calls ElevenLabs API if allow_elevenlabs=True AND voice starts with 'elevenlabs:'.
-    - When `dialogue` turns are provided for `dual:` voices or `dual_dialogue_curious`, synthesizes
-      per-turn alternating Female Question + Male Empathetic Mentor clips stitched cleanly with pauses.
+    - When `dialogue` turns are provided for `dual:` voices or `dual_creator_debate`, synthesizes
+      per-turn alternating Female Builder + Male Architect clips stitched cleanly with pauses.
     Returns `dialogue_spans` (empty list for single-speaker scenes).
     """
-    is_dual = (voice.startswith("dual:") or tone == "dual_dialogue_curious") and isinstance(dialogue, list) and len(dialogue) >= 1
+    is_dual = (voice.startswith("dual:") or tone == DUAL_TONE_KEY) and isinstance(dialogue, list) and len(dialogue) >= 1
     if is_dual:
         fem_v, male_v = parse_dual_voice_pair(voice)
         ok_dual, spans = asyncio.run(_synthesize_dual_dialogue_scene(dialogue, output_path, fem_voice=fem_v, male_voice=male_v))
@@ -981,7 +858,7 @@ def generate_voiceover(
     scenes: List[Dict[str, Any]],
     voice: str = DEFAULT_VOICE,
     elevenlabs_model: str = DEFAULT_ELEVENLABS_MODEL,
-    tone: str = "conversational_casual",
+    tone: str = DEFAULT_TONE_KEY,
     allow_elevenlabs: bool = True
 ) -> Tuple[Path, List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
@@ -1006,7 +883,7 @@ def generate_voiceover(
     # 1. Synthesize all scene voiceovers concurrently for 3x-4x speedup (sequential only when ElevenLabs quota requires)
     def _synth_one(idx_item):
         i, sc, text, p = idx_item
-        sc_tone = (sc.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
+        sc_tone = resolve_effective_tone(tone, scene_tone=sc.get("scene_tone"), role=sc.get("role"), idx=i)
         spans = _synthesize_single_scene(
             text, p, voice=voice, elevenlabs_model=elevenlabs_model,
             tone=sc_tone, allow_elevenlabs=allow_elevenlabs, dialogue=sc.get("dialogue"),

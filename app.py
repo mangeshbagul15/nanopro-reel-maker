@@ -12,6 +12,7 @@ if str(BASE_DIR) not in sys.path:
 import importlib
 _RELOAD_ORDER = [
     "core.config",
+    "core.tone_engine",
     "core.palette_engine",
     "core.svg_engine",
     "core.mesh_shader_engine",
@@ -37,6 +38,7 @@ for mod_name in list(sys.modules.keys()):
             pass
 
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
+from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, UI_TONE_OPTIONS, collect_sfx_timeline
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles, load_visual_history, reset_visual_history
 from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS, VOICE_CATALOG
 from core.animator import render_scene_frames, generate_thumbnail_9_16
@@ -106,33 +108,19 @@ with st.sidebar:
         help="Channel watermark displayed in the corner of every video frame and thumbnail."
     )
     st.markdown("---")
-    st.markdown("### 🎭 Script Tone & Emotion (Voice + Visual Sync)")
+    st.markdown("### 🎭 Script Tone & Emotion (2026 Viral Audio-Visual Sync)")
     tone_option = st.selectbox(
-        "Script Tone & Emotion",
-        [
-            ("dual_dialogue_curious", "🗣️ Dual Voice Hinglish Dialogue (Focused Technical Questions • Direct Architecture Answers)"),
-            ("peaceful_human_guide", "🧘 Calm Technical Guide (Steady Hinglish Pace, Clear Problem Breakdown & Tight Visual Sync)"),
-            ("trusted_dost_guide", "🤝 Clear Dost & Architect Guide (Direct Hinglish Explanation, Focused Q&A & Clean Visual Sync)"),
-            ("purposeful_hinglish_mentor", "🎯 Purposeful Hinglish Mentor (Crystal-Clear Male Mentor, Production Depth, Edge Cases & Visual Sync)"),
-            ("senior_hinglish_mentor", "🧑‍💻 Senior Hinglish Mentor (Experienced Architect Voice, System Trade-offs & Progressive Visuals)"),
-            ("youth_friend_turbo", "🚀 Energetic Tech Explainer (Crisp Natural Voice, Fast Concept Breakdown & Synced Visuals)"),
-            ("mentor_storyteller", "🌟 Structured Tech Educator (Simple Words, Natural Pauses & Step-by-Step Clarity) [Ultra Pro]"),
-            ("auto_dynamic", "⚡ Dynamic / Auto (AI Adapts Voice Pace & Visual Cadence Per Technical Scene) [Recommended]"),
-            ("fireship_octane", "🔥 High-Tempo Code Breakdown (Rapid Technical Pacing & High-Contrast Visuals)"),
-            ("dramatic_performance", "🎭 Deep Focus Production Breakdown (Measured Pacing, Incident Context & Deliberate Pauses)"),
-            ("staff_engineer", "🧠 Senior Staff Engineer Authority (Calm Deep Voice & Architectural Blueprint)"),
-            ("conversational_casual", "☕ Conversational Tech Walkthrough (Natural Direct Cadence & Clear System Flow)"),
-            ("interview_prep", "⚡ System Design Interview Prep (Core Bottlenecks, Architecture Choices & Trade-offs)")
-        ],
+        "Script Tone & 2026 Format",
+        UI_TONE_OPTIONS,
         format_func=lambda x: x[1],
         key="tone_option_select",
-        help="Controls AI scriptwriting, BOTH Edge-TTS & ElevenLabs voice speed/pitch/emotion, 2D canvas animation theme, and karaoke subtitle highlights."
+        help="Controls 2026 script narrative archetype, Hook-to-Climax clause voice speed curves, Action-Synced Micro-SFX, 2s Pattern Interrupts, and semantic visual routing."
     )
     chosen_tone = tone_option[0]
 
-    # Auto-sync Edge-TTS Voice Persona & Dual filter whenever Dual Voice Dialogue tone is selected
+    # Auto-sync Edge-TTS Voice Persona & Dual filter whenever Dual Creator Debate tone is selected
     _prev_tone = st.session_state.get("_prev_tone_option")
-    if chosen_tone == "dual_dialogue_curious" and _prev_tone != "dual_dialogue_curious":
+    if chosen_tone == DUAL_TONE_KEY and _prev_tone != DUAL_TONE_KEY:
         st.session_state["voice_provider_radio"] = "Microsoft Edge-TTS (Free & Fast)"
         st.session_state["lang_filter_pills"] = "All"
         st.session_state["gender_filter_pills"] = "🗣️ Dual Pair"
@@ -140,7 +128,7 @@ with st.sidebar:
             "dual:hi-IN-SwaraNeural+hi-IN-MadhurNeural",
             "🗣️🇮🇳 Dual Hinglish: Swara (Curious Q) + Madhur (Mentor A) [Recommended Dual]",
         )
-    elif _prev_tone == "dual_dialogue_curious" and chosen_tone != "dual_dialogue_curious":
+    elif _prev_tone == DUAL_TONE_KEY and chosen_tone != DUAL_TONE_KEY:
         if st.session_state.get("gender_filter_pills") == "🗣️ Dual Pair":
             st.session_state["gender_filter_pills"] = "All"
     st.session_state["_prev_tone_option"] = chosen_tone
@@ -236,7 +224,7 @@ with st.sidebar:
         chosen_voice = edge_voice_choice[0]
         voice_label = edge_voice_choice[1]
 
-        if chosen_tone == "dual_dialogue_curious" or str(chosen_voice).startswith("dual:"):
+        if chosen_tone == DUAL_TONE_KEY or str(chosen_voice).startswith("dual:"):
             all_edge = VOICE_CATALOG.get("edge_tts", [])
             fem_pool = [(v["id"], v["label"]) for v in all_edge if v.get("gender") == "female"]
             male_pool = [(v["id"], v["label"]) for v in all_edge if v.get("gender") == "male"]
@@ -805,7 +793,7 @@ with tab_create:
                             st.image(str(_mid_f), caption=f"S{_si + 1}: {_r_eng}", use_container_width=True)
 
             # STEP 4: Video Stitching via Local Hardware / Cloud
-            status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 with karaoke captions & Lo-Fi audio...")
+            status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 with karaoke captions, Micro-SFX & Lo-Fi audio...")
             progress_bar.progress(80)
             art_style_val = timeline.get("art_style", "editorial_dark") if isinstance(timeline, dict) else "editorial_dark"
             subtitles_path = generate_ass_subtitles(
@@ -815,7 +803,8 @@ with tab_create:
                 aligned_scenes=aligned_scenes,
                 art_style=art_style_val
             )
-            
+            sfx_events = collect_sfx_timeline(aligned_scenes, word_timestamps=word_timestamps, tone=chosen_tone)
+
             # Run Cover Thumbnail & Viral Metadata in parallel while FFmpeg stitches MP4!
             with ThreadPoolExecutor(max_workers=2) as pool_meta:
                 fut_thumb = pool_meta.submit(
@@ -836,7 +825,8 @@ with tab_create:
                     all_scene_frame_dirs=all_scene_frame_dirs,
                     audio_path=audio_path,
                     subtitles_path=subtitles_path,
-                    output_filename=f"nanopro_{aspect_ratio[0].replace(':', 'x')}_{int(time.time())}.mp4"
+                    output_filename=f"nanopro_{aspect_ratio[0].replace(':', 'x')}_{int(time.time())}.mp4",
+                    sfx_events=sfx_events,
                 )
                 status_box.info("🖼️ Finalizing 9:16 thumbnail & viral metadata...")
                 progress_bar.progress(92)
@@ -953,8 +943,8 @@ with tab_create:
                     2. **🎙️ Step 2 — Text-to-Speech & Microsecond Alignment:**
                        - **Voice Gender / Language:** `{gender_filter}` / `{lang_filter}`
                        - **Voice Persona (TTS):** `{voice_label}` (`{chosen_voice}`)
-                       - **Per-Scene Tone Delivery:** `{"Dynamic Tone Sync -> " + ", ".join(s.get("scene_tone", "") for s in aligned_scenes) if chosen_tone == "auto_dynamic" else chosen_tone}`
-                       - **Speech Engine:** `{"ElevenLabs (" + elevenlabs_model_id + ")" if (voice_provider == "ElevenLabs AI (Ultra-Realistic)" and chosen_voice.startswith("elevenlabs:")) else "Microsoft Edge-TTS (Prosody Synced)"}`
+                       - **Per-Scene Tone Delivery:** `{"Dynamic 2026 Auto-Mix -> " + ", ".join(s.get("scene_tone", "") for s in aligned_scenes) if chosen_tone == DEFAULT_TONE_KEY else chosen_tone}`
+                       - **Speech Engine:** `{"ElevenLabs (" + elevenlabs_model_id + ")" if (voice_provider == "ElevenLabs AI (Ultra-Realistic)" and chosen_voice.startswith("elevenlabs:")) else "Microsoft Edge-TTS (Clause Speed Curve)"}`
                        - **Audio Alignment API:** `Groq Whisper Large v3` (`whisper-large-v3`)
                        - **Total Aligned Words:** `{len(word_timestamps)}` words aligned with 0% drift across all scenes.
 
@@ -967,7 +957,7 @@ with tab_create:
                     4. **⚡ Step 4 — Hardware FFmpeg Video Stitching & Captions:**
                        - **Video Encoder:** Hardware Accelerated High-Bitrate (Windows Media Foundation 8 Mbps / libx264 CRF 18)
                        - **Karaoke Subtitles:** Advanced SubStation Alpha (`.ass`) with safe-zone margin adapted to {aspect_ratio[0]}
-                       - **Audio Mixing:** Lo-Fi Cyber BGM mixed at 18% ducking volume under voiceover.
+                       - **Audio Mixing:** {len(sfx_events)} Action-Synced Micro-SFX cues (`pop_snap`, `alert_ping`, `key_tick`, `whoosh`, `success_chime`) + Lo-Fi Cyber BGM @ 18% under voiceover.
 
                     5. **☁️ Step 5 — Deployment & Storage:**
                        - **Host Compute:** `{"Local NVIDIA RTX 3050 Laptop Studio (Windows)" if is_local_machine else "Online Cloud Studio Container (Linux)"}`

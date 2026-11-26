@@ -108,8 +108,68 @@ def generate_lofi_tech_bgm(output_path: Path, duration_sec: float = 65.0):
     wavfile.write(str(output_path), SAMPLE_RATE, int_audio)
     print("Generated Lo-Fi Cyber Tech BGM:", output_path)
 
+
+def generate_pop_snap(output_path: Path):
+    """Crisp modern tactile pop/snap for 2s Pattern Interrupt hooks & card transitions."""
+    duration = 0.09
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
+    freq = 920.0 * np.exp(-32.0 * t) + 180.0
+    env = np.exp(-42.0 * t) * np.minimum(1.0, t / 0.004)
+    sig = (np.sin(2 * np.pi * freq * t) * 0.75 + np.sin(2 * np.pi * freq * 2.1 * t) * 0.25) * env
+    int_audio = np.int16(sig / (np.max(np.abs(sig)) + 1e-6) * 32767 * 0.65)
+    wavfile.write(str(output_path), SAMPLE_RATE, int_audio)
+
+
+def generate_alert_ping(output_path: Path):
+    """Subtle clean incident radar double-ping for disruptions & error beats."""
+    duration = 0.28
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
+    p1 = np.sin(2 * np.pi * 880.0 * t) * np.exp(-26.0 * t) * np.minimum(1.0, t / 0.008)
+    t2 = np.maximum(0.0, t - 0.11)
+    gate2 = (t >= 0.11).astype(np.float32)
+    p2 = gate2 * np.sin(2 * np.pi * 660.0 * t2) * np.exp(-22.0 * t2) * np.minimum(1.0, t2 / 0.008)
+    sig = p1 * 0.65 + p2 * 0.55
+    int_audio = np.int16(sig / (np.max(np.abs(sig)) + 1e-6) * 32767 * 0.55)
+    wavfile.write(str(output_path), SAMPLE_RATE, int_audio)
+
+
+def generate_key_tick(output_path: Path):
+    """Clean short mechanical keyboard tap cluster for IDE/code reveal moments."""
+    duration = 0.24
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
+    sig = np.zeros_like(t, dtype=np.float32)
+    for offset in (0.01, 0.08, 0.15):
+        idx = int(offset * SAMPLE_RATE)
+        k_len = int(0.03 * SAMPLE_RATE)
+        if idx + k_len < len(sig):
+            kt = np.linspace(0, 0.03, k_len, endpoint=False)
+            click = np.sin(2 * np.pi * 1650.0 * kt) * np.exp(-130.0 * kt)
+            click += np.random.uniform(-0.18, 0.18, k_len) * np.exp(-150.0 * kt)
+            sig[idx:idx + k_len] += click
+    int_audio = np.int16(sig / (np.max(np.abs(sig)) + 1e-6) * 32767 * 0.45)
+    wavfile.write(str(output_path), SAMPLE_RATE, int_audio)
+
+
+def generate_success_chime(output_path: Path):
+    """Warm ascending dual-harmonic resolution chime for verified cutovers/fixes."""
+    duration = 0.34
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
+    e1 = np.exp(-10.0 * t) * np.minimum(1.0, t / 0.012)
+    c1 = np.sin(2 * np.pi * 523.25 * t) * e1 * 0.5
+    t2 = np.maximum(0.0, t - 0.07)
+    g2 = (t >= 0.07).astype(np.float32)
+    c2 = g2 * np.sin(2 * np.pi * 783.99 * t2) * np.exp(-9.0 * t2) * np.minimum(1.0, t2 / 0.012) * 0.6
+    sig = c1 + c2
+    int_audio = np.int16(sig / (np.max(np.abs(sig)) + 1e-6) * 32767 * 0.50)
+    wavfile.write(str(output_path), SAMPLE_RATE, int_audio)
+
+
 if __name__ == "__main__":
     out_dir = Path(r"c:\Users\Mangesh\.gemini\antigravity\scratch\nanopro-reel-maker\assets\sfx")
     out_dir.mkdir(parents=True, exist_ok=True)
     generate_whoosh(out_dir / "whoosh.wav")
+    generate_pop_snap(out_dir / "pop_snap.wav")
+    generate_alert_ping(out_dir / "alert_ping.wav")
+    generate_key_tick(out_dir / "key_tick.wav")
+    generate_success_chime(out_dir / "success_chime.wav")
     generate_lofi_tech_bgm(out_dir / "lofi_cyber_bgm.wav", duration_sec=70.0)

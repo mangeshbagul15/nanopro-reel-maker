@@ -1,0 +1,400 @@
+"""
+Canonical 2026 Viral Tech Creator Tone, Narrative Cadence & Audio-Visual Sync Registry.
+
+Single source of truth shared across Director, Semantic Router, Voice Synthesis
+(Hook-to-Climax Clause Curves), Action Choreography, Virtual Camera, Micro-SFX Mixer,
+Palette Engine, Visual Renderers, and Subtitles.
+"""
+
+import re
+from typing import Any, Dict, List, Optional, Tuple
+
+
+DEFAULT_TONE_KEY = "auto_2026_director"
+DEFAULT_CONCRETE_TONE = "whiteboard_analogy"
+DUAL_TONE_KEY = "dual_creator_debate"
+
+
+TONE_PROFILES: Dict[str, Dict[str, Any]] = {
+    "auto_2026_director": {
+        "label": "⚡ Dynamic 2026 AI Auto-Mix (2s Hook -> War Story -> Code -> Verdict) [Recommended]",
+        "directive": (
+            "DYNAMIC 2026 VIRAL TECH DIRECTOR (PER-SCENE TONE & PATTERN-INTERRUPT CHOREOGRAPHY):\n"
+            "Shift narrative emotion, vocal cadence, and visual archetype cleanly per scene role:\n"
+            "- Scene 1 (`hook`): Use `myth_buster_contrarian` OR `war_story_postmortem` with a sharp 2-second scroll-stopper opening (myth shatter, outage timestamp, or scale surprise).\n"
+            "- Problem / Crash beat: Use `war_story_postmortem` (crisis metrics + `disrupt_shake`).\n"
+            "- Concept / Mechanism: Use `whiteboard_analogy` (intuitive everyday analogy + clean architecture flow) OR `live_debug_pair` (exact line-by-line bug/SQL/code).\n"
+            "- Trade-off / Evaluation: Use `cage_match_vs` (rapid criteria rounds + concrete winner metrics).\n"
+            "- Scale Case Study / Closing Verdict: Use `bigtech_reverse_engineer` or `release_radar_tldr`.\n"
+            "Set `scene_tone` on EVERY scene explicitly from these 2026 profiles!"
+        ),
+        "elevenlabs": {"stability": 0.42, "similarity_boost": 0.84, "style": 0.44, "use_speaker_boost": True},
+        "edge_base": {"rate": "+5%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+8%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+4%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+2%", "pitch": "-1Hz"},
+        "pause_sec": "0.24",
+        "atempo": "1.03",
+        "subtitle_tag": r"\c&H002BF6FF&\fscx112\fscy112",
+        "subtitle_name": "electric_2026_pop",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "cyan",
+        "animator_theme": "cyber_cyan",
+        "reveal_power": 0.94,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("hero_hook", "excalidraw_sketch_board", "ide_split_workbench", "bento_apple_keynote"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.09,
+    },
+    "war_story_postmortem": {
+        "label": "🚨 3AM Production War Story (Outage Thriller, Root-Cause & Green Recovery)",
+        "directive": (
+            "SCRIPT TONE (2026 3AM PRODUCTION WAR STORY / POST-MORTEM THRILLER):\n"
+            "Start immediately with a cold-open incident moment (e.g. 'Friday 11:45 PM... one missing timeout took 40TB offline'), "
+            "escalate through cascading production failures (`502`, connection exhaustion, retry storms), isolate the exact root cause, "
+            "and resolve with the verified architectural fix. Keep every word gripping and factual — zero cheesy filler."
+        ),
+        "elevenlabs": {"stability": 0.34, "similarity_boost": 0.84, "style": 0.48, "use_speaker_boost": True},
+        "edge_base": {"rate": "+1%", "pitch": "-2Hz"},
+        "hook_curve": {"rate": "+6%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "-2%", "pitch": "-3Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "+1Hz"},
+        "pause_sec": "0.30",
+        "atempo": "1.00",
+        "subtitle_tag": r"\c&H005E3FF4&\fscx112\fscy112",
+        "subtitle_name": "crimson_incident",
+        "preferred_world": "crimson_studio",
+        "accent_key": "rose",
+        "animator_theme": "crimson_alert",
+        "reveal_power": 1.04,
+        "motion_profile": "disrupt_shake",
+        "preferred_layouts": ("live_sre_observability_console", "alert_diagram", "dr_active_active_failover", "perf_waterfall_db_lock", "incident_thundering_herd"),
+        "default_sfx": "alert_ping",
+        "camera_zoom_bias": 1.11,
+    },
+    "myth_buster_contrarian": {
+        "label": "💥 Contrarian Myth-Buster (2s Pattern Interrupt, Strikethrough & Real Benchmarks)",
+        "directive": (
+            "SCRIPT TONE (2026 CONTRARIAN MYTH-BUSTER — PATTERN INTERRUPT):\n"
+            "Open Scene 1 in the very first 2 seconds by calling out a widespread engineering mistake ('90% teams still blindly do X — here is why it explodes at scale'), "
+            "compare Myth vs Reality using concrete benchmarks (`p99`, cost, QPS, memory), and deliver a razor-sharp rule of thumb. "
+            "Punchy, direct, slightly provocative truth backed by hard numbers."
+        ),
+        "elevenlabs": {"stability": 0.40, "similarity_boost": 0.82, "style": 0.42, "use_speaker_boost": True},
+        "edge_base": {"rate": "+7%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+10%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+6%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+4%", "pitch": "-1Hz"},
+        "pause_sec": "0.20",
+        "atempo": "1.05",
+        "subtitle_tag": r"\c&H0024BFFF&\fscx114\fscy114",
+        "subtitle_name": "amber_myth_snap",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "amber",
+        "animator_theme": "gold_purple",
+        "reveal_power": 0.90,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("hero_hook", "benchmark_3d", "p99_tail_cdf_curve", "split_comparison", "live_benchmark_race_track"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.10,
+    },
+    "live_debug_pair": {
+        "label": "🧪 Live Code & Debug Pair-Programmer (Dry Wit, Line-by-Line Bug Catch & Fix)",
+        "directive": (
+            "SCRIPT TONE (2026 LIVE CODE / DEBUG PAIR-PROGRAMMER — DRY WIT, ZERO SCREAMING):\n"
+            "Sound like a calm, razor-sharp senior developer looking at an IDE screen with dry understated wit ('Look closely at line 4... yep, that innocent loop just triggered 1,000 SQL roundtrips'). "
+            "Pinpoint the exact code/query flaw, show the 3-line fix or EXPLAIN bottleneck, and state the measured gain cleanly."
+        ),
+        "elevenlabs": {"stability": 0.58, "similarity_boost": 0.85, "style": 0.24, "use_speaker_boost": True},
+        "edge_base": {"rate": "+3%", "pitch": "-1Hz"},
+        "hook_curve": {"rate": "+5%", "pitch": "+0Hz"},
+        "mid_curve": {"rate": "+2%", "pitch": "-1Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "+0Hz"},
+        "pause_sec": "0.26",
+        "atempo": "1.02",
+        "subtitle_tag": r"\c&H0099D334&\fscx108\fscy108",
+        "subtitle_name": "emerald_ide_clean",
+        "preferred_world": "navy_studio",
+        "accent_key": "emerald",
+        "animator_theme": "indigo_cyan",
+        "reveal_power": 0.96,
+        "motion_profile": "flow_slide",
+        "preferred_layouts": ("ide_split_workbench", "code_diff_split", "code_terminal", "browser_devtools_studio", "python_stack_heap_live"),
+        "default_sfx": "key_tick",
+        "camera_zoom_bias": 1.07,
+    },
+    "whiteboard_analogy": {
+        "label": "✏️ 10-Sec Whiteboard Analogy (Everyday Intuition -> Sketch Flow & Internals)",
+        "directive": (
+            "SCRIPT TONE (2026 WHITEBOARD ANALOGY & INTUITION BUILDER):\n"
+            "Unlock difficult distributed systems or database internals using a crisp 10-second real-world mental model first "
+            "(e.g. restaurant order tickets, highway toll lanes, library index cards), then immediately map every piece of the analogy "
+            "to real engineering layers (`WAL`, `Consumer Group`, `Micro-Partition`, `Consistent Hash`) with warm clarity."
+        ),
+        "elevenlabs": {"stability": 0.42, "similarity_boost": 0.84, "style": 0.40, "use_speaker_boost": True},
+        "edge_base": {"rate": "+3%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+6%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+2%", "pitch": "+1Hz"},
+        "verdict_curve": {"rate": "+2%", "pitch": "+0Hz"},
+        "pause_sec": "0.28",
+        "atempo": "1.02",
+        "subtitle_tag": r"\c&H0099D334&\fscx110\fscy110",
+        "subtitle_name": "whiteboard_mint",
+        "preferred_world": "studio_white",
+        "accent_key": "emerald",
+        "animator_theme": "emerald_matrix",
+        "reveal_power": 0.97,
+        "motion_profile": "stack_snap",
+        "preferred_layouts": ("excalidraw_sketch_board", "iso_architecture", "sql_live_join_venn_rows", "snowflake_micro_partition_pruner", "medallion_lakehouse"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.08,
+    },
+    "cage_match_vs": {
+        "label": "⚔️ Rapid-Fire Cage Match (`A vs B` in 45s — Scored Criteria & Verdict)",
+        "directive": (
+            "SCRIPT TONE (2026 RAPID-FIRE A vs B CAGE MATCH):\n"
+            "Pit the two technologies/patterns head-to-head across 4 concrete battle rounds (Latency, Cost/Ops, Failure Mode, Scale Fit). "
+            "Keep transitions rapid and score each round decisively ('Round 1 goes to X because...', 'In heavy writes, Y wins cleanly'). "
+            "Close with an unmistakable decision matrix."
+        ),
+        "elevenlabs": {"stability": 0.44, "similarity_boost": 0.80, "style": 0.36, "use_speaker_boost": True},
+        "edge_base": {"rate": "+8%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+10%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+7%", "pitch": "+1Hz"},
+        "verdict_curve": {"rate": "+4%", "pitch": "-1Hz"},
+        "pause_sec": "0.18",
+        "atempo": "1.06",
+        "subtitle_tag": r"\c&H002BF6FF&\fscx114\fscy114",
+        "subtitle_name": "arena_yellow_snap",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "amber",
+        "animator_theme": "cyber_cyan",
+        "reveal_power": 0.89,
+        "motion_profile": "split_collide",
+        "preferred_layouts": ("split_comparison", "iso_comparison", "compare_sync_vs_async", "sql_live_join_venn_rows", "benchmark_3d"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.07,
+    },
+    "release_radar_tldr": {
+        "label": "📰 2026 Release & Paper Radar (What Dropped, Why It Matters & Upgrade Verdict)",
+        "directive": (
+            "SCRIPT TONE (2026 TECH RELEASE / PAPER RADAR TL;DR):\n"
+            "Deliver fast, signal-dense engineering news synthesis structured cleanly in 3 beats: "
+            "1) What just changed architecturally (no marketing fluff), 2) Real performance/cost delta in production, "
+            "3) Concrete verdict — who upgrades today vs who waits."
+        ),
+        "elevenlabs": {"stability": 0.46, "similarity_boost": 0.82, "style": 0.32, "use_speaker_boost": True},
+        "edge_base": {"rate": "+6%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+9%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+5%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "+0Hz"},
+        "pause_sec": "0.20",
+        "atempo": "1.05",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx110\fscy110",
+        "subtitle_name": "radar_cyan_crisp",
+        "preferred_world": "sapphire_3d",
+        "accent_key": "cyan",
+        "animator_theme": "cyber_cyan",
+        "reveal_power": 0.92,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("bento_apple_keynote", "multi_agent_swimlane_trace", "neural_forward_backprop_flow", "ai_thinking_tool_trace", "notebook_interactive_cell"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.08,
+    },
+    "bigtech_reverse_engineer": {
+        "label": "🕵️‍♂️ Big-Tech Reverse Engineer (How Hyperscalers Hit 500M+ Scale Under 1s)",
+        "directive": (
+            "SCRIPT TONE (2026 BIG-TECH REVERSE ENGINEER — ARCHITECTURAL CASE STUDY):\n"
+            "Open with an astonishing verified scale constraint (millions of TPS, multi-region compliance, sub-10ms P99), "
+            "then trace the exact physical hop-by-hop blueprint (edge POP -> async partition -> in-memory compute -> ledger/storage). "
+            "Sound like a Principal Systems Architect dissecting real production internals."
+        ),
+        "elevenlabs": {"stability": 0.64, "similarity_boost": 0.86, "style": 0.18, "use_speaker_boost": True},
+        "edge_base": {"rate": "+2%", "pitch": "-2Hz"},
+        "hook_curve": {"rate": "+5%", "pitch": "+0Hz"},
+        "mid_curve": {"rate": "+2%", "pitch": "-2Hz"},
+        "verdict_curve": {"rate": "+1%", "pitch": "-2Hz"},
+        "pause_sec": "0.26",
+        "atempo": "1.01",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx106\fscy106",
+        "subtitle_name": "principal_arch_cyan",
+        "preferred_world": "navy_studio",
+        "accent_key": "cyan",
+        "animator_theme": "indigo_cyan",
+        "reveal_power": 0.98,
+        "motion_profile": "stack_snap",
+        "preferred_layouts": ("banking_ledger_settlement_rails", "cloud_infra_zone_builder", "geo_world_packet_arcs", "topo_kafka_isr_quorum_dlq", "architecture_flow"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.08,
+    },
+    "dual_creator_debate": {
+        "label": "🎙️ Dual Voice Tech Debate (Builder Tough Question • Architect Counter-Proof)",
+        "directive": (
+            "DUAL VOICE 2026 BUILDER vs ARCHITECT DEBATE (ZERO FILLER):\n"
+            "Two sharp practitioners debate the exact architecture live:\n"
+            "- FEMALE (`\"speaker\": \"female\"`): Challenges production assumptions directly (tail latency, lock contention, cost spikes, edge failures).\n"
+            "- MALE (`\"speaker\": \"male\"`): Counters with concrete mechanisms, storage layouts, and verified trade-offs.\n"
+            "RULES: Populate `\"dialogue\"` (2-4 crisp turns `female` <-> `male`) AND concatenate cleanly into `\"narration\"`. Zero canned catchphrases."
+        ),
+        "elevenlabs": {"stability": 0.44, "similarity_boost": 0.84, "style": 0.42, "use_speaker_boost": True},
+        "edge_base": {"rate": "+4%", "pitch": "+0Hz"},
+        "hook_curve": {"rate": "+6%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "+4%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "-1Hz"},
+        "pause_sec": "0.24",
+        "atempo": "1.03",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx110\fscy110",
+        "subtitle_name": "dual_debate_cyan",
+        "preferred_world": "sapphire_3d",
+        "accent_key": "cyan",
+        "animator_theme": "emerald_matrix",
+        "reveal_power": 0.96,
+        "motion_profile": "split_collide",
+        "preferred_layouts": ("chat_thread_ai", "mobile_app_mockup", "excalidraw_sketch_board", "iso_comparison", "hero_hook"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.08,
+    },
+}
+
+
+UI_TONE_OPTIONS: List[Tuple[str, str]] = [
+    (k, v["label"]) for k, v in TONE_PROFILES.items()
+]
+
+
+def resolve_effective_tone(
+    tone: Optional[str],
+    scene_tone: Optional[str] = None,
+    role: Optional[str] = None,
+    idx: int = 0,
+) -> str:
+    """Resolves a requested/scene tone strictly into one concrete 2026 tone profile key."""
+    req = str(tone or "").strip().lower()
+    st = str(scene_tone or "").strip().lower()
+    if req == DEFAULT_TONE_KEY or not req:
+        if st in TONE_PROFILES and st != DEFAULT_TONE_KEY:
+            return st
+        r = str(role or "").lower().strip()
+        if r == "hook":
+            return "myth_buster_contrarian"
+        if r in ("problem", "incident", "alert"):
+            return "war_story_postmortem"
+        if r in ("architecture", "system", "pipeline", "analogy"):
+            return "whiteboard_analogy"
+        if r in ("tradeoff", "comparison", "compare"):
+            return "cage_match_vs"
+        if r in ("code", "query", "sql", "debug"):
+            return "live_debug_pair"
+        if r in ("cta", "summary", "takeaway"):
+            return "bigtech_reverse_engineer"
+        cycle = ("whiteboard_analogy", "live_debug_pair", "cage_match_vs", "bigtech_reverse_engineer", "release_radar_tldr")
+        return cycle[idx % len(cycle)]
+    if req in TONE_PROFILES:
+        return req
+    if st in TONE_PROFILES and st != DEFAULT_TONE_KEY:
+        return st
+    return DEFAULT_CONCRETE_TONE
+
+
+def get_tone_profile(tone: Optional[str], scene_tone: Optional[str] = None, role: Optional[str] = None, idx: int = 0) -> Dict[str, Any]:
+    key = resolve_effective_tone(tone, scene_tone=scene_tone, role=role, idx=idx)
+    return dict(TONE_PROFILES.get(key, TONE_PROFILES[DEFAULT_CONCRETE_TONE]), key=key)
+
+
+def get_tone_directive(tone: Optional[str]) -> str:
+    t = str(tone or DEFAULT_TONE_KEY).strip().lower()
+    prof = TONE_PROFILES.get(t) or TONE_PROFILES[DEFAULT_TONE_KEY]
+    return str(prof["directive"])
+
+
+def get_clause_prosody(
+    tone: Optional[str],
+    beat_idx: int,
+    total_beats: int,
+    beat_txt: str = "",
+) -> Tuple[str, str]:
+    """
+    Hook-to-Climax Speed Curve across clauses inside a single scene:
+    - Beat 0 (Hook/Opening) gets energetic punch burst (`hook_curve`)
+    - Middle beats (Mechanism/Data) get crystal clarity (`mid_curve`)
+    - Closing/Verdict/Alert clauses adjust pitch/speed dynamically (`verdict_curve` or tension dip)
+    """
+    prof = get_tone_profile(tone)
+    txt = str(beat_txt or "").strip().lower()
+    if any(kw in txt for kw in ("crash", "timeout", "deadlock", "outage", "fail", "error", "502", "429", "blocked")):
+        return "-2%", "-3Hz"
+    if total_beats <= 1:
+        c = prof["edge_base"]
+        return str(c["rate"]), str(c["pitch"])
+    if beat_idx == 0:
+        c = prof["hook_curve"]
+        return str(c["rate"]), str(c["pitch"])
+    if beat_idx >= total_beats - 1 or txt.endswith("!") or any(kw in txt for kw in ("winner", "verdict", "result", "always", "never", "rule")):
+        c = prof["verdict_curve"]
+        return str(c["rate"]), str(c["pitch"])
+    if txt.endswith("?"):
+        hr = prof["hook_curve"]
+        return str(prof["mid_curve"]["rate"]), str(hr["pitch"])
+    c = prof["mid_curve"]
+    return str(c["rate"]), str(c["pitch"])
+
+
+def collect_sfx_timeline(
+    aligned_scenes: List[Dict[str, Any]],
+    word_timestamps: Optional[List[Dict[str, Any]]] = None,
+    tone: str = DEFAULT_TONE_KEY,
+) -> List[Dict[str, Any]]:
+    """
+    Builds clean, volume-calibrated Micro-SFX timeline events synced to:
+    1) 2-Second Hook Pattern Interrupt (`pop_snap` near t=0.06s)
+    2) Scene boundaries (`whoosh` / tone transition cue)
+    3) Spoken Action Verbs (`alert_ping` on disrupt_shake, `success_chime` on state_flip,
+       `key_tick` on live_debug_pair/code scenes, `pop_snap` on filter_gate/travel_token)
+    Capped safely to <= 12 events so FFmpeg audio mix stays lightweight and musical.
+    """
+    from core.action_engine import extract_spoken_actions
+
+    events: List[Dict[str, Any]] = []
+    if not aligned_scenes:
+        return events
+
+    def _add(t_sec: float, sfx_name: str, gain: float) -> None:
+        ts = max(0.02, round(float(t_sec), 3))
+        if any(abs(e["time"] - ts) < 0.65 and e["sfx"] == sfx_name for e in events):
+            return
+        events.append({"time": ts, "sfx": sfx_name, "gain": round(float(gain), 3)})
+
+    # 1. Pattern Interrupt Opening Punch (first 0.08s)
+    _add(0.06, "pop_snap", 0.22)
+
+    all_words = word_timestamps or []
+    for idx, sc in enumerate(aligned_scenes):
+        st = float(sc.get("start_time", 0.0))
+        dur = max(1.0, float(sc.get("duration", 4.0)))
+        eff_t = resolve_effective_tone(tone, scene_tone=sc.get("scene_tone"), role=sc.get("role"), idx=idx)
+        prof = TONE_PROFILES.get(eff_t, TONE_PROFILES[DEFAULT_CONCRETE_TONE])
+
+        if idx > 0:
+            _add(st + 0.02, prof.get("default_sfx", "whoosh") if idx == 1 else "whoosh", 0.19)
+
+        sc_words = [
+            w for w in all_words
+            if st - 0.1 <= float(w.get("start", 0.0)) <= st + dur + 0.1
+        ]
+        acts = extract_spoken_actions(sc, dur, sc_words)
+        for act in acts[:2]:
+            verb = str(act.get("verb") or "")
+            p0 = float(act.get("start_p", 0.35))
+            act_t = st + p0 * dur
+            if verb == "disrupt_shake":
+                _add(act_t, "alert_ping", 0.24)
+            elif verb == "state_flip":
+                _add(act_t + dur * 0.12, "success_chime", 0.20)
+            elif eff_t == "live_debug_pair" or str(sc.get("visual_type") or "") in ("code_terminal", "ide_split_workbench", "code_diff_split", "mac_terminal_stream_cast", "dual_sync_diagram_plus_code"):
+                _add(act_t, "key_tick", 0.18)
+            elif verb in ("filter_gate", "travel_token", "slot_reorder"):
+                _add(act_t, "pop_snap", 0.16)
+
+    # Sort chronologically and enforce clean upper cap
+    events.sort(key=lambda e: e["time"])
+    return events[:12]

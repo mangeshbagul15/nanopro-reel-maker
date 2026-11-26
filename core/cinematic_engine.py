@@ -273,7 +273,7 @@ def render_cinematic_scene_frames(
     format_ratio: str = "9:16",
     watermark: str = DEFAULT_WATERMARK,
     scene_words: List[Dict[str, Any]] = None,
-    tone: str = "auto_dynamic",
+    tone: str = "auto_2026_director",
 ) -> List[Path]:
     """
     Studio Max Dual Generative Engine:
@@ -310,8 +310,10 @@ def render_cinematic_scene_frames(
     canvas_w = spec.get("width", VIDEO_WIDTH)
     canvas_h = spec.get("height", VIDEO_HEIGHT)
 
-    effective_tone = (scene.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
-    art_style = str(visual_data.get("art_style") or scene.get("art_style") or "editorial_dark").strip()
+    from core.tone_engine import get_tone_profile
+    t_prof = get_tone_profile(tone, scene_tone=scene.get("scene_tone"), role=scene.get("role"), idx=scene_idx - 1)
+    effective_tone = t_prof["key"]
+    art_style = str(visual_data.get("art_style") or scene.get("art_style") or t_prof.get("preferred_world") or "editorial_dark").strip()
     topic_seed = str(scene.get("topic") or visual_data.get("title") or "").strip()
     world = resolve_studio_world(art_style=art_style, tone=effective_tone, visual_data=visual_data, topic=topic_seed)
 
@@ -341,18 +343,17 @@ def render_cinematic_scene_frames(
         render_action_overlay,
     )
     action_events = extract_spoken_actions(scene, duration, scene_words)
-    motion_profile = get_story_beat_motion(scene.get("role"), scene.get("narration"))
+    motion_profile = get_story_beat_motion(scene.get("role"), scene.get("narration"), tone=effective_tone)
+    is_hook_scene = (scene_idx == 1) or (str(scene.get("role") or "").lower().strip() == "hook")
     sub_vtype = str(scene.get("sub_visual_type") or "").lower().strip()
     sc_start = float(scene.get("start_time", 0.0))
 
     badge = str(visual_data.get("badge") or "")
     callout = str(visual_data.get("callout_badge") or "")
     title = str(visual_data.get("title") or "")
-    accent = (
-        world["emerald"] if effective_tone in ("mentor_storyteller", "trusted_dost_guide", "peaceful_human_guide")
-        else (world["amber"] if effective_tone in ("interview_prep", "senior_hinglish_mentor", "purposeful_hinglish_mentor")
-              else (world["rose"] if effective_tone == "dramatic_performance" else world["cyan"]))
-    )
+    acc_key = str(t_prof.get("accent_key") or "cyan")
+    accent = tuple(world.get(acc_key, world["cyan"])[:3])
+    rev_pow = float(t_prof.get("reveal_power", 0.96))
 
     far_particles = [((i * 197 + scene_idx * 53) % canvas_w, (i * 313 + 71) % canvas_h, 2 + (i % 3), 12 + (i % 3) * 6) for i in range(16)]
     near_glyphs = [((i * 271 + scene_idx * 89) % canvas_w, (i * 199 + 43) % canvas_h, 5 + (i % 4), 16 + (i % 2) * 8) for i in range(8)]
@@ -361,14 +362,10 @@ def render_cinematic_scene_frames(
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
         raw_p = _voice_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
-        if effective_tone == "youth_friend_turbo":
-            progress = 1.0 if linear_p >= 0.93 else min(1.0, (raw_p ** 0.92) * 1.05)
-        elif effective_tone in ("purposeful_hinglish_mentor", "senior_hinglish_mentor"):
-            progress = 1.0 if linear_p >= 0.94 else min(1.0, (raw_p ** 0.94) * 1.04)
-        elif effective_tone == "fireship_octane":
-            progress = 1.0 if linear_p >= 0.93 else min(1.0, raw_p * 1.08)
+        if linear_p >= 0.93:
+            progress = 1.0
         else:
-            progress = raw_p
+            progress = min(1.0, (raw_p ** rev_pow) * (1.06 if rev_pow < 0.95 else 1.03))
         cur_time = sc_start + (linear_p * duration)
         t_alpha = _fade_transition_alpha(linear_p)
         fx_state = eval_voice_gates(voice_stage_tl, linear_p)
@@ -417,7 +414,7 @@ def render_cinematic_scene_frames(
                 _set_active_voice_gates(None)
 
             virtual_rgba = stage.composite_onto(None)
-            cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, VIDEO_WIDTH, 1500)
+            cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, VIDEO_WIDTH, 1500, is_hook=is_hook_scene, tone=effective_tone)
             virtual_rgba = apply_camera_to_stage(virtual_rgba, cam)
             virtual_rgba = render_action_overlay(virtual_rgba, world, stage.anchor_cards, active_acts, linear_p)
             virtual_rgba = render_interactive_fx_overlay(virtual_rgba, world, fx_state, stage.anchors, progress)
@@ -439,7 +436,7 @@ def render_cinematic_scene_frames(
             finally:
                 _set_active_voice_gates(None)
             stage_rgba = stage.composite_onto(None)
-            cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, canvas_w, canvas_h)
+            cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, canvas_w, canvas_h, is_hook=is_hook_scene, tone=effective_tone)
             stage_rgba = apply_camera_to_stage(stage_rgba, cam)
             stage_rgba = render_action_overlay(stage_rgba, world, stage.anchor_cards, active_acts, linear_p)
             stage_rgba = render_interactive_fx_overlay(stage_rgba, world, fx_state, stage.anchors, progress)

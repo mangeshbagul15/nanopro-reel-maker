@@ -414,8 +414,8 @@ def _apply_role_bonus(entry: Dict[str, Any], sig: Dict[str, Any], idx: int, used
     if sig["is_hook"]:
         if geom == "hook_ui":
             bonus += 14.0
-        if tone == "dual_dialogue_curious" and eid in ("chat_thread_ai", "mobile_app_mockup", "hero_hook"):
-            bonus += 6.5
+        if tone == "dual_creator_debate" and eid in ("chat_thread_ai", "mobile_app_mockup", "hero_hook"):
+            bonus += 7.0
         if sig["has_compare"] and geom == "compare_matrix":
             bonus += 13.0
         # Keep browser_window strictly out unless browser/DOM/HTTP topic is actually asked
@@ -456,6 +456,29 @@ def _apply_role_bonus(entry: Dict[str, Any], sig: Dict[str, Any], idx: int, used
     if not sig["is_hook"] and not sig["is_final"] and idx in (1, 2, 3):
         if geom in ("topology", "memory_storage") and geom not in used_geoms:
             bonus += 3.2
+
+    # 2026 Tone-Archetype Sync Affinity (War Story / Myth-Buster / Live Debug / Whiteboard / Cage Match / Radar / Reverse Engineer)
+    try:
+        from core.tone_engine import get_tone_profile
+        t_prof = get_tone_profile(tone)
+        t_key = t_prof["key"]
+        pref_layouts = t_prof.get("preferred_layouts") or ()
+        if eid in pref_layouts:
+            bonus += 8.5
+        if t_key == "war_story_postmortem" and any(k in eid for k in ("incident", "alert", "sre", "waterfall", "failover", "chaos")):
+            bonus += 4.5
+        elif t_key == "live_debug_pair" and (geom == "code_diff" or eid in ("ide_split_workbench", "mac_terminal_stream_cast", "dual_sync_diagram_plus_code", "browser_devtools_studio", "python_stack_heap_live")):
+            bonus += 5.0
+        elif t_key == "whiteboard_analogy" and any(k in eid for k in ("excalidraw", "sketch", "join", "lakehouse", "iso_")):
+            bonus += 4.5
+        elif t_key == "cage_match_vs" and geom in ("compare_matrix", "metrics_charts"):
+            bonus += 5.0
+        elif t_key == "release_radar_tldr" and any(k in eid for k in ("bento", "agent", "neural", "thinking", "notebook")):
+            bonus += 4.5
+        elif t_key == "bigtech_reverse_engineer" and any(k in eid for k in ("ledger", "cloud_infra", "geo_world", "topo_", "all_in_one")):
+            bonus += 4.5
+    except Exception:
+        pass
 
     # Non-box rich visual diversity: prefer visual charts, SQL, diff, diagrams & heatmaps over plain repeating slot cards
     if geom in ("metrics_charts", "sql_schema", "code_diff", "compare_matrix", "memory_storage"):

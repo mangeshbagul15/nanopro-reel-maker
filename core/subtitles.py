@@ -392,7 +392,7 @@ def generate_ass_subtitles(
     word_timestamps: List[Dict[str, Any]],
     output_path: Path = None,
     format_ratio: str = "9:16",
-    tone: str = "auto_dynamic",
+    tone: str = "auto_2026_director",
     aligned_scenes: List[Dict[str, Any]] = None,
     art_style: str = "editorial_dark"
 ) -> Path:
@@ -491,32 +491,22 @@ def generate_ass_subtitles(
             chunks.append([current])
             i += 1
 
-    # Highlight color (ASS BGR hex) & kinetic pop scale per tone
+    # Canonical 2026 Highlight color (ASS BGR hex) & kinetic pop scale per tone
+    from core.tone_engine import DEFAULT_TONE_KEY, TONE_PROFILES, resolve_effective_tone
     tone_styles = {
-        "dual_dialogue_curious": (r"\c&H00F8BD38&\fscx110\fscy110", "dual_dialogue_cyan"),
-        "peaceful_human_guide": (r"\c&H0099D334&\fscx110\fscy110", "peaceful_emerald_sweep"),
-        "trusted_dost_guide": (r"\c&H0099D334&\fscx112\fscy112", "trusted_emerald_warm"),
-        "senior_hinglish_mentor": (r"\c&H00F8BD38&\fscx110\fscy110", "mentor_cyan_emphasis"),
-        "purposeful_hinglish_mentor": (r"\c&H00F8BD38&\fscx110\fscy110", "purposeful_mentor_cyan"),
-        "youth_friend_turbo": (r"\c&H002BF6FF&\fscx112\fscy112", "turbo_youth_pop"),
-        "mentor_storyteller": (r"\c&H0099D334&\fscx112\fscy112", "mentor_emerald"),
-        "fireship_octane": (r"\c&H002BF6FF&\fscx114\fscy114", "electric_yellow"),
-        "dramatic_performance": (r"\c&H0024BFFF&\fscx108\fscy108", "amber_drama"),
-        "staff_engineer": (r"\c&H00F8BD38&\fscx105\fscy105", "cyber_cyan"),
-        "interview_prep": (r"\c&H0099D334&\fscx110\fscy110", "emerald_pop"),
-        "conversational_casual": (r"\c&H002BF6FF&\fscx106\fscy106", "warm_yellow"),
+        k: (str(v["subtitle_tag"]), str(v["subtitle_name"])) for k, v in TONE_PROFILES.items()
     }
 
     def _tone_for_time(t_sec: float) -> str:
-        if tone != "auto_dynamic":
-            return tone
+        if tone != DEFAULT_TONE_KEY:
+            return resolve_effective_tone(tone)
         if aligned_scenes:
-            for sc in aligned_scenes:
+            for idx_s, sc in enumerate(aligned_scenes):
                 st_t = float(sc.get("start_time", 0.0))
                 en_t = float(sc.get("end_time", 9999.0))
                 if st_t <= t_sec <= en_t:
-                    return sc.get("scene_tone", "conversational_casual")
-        return "fireship_octane"
+                    return resolve_effective_tone(tone, scene_tone=sc.get("scene_tone"), role=sc.get("role"), idx=idx_s)
+        return "myth_buster_contrarian"
 
     for chunk in chunks:
         if not chunk:
@@ -527,7 +517,7 @@ def generate_ass_subtitles(
             w_start = current_word["start"]
             w_end = current_word["end"]
             active_tone = _tone_for_time(w_start)
-            hl_tag = tone_styles.get(active_tone, tone_styles["fireship_octane"])[0]
+            hl_tag = tone_styles.get(active_tone, tone_styles["myth_buster_contrarian"])[0]
 
             line_parts = []
             for j, w in enumerate(chunk):

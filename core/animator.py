@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFont
 from core.config import VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, FONTS_DIR, FORMAT_SPECS, DEFAULT_WATERMARK
+from core.tone_engine import TONE_PROFILES, get_tone_profile, resolve_effective_tone
 
 # Premium Cyber-Tech Color Palette
 COLOR_BG_DARK = (11, 15, 25)
@@ -31,16 +32,7 @@ ACCENT_THEMES = {
 
 
 TONE_THEME_MAP = {
-    "trusted_dost_guide": "emerald_matrix",
-    "senior_hinglish_mentor": "indigo_cyan",
-    "purposeful_hinglish_mentor": "indigo_cyan",
-    "youth_friend_turbo": "cyber_cyan",
-    "mentor_storyteller": "emerald_matrix",
-    "fireship_octane": "cyber_cyan",
-    "dramatic_performance": "crimson_alert",
-    "staff_engineer": "indigo_cyan",
-    "conversational_casual": "emerald_matrix",
-    "interview_prep": "gold_purple",
+    k: str(v["animator_theme"]) for k, v in TONE_PROFILES.items()
 }
 
 # Active visual palette for the current frame (supports distinct light/dark/blueprint/editorial worlds)
@@ -185,7 +177,7 @@ def _build_themed_canvas(
     canvas_w: int,
     canvas_h: int,
     theme_name: str = "cyber_cyan",
-    effective_tone: str = "conversational_casual",
+    effective_tone: str = "whiteboard_analogy",
     art_style: str = "editorial_dark",
 ) -> Tuple[Image.Image, Dict[str, Any]]:
     """Builds a visually distinct canvas world (light_whiteboard, editorial_dark, blueprint_grid, neon_fireship)."""
@@ -223,12 +215,12 @@ def _build_themed_canvas(
         gdraw.line((canvas_w - 76, canvas_h - 70, canvas_w - 36, canvas_h - 70), fill=tick, width=2)
         gdraw.line((canvas_w - 36, canvas_h - 110, canvas_w - 36, canvas_h - 70), fill=tick, width=2)
     else:
-        # neon_fireship: kinetic cyber streaks / spotlight based on tone
-        if effective_tone == "fireship_octane":
+        # neon_fireship: kinetic cyber streaks / spotlight based on 2026 tone
+        if effective_tone in ("myth_buster_contrarian", "cage_match_vs", "release_radar_tldr"):
             streak_col = (p[0], p[1], p[2], 18)
             for offset in range(-canvas_h, canvas_w + canvas_h, 130):
                 gdraw.line((offset, 0, offset - 380, canvas_h), fill=streak_col, width=2)
-        elif effective_tone == "dramatic_performance":
+        elif effective_tone == "war_story_postmortem":
             gdraw.ellipse((canvas_w // 2 - 480, 120, canvas_w // 2 + 480, 950), fill=(p[0], p[1], p[2], 20))
             gdraw.ellipse((canvas_w // 2 - 360, 750, canvas_w // 2 + 360, 1550), fill=(s[0], s[1], s[2], 14))
         else:
@@ -442,7 +434,7 @@ def render_scene_frames(
     watermark: str = DEFAULT_WATERMARK,
     scene_words: List[Dict[str, Any]] = None,
     custom_style_prompt: str = "",
-    tone: str = "auto_dynamic"
+    tone: str = "auto_2026_director"
 ) -> List[Path]:
     """
     Renders high-octane 2D frames across 12+ rich motion-graphics visual engines,
@@ -519,8 +511,9 @@ def render_scene_frames(
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
     canvas_w = spec.get("width", VIDEO_WIDTH)
     canvas_h = spec.get("height", VIDEO_HEIGHT)
-    effective_tone = (scene.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
-    art_style = str(visual_data.get("art_style") or scene.get("art_style") or "editorial_dark").lower().strip()
+    t_prof = get_tone_profile(tone, scene_tone=scene.get("scene_tone"), role=scene.get("role"), idx=scene_idx - 1)
+    effective_tone = t_prof["key"]
+    art_style = str(visual_data.get("art_style") or scene.get("art_style") or t_prof.get("preferred_world") or "editorial_dark").lower().strip()
     theme_cycle = ["indigo_cyan", "cyber_cyan", "emerald_matrix", "gold_purple", "crimson_alert"]
     tone_default_theme = TONE_THEME_MAP.get(effective_tone, theme_cycle[(scene_idx - 1) % len(theme_cycle)])
     chosen_theme = visual_data.get("accent_theme") or tone_default_theme
@@ -536,23 +529,15 @@ def render_scene_frames(
     anchors = _build_choreography_anchors(duration, scene, scene_words)
     header_badge = visual_data.get("badge", "")
     header_title = visual_data.get("title", "")
+    rev_pow = float(t_prof.get("reveal_power", 0.96))
 
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
         raw_p = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
-        # Tone-matched reveal snap synced to narration & subtitle cadence (zero skipped frames/content)
-        if effective_tone == "youth_friend_turbo":
-            progress = min(1.0, 1.0 if linear_p >= 0.93 else pow(raw_p, 0.92) * 1.05)
-        elif effective_tone == "purposeful_hinglish_mentor":
-            progress = min(1.0, 1.0 if linear_p >= 0.94 else pow(raw_p, 0.94) * 1.04)
-        elif effective_tone == "senior_hinglish_mentor":
-            progress = min(1.0, 1.0 if linear_p >= 0.94 else pow(raw_p, 0.93) * 1.04)
-        elif effective_tone == "fireship_octane":
-            progress = min(1.0, 1.0 if linear_p >= 0.93 else raw_p * 1.08)
-        elif effective_tone == "dramatic_performance":
-            progress = pow(raw_p, 1.06)
+        if linear_p >= 0.93:
+            progress = 1.0
         else:
-            progress = raw_p
+            progress = min(1.0, pow(raw_p, rev_pow) * (1.06 if rev_pow < 0.95 else 1.02))
         frame = base_canvas.copy()
 
         if needs_aspect_fit:
@@ -2648,7 +2633,7 @@ def generate_thumbnail_9_16(
     watermark: str = DEFAULT_WATERMARK,
     visual_engine: str = "hybrid_modern",
     output_path: Any = None,
-    tone: str = "auto_dynamic",
+    tone: str = "auto_2026_director",
 ) -> Path:
     """
     Generates a dedicated, high-CTR 1080x1920 (9:16) YouTube Shorts / Reels Cover Poster
@@ -2672,7 +2657,7 @@ def generate_thumbnail_9_16(
     clean_topic = str(topic or "System Design Deep Dive").strip()
     art_style = str(timeline.get("art_style", "editorial_dark")) if isinstance(timeline, dict) else "editorial_dark"
     sc0 = timeline.get("scenes", [{}])[0] if (isinstance(timeline, dict) and timeline.get("scenes")) else {}
-    eff_tone = (sc0.get("scene_tone") if isinstance(sc0, dict) else None) or (tone if tone != "auto_dynamic" else "staff_engineer")
+    eff_tone = resolve_effective_tone(tone, scene_tone=sc0.get("scene_tone") if isinstance(sc0, dict) else None, role="hook", idx=0)
     world = resolve_studio_world(
         art_style=art_style,
         tone=eff_tone,
