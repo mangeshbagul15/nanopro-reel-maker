@@ -217,11 +217,36 @@ def compute_voice_stage_timeline(
         prev_t = t_clamped
         cue_times.append(round(t_clamped, 4))
 
+    speaker_spans: List[Dict[str, Any]] = []
+    raw_spans = scene.get("dialogue_spans")
+    if isinstance(raw_spans, list) and raw_spans:
+        for sp in raw_spans:
+            if not isinstance(sp, dict):
+                continue
+            speaker_spans.append({
+                "speaker": str(sp.get("speaker") or "male").lower(),
+                "t0": _clamp01(float(sp.get("start", 0.0)) / duration),
+                "t1": _clamp01(float(sp.get("end", duration)) / duration),
+            })
+    elif isinstance(scene.get("dialogue"), list) and scene.get("dialogue"):
+        turns = [d for d in scene["dialogue"] if isinstance(d, dict) and str(d.get("text") or "").strip()]
+        total_w = max(1, sum(max(1, len(str(d.get("text", "")).split())) for d in turns))
+        cur_w = 0
+        for d in turns:
+            w_cnt = max(1, len(str(d.get("text", "")).split()))
+            speaker_spans.append({
+                "speaker": str(d.get("speaker") or "male").lower(),
+                "t0": round(cur_w / float(total_w), 4),
+                "t1": round((cur_w + w_cnt) / float(total_w), 4),
+            })
+            cur_w += w_cnt
+
     return {
         "n": n,
         "cue_times": cue_times,
         "labels": labels,
         "words": clean_words,
+        "speaker_spans": speaker_spans,
     }
 
 
@@ -272,6 +297,14 @@ def eval_voice_gates(timeline_cues: Dict[str, Any], linear_p: float, total_stage
         phrase_win = cur_word
 
     fx_type, fx_label = detect_spoken_fx_cue(phrase_win)
+    active_speaker = ""
+    for sp in (timeline_cues.get("speaker_spans") or []):
+        if float(sp.get("t0", 0.0)) - 0.02 <= p <= float(sp.get("t1", 1.0)) + 0.02:
+            active_speaker = str(sp.get("speaker") or "")
+            break
+    if not active_speaker and (timeline_cues.get("speaker_spans") or []):
+        active_speaker = str(timeline_cues["speaker_spans"][-1].get("speaker") or "")
+
     return {
         "gates": gates,
         "cue_times": cue_times,
@@ -282,6 +315,7 @@ def eval_voice_gates(timeline_cues: Dict[str, Any], linear_p: float, total_stage
         "phrase": phrase_win,
         "fx_type": fx_type,
         "fx_label": fx_label,
+        "speaker": active_speaker,
         "linear_p": p,
     }
 
@@ -411,6 +445,23 @@ def render_interactive_fx_overlay(
         # Animated Marker Underline Swipe inside badge
         swipe_t = _ease_out_cubic(min(1.0, (p * 12.0) % 1.0 + 0.25))
         draw.line((kx0 + 14, ky1 - 5, int(kx0 + 14 + (kw_w - 28) * swipe_t), ky1 - 5), fill=_rgba(cyan, 0.95), width=3)
+
+    # 4b. Dual Dialogue Live Speaker Pill (Top-Left HUD beside Spoken Keyword Pop, y=316..356)
+    active_speaker = str(fx_state.get("speaker") or "").strip().lower()
+    if active_speaker in ("female", "male") and 0.01 < p < 0.99:
+        f_sp = _fx_font(19, bold=True)
+        if active_speaker == "female":
+            sp_txt = "SHE ASKS ?"
+            sp_col = rose
+        else:
+            sp_txt = "MENTOR SOLVES"
+            sp_col = emerald
+        sbb = f_sp.getbbox(sp_txt)
+        sp_w = (sbb[2] - sbb[0]) + 46
+        sx0, sy0, sy1 = 68, 316, 356
+        draw.rounded_rectangle((sx0, sy0, sx0 + sp_w, sy1), radius=14, fill=_rgba(card_alt, 0.92), outline=_rgba(sp_col, 0.88), width=2)
+        draw.ellipse((sx0 + 14, sy0 + 14, sx0 + 26, sy0 + 26), fill=_rgba(sp_col, 0.96))
+        draw.text((sx0 + 34, sy0 + 8), sp_txt, font=f_sp, fill=_rgba(sp_col, 0.98))
 
     # 5. Contextual Thought Cloud / Mini Quiz / Warning / Pro-Tip / Status+Sparkle Burst / Split Delta Bubble
     if fx_type != "none" and fx_label and 0.04 < p < 0.95:

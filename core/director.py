@@ -398,8 +398,12 @@ Output a single valid JSON object matching this structure:
     {
       "scene_id": 1,
       "role": "hook",
-      "scene_tone": "fireship_octane / dramatic_performance / staff_engineer / conversational_casual / interview_prep",
-      "narration": "Narration text with natural pauses...",
+      "scene_tone": "fireship_octane / dramatic_performance / staff_engineer / conversational_casual / interview_prep / dual_dialogue_curious",
+      "narration": "Narration text with natural pauses (or full spoken transcript if dialogue array is used)...",
+      "dialogue": [
+        {"speaker": "female", "text": "Optional for dual_dialogue_curious: Female curious relatable doubt/question..."},
+        {"speaker": "male", "text": "Optional for dual_dialogue_curious: Empathetic Male mentor acknowledging feelings & explaining clearly..."}
+      ],
       "visual_type": "custom_scene",
       "choreography": {
         "mode": "progressive_node_edge",
@@ -573,6 +577,17 @@ ENGINE_STYLE_DIRECTIVES = {
 }
 
 TONE_DIRECTIVES = {
+    "dual_dialogue_curious": (
+        "DUAL VOICE HINGLISH CONVERSATION (EMPATHETIC PROBLEM SOLVER + CURIOUS QUESTIONER) MANDATE:\n"
+        "Create a vivid, deeply relatable TWO-PERSON Hinglish conversation on every scene between:\n"
+        "- FEMALE (`\"speaker\": \"female\"`): A bright, curious learner who voices genuine feelings, overwhelm, real-world confusion, and sharp follow-up doubts (e.g., 'Yaar honestly, mujhe yeh concept thoda overwhelming lag raha hai...', 'Wait, par agar 10,000 requests ek saath aa jayein toh system hang nahi hoga?', 'Par iska asli catch kya hai?').\n"
+        "- MALE (`\"speaker\": \"male\"`): A warm, emotionally intelligent mentor & problem solver who FIRST validates her feelings gently ('Relax, main samajhta hoon pehli baar dekhne mein yeh tricky lagta hai... Tension mat lo, saath mein decode karte hain'), responds directly to her exact question with patience and warmth, explains the mechanics clearly step-by-step, and checks in ('Bilkul sahi pucha! Ab clear hua?').\n"
+        "STRICT OUTPUT STRUCTURE FOR EVERY SCENE:\n"
+        "1. Every scene MUST include a `\"dialogue\"` array with 2 to 4 alternating turns (`female` -> `male` -> optional `female` -> `male`).\n"
+        "2. NEVER write speaker prefixes like 'Female:', 'Male:', 'She:', 'He:' inside `dialogue[].text` or `narration` — write pure spoken words only!\n"
+        "3. Set `\"narration\"` to the clean concatenation of all dialogue turns in order (`' '.join(turn['text'])`), and populate 4-5 `choreography.triggers` synced across those conversational beats.\n"
+        "4. Mix conversational UI visual types (`chat_thread_ai`, `hero_hook`, `architecture_flow`, `split_comparison`, `sequence_diagram`, `concept_cards`) so the screen animates every Q&A exchange live. Set `scene_tone` to `dual_dialogue_curious`."
+    ),
     "peaceful_human_guide": (
         "PEACEFUL HUMAN GUIDE & CURIOUS MINDSET SYNC MANDATE: "
         "Calm, happy, curious, and deeply human Hinglish voice with a peaceful, clear, and effective mentor vibe — like a thoughtful guide and supportive problem solver who FIRST understands the viewer's mindset before answering and reassures them gently ('Don't worry, main hoon na', 'Tension mat lo, dekhte hain') before saying 'Chalo tod ke samajhte hain'.\n"
@@ -688,8 +703,26 @@ def generate_timeline(
     else:
         style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["auto_dynamic"])
     
-    # 1. Language & Dialect based on the selected Voice Persona
-    if voice.endswith("|hinglish") or voice == "en-IN-NeerjaExpressiveNeural":
+    # 1. Language & Dialect based on the selected Voice Persona & Tone
+    if tone == "dual_dialogue_curious" or str(voice).startswith("dual:"):
+        v_low = str(voice).lower()
+        if "mr-in" in v_low:
+            lang_directive = (
+                "LANGUAGE & DIALECT MANDATE (DUAL VOICE MARATHI/MINGLISH DIALOGUE): "
+                "Generate alternating `dialogue` turns (`female` curious questioner + `male` empathetic mentor solver) in natural conversational Hinglish/Minglish Roman script mixed with crisp English tech terms (`Latency`, `Queue`, `Cache`, `Thread`) and ASCII numbers so Edge-TTS voices speak smoothly and subtitles stay 100% readable!"
+            )
+        elif "en-us-jenny" in v_low and "en-us-christopher" in v_low:
+            lang_directive = (
+                "LANGUAGE & DIALECT MANDATE (DUAL VOICE ENGLISH TECH DIALOGUE): "
+                "Generate alternating `dialogue` turns (`female` curious developer asking real-world questions + `male` warm empathetic senior engineer solving step-by-step) in natural conversational American/Global tech English."
+            )
+        else:
+            lang_directive = (
+                "LANGUAGE & DIALECT MANDATE (DUAL VOICE HINGLISH CONVERSATION): "
+                "Write EVERY turn inside `dialogue` (`speaker: 'female'` and `speaker: 'male'`) AND `narration` in warm, natural, deeply relatable **Roman Hinglish** mixed with crisp English engineering nouns (`Database`, `Latency`, `Lock`, `Retry`, `Scale`) and ASCII numbers (`100K`, `24ms`). "
+                "Do NOT use Devanagari letters or `Female:`/`Male:` prefixes so Hinglish/Hindi/Multilingual dual voices sound fluent and empathetic, and keep all on-screen `visual_data` in crisp English!"
+            )
+    elif voice.endswith("|hinglish") or voice == "en-IN-NeerjaExpressiveNeural":
         lang_directive = (
             "LANGUAGE & DIALECT MANDATE: The user explicitly selected an Indian-accent Hinglish voice persona (`en-IN`). "
             "You MUST write the spoken `narration` in natural, punchy conversational Hinglish strictly using LATIN / ROMAN letters mixed with English tech terms "
@@ -1789,6 +1822,50 @@ def _enforce_engine_style(
         if not v_data.get("footer") and clauses:
             v_data["footer"] = clauses[-1][:64]
 
+        # Guarantee clean Dual-Voice Conversation turns (`dialogue`) whenever `dual_dialogue_curious` is selected
+        if tone == "dual_dialogue_curious":
+            sc["scene_tone"] = "dual_dialogue_curious"
+            raw_dlg = sc.get("dialogue")
+            clean_dlg: List[Dict[str, str]] = []
+            if isinstance(raw_dlg, list):
+                for item in raw_dlg:
+                    if not isinstance(item, dict):
+                        continue
+                    spk_raw = str(item.get("speaker") or "male").strip().lower()
+                    spk = "female" if spk_raw in ("female", "f", "she", "questioner", "curious", "girl", "student") else "male"
+                    txt = re.sub(
+                        r"^\s*(?:female|male|she|he|questioner|solver|mentor|dost|host)\s*:\s*",
+                        "",
+                        str(item.get("text") or "").strip(),
+                        flags=re.IGNORECASE,
+                    )
+                    if txt:
+                        clean_dlg.append({"speaker": spk, "text": txt})
+            if len(clean_dlg) < 2:
+                narr_clean = re.sub(
+                    r"^\s*(?:female|male|she|he|questioner|solver|mentor)\s*:\s*",
+                    "",
+                    str(sc.get("narration") or "").strip(),
+                    flags=re.IGNORECASE,
+                )
+                role_s = str(sc.get("role") or "").lower()
+                if role_s == "hook" or idx == 0:
+                    q_txt = f"Yaar sach bataun toh mujhe yeh {title[:32]} concept dekh ke thoda confusion ho raha hai — yeh scale par fail kyun hota hai?"
+                    a_txt = f"Main samajhta hoon pehli baar dekhne mein yeh tricky lagta hai. Relax, saath mein decode karte hain — {narr_clean or f'{title[:28]} ko cleanly samajhna bilkul easy hai!'}"
+                elif role_s == "cta" or idx == len(scenes) - 1:
+                    q_txt = f"Waah, ab picture ekdam clear ho gayi! Par production mein sabse zaroori rule kaunsa yaad rakhun?"
+                    a_txt = f"Smart question! {narr_clean or 'Bas bounded limits, clear observability aur retry safeguards yaad rakho — aur is reel ko save zaroor kar lena!'}"
+                else:
+                    q_txt = f"Wait, par ek doubt hai — {title[:34]} mein jab traffic achanak badhta hai toh bottleneck kahan aata hai?"
+                    a_txt = f"Bilkul valid doubt pucha tumne! {narr_clean or 'Chalo step-by-step dekhte hain ki request flow kaise smooth rehta hai.'}"
+                clean_dlg = [
+                    {"speaker": "female", "text": q_txt},
+                    {"speaker": "male", "text": a_txt},
+                ]
+            sc["dialogue"] = clean_dlg
+            sc["narration"] = " ".join(d["text"] for d in clean_dlg).strip()
+            clauses = _split_narration_clauses(sc["narration"], target_count=5) or clauses
+
         sc["visual_data"] = v_data
 
         # Ensure Audio-Visual Choreography triggers exist for voice-synced Progressive Reveal (4-5 chronological beats)
@@ -1919,6 +1996,100 @@ def _build_emergency_fallback_timeline(
     scene_tone = tone if tone != "auto_dynamic" else "senior_hinglish_mentor"
     is_marathi = voice.startswith("mr-") or voice.endswith("|mr")
     is_hindi = voice.startswith("hi-") or voice.endswith("|hi")
+
+    if scene_tone == "dual_dialogue_curious" or str(voice).startswith("dual:"):
+        dual_scenes = [
+            {
+                "scene_id": 1,
+                "role": "hook",
+                "scene_tone": "dual_dialogue_curious",
+                "dialogue": [
+                    {"speaker": "female", "text": f"Yaar honestly, {clean_topic} naam sunte hi mujhe thoda overwhelm feel hota hai... yeh production mein itna tricky kyun lagta hai?"},
+                    {"speaker": "male", "text": f"Main samajhta hoon, pehli baar dekhne mein har kisi ko aisa hi lagta hai. Relax, main hoon na — chalo bilkul real story ki tarah {clean_topic} ko tod ke samajhte hain."},
+                ],
+                "narration": f"Yaar honestly, {clean_topic} naam sunte hi mujhe thoda overwhelm feel hota hai... yeh production mein itna tricky kyun lagta hai? Main samajhta hoon, pehli baar dekhne mein har kisi ko aisa hi lagta hai. Relax, main hoon na — chalo bilkul real story ki tarah {clean_topic} ko tod ke samajhte hain.",
+                "visual_type": "hero_hook",
+                "visual_data": {
+                    "badge": "CURIOUS Q & MENTOR FIX",
+                    "title": clean_topic,
+                    "question": f"Why does {clean_topic} feel confusing at scale?",
+                    "left_pill": "Her Doubt: Why Overload?",
+                    "right_pill": "Mentor Clarity: Step-by-Step",
+                    "stat_badge": "Empathetic Deep Breakdown",
+                },
+            },
+            {
+                "scene_id": 2,
+                "role": "architecture",
+                "scene_tone": "dual_dialogue_curious",
+                "dialogue": [
+                    {"speaker": "female", "text": "Wait, par agar ek saath 10,000 requests aa jayein toh system beech mein hang ya lock kyun nahi hota?"},
+                    {"speaker": "male", "text": f"Bahut smart doubt pucha! Yahan {clean_topic} request ko direct database par bhejne ke bajay 4 clean stages mein handle karta hai — edge routing, in-memory queue, state engine, aur synced storage."},
+                ],
+                "narration": f"Wait, par agar ek saath 10,000 requests aa jayein toh system beech mein hang ya lock kyun nahi hota? Bahut smart doubt pucha! Yahan {clean_topic} request ko direct database par bhejne ke bajay 4 clean stages mein handle karta hai — edge routing, in-memory queue, state engine, aur synced storage.",
+                "visual_type": "architecture_flow",
+                "visual_data": {
+                    "badge": "LIVE MECHANICS Q&A",
+                    "title": f"{clean_topic} Flow",
+                    "nodes": [
+                        {"id": "in", "label": "Edge Router", "sub": "Rate limit & auth check", "edge": "Buffer", "color": "#38BDF8"},
+                        {"id": "buf", "label": "Async Queue", "sub": "Smooth traffic bursts", "edge": "Compute", "color": "#818CF8"},
+                        {"id": "core", "label": f"{clean_topic[:18]} Engine", "sub": "Lock-free fast worker", "edge": "Commit", "color": "#FBBF24"},
+                        {"id": "out", "label": "Synced Replica", "sub": "Zero-loss state write", "color": "#34D399"},
+                    ],
+                    "footer": "Question Resolved: Queue + Worker prevents lock freeze",
+                },
+            },
+            {
+                "scene_id": 3,
+                "role": "tradeoff",
+                "scene_tone": "dual_dialogue_curious",
+                "dialogue": [
+                    {"speaker": "female", "text": "Achha samjhi! Par kya ismein koi hidden catch ya trade-off bhi hota hai?"},
+                    {"speaker": "male", "text": "Bilkul sahi pakda tumne! Latency 10x fast ho jaati hai, par memory limits, bounded queues aur idempotent retries set karna zaroori hota hai taaki koi event miss na ho."},
+                ],
+                "narration": "Achha samjhi! Par kya ismein koi hidden catch ya trade-off bhi hota hai? Bilkul sahi pakda tumne! Latency 10x fast ho jaati hai, par memory limits, bounded queues aur idempotent retries set karna zaroori hota hai taaki koi event miss na ho.",
+                "visual_type": "split_comparison",
+                "visual_data": {
+                    "badge": "EDGE CASES & TRADE-OFFS",
+                    "title": "Hidden Catch vs Mentor Fix",
+                    "left_label": "WITHOUT GUARDRAILS",
+                    "left_points": ["Silent memory buildup", "Duplicate retry storms", "Unbounded P99 latency", "Hard cascading crashes"],
+                    "right_label": "MENTOR SOLUTION",
+                    "right_points": ["Strict bounded queues", "Idempotency keys", "10x lower P99 latency", "Graceful circuit breaker"],
+                },
+            },
+            {
+                "scene_id": 4,
+                "role": "cta",
+                "scene_tone": "dual_dialogue_curious",
+                "dialogue": [
+                    {"speaker": "female", "text": "Wow yaar, ab yeh poora concept dimaag mein crystal clear baith gaya — thank you itna patiently samjhane ke liye!"},
+                    {"speaker": "male", "text": "Always happy to help! Bas yeh checklist save kar lo taaki interview ya production mein kabhi confusion na ho — aur next topic comment mein batao!"},
+                ],
+                "narration": "Wow yaar, ab yeh poora concept dimaag mein crystal clear baith gaya — thank you itna patiently samjhane ke liye! Always happy to help! Bas yeh checklist save kar lo taaki interview ya production mein kabhi confusion na ho — aur next topic comment mein batao!",
+                "visual_type": "concept_cards",
+                "visual_data": {
+                    "badge": "CRYSTAL CLEAR RECAP",
+                    "title": f"{clean_topic} Sorted",
+                    "bullets": [
+                        "Doubt 1 Solved: Edge queue absorbs 10,000+ burst spikes",
+                        "Doubt 2 Solved: Lock-free worker keeps hot paths smooth",
+                        "Hidden Catch: Always enforce idempotency & queue caps",
+                        "Next Action: Save reel & drop your next doubt below!",
+                    ],
+                    "footer_cta": "Save • Share • Drop Your Next Question",
+                },
+            },
+        ]
+        if duration_mode == "short":
+            dual_scenes = dual_scenes[:3]
+        return {
+            "title": clean_topic,
+            "topic_category": "system_design",
+            "art_style": "sapphire_3d",
+            "scenes": dual_scenes,
+        }
 
     if is_marathi:
         narrs = [

@@ -110,6 +110,7 @@ with st.sidebar:
     tone_option = st.selectbox(
         "Script Tone & Emotion",
         [
+            ("dual_dialogue_curious", "🗣️ Dual Voice Hinglish Dialogue (Curious Female Questions • Empathetic Male Solver)"),
             ("peaceful_human_guide", "🧘 Peaceful Human Guide (Calm Curious Hinglish, Reassuring Flow, Micro-Cues & Tight Visual Sync)"),
             ("trusted_dost_guide", "🤝 Trusted Dost & Peaceful Guide (Happy Curious Hinglish, Secret Hook, Supportive Q&A & Visionary Sync)"),
             ("purposeful_hinglish_mentor", "🎯 Purposeful Hinglish Mentor (Crystal-Clear Male Mentor, Must-Understand Depth, Edge Cases & Visual Sync)"),
@@ -128,6 +129,21 @@ with st.sidebar:
         help="Controls AI scriptwriting, BOTH Edge-TTS & ElevenLabs voice speed/pitch/emotion, 2D canvas animation theme, and karaoke subtitle highlights."
     )
     chosen_tone = tone_option[0]
+
+    # Auto-sync Edge-TTS Voice Persona & Dual filter whenever Dual Voice Dialogue tone is selected
+    _prev_tone = st.session_state.get("_prev_tone_option")
+    if chosen_tone == "dual_dialogue_curious" and _prev_tone != "dual_dialogue_curious":
+        st.session_state["voice_provider_radio"] = "Microsoft Edge-TTS (Free & Fast)"
+        st.session_state["lang_filter_pills"] = "All"
+        st.session_state["gender_filter_pills"] = "🗣️ Dual Pair"
+        st.session_state["edge_voice_select"] = (
+            "dual:hi-IN-SwaraNeural+hi-IN-MadhurNeural",
+            "🗣️🇮🇳 Dual Hinglish: Swara (Curious Q) + Madhur (Mentor A) [Recommended Dual]",
+        )
+    elif _prev_tone == "dual_dialogue_curious" and chosen_tone != "dual_dialogue_curious":
+        if st.session_state.get("gender_filter_pills") == "🗣️ Dual Pair":
+            st.session_state["gender_filter_pills"] = "All"
+    st.session_state["_prev_tone_option"] = chosen_tone
 
     st.markdown("---")
     st.markdown("### 🎙️ Voice & TTS Engine")
@@ -148,12 +164,12 @@ with st.sidebar:
             lang_filter = st.radio("Language:", ["All", "🇺🇸 English", "🇮🇳 Hindi", "🇮🇳 Marathi"], index=0, horizontal=True, key="lang_filter_pills")
     with col_flt2:
         if hasattr(st, "pills"):
-            gender_filter = st.pills("Gender:", ["All", "👨 Male", "👩 Female"], default="All", key="gender_filter_pills")
+            gender_filter = st.pills("Gender:", ["All", "🗣️ Dual Pair", "👨 Male", "👩 Female"], default="All", key="gender_filter_pills")
         else:
-            gender_filter = st.radio("Gender:", ["All", "👨 Male", "👩 Female"], index=0, horizontal=True, key="gender_filter_pills")
+            gender_filter = st.radio("Gender:", ["All", "🗣️ Dual Pair", "👨 Male", "👩 Female"], index=0, horizontal=True, key="gender_filter_pills")
 
     l_filter_key = "all" if (not lang_filter or lang_filter == "All") else ("marathi" if "Marathi" in lang_filter else ("hindi" if "Hindi" in lang_filter else "english"))
-    g_filter_key = "all" if (not gender_filter or gender_filter == "All") else ("male" if "Male" in gender_filter else "female")
+    g_filter_key = "all" if (not gender_filter or gender_filter == "All") else ("dual" if "Dual" in gender_filter else ("male" if "Male" in gender_filter else "female"))
 
     if voice_provider == "ElevenLabs AI (Ultra-Realistic)":
         el_usage = get_elevenlabs_usage()
@@ -208,14 +224,37 @@ with st.sidebar:
         if not available_edge_voices:
             available_edge_voices = VOICE_CATALOG.get("edge_tts", [])
         edge_voice_options = [(v["id"], v["label"]) for v in available_edge_voices]
+        if st.session_state.get("edge_voice_select") not in edge_voice_options:
+            st.session_state["edge_voice_select"] = edge_voice_options[0]
 
         edge_voice_choice = st.selectbox(
             f"Edge-TTS Voice Persona ({len(available_edge_voices)} available)",
             edge_voice_options,
-            format_func=lambda x: x[1]
+            format_func=lambda x: x[1],
+            key="edge_voice_select",
         )
         chosen_voice = edge_voice_choice[0]
         voice_label = edge_voice_choice[1]
+
+        if chosen_tone == "dual_dialogue_curious" or str(chosen_voice).startswith("dual:"):
+            all_edge = VOICE_CATALOG.get("edge_tts", [])
+            fem_pool = [(v["id"], v["label"]) for v in all_edge if v.get("gender") == "female"]
+            male_pool = [(v["id"], v["label"]) for v in all_edge if v.get("gender") == "male"]
+            def_fem_id, def_male_id = ("hi-IN-SwaraNeural", "hi-IN-MadhurNeural")
+            if str(chosen_voice).startswith("dual:") and "+" in str(chosen_voice):
+                def_fem_id, def_male_id = str(chosen_voice).split("dual:", 1)[1].split("+", 1)
+            fem_idx = next((i for i, x in enumerate(fem_pool) if x[0] == def_fem_id), 0)
+            male_idx = next((i for i, x in enumerate(male_pool) if x[0] == def_male_id), 0)
+            with st.expander("🎭 Customize Female (Curious) + Male (Problem Solver) Voices", expanded=False):
+                use_custom_pair = st.checkbox("Override Preset Pair with Custom Female + Male Voices", value=False, key="dual_custom_toggle")
+                col_df, col_dm = st.columns(2)
+                with col_df:
+                    fem_pick = st.selectbox("👩 Female (Questions):", fem_pool, index=fem_idx, format_func=lambda x: x[1], key="dual_fem_voice")
+                with col_dm:
+                    male_pick = st.selectbox("👨 Male (Problem Solver):", male_pool, index=male_idx, format_func=lambda x: x[1], key="dual_male_voice")
+                if use_custom_pair:
+                    chosen_voice = f"dual:{fem_pick[0]}+{male_pick[0]}"
+                    voice_label = f"🗣️ Dual: {fem_pick[1].split('—')[0].strip()} + {male_pick[1].split('—')[0].strip()}"
     
     aspect_ratio = st.selectbox(
         "Format",

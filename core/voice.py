@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
 import requests
@@ -83,6 +84,13 @@ VOICE_CATALOG = {
         {"id": "elevenlabs:SAz9YHcvj6GT2YYXdXww", "name": "River", "gender": "neutral", "lang": "english", "accent": "American", "tag": "Relaxed, Neutral & Informative", "label": "🇺🇸 River (Relaxed & Neutral - US)"}
     ],
     "edge_tts": [
+        # Dual Hinglish / Hindi / Multilingual Dialogue Pairs (Female Curious Q + Male Mentor Solver)
+        {"id": "dual:hi-IN-SwaraNeural+hi-IN-MadhurNeural", "name": "Swara & Madhur (Dual Hinglish)", "gender": "dual", "lang": "hindi", "accent": "Indian", "tag": "Dual Hinglish Q&A Dialogue", "label": "🗣️🇮🇳 Dual Hinglish: Swara (Curious Q) + Madhur (Mentor A) [Recommended Dual]"},
+        {"id": "dual:en-IN-NeerjaExpressiveNeural|hinglish+en-IN-PrabhatNeural|hinglish", "name": "Neerja & Prabhat (Dual Hinglish)", "gender": "dual", "lang": "hindi", "accent": "Indian", "tag": "Dual Indian Hinglish", "label": "🗣️🇮🇳 Dual Indian Hinglish: Neerja (Curious Q) + Prabhat (Mentor A)"},
+        {"id": "dual:en-US-EmmaMultilingualNeural|hi+en-US-AndrewMultilingualNeural|hi", "name": "Emma & Andrew (Dual Multilingual)", "gender": "dual", "lang": "hindi", "accent": "Multilingual", "tag": "Dual Expressive Hindi/EN", "label": "🗣️🎙️ Dual Multilingual Hindi/EN: Emma (Curious Q) + Andrew (Mentor A)"},
+        {"id": "dual:en-US-AvaMultilingualNeural|hi+en-US-BrianMultilingualNeural|hi", "name": "Ava & Brian (Dual Multilingual)", "gender": "dual", "lang": "hindi", "accent": "Multilingual", "tag": "Dual Caring Hindi/EN", "label": "🗣️🎙️ Dual Caring Hindi/EN: Ava (Curious Q) + Brian (Mentor A)"},
+        {"id": "dual:mr-IN-AarohiNeural+mr-IN-ManoharNeural", "name": "Aarohi & Manohar (Dual Marathi)", "gender": "dual", "lang": "marathi", "accent": "Indian", "tag": "Dual Marathi Q&A Dialogue", "label": "🗣️🇮🇳 Dual Marathi: Aarohi (Curious Q) + Manohar (Mentor A)"},
+        {"id": "dual:en-US-JennyNeural+en-US-ChristopherNeural", "name": "Jenny & Christopher (Dual English)", "gender": "dual", "lang": "english", "accent": "American", "tag": "Dual Tech English Q&A", "label": "🗣️🇺🇸 Dual Tech English: Jenny (Curious Q) + Christopher (Mentor A)"},
         # Hindi & Hinglish Male (Verified Live Synthesis)
         {"id": "hi-IN-MadhurNeural", "name": "Madhur", "gender": "male", "lang": "hindi", "accent": "Indian", "tag": "Native Hindi / Hinglish Tech", "label": "🇮🇳 Madhur — Native Hindi / Hinglish Tech (Male)"},
         {"id": "en-US-AndrewMultilingualNeural|hi", "name": "Andrew Multilingual (Hindi/EN)", "gender": "male", "lang": "hindi", "accent": "Multilingual", "tag": "Warm Confident Hindi/Hinglish", "label": "🎙️ Andrew — Warm Mentor Multilingual Hindi/EN (Male)"},
@@ -175,10 +183,17 @@ TONE_VOICE_SETTINGS = {
         "similarity_boost": 0.82,
         "style": 0.20,
         "use_speaker_boost": True
+    },
+    "dual_dialogue_curious": {
+        "stability": 0.44,
+        "similarity_boost": 0.84,
+        "style": 0.42,
+        "use_speaker_boost": True
     }
 }
 
 EDGE_TTS_PROSODY = {
+    "dual_dialogue_curious": {"rate": "+3%", "pitch": "+0Hz"},
     "peaceful_human_guide": {"rate": "+3%", "pitch": "+1Hz"},
     "trusted_dost_guide": {"rate": "+4%", "pitch": "+1Hz"},
     "senior_hinglish_mentor": {"rate": "+5%", "pitch": "+0Hz"},
@@ -536,8 +551,8 @@ def _split_pause_beats(text: str, max_beats: int = 6) -> List[str]:
     """Splits narration along explicit pause cues ('...' or '[pause]') and punchy rhetorical micro-cues ('Wait.', 'Relax.', 'Samjha?')."""
     normalized = re.sub(r'\[pause\]', ' ... ', text, flags=re.IGNORECASE)
     # Insert subtle breathing pause breaks after punchy rhetorical cue hooks when followed by another clause
-    cue_split_re = r'(?<=\b(?:Relax|Chill|Easy|Sorted|Clear|Simple|Wait|Look|Listen|Twist|Catch|Boom|Done|Think|Why|How|Samjha))\s*([.?!])\s+(?=[A-Za-z0-9])'
-    normalized = re.sub(cue_split_re, r'\1 ... ', normalized, flags=re.IGNORECASE)
+    cue_split_re = r'\b(Relax|Chill|Easy|Sorted|Clear|Simple|Wait|Look|Listen|Twist|Catch|Boom|Done|Think|Why|How|Samjha)\s*([.?!])\s+(?=[A-Za-z0-9])'
+    normalized = re.sub(cue_split_re, r'\1\2 ... ', normalized, flags=re.IGNORECASE)
     raw_parts = [p.strip() for p in re.split(r'\s*\.{3,}\s*', normalized) if p and any(ch.isalnum() for ch in p)]
     if len(raw_parts) <= 1:
         return [re.sub(r'\s+', ' ', normalized).strip()]
@@ -766,19 +781,159 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
 
     return False
 
+def parse_dual_voice_pair(voice: str) -> Tuple[str, str]:
+    """Extracts `(female_voice_id, male_voice_id)` from `dual:<fem>+<male>` strings cleanly."""
+    default_pair = ("hi-IN-SwaraNeural", "hi-IN-MadhurNeural")
+    raw = str(voice or "").strip()
+    if not raw.startswith("dual:"):
+        return default_pair
+    payload = raw.split("dual:", 1)[1].strip()
+    if "+" not in payload:
+        return default_pair
+    fem_v, male_v = payload.split("+", 1)
+    fem_v = fem_v.strip() or default_pair[0]
+    male_v = male_v.strip() or default_pair[1]
+    return fem_v, male_v
+
+
+def _normalize_edge_speaker_id(raw_voice: str, fallback: str) -> str:
+    clean = str(raw_voice or "").replace("edge:", "").replace("dual:", "").split("|", 1)[0].strip()
+    if not clean or clean.startswith("elevenlabs:"):
+        return fallback
+    return clean
+
+
+async def _synthesize_dual_dialogue_scene(
+    dialogue: List[Dict[str, Any]],
+    output_path: Path,
+    fem_voice: str = "hi-IN-SwaraNeural",
+    male_voice: str = "hi-IN-MadhurNeural",
+) -> Tuple[bool, List[Dict[str, Any]]]:
+    """
+    Synthesizes alternating Female (Curious Questioner) + Male (Empathetic Mentor Solver)
+    dialogue turns cleanly via Edge-TTS, stitches them with natural 0.26s conversational gaps,
+    and returns `(success, dialogue_spans)` with exact `[start, end, speaker, text]` turn offsets.
+    """
+    clean_fem = _normalize_edge_speaker_id(fem_voice, "hi-IN-SwaraNeural")
+    clean_male = _normalize_edge_speaker_id(male_voice, "hi-IN-MadhurNeural")
+
+    turns: List[Tuple[str, str]] = []
+    for item in dialogue:
+        if not isinstance(item, dict):
+            continue
+        spk_raw = str(item.get("speaker") or "male").strip().lower()
+        spk = "female" if spk_raw in ("female", "f", "she", "questioner", "curious", "girl", "student") else "male"
+        raw_t = re.sub(
+            r"^\s*(?:female|male|she|he|questioner|solver|mentor|dost|host)\s*:\s*",
+            "",
+            str(item.get("text") or "").strip(),
+            flags=re.IGNORECASE,
+        )
+        txt = _clean_tts_text(raw_t, preserve_pauses=False)
+        if txt:
+            turns.append((spk, txt))
+
+    if not turns:
+        return False, []
+
+    turn_files: List[Path] = []
+    turn_metas: List[Tuple[str, str, float]] = []
+    gap_sec = 0.26
+
+    try:
+        for t_idx, (spk, txt) in enumerate(turns):
+            tp = OUTPUT_DIR / f"dual_turn_{t_idx}_{uuid.uuid4().hex[:6]}.mp3"
+            v_id = clean_fem if spk == "female" else clean_male
+            t_rate = "+4%" if spk == "female" else "+3%"
+            t_pitch = "+2Hz" if spk == "female" else "-1Hz"
+
+            ok_turn = False
+            for attempt in range(3):
+                try:
+                    comm = edge_tts.Communicate(txt, v_id, rate=t_rate, pitch=t_pitch)
+                    await comm.save(str(tp))
+                    if tp.exists() and tp.stat().st_size > 800:
+                        ok_turn = True
+                        break
+                except Exception as e:
+                    print(f"[Voice Dual] Turn {t_idx + 1} ({spk}) attempt {attempt + 1} warning: {e}")
+                    await asyncio.sleep(0.4)
+
+            if not ok_turn:
+                return False, []
+
+            turn_files.append(tp)
+            dur = max(0.35, float(get_audio_duration(tp) or 0.8))
+            turn_metas.append((spk, txt, dur))
+
+        if len(turn_files) == 1:
+            import shutil
+            shutil.copy2(turn_files[0], output_path)
+            spk0, txt0, dur0 = turn_metas[0]
+            return True, [{"speaker": spk0, "text": txt0, "start": 0.0, "end": round(dur0, 3)}]
+
+        cmd = [str(FFMPEG_EXE), "-y"]
+        for tp in turn_files:
+            cmd.extend(["-i", str(tp.resolve())])
+        cmd.extend(["-f", "lavfi", "-t", f"{gap_sec:.2f}", "-i", "anullsrc=r=44100:cl=stereo"])
+        sil_idx = len(turn_files)
+        parts, seq = [], []
+        for idx in range(len(turn_files)):
+            parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo[t{idx}]")
+            seq.append(f"[t{idx}]")
+            if idx < len(turn_files) - 1:
+                parts.append(f"[{sil_idx}:a]atrim=0:{gap_sec:.2f}[g{idx}]")
+                seq.append(f"[g{idx}]")
+        filt = ";".join(parts) + ";" + "".join(seq) + f"concat=n={len(seq)}:v=0:a=1[outa]"
+        cmd.extend(["-filter_complex", filt, "-map", "[outa]", "-c:a", "libmp3lame", "-b:a", "192k", str(output_path.resolve())])
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
+        if res.returncode != 0 or not output_path.exists() or output_path.stat().st_size < 1000:
+            return False, []
+
+        spans: List[Dict[str, Any]] = []
+        cursor_t = 0.0
+        for idx, (spk, txt, dur) in enumerate(turn_metas):
+            s_t = cursor_t
+            e_t = cursor_t + dur
+            spans.append({"speaker": spk, "text": txt, "start": round(s_t, 3), "end": round(e_t, 3)})
+            cursor_t = e_t + (gap_sec if idx < len(turn_metas) - 1 else 0.0)
+        return True, spans
+    except Exception as e:
+        print(f"[Voice Dual] Dialogue stitch warning: {e}")
+        return False, []
+    finally:
+        for tp in turn_files:
+            try:
+                if tp.exists():
+                    tp.unlink()
+            except Exception:
+                pass
+
+
 def _synthesize_single_scene(
     text: str,
     output_path: Path,
     voice: str,
     elevenlabs_model: str = DEFAULT_ELEVENLABS_MODEL,
     tone: str = "conversational_casual",
-    allow_elevenlabs: bool = True
-) -> None:
+    allow_elevenlabs: bool = True,
+    dialogue: Optional[List[Dict[str, Any]]] = None,
+) -> List[Dict[str, Any]]:
     """
-    Synthesizes speech for a single scene:
+    Synthesizes speech for a single scene (single voice OR dual-speaker Female/Male dialogue):
     - Only calls ElevenLabs API if allow_elevenlabs=True AND voice starts with 'elevenlabs:'.
-    - Otherwise strictly uses Microsoft Edge-TTS (0 ElevenLabs credits consumed), with tone-matched prosody.
+    - When `dialogue` turns are provided for `dual:` voices or `dual_dialogue_curious`, synthesizes
+      per-turn alternating Female Question + Male Empathetic Mentor clips stitched cleanly with pauses.
+    Returns `dialogue_spans` (empty list for single-speaker scenes).
     """
+    is_dual = (voice.startswith("dual:") or tone == "dual_dialogue_curious") and isinstance(dialogue, list) and len(dialogue) >= 1
+    if is_dual:
+        fem_v, male_v = parse_dual_voice_pair(voice)
+        ok_dual, spans = asyncio.run(_synthesize_dual_dialogue_scene(dialogue, output_path, fem_voice=fem_v, male_voice=male_v))
+        if ok_dual and spans:
+            return spans
+        print("[Voice Dual] Falling back to single-voice Edge-TTS for scene...")
+
     is_elevenlabs = allow_elevenlabs and voice.startswith("elevenlabs:")
     
     if is_elevenlabs:
@@ -791,17 +946,22 @@ def _synthesize_single_scene(
             voice_id = raw_vid
         success = _synthesize_elevenlabs_sync(text, output_path, voice_id, elevenlabs_model, tone=tone, lang_code=lang_code)
         if success:
-            return
+            return []
         print("[Voice] Falling back to high-fidelity Edge-TTS for this scene...")
         fallback_voice = "mr-IN-ManoharNeural" if lang_code == "mr" else ("hi-IN-MadhurNeural" if lang_code == "hi" else "en-US-ChristopherNeural")
         asyncio.run(_synthesize_edge_tts_scene(text, output_path, fallback_voice, tone=tone))
-        return
+        return []
 
     # Standard Edge-TTS path (never consumes ElevenLabs credits)
-    clean_voice = voice.replace("edge:", "").split("|", 1)[0].strip()
+    if voice.startswith("dual:"):
+        _, male_v = parse_dual_voice_pair(voice)
+        clean_voice = _normalize_edge_speaker_id(male_v, "hi-IN-MadhurNeural")
+    else:
+        clean_voice = voice.replace("edge:", "").split("|", 1)[0].strip()
     if clean_voice.startswith("elevenlabs:"):
         clean_voice = "en-US-ChristopherNeural"
     asyncio.run(_synthesize_edge_tts_scene(text, output_path, clean_voice, tone=tone))
+    return []
 
 def _ensure_valid_audio(path: Path) -> None:
     """Generates a 2-second silent audio if an audio synthesis failed, guaranteeing FFmpeg never crashes."""
@@ -843,9 +1003,14 @@ def generate_voiceover(
         scene_audio_paths.append(sc_path)
 
     # 1. Synthesize all scene voiceovers (dynamic per-scene tone when tone == "auto_dynamic")
+    scene_dialogue_spans: List[List[Dict[str, Any]]] = []
     for i, (sc, text, p) in enumerate(zip(scenes, scene_texts, scene_audio_paths)):
         sc_tone = (sc.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
-        _synthesize_single_scene(text, p, voice=voice, elevenlabs_model=elevenlabs_model, tone=sc_tone, allow_elevenlabs=allow_elevenlabs)
+        spans = _synthesize_single_scene(
+            text, p, voice=voice, elevenlabs_model=elevenlabs_model,
+            tone=sc_tone, allow_elevenlabs=allow_elevenlabs, dialogue=sc.get("dialogue"),
+        )
+        scene_dialogue_spans.append(spans or [])
         _ensure_valid_audio(p)
 
     # 2. Measure exact duration of each scene's audio (never inflate short audio so subsequent scenes stay 100% synced)
@@ -891,6 +1056,8 @@ def generate_voiceover(
         s_copy["start_time"] = round(s_start, 3)
         s_copy["end_time"] = round(s_end, 3)
         s_copy["duration"] = round(dur, 3)
+        if i < len(scene_dialogue_spans) and scene_dialogue_spans[i]:
+            s_copy["dialogue_spans"] = scene_dialogue_spans[i]
         scenes_with_timestamps.append(s_copy)
         cur_time = s_end
 
