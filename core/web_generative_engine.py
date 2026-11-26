@@ -788,21 +788,23 @@ function renderArchetype(){{
 }}
 renderArchetype();
 
-window.__setStudioProgress=function(p, curTime, energy){{
+window.__setStudioProgress=function(p, curTime, energy, gates, curWord, fxLabel, actStage){{
   if(window.__npUpdateHud) window.__npUpdateHud(p, curTime, energy);
   ctx.clearRect(0,0,W,H);
   // Subtle Volumetric Shaded 3D Backdrop Sphere/Torus centered harmoniously behind the glass stage
   drawLitPoly3D(W*0.5, Math.round(H*0.52), 255, 78, p*Math.PI*2.0, 0.55, '{_rgba_css(world["cyan"],0.5)}', '{_rgba_css(world["purple"],0.5)}', P.archetype==='hub_mesh'?'icosa':'torus');
 
   const nCards=Math.max(1, animNodes.length);
-  const activeIdx=Math.min(nCards-1, Math.floor(Math.max(0, Math.min(0.999, p))*nCards));
+  const activeIdx=(typeof actStage==='number'&&actStage>=0)?Math.min(nCards-1,actStage):Math.min(nCards-1, Math.floor(Math.max(0, Math.min(0.999, p))*nCards));
+  const hasGates=Array.isArray(gates)&&gates.length>0;
   animNodes.forEach((el,i)=>{{
     const st=0.04+(i/nCards)*0.70;
-    const g=Math.max(0,Math.min(1,(p-st)/0.22));
+    const g=hasGates?gates[Math.min(gates.length-1,i)]:Math.max(0,Math.min(1,(p-st)/0.22));
     const easeBox=1-Math.pow(1-Math.min(1,g/0.48),3);
     const easeTitle=Math.max(0,Math.min(1,(g-0.24)/0.44));
     const easeSub=Math.max(0,Math.min(1,(g-0.44)/0.50));
-    el.style.opacity=easeBox;
+    const dim=(p>0.05 && g>0.7 && i!==activeIdx)?0.78:1.0;
+    el.style.opacity=(easeBox*dim);
     el.style.transform=`translateY(${{(1-easeBox)*26}}px) scale(${{0.94+0.06*easeBox}})`;
     el.classList.toggle('active', i===activeIdx && p>0.03);
     el.querySelectorAll('.pill-num').forEach(b=>{{b.style.opacity=Math.min(1,g*2.1);b.style.transform=`scale(${{0.72+0.28*Math.min(1,g*2.0)}})`;}});
@@ -811,7 +813,7 @@ window.__setStudioProgress=function(p, curTime, energy){{
     el.querySelectorAll('svg line, svg path').forEach((ln,li)=>{{
       try{{
         const len=ln.getTotalLength?ln.getTotalLength():420;
-        const lg=Math.max(0,Math.min(1,(p-(0.08+li*0.14))/0.26));
+        const lg=hasGates?gates[Math.min(gates.length-1,li)]:Math.max(0,Math.min(1,(p-(0.08+li*0.14))/0.26));
         ln.style.strokeDasharray=String(len);
         ln.style.strokeDashoffset=String(len*(1-lg));
       }}catch(e){{}}
@@ -819,10 +821,10 @@ window.__setStudioProgress=function(p, curTime, energy){{
   }});
   if(Array.isArray(window.__beatNodes)&&window.__beatNodes.length){{
     const nb=window.__beatNodes.length;
-    const actB=Math.min(nb-1, Math.floor(Math.max(0, Math.min(0.999, p))*nb));
+    const actB=(typeof actStage==='number'&&actStage>=0)?Math.min(nb-1,actStage):Math.min(nb-1, Math.floor(Math.max(0, Math.min(0.999, p))*nb));
     window.__beatNodes.forEach((bn,bi)=>{{
       const bst=0.05+(bi/nb)*0.72;
-      const bg=Math.max(0,Math.min(1,(p-bst)/0.22));
+      const bg=hasGates?gates[Math.min(gates.length-1,bi)]:Math.max(0,Math.min(1,(p-bst)/0.22));
       const be=1-Math.pow(1-Math.min(1,bg/0.5),3);
       bn.style.opacity=be;
       bn.style.transform=`translateY(${{(1-be)*18}}px)`;
@@ -830,6 +832,33 @@ window.__setStudioProgress=function(p, curTime, energy){{
       bn.querySelectorAll('.bt-title').forEach(t=>{{t.style.opacity=Math.max(0,Math.min(1,(bg-0.2)/0.45));}});
       bn.querySelectorAll('.bt-sub').forEach(s=>{{s.style.opacity=Math.max(0,Math.min(1,(bg-0.42)/0.48));}});
     }});
+  }}
+  // Spoken Keyword Pill + Interactive Contextual Bubble + Bezier Cursor Pointer
+  let fxHud=document.getElementById('npFxHud');
+  if(!fxHud){{
+    fxHud=document.createElement('div'); fxHud.id='npFxHud';
+    fxHud.style.cssText='position:fixed;right:40px;top:290px;z-index:90;display:flex;gap:10px;align-items:center;pointer-events:none;';
+    document.body.appendChild(fxHud);
+  }}
+  const cleanW=curWord?String(curWord).replace(/[^A-Za-z0-9\\-+\\.%]/g,'').slice(0,18):'';
+  const showBub=fxLabel?`<span style="padding:7px 14px;border-radius:999px;background:${{PAL.cardAlt}};border:2px solid ${{PAL.purple}};color:${{PAL.amber}};font-weight:800;font-size:18px;box-shadow:0 8px 20px rgba(0,0,0,0.35);">${{fxLabel}}</span>`:'';
+  const showKw=cleanW?`<span style="padding:7px 16px;border-radius:14px;background:${{PAL.cardAlt}};border:2px solid ${{PAL.cyan}};color:${{PAL.text}};font-weight:800;font-size:19px;border-bottom:3px solid ${{PAL.emerald}};">• ${{cleanW.toUpperCase()}}</span>`:'';
+  fxHud.innerHTML=(p>0.02&&p<0.98)?(showBub+showKw):'';
+  let curPtr=document.getElementById('npBezierCursor');
+  if(!curPtr){{
+    curPtr=document.createElement('div'); curPtr.id='npBezierCursor';
+    curPtr.style.cssText='position:fixed;z-index:92;pointer-events:none;transition:left 0.14s ease-out, top 0.14s ease-out;';
+    curPtr.innerHTML=`<svg width="30" height="36" viewBox="0 0 24 28"><polygon points="2,2 22,12 13,16 18,26 13,28 8,18 2,23" fill="#ffffff" stroke="${{PAL.cyan}}" stroke-width="2"/></svg>`;
+    document.body.appendChild(curPtr);
+  }}
+  const actEl=animNodes[activeIdx];
+  if(actEl&&p>0.03&&p<0.96){{
+    const rc=actEl.getBoundingClientRect();
+    curPtr.style.display='block';
+    curPtr.style.left=Math.round(rc.left+rc.width*0.86)+'px';
+    curPtr.style.top=Math.round(rc.top+rc.height*0.42)+'px';
+  }} else {{
+    curPtr.style.display='none';
   }}
   document.querySelectorAll('.hero-footer').forEach(ft=>{{
     const fg=Math.max(0,Math.min(1,(p-0.72)/0.22));
@@ -1023,8 +1052,10 @@ def render_web_generative_frames(
             if page_errors or (body_len or 0) < 2:
                 page.set_content(fallback_html, wait_until="domcontentloaded", timeout=10000)
 
+        from core.interactive_fx import compute_voice_stage_timeline, eval_voice_gates
+        voice_tl = scene.get("_voice_tl") or compute_voice_stage_timeline(scene, duration, scene_words)
         wps = (len(scene_words) / max(0.5, duration)) if scene_words else 2.5
-        pace_boost = max(0.96, min(1.12, wps / 2.85))
+        pace_boost = max(0.96, min(1.06, wps / 2.95))
 
         for f in range(total_frames):
             lin_p = f / max(1, total_frames - 1)
@@ -1043,14 +1074,26 @@ def render_web_generative_frames(
                 word_p = spoken / max(1, len(scene_words))
             raw_p = min(1.0, (0.65 * word_p + 0.35 * lin_p) * pace_boost)
             if effective_tone == "youth_friend_turbo":
-                eff_p = 1.0 if lin_p >= 0.93 else min(1.0, (raw_p ** 0.92) * 1.05)
+                eff_p = 1.0 if lin_p >= 0.93 else min(1.0, (raw_p ** 0.92) * 1.04)
             elif effective_tone in ("purposeful_hinglish_mentor", "senior_hinglish_mentor"):
-                eff_p = 1.0 if lin_p >= 0.94 else min(1.0, (raw_p ** 0.94) * 1.04)
+                eff_p = 1.0 if lin_p >= 0.94 else min(1.0, (raw_p ** 0.94) * 1.03)
             elif effective_tone == "fireship_octane":
-                eff_p = 1.0 if lin_p >= 0.93 else min(1.0, raw_p * 1.08)
+                eff_p = 1.0 if lin_p >= 0.93 else min(1.0, raw_p * 1.06)
             else:
                 eff_p = 1.0 if lin_p >= 0.95 else raw_p
-            page.evaluate(f"if (window.__setStudioProgress) window.__setStudioProgress({eff_p:.5f}, {cur_t:.4f}, {energy:.3f});")
+            fx_st = eval_voice_gates(voice_tl, lin_p)
+            page.evaluate(
+                "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.p, args.t, args.e, args.g, args.w, args.fxl, args.act); }",
+                {
+                    "p": round(eff_p, 5),
+                    "t": round(cur_t, 4),
+                    "e": round(energy, 3),
+                    "g": fx_st["gates"],
+                    "w": fx_st["cur_word"],
+                    "fxl": fx_st["fx_label"],
+                    "act": fx_st["active_idx"],
+                },
+            )
             fpath = scene_frames_dir / f"frame_{f:04d}.jpg"
             page.screenshot(path=str(fpath), type="jpeg", quality=88)
             frame_paths.append(fpath)

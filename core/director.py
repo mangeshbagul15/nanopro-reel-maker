@@ -128,18 +128,18 @@ def _save_visual_history(
         updated[key] = cur[-cap:]
 
     scenes = timeline.get("scenes") or []
-    _push_unique("recent_art_styles", [str(timeline.get("art_style") or "")], 18)
+    _push_unique("recent_art_styles", [str(timeline.get("art_style") or "")], 24)
     _push_unique(
         "recent_visual_types",
         [
             str((sc.get("visual_data") or {}).get("option1_archetype") or (sc.get("visual_data") or {}).get("_intent") or sc.get("visual_type") or "")
             for sc in scenes if isinstance(sc, dict)
         ],
-        48,
+        96,
     )
-    _push_unique("recent_backdrops", [str(sc.get("backdrop") or "") for sc in scenes if isinstance(sc, dict)], 14)
-    _push_unique("recent_transitions", [str(sc.get("transition") or "") for sc in scenes if isinstance(sc, dict)], 10)
-    _push_unique("recent_text_fx", [str(sc.get("text_fx") or "") for sc in scenes if isinstance(sc, dict)], 10)
+    _push_unique("recent_backdrops", [str(sc.get("backdrop") or "") for sc in scenes if isinstance(sc, dict)], 18)
+    _push_unique("recent_transitions", [str(sc.get("transition") or "") for sc in scenes if isinstance(sc, dict)], 12)
+    _push_unique("recent_text_fx", [str(sc.get("text_fx") or "") for sc in scenes if isinstance(sc, dict)], 12)
 
     if isinstance(session_history, dict):
         session_history.clear()
@@ -423,16 +423,29 @@ Output a single valid JSON object matching this structure:
 """
 
 ENGINE_STYLE_DIRECTIVES = {
+    "multi_topology_mix": (
+        "MULTI-TOPOLOGY INTERCONNECTED ARCHITECTURE ENGINE: "
+        "Every scene in the reel MUST visualize rich multi-component System Topologies (`all_in_one_tech_canvas`, `iso_observability_mesh`, "
+        "`service_mesh_envoy_proxy`, `medallion_lakehouse`, `cdc_debezium_flow`, `zero_trust_proxy`, `kafka_event_backbone`, `saga_orchestration`, "
+        "`k8s_pod_scheduling`, `consistent_hashing_ring`, `spatial_microservice_grid`, `svg_pipeline_choreography`, `rag_chunk_overlap_pipe`). "
+        "Include 4-5 connected nodes with clear `edge` protocol/action labels AND `voice_beats` across distinct topology layers in EVERY scene!"
+    ),
+    "interactive_storyboard": (
+        "INTERACTIVE MOTION STORYBOARD MAX: "
+        "Compose crystal-clear multi-stage visual storyboards where EVERY narration phrase activates a specific UI card/badge/link/bubble "
+        "(`thought`, `warning`, `pro-tip`, `status`, `quiz`, `delta`) aligned word-for-word to `choreography.triggers` & `voice_beats`. "
+        "Vary across ALL visual families (`quiz`, `radar`, `flamegraph`, `sequence`, `er_schema`, `kanban`, `sankey`, `mesh_3d`, `web_scene`, `svg_scene`)."
+    ),
     "studio_300_domain": (
-        "UNLIMITED STUDIO MAX + ZERO-TEMPLATE HYBRID ENGINE (OPTION 1 + OPTION 2 COMBINED — 670+ DOMAIN LAYOUTS + 56 GRAMMAR + 54 OPTION 1 WEBGL/SVG/SPATIAL): "
-        "Mix bespoke zero-template scenes (`web_scene`, `svg_scene`, `spatial_canvas` with `visual_data.option1_archetype`) AND specialized 670+ Domain Layouts across every scene! NEVER use the same layout twice in one reel!\n"
-        "1. COLOR WORLDS: Any of 46 curated worlds (`obsidian_studio`, `sapphire_3d`, `aurora_borealis`, `synthwave_84`, `studio_white`, `emerald_matrix`, `cobalt_blueprint`, `midnight_gold`, etc.) OR `#HEX`.\n"
+        "UNLIMITED STUDIO MAX + ZERO-TEMPLATE HYBRID ENGINE (OPTION 1 + OPTION 2 COMBINED — 820+ DOMAIN LAYOUTS + 158 GRAMMAR + 156 OPTION 1 WEBGL/SVG/SPATIAL): "
+        "Mix bespoke zero-template scenes (`web_scene`, `svg_scene`, `spatial_canvas` with `visual_data.option1_archetype`) AND specialized 820+ Domain Layouts across every scene! NEVER use the same layout twice in one reel or repeat modes across videos!\n"
+        "1. COLOR WORLDS: Any of 32+ contrast-locked worlds (`obsidian_studio`, `sapphire_3d`, `navy_studio`, `espresso_brown`, `studio_white`, `light_grey_editorial`, etc.).\n"
         "2. BACKDROP, TRANSITION & TEXT FX: Vary `backdrop` (18 styles), `transition` (12 styles), and `text_fx` (14 styles) per scene.\n"
-        "3. USE DIVERSE VISUAL TYPES ACROSS SCENES (populate rich schema fields for whichever you pick!):\n"
-        "   - Zero-Template Custom (54+ archetypes): `web_scene`, `svg_scene`, `spatial_canvas` (`elements` 0..1000 + `connections`).\n"
-        "   - 670+ Domain & Pro/IT Layouts: NEVER fall back to bare `alert_diagram` without `alerts`! Populate `nodes`/`stages`/`items` (with `icon` like `'postgres'`, `'aws_rds'`, `'kafka'`, `'docker'`, `'kubernetes'`, `'router'`, `'server'` & `shape` like `'server_rack'`, `'router'`, `'network_switch'`, `'laptop'`, `'database_cluster'`). Examples: `cdc_debezium_flow`, `iceberg_snapshot_tables`, `k8s_pod_scheduling`, `transformer_self_attn`, `mcp_tool_bridge`, `quic_http3_0rtt`, `rag_chunk_overlap_pipe`, `double_entry_ledger`, `ros2_dds_pubsub`, `medallion_lakehouse`, `consistent_hashing_ring`, `raft_leader_election`, `circuit_breaker_states`, `write_ahead_log_wal`, `mesh_3d_stage`, `sequence_diagram`, `benchmark_3d`.\n"
-        "   - Composable Diagram Grammar (56+ presets): `grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`, `grammar:bento:5`, `grammar:swimlane:3`, `grammar:chevron:4`, `grammar:pyramid:4`, `grammar:funnel:4`, `grammar:quadrant:2x2`.\n"
-        "4. Populate `scene_tone` & 4 `choreography.triggers` per scene."
+        "3. USE DIVERSE VISUAL TYPES & MULTIPLE SYSTEM TOPOLOGIES ACROSS SCENES (populate 4-5 detailed sub-sections + `edge` labels + `footer` + `voice_beats`!):\n"
+        "   - Zero-Template Custom (156 archetypes): `web_scene`, `svg_scene`, `spatial_canvas` (`elements` 0..1000 + `connections`).\n"
+        "   - Domain, Topologies & Pro Charts: `all_in_one_tech_canvas`, `cdc_debezium_flow`, `iceberg_snapshot_tables`, `k8s_pod_scheduling`, `transformer_self_attn`, `mcp_tool_bridge`, `quic_http3_0rtt`, `rag_chunk_overlap_pipe`, `double_entry_ledger`, `ros2_dds_pubsub`, `medallion_lakehouse`, `consistent_hashing_ring`, `raft_leader_election`, `circuit_breaker_states`, `write_ahead_log_wal`, `mesh_3d_stage`, `sequence_diagram`, `er_schema`, `flamegraph_perf`, `latency_waterfall`, `sankey_flow`, `radar_spider`, `kanban_board`, `benchmark_3d`.\n"
+        "   - Composable Diagram Grammar (158 presets): `grammar:grid:3x2`, `grammar:flow:5`, `grammar:ring:6`, `grammar:bento:5`, `grammar:swimlane:3`, `grammar:chevron:4`, `grammar:pyramid:4`, `grammar:funnel:4`, `grammar:quadrant:2x2`.\n"
+        "4. Populate `scene_tone` & 5 chronological `choreography.triggers` aligned to voice words per scene."
     ),
     "pure_zero_template": (
         "PURE ZERO-TEMPLATE AI CODE-AS-VIDEO ENGINE (OPTION 1 — 54+ INTERACTIVE WEBGL / SVG / SPATIAL CODE ARCHETYPES, ZERO REPEATING TEMPLATES): "
@@ -560,13 +573,23 @@ ENGINE_STYLE_DIRECTIVES = {
 }
 
 TONE_DIRECTIVES = {
+    "peaceful_human_guide": (
+        "PEACEFUL HUMAN GUIDE & CURIOUS MINDSET SYNC MANDATE: "
+        "Calm, happy, curious, and deeply human Hinglish voice with a peaceful, clear, and effective mentor vibe — like a thoughtful guide and supportive problem solver who FIRST understands the viewer's mindset before answering and reassures them gently ('Don't worry, main hoon na', 'Tension mat lo, dekhte hain') before saying 'Chalo tod ke samajhte hain'.\n"
+        "1. 00:00 SECRET / CLEVER SHORTCUT HOOK: Open Scene 1 immediately with an intriguing secret, hidden hack, or clever engineering shortcut ('Ek secret shortcut bataun jo 90% engineers miss kar dete hain?... [pause] Relax. Chalo tod ke samajhte hain.').\n"
+        "2. NATURAL MICRO-CUE WORDS + REAL BREATH PAUSES (`... [pause]`): Weave concise human mindset cues naturally with pauses where they sharpen understanding (do NOT spam all in one sentence; pick 2-3 fitting cues per scene):\n"
+        "   - Reassurance / Calm Down: 'Relax.', 'Chill.', 'Easy.', 'Simple.', 'Sorted.', 'Clear.'\n"
+        "   - Breaking It Down: 'Step-by-step.', 'Chunk-by-chunk.', 'Piece-by-piece.', 'Basics.', 'Layers.', 'Flow.'\n"
+        "   - Transition & Spotlight: 'Wait.', 'Look.', 'Listen.', 'Asli twist yahan hai...', 'Ek chhota sa catch hai...', 'Bas itna sa farak hai...', 'Boom.', 'Done.'\n"
+        "   - Q&A / Check-In: 'Samjha?', 'Clear?', 'Think.', 'Guess?', 'Why?', 'How?'\n"
+        "3. PROGRESSIVE STORYBOARD LOCKSTEP: Write each scene's `narration` in 4-5 sequential clauses (`Clause 1 -> Clause 2 -> Clause 3 -> Clause 4`) so every box, card, label, bezier link, thought/warning/pro-tip bubble, and bottom footer reveals RIGHT ON THE SPOKEN WORD! Set each scene's `scene_tone` to `peaceful_human_guide`."
+    ),
     "trusted_dost_guide": (
         "TRUSTED DOST, HAPPY CURIOUS HINGLISH & PEACEFUL GUIDE MANDATE: "
-        "Speak with a happy, deeply human, curious Hinglish voice — like a trusted best friend (`dost / yaar`), peaceful guide, and supportive problem solver who genuinely understands the viewer's mindset and walks through every intuition step warmly ('Aao dost, is concept ko ekdam simple aur clear tarike se decode karte hain!'). "
-        "STRICT DIALOG RULE: NEVER use repetitive cliché reassurance phrases or filler sympathy — express warmth purely through genuine curiosity, encouraging clarity, and collaborative storytelling instead!\n"
-        "1. 00:00 CLEVER SECRET / SHORTCUT HOOK: Open Scene 1 immediately with an exciting, curious secret or smart engineering shortcut ('Ek chhota sa secret shortcut bataun jo 90% log miss kar dete hain?... [pause]').\n"
-        "2. NATURAL Q&A CLARITY CHECKS: Check concept clarity through natural, conversational friend-like Q&A ('Ab socho agar 10,000 requests ek saath aayein toh kya hoga? [pause] Simple hai dost — yahan ek smart pattern kaam aata hai!').\n"
-        "3. ENJOYABLE VISIONARY FLOW + PROGRESSIVE VISUAL SYNC: Build an uplifting, enjoyable, visionary momentum from curiosity -> clarity -> mastery without skipping any step. Populate rich progressive cards/flows/diagrams and 4 exact `choreography.triggers` per scene so visuals light up in tight lockstep with your words. Set each scene's `scene_tone` to `trusted_dost_guide`."
+        "Speak with a happy, deeply human, curious Hinglish voice — like a trusted best friend (`dost / yaar`), peaceful guide, and supportive problem solver who understands the viewer's mindset and walks through every intuition warmly ('Chill yaar, ekdam easy tarike se tod ke samajhte hain!').\n"
+        "1. 00:00 CLEVER SECRET / SHORTCUT HOOK: Open Scene 1 immediately with an exciting secret or smart engineering shortcut ('Ek chhota sa secret shortcut bataun?... [pause]').\n"
+        "2. MINDSET CHECK-INS & SPOTLIGHT SHIFTS: Use punchy curious shifts with micro-pauses ('Wait... [pause] Asli twist yahan hai!', 'Ek chhota sa catch hai... Why?', 'Bas itna sa farak hai! Samjha?', 'Boom — Sorted!').\n"
+        "3. ENJOYABLE VISIONARY FLOW + SPOKEN-WORD VISUAL SYNC: Build curiosity -> clarity -> mastery step-by-step with 4-5 progressive cards/topologies and 5 exact `choreography.triggers`. Set each scene's `scene_tone` to `trusted_dost_guide`."
     ),
     "purposeful_hinglish_mentor": (
         "PURPOSEFUL HINGLISH MENTOR ('MUST UNDERSTAND' CLARITY + EDGE CASES) MANDATE: "
@@ -1281,13 +1304,14 @@ def _enforce_engine_style(
 
     # Pick a fresh visual art_style, avoiding prior runs in diverse engines
     hist = visual_history or {}
-    recent_arts = set((hist.get("recent_art_styles") or [])[-10:])
-    recent_vtypes = set((hist.get("recent_visual_types") or [])[-16:])
-    recent_bds = set((hist.get("recent_backdrops") or [])[-6:])
-    recent_trs = set((hist.get("recent_transitions") or [])[-5:])
-    recent_tfxs = set((hist.get("recent_text_fx") or [])[-5:])
+    recent_arts = set((hist.get("recent_art_styles") or [])[-24:])
+    recent_vtypes = set((hist.get("recent_visual_types") or [])[-72:])
+    recent_bds = set((hist.get("recent_backdrops") or [])[-10:])
+    recent_trs = set((hist.get("recent_transitions") or [])[-8:])
+    recent_tfxs = set((hist.get("recent_text_fx") or [])[-8:])
     is_diverse_engine = engine_style in (
         "studio_domain_library", "pure_zero_template", "studio_300_domain",
+        "multi_topology_mix", "interactive_storyboard",
         "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern",
     )
 
@@ -1295,6 +1319,7 @@ def _enforce_engine_style(
     raw_art = str(timeline.get("art_style") or "").strip()
     _STUDIO_SET = (
         "studio_300_domain", "pure_zero_template", "studio_domain_library",
+        "multi_topology_mix", "interactive_storyboard",
         "cinematic_studio", "dual_generative", "auto_dynamic", "hybrid_modern",
     )
     if engine_style in _STUDIO_SET:
@@ -1395,18 +1420,44 @@ def _enforce_engine_style(
                         {"block": "banner", "text": v_data.get("challenge") or sc.get("narration", "")[:70], "tone": "highlight", "stage": 2}
                     ]
 
-        # Rotate away from recently used or intra-reel repeated visual_types across all multi-layout engines
-        if is_diverse_engine and engine_style != "pure_zero_template":
-            needs_swap = (current_vtype in recent_vtypes) or (current_vtype in used_vtypes)
+        # Force diverse engine visual modes + multiple System Topologies across scenes & consecutive videos
+        _SYSTEM_TOPOLOGY_POOL = (
+            "all_in_one_tech_canvas", "iso_observability_mesh", "service_mesh_envoy_proxy", "medallion_lakehouse",
+            "cdc_debezium_flow", "zero_trust_proxy", "iso_event_backbone", "saga_orchestration",
+            "k8s_pod_scheduling", "consistent_hashing_ring", "spatial_microservice_grid", "svg_pipeline_choreography",
+            "rag_chunk_overlap_pipe", "circuit_breaker_states", "raft_leader_election", "circular_hub_mesh",
+        )
+        if engine_style == "multi_topology_mix":
+            fresh_topos = [t for t in _SYSTEM_TOPOLOGY_POOL if t not in recent_vtypes and t not in used_vtypes] or [t for t in _SYSTEM_TOPOLOGY_POOL if t not in used_vtypes] or list(_SYSTEM_TOPOLOGY_POOL)
+            chosen_topo = fresh_topos[(run_num * 5 + idx * 3) % len(fresh_topos)]
+            current_vtype = chosen_topo
+            sc["visual_type"] = chosen_topo
+            _mirror_items_for_domain_layout(v_data, sc, str(v_data.get("title") or topic[:40]))
+        elif is_diverse_engine and engine_style != "pure_zero_template":
+            fam_keys_all = ("hook", "flow", "hub", "tiers", "compare", "metrics", "code", "summary")
+            rot_fam = fam_keys_all[(idx * 2 + run_num) % len(fam_keys_all)]
+            orig_fam = _LAYOUT_TO_FAMILY.get(current_vtype)
+            needs_swap = (current_vtype in recent_vtypes) or (current_vtype in used_vtypes) or (engine_style in ("interactive_storyboard", "auto_dynamic") and idx > 0 and orig_fam in ("hook", "summary") and idx != len(scenes) - 1)
             if needs_swap and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-                fam = _LAYOUT_TO_FAMILY.get(current_vtype)
-                if not fam:
-                    role_l = str(sc.get("role") or "").lower()
-                    fam = "hook" if idx == 0 else ("compare" if "trade" in role_l or "vs" in role_l else ("summary" if idx == len(scenes) - 1 else "flow"))
-                if engine_style in _STUDIO_SET:
-                    fam_pool = _DIVERSE_LAYOUT_FAMILIES.get(fam, _DIVERSE_LAYOUT_FAMILIES["flow"])
+                fam = orig_fam
+                if not fam or (run_num >= 2 and idx in (1, 2)):
+                    fam = rot_fam
+                if engine_style == "interactive_storyboard":
+                    inter_pool = (
+                        "sequence_diagram", "er_schema", "flamegraph_perf", "latency_waterfall",
+                        "sankey_flow", "radar_spider", "kanban_board", "chat_thread_ai",
+                        "code_diff_split", "api_request_response", "mesh_3d_stage", "benchmark_3d",
+                        "consistent_hashing_ring", "all_in_one_tech_canvas", "grammar:bento:5", "grammar:quadrant:2x2",
+                    )
+                    fam_pool = tuple([p for p in inter_pool if p not in used_vtypes] or list(inter_pool))
+                elif engine_style in _STUDIO_SET:
+                    # Mix both native family AND cross-family system topologies / pro charts so 15 reels never repeat!
+                    base_pool = _DIVERSE_LAYOUT_FAMILIES.get(fam, _DIVERSE_LAYOUT_FAMILIES["flow"])
+                    if idx % 2 == 1 and fam not in ("code", "metrics"):
+                        fam_pool = tuple(list(_SYSTEM_TOPOLOGY_POOL) + list(base_pool))
+                    else:
+                        fam_pool = base_pool
                 else:
-                    # Non-studio modular animator engines (auto_dynamic / hybrid_modern)
                     modular_pool = {
                         "hook": ("hero_hook", "custom_scene", "alert_diagram", "kinetic_statement"),
                         "flow": ("architecture_flow", "step_timeline", "all_in_one_tech_canvas", "circular_hub_mesh"),
@@ -1421,7 +1472,7 @@ def _enforce_engine_style(
                 fresh_fam = [ly for ly in fam_pool if ly not in recent_vtypes and ly not in used_vtypes]
                 if not fresh_fam:
                     fresh_fam = [ly for ly in fam_pool if ly not in used_vtypes] or list(fam_pool)
-                new_vtype = fresh_fam[(run_num * 3 + idx) % len(fresh_fam)]
+                new_vtype = fresh_fam[(run_num * 5 + idx * 3) % len(fresh_fam)]
                 if new_vtype != current_vtype:
                     current_vtype = new_vtype
                     sc["visual_type"] = new_vtype
@@ -1625,8 +1676,8 @@ def _enforce_engine_style(
             else:
                 sc["visual_type"] = "web_scene"
             used_vtypes.add(chosen_opt1)
-        elif engine_style in ("studio_300_domain", "auto_dynamic", "hybrid_modern") and (idx + run_num) % max(2, len(scenes)) == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-            # Combined & Dynamic Auto: alternate Option 1 web/svg/spatial archetypes with Option 2 domain/grammar layouts
+        elif engine_style in ("studio_300_domain", "interactive_storyboard", "auto_dynamic", "hybrid_modern") and (idx + run_num) % 2 == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
+            # Combined, Interactive Max & Dynamic Auto: alternate Option 1 web/svg/spatial archetypes with Option 2 domain/topology/grammar layouts across half the reel!
             v_data.setdefault("_intent", current_vtype)
             v_data.setdefault("option1_archetype", chosen_opt1)
             sc["visual_type"] = "svg_scene" if chosen_opt1.startswith("svg_") else ("spatial_canvas" if chosen_opt1.startswith("spatial_") else "web_scene")
@@ -1635,11 +1686,11 @@ def _enforce_engine_style(
         else:
             used_vtypes.add(sc["visual_type"])
 
-        # Guarantee deep multi-section content (4-5 progressive stages + connector labels + footer + voice_beats)
+        # Guarantee deep multi-section content (4-5 progressive stages + cue_phrase + connector labels + footer + voice_beats)
         clauses = _split_narration_clauses(sc.get("narration", ""), target_count=5)
         for col_key in ("nodes", "steps", "stages", "milestones"):
             seq = v_data.get(col_key)
-            if isinstance(seq, list) and 0 < len(seq) < 4 and clauses:
+            if isinstance(seq, list) and seq and clauses:
                 norm_seq = [dict(x) if isinstance(x, dict) else {"name": str(x)} for x in seq]
                 c_i = 0
                 while len(norm_seq) < 4 and c_i < len(clauses):
@@ -1652,6 +1703,10 @@ def _enforce_engine_style(
                 for x_i, x in enumerate(norm_seq):
                     if not x.get("sub") and x_i < len(clauses):
                         x["sub"] = clauses[x_i][:64]
+                    if not x.get("cue_phrase") and x_i < len(clauses):
+                        cws = [re.sub(r"[^a-zA-Z0-9_\u0900-\u097F-]", "", w) for w in clauses[x_i].split()]
+                        kws = [w for w in cws if len(w) >= 4]
+                        x["cue_phrase"] = " ".join(kws[:3]) if kws else ""
                     if x_i + 1 < len(norm_seq) and not x.get("edge"):
                         x["edge"] = ["Ingest", "Route", "Process", "Commit"][x_i % 4]
                 v_data[col_key] = norm_seq[:5]

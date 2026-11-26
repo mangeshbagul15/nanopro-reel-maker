@@ -15,8 +15,14 @@ from core.layouts_studio import (
     _ease_out_cubic,
     _est_lines,
     _get_font,
+    _set_active_voice_gates,
     _with_alpha,
     dispatch_studio_layout,
+)
+from core.interactive_fx import (
+    compute_voice_stage_timeline,
+    eval_voice_gates,
+    render_interactive_fx_overlay,
 )
 from core.mesh_shader_engine import ALL_3D_MESHES, ALL_BACKDROPS, draw_procedural_3d_mesh, render_procedural_backdrop
 from core.palette_engine import STUDIO_WORLDS, generate_hsl_world, resolve_studio_world
@@ -279,8 +285,10 @@ def render_cinematic_scene_frames(
     visual_data = scene.get("visual_data", {}) or {}
 
     if (visual_type in ("web_scene", "webgl_scene", "html_scene") or visual_data.get("html")) and is_web_engine_available():
+        sc_web = dict(scene)
+        sc_web["_voice_tl"] = compute_voice_stage_timeline(scene, max(1.5, float(scene.get("duration", 5.0))), scene_words)
         web_frames = render_web_generative_frames(
-            scene=scene, scene_idx=scene_idx, total_scenes=total_scenes,
+            scene=sc_web, scene_idx=scene_idx, total_scenes=total_scenes,
             format_ratio=format_ratio, watermark=watermark, scene_words=scene_words, tone=tone,
         )
         if web_frames:
@@ -315,13 +323,14 @@ def render_cinematic_scene_frames(
     static_bg = None if is_live_shader_bg else render_procedural_backdrop(canvas_w, canvas_h, world, style=backdrop_style, progress=0.0)
     needs_aspect_fit = (canvas_w != VIDEO_WIDTH or canvas_h != VIDEO_HEIGHT)
     anchors = _build_anchors(duration, scene, scene_words)
+    voice_stage_tl = compute_voice_stage_timeline(scene, duration, scene_words)
     sc_start = float(scene.get("start_time", 0.0))
 
     badge = str(visual_data.get("badge") or "")
     callout = str(visual_data.get("callout_badge") or "")
     title = str(visual_data.get("title") or "")
     accent = (
-        world["emerald"] if effective_tone in ("mentor_storyteller", "trusted_dost_guide")
+        world["emerald"] if effective_tone in ("mentor_storyteller", "trusted_dost_guide", "peaceful_human_guide")
         else (world["amber"] if effective_tone in ("interview_prep", "senior_hinglish_mentor", "purposeful_hinglish_mentor")
               else (world["rose"] if effective_tone == "dramatic_performance" else world["cyan"]))
     )
@@ -343,6 +352,7 @@ def render_cinematic_scene_frames(
             progress = raw_p
         cur_time = sc_start + (linear_p * duration)
         t_alpha = _fade_transition_alpha(linear_p)
+        fx_state = eval_voice_gates(voice_stage_tl, linear_p)
 
         if is_live_shader_bg:
             frame_bg = render_procedural_backdrop(canvas_w, canvas_h, world, style=backdrop_style, progress=linear_p)
@@ -364,10 +374,16 @@ def render_cinematic_scene_frames(
 
         if needs_aspect_fit:
             stage = StudioStage(VIDEO_WIDTH, 1500, world, transition_alpha=1.0)
+            stage.focus_dimming = True
             _draw_studio_header(stage, badge, title, accent, callout=callout, text_fx=text_fx, progress=progress)
-            dispatch_studio_layout(stage, visual_type, visual_data, progress, world, topic=topic_seed)
+            _set_active_voice_gates(fx_state["gates"])
+            try:
+                dispatch_studio_layout(stage, visual_type, visual_data, progress, world, topic=topic_seed)
+            finally:
+                _set_active_voice_gates(None)
 
             virtual_rgba = stage.composite_onto(None)
+            virtual_rgba = render_interactive_fx_overlay(virtual_rgba, world, fx_state, stage.anchors, progress)
             avail_h, avail_w = canvas_h - 140, canvas_w - 80
             scale = min(avail_w / VIDEO_WIDTH, avail_h / 1420.0)
             nw, nh = max(100, int(VIDEO_WIDTH * scale)), max(100, int(1500 * scale))
@@ -377,9 +393,15 @@ def render_cinematic_scene_frames(
             final_img = apply_scene_transition(full_stage, frame_bg, transition_style, linear_p)
         else:
             stage = StudioStage(VIDEO_WIDTH, VIDEO_HEIGHT, world, transition_alpha=t_alpha if transition_style == "crossfade" else 1.0)
+            stage.focus_dimming = True
             _draw_studio_header(stage, badge, title, accent, callout=callout, text_fx=text_fx, progress=progress)
-            dispatch_studio_layout(stage, visual_type, visual_data, progress, world, topic=topic_seed)
+            _set_active_voice_gates(fx_state["gates"])
+            try:
+                dispatch_studio_layout(stage, visual_type, visual_data, progress, world, topic=topic_seed)
+            finally:
+                _set_active_voice_gates(None)
             stage_rgba = stage.composite_onto(None)
+            stage_rgba = render_interactive_fx_overlay(stage_rgba, world, fx_state, stage.anchors, progress)
             final_img = apply_scene_transition(stage_rgba, frame_bg, transition_style, linear_p)
 
         chrome = ImageDraw.Draw(final_img, "RGBA")

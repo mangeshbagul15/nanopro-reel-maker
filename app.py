@@ -110,14 +110,15 @@ with st.sidebar:
     tone_option = st.selectbox(
         "Script Tone & Emotion",
         [
+            ("peaceful_human_guide", "🧘 Peaceful Human Guide (Calm Curious Hinglish, Reassuring Flow, Micro-Cues & Tight Visual Sync)"),
             ("trusted_dost_guide", "🤝 Trusted Dost & Peaceful Guide (Happy Curious Hinglish, Secret Hook, Supportive Q&A & Visionary Sync)"),
-            ("purposeful_hinglish_mentor", "🎯 Purposeful Hinglish Mentor (Crystal-Clear Brisk Male Mentor, Must-Understand Depth, Edge Cases & Visual Sync)"),
+            ("purposeful_hinglish_mentor", "🎯 Purposeful Hinglish Mentor (Crystal-Clear Male Mentor, Must-Understand Depth, Edge Cases & Visual Sync)"),
             ("senior_hinglish_mentor", "🧑‍💻 Senior Hinglish Mentor (Warm Hinglish Male Mentor, Interview-Trap Hook, Trade-offs & Progressive Visuals)"),
-            ("youth_friend_turbo", "🚀 Youth Dost & Fast Hype Explainer (Balanced Brisk Voice, Complete Q&A, Ad/Story Punch & Synced Visuals)"),
+            ("youth_friend_turbo", "🚀 Youth Dost & Clear Hype Explainer (Natural Lively Voice, Complete Q&A, Story Punch & Synced Visuals)"),
             ("mentor_storyteller", "🌟 Student Mentor & Storyteller (Simple Words, Natural Pauses & High Excitement) [Ultra Pro]"),
             ("auto_dynamic", "⚡ Dynamic / Auto (AI Adapts Voice, Pace, Emotion & Visuals Per Scene) [Recommended]"),
-            ("fireship_octane", "🔥 High-Octane & Punchy (Fireship Speed, Kinetic Energy & Neon Pop)"),
-            ("dramatic_performance", "🎭 Dramatic & Emotionally Rich (Suspenseful Voice, Amber Glow & Slow Reveal)"),
+            ("fireship_octane", "🔥 High-Octane & Punchy (Kinetic Energy & Neon Pop)"),
+            ("dramatic_performance", "🎭 Dramatic & Emotionally Rich (Suspenseful Voice, Amber Glow & Deep Pauses)"),
             ("staff_engineer", "🧠 Senior Staff Engineer Authority (Calm Deep Voice & Architectural Blueprint)"),
             ("conversational_casual", "☕ Conversational & Friendly (Natural Coffee-Chat Cadence & Emerald Flow)"),
             ("interview_prep", "⚡ High-Stakes Interview Prep (FAANG Question Hook, Traps & Crisp Trade-offs)")
@@ -240,9 +241,11 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("studio_300_domain", "🎨 Both Combined: 820+ Domain Layouts + 156 Grammar + 156 Option 1 WebGL/SVG [Recommended]"),
+            ("studio_300_domain", "🎨 Both Combined: 820+ Domain Layouts + 158 Grammar + 156 Option 1 WebGL/SVG [Recommended]"),
+            ("multi_topology_mix", "🌐 Multi-Topology Mix (Multiple System Topologies + Interactive FX Across Every Scene)"),
+            ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip Bubbles & Word Sync)"),
             ("pure_zero_template", "♾️ Option 1: 156+ Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
-            ("studio_domain_library", "📚 Option 2: 820+ Domain Layout Library + 156 Composable Grammar Presets"),
+            ("studio_domain_library", "📚 Option 2: 820+ Domain Layout Library + 158 Composable Grammar Presets"),
             ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
             ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 820+ Layouts, 145 Shapes)"),
             ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
@@ -262,7 +265,7 @@ with st.sidebar:
         ],
         format_func=lambda x: x[1],
         key="visual_engine_select",
-        help="Switch seamlessly between Option 1 (156+ Zero-Template HTML5/Three.js/Animated <svg>/Spatial Scenes), Option 2 (820+ Domain Layouts across 18 Engineering Domains, Pro Charts, IT/Network/Data/SDLC + 156 Composable Diagram Grammar Presets), Dynamic Auto (unique history every click), OR Both Combined!"
+        help="Switch seamlessly between Option 1 (156+ Zero-Template HTML5/Three.js/Animated <svg>/Spatial Scenes), Option 2 (820+ Domain Layouts across 18 Engineering Domains, Pro Charts, IT/Network/Data/SDLC + 158 Composable Diagram Grammar Presets), Multi-Topology Mix, Interactive Motion Max, Dynamic Auto, OR Both Combined!"
     )
 
     manual_layout_choice = "auto"
@@ -270,7 +273,7 @@ with st.sidebar:
     manual_backdrop_choice = "auto"
     manual_transition_choice = "auto"
     manual_text_fx_choice = "auto"
-    if visual_engine[0] in ("studio_300_domain", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio"):
+    if visual_engine[0] in ("studio_300_domain", "multi_topology_mix", "interactive_storyboard", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio"):
         with st.expander("🎛️ Manual Studio Overrides (Layout / Theme / FX)", expanded=False):
             from core.cinematic_engine import (
                 ALL_BACKDROPS,

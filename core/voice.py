@@ -110,79 +110,86 @@ VOICE_CATALOG = {
 
 # Dynamic Voice Parameters tailored to chosen Delivery Tone (ElevenLabs + Edge-TTS Prosody)
 TONE_VOICE_SETTINGS = {
+    "peaceful_human_guide": {
+        "stability": 0.42,
+        "similarity_boost": 0.84,
+        "style": 0.44,
+        "use_speaker_boost": True
+    },
     "trusted_dost_guide": {
         "stability": 0.44,
-        "similarity_boost": 0.80,
-        "style": 0.42,
+        "similarity_boost": 0.82,
+        "style": 0.40,
         "use_speaker_boost": True
     },
     "senior_hinglish_mentor": {
-        "stability": 0.46,
-        "similarity_boost": 0.82,
+        "stability": 0.48,
+        "similarity_boost": 0.84,
         "style": 0.34,
         "use_speaker_boost": True
     },
     "purposeful_hinglish_mentor": {
         "stability": 0.50,
         "similarity_boost": 0.84,
-        "style": 0.30,
+        "style": 0.32,
         "use_speaker_boost": True
     },
     "youth_friend_turbo": {
-        "stability": 0.40,
-        "similarity_boost": 0.80,
-        "style": 0.42,
+        "stability": 0.42,
+        "similarity_boost": 0.82,
+        "style": 0.40,
         "use_speaker_boost": True
     },
     "mentor_storyteller": {
-        "stability": 0.34,
-        "similarity_boost": 0.80,
-        "style": 0.48,
+        "stability": 0.36,
+        "similarity_boost": 0.82,
+        "style": 0.46,
         "use_speaker_boost": True
     },
     "dramatic_performance": {
-        "stability": 0.32,
+        "stability": 0.34,
         "similarity_boost": 0.82,
         "style": 0.42,
         "use_speaker_boost": True
     },
     "fireship_octane": {
-        "stability": 0.42,
-        "similarity_boost": 0.75,
+        "stability": 0.44,
+        "similarity_boost": 0.78,
         "style": 0.25,
         "use_speaker_boost": True
     },
     "staff_engineer": {
-        "stability": 0.72,
+        "stability": 0.68,
         "similarity_boost": 0.85,
-        "style": 0.06,
+        "style": 0.10,
         "use_speaker_boost": True
     },
     "conversational_casual": {
-        "stability": 0.55,
-        "similarity_boost": 0.75,
-        "style": 0.12,
+        "stability": 0.52,
+        "similarity_boost": 0.78,
+        "style": 0.16,
         "use_speaker_boost": True
     },
     "interview_prep": {
-        "stability": 0.58,
-        "similarity_boost": 0.80,
-        "style": 0.18,
+        "stability": 0.56,
+        "similarity_boost": 0.82,
+        "style": 0.20,
         "use_speaker_boost": True
     }
 }
 
 EDGE_TTS_PROSODY = {
-    "trusted_dost_guide": {"rate": "+11%", "pitch": "+2Hz"},
-    "senior_hinglish_mentor": {"rate": "+14%", "pitch": "+0Hz"},
-    "purposeful_hinglish_mentor": {"rate": "+12%", "pitch": "-1Hz"},
-    "youth_friend_turbo": {"rate": "+15%", "pitch": "+2Hz"},
-    "mentor_storyteller": {"rate": "+7%", "pitch": "+2Hz"},
-    "fireship_octane": {"rate": "+15%", "pitch": "+2Hz"},
-    "dramatic_performance": {"rate": "-4%", "pitch": "-4Hz"},
-    "staff_engineer": {"rate": "+4%", "pitch": "-2Hz"},
-    "conversational_casual": {"rate": "+8%", "pitch": "+0Hz"},
-    "interview_prep": {"rate": "+12%", "pitch": "+1Hz"},
+    "peaceful_human_guide": {"rate": "+3%", "pitch": "+1Hz"},
+    "trusted_dost_guide": {"rate": "+4%", "pitch": "+1Hz"},
+    "senior_hinglish_mentor": {"rate": "+5%", "pitch": "+0Hz"},
+    "purposeful_hinglish_mentor": {"rate": "+5%", "pitch": "-1Hz"},
+    "youth_friend_turbo": {"rate": "+6%", "pitch": "+2Hz"},
+    "mentor_storyteller": {"rate": "+3%", "pitch": "+2Hz"},
+    "fireship_octane": {"rate": "+7%", "pitch": "+1Hz"},
+    "dramatic_performance": {"rate": "-2%", "pitch": "-3Hz"},
+    "staff_engineer": {"rate": "+2%", "pitch": "-2Hz"},
+    "conversational_casual": {"rate": "+4%", "pitch": "+0Hz"},
+    "interview_prep": {"rate": "+5%", "pitch": "+1Hz"},
 }
 
 def get_elevenlabs_usage() -> Dict[str, Any]:
@@ -634,57 +641,65 @@ async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, t
     splits along pause cues, applies per-phrase curiosity/excitement inflection, and inserts
     genuine breathing silence between phrases via FFmpeg without clipping consonants.
     """
-    preserve = (tone in ("trusted_dost_guide", "senior_hinglish_mentor", "purposeful_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
+    preserve = (tone in ("peaceful_human_guide", "trusted_dost_guide", "senior_hinglish_mentor", "purposeful_hinglish_mentor", "youth_friend_turbo", "mentor_storyteller")) or bool(re.search(r'(\[pause\]|\.{3,})', text, re.IGNORECASE))
     cleaned_text = _clean_tts_text(text, preserve_pauses=preserve)
     if not cleaned_text:
         return False
 
-    prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+8%", "pitch": "+0Hz"})
+    prosody = EDGE_TTS_PROSODY.get(tone, {"rate": "+4%", "pitch": "+0Hz"})
     rate = prosody["rate"]
     pitch = prosody["pitch"]
     pause_sec = (
-        "0.24" if tone == "youth_friend_turbo"
-        else ("0.24" if tone in ("trusted_dost_guide", "purposeful_hinglish_mentor")
-              else ("0.22" if tone == "senior_hinglish_mentor" else "0.28"))
+        "0.32" if tone in ("peaceful_human_guide", "mentor_storyteller")
+        else ("0.26" if tone in ("trusted_dost_guide", "purposeful_hinglish_mentor", "senior_hinglish_mentor")
+              else ("0.24" if tone == "youth_friend_turbo" else "0.28"))
     )
 
-    beats = _split_pause_beats(cleaned_text, max_beats=4) if preserve else [cleaned_text]
+    beats = _split_pause_beats(cleaned_text, max_beats=5) if preserve else [cleaned_text]
     if len(beats) > 1:
         beat_files: List[Path] = []
         try:
             for bi, beat_txt in enumerate(beats):
-                if tone == "youth_friend_turbo":
+                lower_bt = beat_txt.lower()
+                if tone == "peaceful_human_guide":
+                    if any(kw in lower_bt for kw in ("relax", "chill", "easy", "calm", "simple", "sorted", "tension mat", "don't worry", "here to help")):
+                        b_rate, b_pitch = "+1%", "+1Hz"
+                    elif beat_txt.endswith("?") or any(kw in lower_bt for kw in ("samjha", "clear", "think", "guess", "why", "how", "secret", "hack", "shortcut")):
+                        b_rate, b_pitch = "+3%", "+2Hz"
+                    elif any(kw in lower_bt for kw in ("wait", "twist", "catch", "farak", "boom", "done", "look", "listen")):
+                        b_rate, b_pitch = "+5%", "+2Hz"
+                    else:
+                        b_rate, b_pitch = rate, pitch
+                elif tone == "youth_friend_turbo":
                     if beat_txt.endswith("?"):
-                        b_rate, b_pitch = "+14%", "+3Hz"
-                    elif "!" in beat_txt or any(kw in beat_txt.lower() for kw in ("boom", "magic", "secret", "finally", "exactly", "zero", "yaar", "dost", "wait")):
-                        b_rate, b_pitch = "+17%", "+3Hz"
+                        b_rate, b_pitch = "+5%", "+2Hz"
+                    elif "!" in beat_txt or any(kw in lower_bt for kw in ("boom", "magic", "secret", "finally", "exactly", "zero", "yaar", "dost", "wait")):
+                        b_rate, b_pitch = "+7%", "+2Hz"
                     elif len(beat_txt) <= 36:
-                        b_rate, b_pitch = "+15%", "+2Hz"
+                        b_rate, b_pitch = "+5%", "+1Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
                 elif tone == "trusted_dost_guide":
-                    lower_bt = beat_txt.lower()
-                    if any(kw in lower_bt for kw in ("easy", "relax", "simple", "saath", "clear", "clarity")):
-                        b_rate, b_pitch = "+10%", "+2Hz"
-                    elif beat_txt.endswith("?") or any(kw in lower_bt for kw in ("secret", "shortcut", "magic", "imagine", "vision")):
-                        b_rate, b_pitch = "+12%", "+3Hz"
+                    if any(kw in lower_bt for kw in ("easy", "relax", "simple", "chill", "saath", "clear", "clarity")):
+                        b_rate, b_pitch = "+2%", "+1Hz"
+                    elif beat_txt.endswith("?") or any(kw in lower_bt for kw in ("secret", "shortcut", "magic", "imagine", "vision", "twist")):
+                        b_rate, b_pitch = "+5%", "+2Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
                 elif tone in ("senior_hinglish_mentor", "purposeful_hinglish_mentor"):
-                    lower_bt = beat_txt.lower()
                     if beat_txt.endswith("?") or any(kw in lower_bt for kw in ("trap", "interview", "socho", "freeze", "wait", "why")):
-                        b_rate, b_pitch = ("+13%" if tone == "senior_hinglish_mentor" else "+11%"), "+1Hz"
+                        b_rate, b_pitch = "+5%", "+1Hz"
                     elif any(kw in lower_bt for kw in ("trade-off", "tradeoff", "edge case", "lekin", "problem", "catch", "fix", "must")):
-                        b_rate, b_pitch = ("+12%" if tone == "senior_hinglish_mentor" else "+10%"), "-2Hz"
+                        b_rate, b_pitch = "+4%", "-1Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
                 elif tone == "mentor_storyteller":
                     if beat_txt.endswith("?"):
+                        b_rate, b_pitch = "+3%", "+2Hz"
+                    elif "!" in beat_txt or any(kw in lower_bt for kw in ("boom", "magic", "secret", "finally", "exactly")):
                         b_rate, b_pitch = "+6%", "+3Hz"
-                    elif "!" in beat_txt or any(kw in beat_txt.lower() for kw in ("boom", "magic", "secret", "finally", "exactly")):
-                        b_rate, b_pitch = "+11%", "+4Hz"
                     elif len(beat_txt) <= 38:
-                        b_rate, b_pitch = "+4%", "+2Hz"
+                        b_rate, b_pitch = "+2%", "+1Hz"
                     else:
                         b_rate, b_pitch = rate, pitch
                 else:
@@ -836,15 +851,22 @@ def generate_voiceover(
         d_val = get_audio_duration(p)
         scene_durations.append(d_val if d_val > 0.05 else 1.5)
 
-    # 3. Concatenate scene audios into full reel voiceover via FFmpeg
+    # 3. Concatenate scene audios into full reel voiceover via FFmpeg + Voice Clarity/Loudness Mastering
     final_audio_path = OUTPUT_DIR / "reel_voiceover.mp3"
     concat_cmd = [str(FFMPEG_EXE), "-y"]
     for p in scene_audio_paths:
         concat_cmd.extend(["-i", str(p.resolve())])
-    filter_expr = "".join(f"[{i}:a]" for i in range(len(scene_audio_paths))) + f"concat=n={len(scene_audio_paths)}:v=0:a=1[a]"
+    filter_expr = "".join(f"[{i}:a]" for i in range(len(scene_audio_paths))) + f"concat=n={len(scene_audio_paths)}:v=0:a=1[raw];[raw]highpass=f=75,acompressor=threshold=-18dB:ratio=2.4:attack=12:release=120,loudnorm=I=-14:TP=-1.5:LRA=8[a]"
     concat_cmd.extend(["-filter_complex", filter_expr, "-map", "[a]", "-c:a", "libmp3lame", "-b:a", "192k", str(final_audio_path.resolve())])
-    
-    subprocess.run(concat_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+    res_concat = subprocess.run(concat_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if res_concat.returncode != 0 or not final_audio_path.exists() or final_audio_path.stat().st_size < 1000:
+        fallback_cmd = [str(FFMPEG_EXE), "-y"]
+        for p in scene_audio_paths:
+            fallback_cmd.extend(["-i", str(p.resolve())])
+        fb_expr = "".join(f"[{i}:a]" for i in range(len(scene_audio_paths))) + f"concat=n={len(scene_audio_paths)}:v=0:a=1[a]"
+        fallback_cmd.extend(["-filter_complex", fb_expr, "-map", "[a]", "-c:a", "libmp3lame", "-b:a", "192k", str(final_audio_path.resolve())])
+        subprocess.run(fallback_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
     total_audio_duration = get_audio_duration(final_audio_path)
     if total_audio_duration <= 0:
         total_audio_duration = sum(scene_durations)

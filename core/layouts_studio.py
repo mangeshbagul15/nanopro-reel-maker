@@ -77,8 +77,20 @@ def _card_flip_scale_x(t: float) -> float:
     return max(0.14, math.sin(_ease_out_cubic(t) * (math.pi / 2.0)))
 
 
+_ACTIVE_VOICE_GATES: Optional[List[float]] = None
+
+
+def _set_active_voice_gates(gates: Optional[List[float]] = None) -> None:
+    """Sets per-component spoken-word gate overrides for the active frame render."""
+    global _ACTIVE_VOICE_GATES
+    _ACTIVE_VOICE_GATES = list(gates) if gates else None
+
+
 def _spring_gate(progress: float, idx: int, total: int, span: float = 0.22) -> float:
-    """Evenly distributes component entrances across 0.02..0.78 so visuals build progressively with voice."""
+    """Locks each component entrance to exact spoken-word timestamps when available, else distributes evenly."""
+    if _ACTIVE_VOICE_GATES:
+        gi = max(0, min(len(_ACTIVE_VOICE_GATES) - 1, int(idx)))
+        return _clamp01(_ACTIVE_VOICE_GATES[gi])
     n = max(1, total)
     if n <= 1:
         return _clamp01((progress - 0.02) / max(0.14, span))
@@ -283,6 +295,8 @@ class StudioStage:
         self.sdraw = ImageDraw.Draw(self.shadow)
         self.gdraw = ImageDraw.Draw(self.glow)
         self.draw = ImageDraw.Draw(self.fg)
+        self.anchors: List[Tuple[int, int, str]] = []
+        self.focus_dimming: bool = False
 
     def add_shadow_ellipse(self, bbox: Tuple[int, int, int, int], alpha_mul: float = 1.0) -> None:
         eff = alpha_mul * self.t_alpha
@@ -345,6 +359,8 @@ class StudioStage:
         eff = _clamp01(alpha_mul) * self.t_alpha
         if eff <= 0.02:
             return bbox
+        if self.focus_dimming and not active and (bbox[2] - bbox[0]) < 860:
+            eff *= 0.80
         x0, y0, x1, y1 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
         if flip_t < 0.99:
             sx = _card_flip_scale_x(flip_t)
@@ -352,6 +368,8 @@ class StudioStage:
             hw = max(8.0, (x1 - x0) * 0.5 * sx)
             x0, x1 = int(round(cx - hw)), int(round(cx + hw))
         b = (x0, y0, x1, y1)
+        if (x1 - x0) >= 140 and 380 <= (y0 + y1) * 0.5 <= 1560 and eff > 0.15:
+            self.anchors.append((int((x0 + x1) * 0.5), int((y0 + y1) * 0.5), "active" if active else "card"))
         if elev > 0:
             self.add_shadow_rect((x0 + 3, y0 + elev, x1 + 3, y1 + elev + 4), radius=radius, alpha_mul=alpha_mul)
         if layered and (x1 - x0) > 40:

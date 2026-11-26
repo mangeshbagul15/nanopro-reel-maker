@@ -493,6 +493,7 @@ def generate_ass_subtitles(
 
     # Highlight color (ASS BGR hex) & kinetic pop scale per tone
     tone_styles = {
+        "peaceful_human_guide": (r"\c&H0099D334&\fscx110\fscy110", "peaceful_emerald_sweep"),
         "trusted_dost_guide": (r"\c&H0099D334&\fscx112\fscy112", "trusted_emerald_warm"),
         "senior_hinglish_mentor": (r"\c&H00F8BD38&\fscx110\fscy110", "mentor_cyan_emphasis"),
         "purposeful_hinglish_mentor": (r"\c&H00F8BD38&\fscx110\fscy110", "purposeful_mentor_cyan"),
