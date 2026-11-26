@@ -1095,6 +1095,7 @@ with tab_create:
                         prev_scene=(aligned_scenes[idx_i - 1] if idx_i > 0 else None),
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
+                        tone=chosen_tone,
                     )
                 else:
                     render_scene_frames(

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from core.config import DEFAULT_WATERMARK, FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS
+from core.tone_engine import get_tone_profile
 
 _ACCENT_HEX = {
     "cyan": "#38BDF8",
@@ -24,19 +25,67 @@ _ACCENT_HEX = {
 }
 
 
-def _compute_camera_center(world_spec: Dict[str, Any], focus_ids: List[str]) -> Dict[str, float]:
+def _compute_camera_center(
+    world_spec: Dict[str, Any],
+    focus_ids: List[str],
+    width: int = 1080,
+    height: int = 1920,
+    zoom_bias: float = 1.0,
+    is_overview: bool = False,
+) -> Dict[str, float]:
+    """
+    Computes tight, hero-centric 2.5D isometric camera coordinates using actual
+    projected screen space so objects NEVER shrink tiny or leave huge empty margins.
+    """
     nodes = list(world_spec.get("nodes") or [])
     by_id = {str(n.get("id")): n for n in nodes if n.get("id")}
     chosen = [by_id[fid] for fid in (focus_ids or []) if fid in by_id]
     if not chosen:
-        chosen = nodes[:3] if nodes else [{"x": 550, "y": 550}]
-    xs = [float(n.get("x", 550)) for n in chosen]
-    ys = [float(n.get("y", 550)) for n in chosen]
-    cx = sum(xs) / len(xs)
-    cy = sum(ys) / len(ys)
-    span = max(320.0, (max(xs) - min(xs)) + (max(ys) - min(ys)) + 120.0)
-    zoom = max(0.64, min(1.06, 560.0 / span))
-    return {"cx": cx, "cy": cy, "zoom": round(zoom, 3)}
+        chosen = nodes[:2] if nodes else [{"x": 550, "y": 550}]
+
+    # Focus heroically on primary target (up to 2 nodes) instead of zooming way out across 4 corners
+    hero_set = chosen if is_overview else chosen[:2]
+    xs = [float(n.get("x", 550)) for n in hero_set]
+    ys = [float(n.get("y", 550)) for n in hero_set]
+    if len(hero_set) == 2 and not is_overview:
+        # 64% primary node + 36% neighbor keeps the main subject crisp & large
+        cx = xs[0] * 0.64 + xs[1] * 0.36
+        cy = ys[0] * 0.64 + ys[1] * 0.36
+    else:
+        cx = sum(xs) / len(xs)
+        cy = sum(ys) / len(ys)
+
+    # Measure true projected isometric span rather than raw Manhattan sum
+    pts = [((float(n.get("x", 550)) - cx) * 0.86 - (float(n.get("y", 550)) - cy) * 0.86,
+            (float(n.get("x", 550)) - cx) * 0.44 + (float(n.get("y", 550)) - cy) * 0.44)
+           for n in hero_set]
+    proj_w = max(280.0, (max(p[0] for p in pts) - min(p[0] for p in pts)) + 260.0)
+    proj_h = max(240.0, (max(p[1] for p in pts) - min(p[1] for p in pts)) + 260.0)
+
+    avail_w = width * 0.78
+    avail_h = height * 0.46
+    fit_zoom = min(avail_w / proj_w, avail_h / proj_h)
+    sc_base = min(width, height) / 1080.0
+    fit_zoom = fit_zoom * (zoom_bias / max(0.5, sc_base))
+
+    if is_overview:
+        zoom = max(0.78, min(1.05, fit_zoom))
+    else:
+        zoom = max(0.98, min(1.48, fit_zoom))
+    return {"cx": round(cx, 1), "cy": round(cy, 1), "zoom": round(zoom, 3)}
+
+
+def _tone_camera_motion(tone: str, role: str, scene_tone: Optional[str]) -> Dict[str, float]:
+    """Maps Script Tone & Emotion cleanly to camera glide speed, zoom punch, and breathing drift."""
+    prof = get_tone_profile(tone, scene_tone=scene_tone, role=role)
+    t_key = prof.get("key", "whiteboard_analogy")
+    z_bias = float(prof.get("camera_zoom_bias", 1.08)) / 1.06  # normalize ~1.00..1.05
+
+    if t_key in ("fireship_octane", "youth_friend_turbo", "cage_match_vs", "myth_buster_contrarian"):
+        return {"fly_window": 0.28, "zoom_mult": min(1.08, z_bias * 1.03), "breath_zoom": 0.04}
+    if t_key in ("war_story_postmortem", "dramatic_performance", "bigtech_reverse_engineer"):
+        return {"fly_window": 0.48, "zoom_mult": min(1.12, z_bias * 1.06), "breath_zoom": 0.05}
+    return {"fly_window": 0.40, "zoom_mult": z_bias, "breath_zoom": 0.03}
 
 
 def _build_isometric_html(
@@ -44,6 +93,7 @@ def _build_isometric_html(
     prev_scene: Optional[Dict[str, Any]],
     width: int,
     height: int,
+    tone: str = "auto_2026_director",
 ) -> str:
     vd = dict(scene.get("visual_data") or {})
     prev_vd = dict((prev_scene or {}).get("visual_data") or {})
@@ -67,12 +117,28 @@ def _build_isometric_html(
     is_wide = width > height
     hl_px = int((56 if h_len <= 24 else (46 if h_len <= 36 else 38)) * sc * (0.82 if is_wide else 1.0))
 
-    # Camera keyframes for continuous smooth flyover between adjacent world scenes
-    cur_cam = _compute_camera_center(world_spec, list(vd.get("focus_node_ids") or []))
+    cam_motion = _tone_camera_motion(tone, str(scene.get("role") or ""), scene.get("scene_tone"))
+    cur_cam = _compute_camera_center(
+        world_spec,
+        list(vd.get("focus_node_ids") or []),
+        width=width,
+        height=height,
+        zoom_bias=cam_motion["zoom_mult"],
+        is_overview=(scene_mode == "cta_poll"),
+    )
     if prev_vd.get("scene_mode") == "world_cam":
-        prev_cam = _compute_camera_center(world_spec, list(prev_vd.get("focus_node_ids") or []))
+        prev_motion = _tone_camera_motion(tone, str((prev_scene or {}).get("role") or ""), (prev_scene or {}).get("scene_tone"))
+        prev_cam = _compute_camera_center(
+            world_spec,
+            list(prev_vd.get("focus_node_ids") or []),
+            width=width,
+            height=height,
+            zoom_bias=prev_motion["zoom_mult"],
+            is_overview=False,
+        )
     else:
-        prev_cam = cur_cam
+        # Smooth subtle zoom-in arrival on first world scene rather than static jump
+        prev_cam = {"cx": cur_cam["cx"], "cy": cur_cam["cy"], "zoom": round(max(0.88, cur_cam["zoom"] * 0.90), 3)}
 
     is_wide = width > height
     sc = min(width, height) / 1080.0
@@ -148,6 +214,8 @@ def _build_isometric_html(
         "scene_mode": scene_mode,
         "prev_cam": prev_cam,
         "cur_cam": cur_cam,
+        "cam_fly_window": cam_motion["fly_window"],
+        "breath_zoom": cam_motion["breath_zoom"],
         "active_edges": list(vd.get("active_edge_ids") or []),
         "node_overrides": dict(vd.get("node_overrides") or {}),
     }, ensure_ascii=False)
@@ -174,8 +242,9 @@ def _build_isometric_html(
   .wm-pill .at {{ color: #FB923C; }}
   .top-zone {{
     position: relative; z-index: 8; width: 100%;
-    padding: {int(115*sc if not is_wide else 80*sc)}px {int(52*sc)}px 0;
+    padding: {int(115*sc if not is_wide else 80*sc)}px {int(52*sc)}px {int(36*sc)}px;
     display: flex; flex-direction: column; align-items: center; text-align: center;
+    background: linear-gradient(180deg, rgba(5,8,20,0.96) 0%, rgba(7,12,28,0.88) 76%, rgba(7,12,28,0.0) 100%);
   }}
   .hud-pill {{
     display: inline-flex; align-items: center; gap: 8px; padding: {int(6*sc)}px {int(16*sc)}px; border-radius: 999px;
@@ -358,11 +427,13 @@ def _build_isometric_html(
       ctx.clearRect(0, 0, W, H);
       if (STATE.scene_mode === 'hook_chat' || STATE.scene_mode === 'split_compare') return;
 
-      const camT = easeInOut(Math.min(1, prog / 0.34));
+      const flyWin = Math.max(0.22, Number(STATE.cam_fly_window || 0.40));
+      const camT = easeInOut(Math.min(1, prog / flyWin));
       const c0 = STATE.prev_cam, c1 = STATE.cur_cam;
       const camX = c0.cx + (c1.cx - c0.cx) * camT;
       const camY = c0.cy + (c1.cy - c0.cy) * camT;
-      const zoom = c0.zoom + (c1.zoom - c0.zoom) * camT;
+      const baseZoom = c0.zoom + (c1.zoom - c0.zoom) * camT;
+      const zoom = baseZoom * (1 + Number(STATE.breath_zoom || 0.03) * prog);
 
       if (STATE.scene_mode === 'cta_poll') {{ ctx.save(); ctx.globalAlpha = 0.25; }}
 
@@ -521,6 +592,7 @@ def render_v2_isometric_scene_frames(
     prev_scene: Optional[Dict[str, Any]] = None,
     format_ratio: str = "9:16",
     scene_words: Optional[List[Dict[str, Any]]] = None,
+    tone: str = "auto_2026_director",
 ) -> Path:
     """Renders continuous 2.5D Isometric World flyover frames + HUD for a Studio V2 scene."""
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
@@ -535,7 +607,7 @@ def render_v2_isometric_scene_frames(
         except Exception:
             pass
 
-    html_doc = _build_isometric_html(scene, prev_scene, w, h)
+    html_doc = _build_isometric_html(scene, prev_scene, w, h, tone=tone)
     from core.web_generative_engine import detect_web_engine
     pw_ok, exe_path = detect_web_engine()
     if pw_ok:
