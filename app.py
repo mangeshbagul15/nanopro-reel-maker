@@ -23,6 +23,7 @@ _RELOAD_ORDER = [
     "core.layouts_studio",
     "core.web_generative_engine",
     "core.cinematic_engine",
+    "core.quality_gate",
 ]
 for _m in _RELOAD_ORDER:
     if _m in sys.modules:
@@ -45,6 +46,7 @@ from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, 
 from core.animator import render_scene_frames, generate_thumbnail_9_16
 from core.subtitles import generate_ass_subtitles
 from core.renderer import render_final_reel
+from core.quality_gate import DEFAULT_QUALITY_MODE, QUALITY_MODES, run_quality_gate_and_self_heal
 from core.uploader import (
     upload_to_r2,
     list_r2_videos,
@@ -172,6 +174,7 @@ with st.sidebar:
             ("cta_keyword", "cta_keyword_input"),
             ("enable_cam_actions", "enable_cam_actions_chk"),
             ("enable_micro_sfx", "enable_micro_sfx_chk"),
+            ("quality_mode", "quality_gate_select"),
         ):
             if _sk in _ps:
                 st.session_state[_wk] = _ps[_sk]
@@ -522,7 +525,16 @@ with st.sidebar:
     manual_text_fx_choice = "auto"
     st.session_state.setdefault("enable_cam_actions_chk", True)
     st.session_state.setdefault("enable_micro_sfx_chk", True)
+    st.session_state.setdefault("quality_gate_select", DEFAULT_QUALITY_MODE)
+    _qg_labels = dict(QUALITY_MODES)
     with st.expander("🎛️ Manual Studio & Motion Overrides", expanded=False):
+        chosen_quality_mode = st.selectbox(
+            "🧠 AI Quality Gate & Surgical Self-Repair",
+            [k for k, _ in QUALITY_MODES],
+            format_func=lambda k: _qg_labels[k],
+            key="quality_gate_select",
+            help="3-Layer Human-Brain Critic (Pixel CV + Audio/NLP Sync + Multimodal Vision LLM) auto-heals failing scenes and always delivers Best-So-Far without blocking.",
+        )
         enable_camera_actions = st.checkbox(
             "🎥 Virtual Camera Zoom + 12-Verb Action Overlays",
             key="enable_cam_actions_chk",
@@ -608,6 +620,7 @@ with st.sidebar:
                 "cta_keyword": chosen_cta_keyword,
                 "enable_cam_actions": enable_camera_actions,
                 "enable_micro_sfx": enable_micro_sfx,
+                "quality_mode": chosen_quality_mode,
             }
             _saved_slug = save_custom_creator_preset(_new_preset_name, _payload_settings)
             st.session_state["creator_preset_select"] = _saved_slug
@@ -630,7 +643,7 @@ with st.sidebar:
     st.caption(
         f"🔗 **Active Sync:** `{chosen_tone}` • `{voice_label.split('—')[0].split('(')[0].strip()[:18]}` • "
         f"`{aspect_ratio[0]}` • `{chosen_bgm_style}` (`{bgm_volume_pct if chosen_bgm_style != 'none' else 0}%`) • "
-        f"`{chosen_caption_style}` ({chosen_platform_zone}) • `{chosen_audience}` • `{_eng_disp}`"
+        f"`{chosen_caption_style}` ({chosen_platform_zone}) • `{chosen_audience}` • `qg:{chosen_quality_mode}` • `{_eng_disp}`"
         + (f" • Override `{manual_layout_choice}`" if manual_layout_choice != "auto" else "")
     )
     
@@ -1048,7 +1061,31 @@ with tab_create:
                 for fut in as_completed(futs):
                     fut.result()
                     done_cnt += 1
-                    progress_bar.progress(45 + int(30 * done_cnt / max(1, total_sc)))
+                    progress_bar.progress(45 + int(24 * done_cnt / max(1, total_sc)))
+
+            # STEP 3.5: Closed-Loop AI Quality Critic & Surgical Self-Repair Engine
+            sfx_events = collect_sfx_timeline(aligned_scenes, word_timestamps=word_timestamps, tone=chosen_tone) if enable_micro_sfx else []
+
+            def _qg_rerender_scene(i_sc):
+                return _render_scene_task(i_sc)
+
+            def _qg_progress(msg: str, frac: float = 0.5):
+                status_box.info(msg)
+                progress_bar.progress(min(79, 69 + int(10 * max(0.0, min(1.0, frac)))))
+
+            aligned_scenes, all_scene_frame_dirs, qg_report = run_quality_gate_and_self_heal(
+                topic=user_prompt.strip(),
+                aligned_scenes=aligned_scenes,
+                frame_dirs=all_scene_frame_dirs,
+                word_timestamps=word_timestamps,
+                sfx_events=sfx_events,
+                quality_mode=chosen_quality_mode,
+                render_single_scene_fn=_qg_rerender_scene,
+                format_ratio=aspect_ratio[0],
+                caption_style=chosen_caption_style,
+                platform_safe_zone=chosen_platform_zone,
+                progress_cb=_qg_progress,
+            )
 
             with st.expander("🎞️ Scene-by-Scene Visual Preview Strip (Rendered Keyframes)", expanded=True):
                 _prev_cols = st.columns(min(4, max(1, len(all_scene_frame_dirs))))
@@ -1153,11 +1190,66 @@ with tab_create:
                 total_duration = aligned_scenes[-1]['end_time']
                 
                 # Top KPI Row
-                kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+                kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
                 kpi1.metric("⏱️ Duration", f"{total_duration:.1f}s")
                 kpi2.metric("🎬 Scenes", f"{len(aligned_scenes)}")
                 kpi3.metric("🗣️ Words", f"{len(word_timestamps)}")
                 kpi4.metric("📐 Format", f"{aspect_ratio[0]}")
+                _qg_score_disp = (
+                    f"{qg_report.get('final_score', 'N/A')}/100"
+                    if qg_report.get("mode") != "fast" and qg_report.get("final_score") is not None
+                    else "Bypassed"
+                )
+                kpi5.metric("🧠 AI Score", _qg_score_disp)
+
+                # AI Quality Gate Scorecard & Surgical Self-Repair Log
+                with st.expander(
+                    f"🧠 AI Quality Gate Scorecard — {qg_report.get('status', 'N/A')} ({_qg_score_disp})",
+                    expanded=True,
+                ):
+                    st.caption(
+                        f"Mode: `{qg_report.get('mode', chosen_quality_mode)}` • "
+                        f"Critic: `{qg_report.get('critic_model', 'none')}` • "
+                        f"Target: `>= {qg_report.get('target_score', 84)}/100`"
+                    )
+                    if qg_report.get("verdict_summary"):
+                        st.info(qg_report["verdict_summary"])
+                    _dim_labels = [
+                        ("concept_clarity", "Concept & Flow Clarity"),
+                        ("visual_topic_match", "Visual ↔ Topic Match"),
+                        ("motion_action_precision", "Motion & Action Precision"),
+                        ("layout_legibility", "Layout & Text Legibility"),
+                        ("voice_karaoke_sync", "Voice ↔ Karaoke Sync"),
+                        ("audio_sfx_harmony", "Audio & SFX Harmony"),
+                    ]
+                    _dims = qg_report.get("dimensions", {}) or {}
+                    _dc1, _dc2 = st.columns(2)
+                    for _di, (_dk, _dlbl) in enumerate(_dim_labels):
+                        if _dk in _dims:
+                            _val = int(_dims[_dk])
+                            with (_dc1 if _di % 2 == 0 else _dc2):
+                                st.caption(f"**{_dlbl}:** `{_val}/100`")
+                                st.progress(max(0.0, min(1.0, _val / 100.0)))
+                    _rounds = qg_report.get("rounds", []) or []
+                    if _rounds:
+                        _r_trail = " → ".join(
+                            f"R{r.get('round')}: {r.get('overall_score')}/100"
+                            for r in _rounds
+                        )
+                        st.markdown(f"**Score Progression:** `{_r_trail}`")
+                    _repairs = qg_report.get("repairs", []) or []
+                    if _repairs:
+                        st.markdown("**Surgical Repairs Applied:**")
+                        for _rep in _repairs:
+                            if isinstance(_rep, dict):
+                                st.markdown(
+                                    f"- Round `{_rep.get('round')}` Scene `{_rep.get('scene_index')}`: "
+                                    f"`{_rep.get('defect_type')}` → {_rep.get('action')}"
+                                )
+                            else:
+                                st.markdown(f"- {_rep}")
+                    else:
+                        st.caption("✨ No surgical scene repairs needed — first pass clean!")
 
                 # Viral Description & Hashtags Expander
                 with st.expander("📋 Viral Description & 25+ Hashtags (Ready to Copy)", expanded=True):
@@ -1219,6 +1311,10 @@ with tab_create:
                        - **Resolution & Frame Rate:** {FORMAT_SPECS[aspect_ratio[0]]['width']}x{FORMAT_SPECS[aspect_ratio[0]]['height']} ({aspect_ratio[0]}) @ {VIDEO_FPS} FPS (Razor-sharp, 0% blur)
                        - **Dynamic Story Elements:** {"AI Autonomous Visual Mix -> " + ", ".join(s.get("visual_type", "") for s in aligned_scenes) if visual_engine[0] == "auto_dynamic" else "Visuals strictly enforced to match `" + visual_engine[0] + "`"}
                        - **Total Frames Generated:** `{round(total_duration * VIDEO_FPS)}` frames rendered frame-by-frame.
+
+                    3.5. **🧠 Step 3.5 — Closed-Loop AI Quality Critic & Surgical Self-Repair:**
+                       - **Gate Mode & Critic:** `{qg_report.get('mode', chosen_quality_mode)}` (`{qg_report.get('critic_model', 'none')}`)
+                       - **Final Verdict:** `{qg_report.get('status', 'N/A')}` — Score `{qg_report.get('final_score', 'N/A')}/100` across {len(qg_report.get('rounds', []))} round(s), {len(qg_report.get('repairs', []))} surgical repair(s).
 
                     4. **⚡ Step 4 — Hardware FFmpeg Video Stitching & Captions:**
                        - **Video Encoder:** Hardware Accelerated High-Bitrate (Windows Media Foundation 8 Mbps / libx264 CRF 18)
