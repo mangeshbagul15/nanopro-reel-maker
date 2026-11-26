@@ -535,37 +535,39 @@ def _build_vector_html(scene: Dict[str, Any], width: int, height: int) -> str:
       el.style.strokeDashoffset = String(len);
     }});
 
-    window.__setStudioProgress = function(p, curTime, energy) {{
+    window.__setStudioProgress = function(p, linClock) {{
       const prog = Math.max(0, Math.min(1, Number(p) || 0));
+      const lp = Math.max(0, Math.min(1, Number(linClock !== undefined ? linClock : prog) || 0));
       document.querySelectorAll('.reveal').forEach(el => {{
         const dp = parseFloat(el.dataset.p || '0');
-        if (prog >= dp) el.classList.add('on');
-        else el.classList.remove('on');
+        const fade = Math.max(0, Math.min(1, (prog - dp + 0.05) / 0.10));
+        el.style.opacity = fade.toFixed(3);
+        el.style.transform = `translateY(${{(12 * (1 - fade)).toFixed(1)}}px)`;
       }});
       document.querySelectorAll('.meter-fill').forEach(el => {{
         const dp = parseFloat(el.dataset.p || '0');
         const tgt = parseFloat(el.dataset.target || '50');
-        const local = Math.max(0, Math.min(1, (prog - dp) / 0.28));
+        const local = Math.max(0, Math.min(1, (lp - dp) / 0.28));
         el.style.width = (tgt * local).toFixed(1) + '%';
       }});
       draws.forEach(el => {{
         const dp = parseFloat(el.dataset.p || '0');
         const len = parseFloat(el.dataset.len || '400');
-        const local = Math.max(0, Math.min(1, (prog - dp) / 0.22));
+        const local = Math.max(0, Math.min(1, (lp - dp) / 0.22));
         el.style.strokeDashoffset = (len * (1 - local)).toFixed(1);
       }});
       document.querySelectorAll('.pkt-dot').forEach(dot => {{
         const dp = parseFloat(dot.dataset.p || '0');
-        if (prog < dp) {{ dot.style.opacity = '0'; return; }}
+        if (lp < dp) {{ dot.style.opacity = '0'; return; }}
         dot.style.opacity = '1';
         const x1 = parseFloat(dot.dataset.x1), y1 = parseFloat(dot.dataset.y1);
         const x2 = parseFloat(dot.dataset.x2), y2 = parseFloat(dot.dataset.y2);
-        const phase = ((prog - dp) * 2.8) % 1;
+        const phase = ((lp - dp) * 2.6) % 1;
         dot.setAttribute('cx', (x1 + (x2 - x1) * phase).toFixed(1));
         dot.setAttribute('cy', (y1 + (y2 - y1) * phase).toFixed(1));
       }});
     }};
-    window.__setStudioProgress(1.0, 0, 0.8);
+    window.__setStudioProgress(1.0, 1.0);
   </script>
 </body>
 </html>"""
@@ -616,7 +618,10 @@ def render_v2_vector_scene_frames(
                 eff_p = lin_p
             if lin_p >= 0.92:
                 eff_p = 1.0
-            page.evaluate("(p) => { if (window.__setStudioProgress) window.__setStudioProgress(p); }", round(eff_p, 4))
+            page.evaluate(
+                "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.wp, args.lp); }",
+                {"wp": round(eff_p, 4), "lp": round(lin_p, 4)},
+            )
             page.screenshot(path=str(out_dir / f"frame_{f:04d}.jpg"), type="jpeg", quality=90)
 
         browser.close()

@@ -193,6 +193,7 @@ def _build_isometric_html(
     background: rgba(11, 18, 38, 0.92); backdrop-filter: blur(12px);
     border-radius: {int(22*sc)}px; border: 1px solid rgba(148,163,184,0.2);
     padding: {int(24*sc)}px {int(30*sc)}px;
+    opacity: 1 !important; transform: translateY(0) !important;
   }}
   .hud-eye {{ font-size: {int(18*sc)}px; font-weight: 800; letter-spacing: 2.5px; margin-bottom: 6px; }}
   .hud-title {{ font-size: {int(36*sc)}px; font-weight: 800; color: #F8FAFC; line-height: 1.2; }}
@@ -497,16 +498,18 @@ def _build_isometric_html(
       if (STATE.scene_mode === 'cta_poll') ctx.restore();
     }}
 
-    window.__setStudioProgress = function(p) {{
-      const prog = Math.max(0, Math.min(1, Number(p) || 0));
+    window.__setStudioProgress = function(linP, wordP) {{
+      const lp = Math.max(0, Math.min(1, Number(linP) || 0));
+      const wp = Math.max(lp * 0.45, Math.min(1, Number(wordP !== undefined ? wordP : lp) || 0));
       document.querySelectorAll('.reveal').forEach(el => {{
         const dp = parseFloat(el.dataset.p || '0');
-        if (prog >= dp) el.classList.add('on');
-        else el.classList.remove('on');
+        const fade = Math.max(0, Math.min(1, (wp - dp + 0.06) / 0.12));
+        el.style.opacity = fade.toFixed(3);
+        el.style.transform = `translateY(${{(12 * (1 - fade)).toFixed(1)}}px)`;
       }});
-      drawWorld(prog);
+      drawWorld(lp);
     }};
-    window.__setStudioProgress(1.0);
+    window.__setStudioProgress(1.0, 1.0);
   </script>
 </body>
 </html>"""
@@ -553,10 +556,15 @@ def render_v2_isometric_scene_frames(
             if words:
                 spoken = sum(1 for wd in words if float(wd.get("start", 0.0)) <= cur_t)
                 word_p = spoken / max(1, len(words))
-                eff_p = min(1.0, 0.50 * word_p + 0.50 * lin_p)
+                word_blend = min(1.0, 0.72 * word_p + 0.28 * lin_p)
             else:
-                eff_p = lin_p
-            page.evaluate("(p) => { if (window.__setStudioProgress) window.__setStudioProgress(p); }", round(eff_p, 4))
+                word_blend = lin_p
+            if lin_p >= 0.94:
+                word_blend = 1.0
+            page.evaluate(
+                "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.lp, args.wp); }",
+                {"lp": round(lin_p, 4), "wp": round(word_blend, 4)},
+            )
             page.screenshot(path=str(out_dir / f"frame_{f:04d}.jpg"), type="jpeg", quality=90)
 
         browser.close()
