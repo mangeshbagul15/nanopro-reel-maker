@@ -428,14 +428,14 @@ Output a single valid JSON object matching this structure:
 
 ENGINE_STYLE_DIRECTIVES = {
     "omni_smart_director": (
-        "OMNI SMART DIRECTOR (ALL 24 SPECIALIST ENGINES UNIFIED — BEST-PER-SCENE SEMANTIC ROUTER): "
-        "Instead of forcing one visual style across the whole video, select the SINGLE BEST specialist visual engine & layout for EACH INDIVIDUAL SCENE while locking ONE harmonious `art_style` color world across the entire reel:\n"
-        "- Hook / Opening Scene: Use `hero_hook`, `chat_thread_ai` (especially for Q&A/dual dialogue), `kinetic_statement`, or `web_scene` (`option1_archetype`) with a curiosity question/stat.\n"
-        "- Core Architecture / Mechanism Scene: Pick the exact matching Domain/Topology (`cdc_debezium_flow`, `medallion_lakehouse`, `topo_kafka_isr_quorum_dlq` for streaming/data; `raft_leader_election`, `consistent_hashing_ring`, `topo_saga_choreo_compensate` for distributed systems; `rag_chunk_overlap_pipe`, `mcp_client_host_server`, `topo_rag_hybrid_rerank` for AI/LLM; or `all_in_one_tech_canvas` / `topo_ingress_mesh_wal` / `sequence_diagram` generally).\n"
-        "- Implementation / Proof Scene: Use `sql_table` ONLY if explaining SQL queries/schemas, `code_terminal` / `code_diff_split` ONLY if explaining CLI/code, `data_structure_memory` / `write_ahead_log_wal` ONLY for buffers/bytes/offsets, otherwise interactive flow/topology.\n"
-        "- Trade-Off / Metrics / Incident Scene: Use `split_comparison` for A vs B trade-offs, `benchmark_3d` / `latency_waterfall` / `flamegraph_perf` for latency/speedup metrics, or `alert_diagram` / `circuit_breaker_states` for failures/bottlenecks.\n"
-        "- Summary / Takeaways Scene: Use `concept_cards`, `checklist_prod_readiness`, `grammar:bento:5`, or an Option 1 `svg_scene`/`spatial_canvas`.\n"
-        "NEVER use the same `visual_type` twice in one video! Vary `backdrop` (18 styles), `transition` (12 styles), `text_fx` (14 styles), and populate 4-5 progressive `voice_beats` + `choreography.triggers` per scene."
+        "OMNI SMART DIRECTOR (ALL 25 ENGINES UNIFIED — ZERO-HARDCODE 6-GEOMETRY SCENE ROUTER): "
+        "Select the SINGLE BEST specialist visual engine & layout for EACH INDIVIDUAL SCENE while pulling authentic topic entities, numbers, SQL, code, and flows directly from the spoken narration/dialogue:\n"
+        "- Hook / Opening Scene: Use `chat_thread_ai` (populating `messages` directly from `dialogue`), `mobile_app_mockup`, `browser_window`, `incident_radar`, or `hero_hook` with exact spoken question/metrics.\n"
+        "- Architecture Scene: Pick matching Dual-Plane Topology (`topo_kafka_isr_quorum_dlq`, `cdc_debezium_flow`, `topo_saga_choreo_compensate`, `rag_chunk_overlap_pipe`, etc.) AND populate BOTH `plane_a` (3 ingress/control nodes) and `plane_b` (3 execution/storage nodes) using actual concepts spoken in that scene.\n"
+        "- Data / SQL / Flow Scene: Populate `sql_studio`/`sql_window_partition` with exact spoken `query`, `columns`, `rows`, OR use `sequence_diagram`/`sankey_flow`/`radar_spider`/`donut_3d` with real spoken entities.\n"
+        "- Code / Metrics / Memory Scene: Populate `code_diff_split`/`code_terminal` with real spoken commands/snippets, `benchmark_3d`/`p99_tail_cdf_curve` with exact spoken latencies/speedups, OR `memory_wal_checkpoint`.\n"
+        "- Trade-off & Closing Scene: Populate `compare_sync_vs_async`/`iso_comparison` (`left_points`/`right_points`), Composable Grammar (`grammar:pyramid:4`, `grammar:funnel:4`, `grammar:ring:6`), or Option 1 WebGL (`spatial_constellation`, `svg_ecdh_key_exchange`).\n"
+        "NEVER use dummy names or generic code; every on-screen text/metric MUST mirror that scene's spoken words!"
     ),
     "multi_topology_mix": (
         "MULTI-TOPOLOGY INTERCONNECTED ARCHITECTURE ENGINE: "
@@ -1265,6 +1265,125 @@ def _mirror_items_for_domain_layout(v_data: Dict[str, Any], sc: Dict[str, Any], 
         v_data["footer"] = clauses[-1][:64]
 
 
+def _extract_voice_facts(narration: str, topic: str, title: str, dialogue: Any = None) -> Dict[str, Any]:
+    """
+    Zero-Hardcode Voice-Text Hydrator:
+    Extracts actual spoken SQL queries/columns/tables, CLI commands, technical entity names,
+    and numeric latencies/speedups directly from the scene's narration & dialogue so every visual
+    widget renders content spoken in THAT scene instead of generic dummy placeholders.
+    """
+    text = str(narration or "").strip()
+    if not text and isinstance(dialogue, list):
+        text = " ".join(str(d.get("text") or "") for d in dialogue if isinstance(d, dict))
+    clauses = _split_narration_clauses(text, target_count=6)
+
+    # 1. Extract technical multi-word/single concepts mentioned in spoken voice
+    _SKIP_W = {
+        "yaar", "honestly", "relax", "main", "samajhta", "hoon", "yeh", "aur", "par", "mein",
+        "hain", "hai", "karta", "karte", "karti", "kaise", "kyun", "kya", "hota", "hoti",
+        "jaati", "jaate", "aao", "chalo", "dekhte", "samajhte", "lagao", "karo", "rakho",
+        "simple", "bahut", "smart", "wait", "achha", "waah", "poora", "bas", "abhi", "liye",
+        "bina", "toh", "bhi", "se", "ko", "ka", "ki", "ke", "ek", "sabse", "zaroori", "zaroor",
+        "isko", "hum", "aap", "tum", "mera", "tera", "matlab", "matlabi", "aate", "hi", "jabki",
+        "terminal", "sql", "query", "select", "from", "over", "where", "window", "function",
+    }
+    tech_phrases: List[str] = []
+    # Match multi-word Title/UPPER phrases or snake_case / hyphenated / dot identifiers
+    for m in re.finditer(r"\b(?:[A-Z][A-Za-z0-9_+.-]*(?:\s+[A-Z0-9][A-Za-z0-9_+.-]*){0,2}|[a-z]+_[a-z0-9_]+)\b", text):
+        ph = m.group(0).strip(" .,:;?!-")
+        if not ph or len(ph) < 3:
+            continue
+        low_tokens = [w.lower() for w in ph.split()]
+        if all(t in _SKIP_W for t in low_tokens):
+            continue
+        if low_tokens[0] in _SKIP_W and len(low_tokens) > 1:
+            ph = " ".join(ph.split()[1:])
+        if ph and ph.lower() not in [x.lower() for x in tech_phrases]:
+            tech_phrases.append(ph[:28])
+
+    # Top up with crisp clause heads if fewer than 6 phrases
+    for c_i, cl in enumerate(clauses):
+        if len(tech_phrases) >= 6:
+            break
+        cleaned_words = [re.sub(r"[^A-Za-z0-9_+\-()/]", "", w) for w in cl.split()]
+        kept = [w for w in cleaned_words if w and w.lower() not in _SKIP_W]
+        cand = " ".join(kept[:3]).strip(" .,:;-")
+        if len(cand) >= 4 and cand.lower() not in [x.lower() for x in tech_phrases]:
+            tech_phrases.append(cand[:28])
+
+    # 2. Extract numeric metrics + units from voice text (e.g. 920ms, 2ms, 15x, 100K RPS, 24ms, 4s)
+    metrics: List[Tuple[str, float, str]] = []
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*(ms|s|sec|msec|rps|k\s*rps|x|%|gb|mb|k|m)?\b", text, flags=re.IGNORECASE):
+        num_s = m.group(1)
+        unit_s = (m.group(2) or "").strip()
+        if not unit_s and len(num_s) < 3:
+            continue
+        try:
+            val = float(num_s)
+        except Exception:
+            continue
+        # Normalize seconds vs ms for meaningful bar comparison when unit is s
+        norm_val = val * 1000.0 if unit_s.lower() in ("s", "sec") else val
+        ctx_win = text[max(0, m.start() - 32):m.start()].strip()
+        lbl_words = [re.sub(r"[^A-Za-z0-9_-]", "", w) for w in ctx_win.split() if w.lower() not in _SKIP_W]
+        lbl = " ".join(lbl_words[-2:]).strip() or f"Metric {len(metrics) + 1}"
+        metrics.append((lbl[:22], norm_val, f"{num_s}{unit_s}"))
+
+    # 3. Extract SQL query / columns / table directly from spoken text
+    sql_m = re.search(r"SELECT\s+(.+?)(?:\s+FROM\s+([A-Za-z0-9_]+))?(?:\s+WHERE\b|\s+ORDER\b|\s+GROUP\b|\s+query|\s+window|$)", text, flags=re.IGNORECASE)
+    sql_query = ""
+    sql_cols: List[str] = []
+    sql_rows: List[List[str]] = []
+    if sql_m:
+        raw_sel = sql_m.group(1).strip(" ,.;")
+        raw_tbl = (sql_m.group(2) or "").strip(" ,.;") or re.sub(r"[^a-z0-9_]", "_", topic.lower())[:18].strip("_") or "events"
+        raw_sel_parts = [re.sub(r"[^A-Za-z0-9_*()_ ]", "", p).strip() for p in raw_sel.split(",") if p.strip()]
+        # Clean trailing Hinglish words after OVER / table name
+        clean_cols: List[str] = []
+        for p in raw_sel_parts:
+            toks = [t for t in p.split() if t.lower() not in ("over", "window", "function", "lagao", "aur", "se", "mein")]
+            if toks:
+                clean_cols.append(toks[0].lower()[:14])
+        if clean_cols:
+            sql_cols = (clean_cols + ["rank" if "rank" not in clean_cols else "p99_ms"])[:4]
+            sql_query = f"SELECT {', '.join(clean_cols[:3])}" + (" , DENSE_RANK() OVER (...)" if "dense_rank" in text.lower() or "rank" in text.lower() else "") + f"\nFROM {raw_tbl} LIMIT 5;"
+            seed_noun = (tech_phrases[0] if tech_phrases else topic[:12]).split()[0][:10]
+            for ri in range(4):
+                row_vals = []
+                for ci, cname in enumerate(sql_cols):
+                    if "id" in cname or "tenant" in cname or "user" in cname:
+                        row_vals.append(f"{seed_noun.lower()}_{101 + ri}")
+                    elif "rank" in cname or cname == "rk":
+                        row_vals.append(str(ri + 1))
+                    elif "count" in cname or "amt" in cname or "metric" in cname or "rps" in cname:
+                        row_vals.append(f"{(4 - ri) * 24 + 12}k")
+                    else:
+                        row_vals.append(f"{max(2, (ri + 1) * 6)}ms")
+                sql_rows.append(row_vals)
+
+    # 4. Extract spoken CLI command / function identifiers (strip Hinglish connector tokens)
+    cli_m = re.search(r"((?:kubectl|python(?:\s+-m)?|docker|curl|redis-cli)\s+[A-Za-z0-9_./:-]+(?:\s+[A-Za-z0-9_./:-]+)?)", text, flags=re.IGNORECASE)
+    fn_m = re.search(r"(?:async\s+def|def)\s+([A-Za-z_][A-Za-z0-9_]*)", text, flags=re.IGNORECASE)
+    spoken_cmd = ""
+    if cli_m:
+        cmd_toks = cli_m.group(1).strip().split()
+        while len(cmd_toks) > 2 and cmd_toks[-1].lower() in _SKIP_W:
+            cmd_toks.pop()
+        spoken_cmd = " ".join(cmd_toks)
+    spoken_fn = fn_m.group(1).strip() if fn_m else ""
+
+    return {
+        "phrases": tech_phrases,
+        "clauses": clauses,
+        "metrics": metrics,
+        "sql_query": sql_query,
+        "sql_cols": sql_cols,
+        "sql_rows": sql_rows,
+        "command": spoken_cmd,
+        "fn_name": spoken_fn,
+    }
+
+
 def _route_omni_best_scene(
     sc: Dict[str, Any],
     idx: int,
@@ -1311,7 +1430,7 @@ def _route_omni_best_scene(
     # 2. Explicit SQL / Dataset scene (rotate rich SQL & Schema visualizers)
     if v_data.get("table_data") or _has_kw(narr_l, "sql", "select", "dense_rank", "window function", "group by", "query plan"):
         geoms.add("sql_schema")
-        v = _pick_fresh(("sql_studio", "sql_window_partition", "er_schema", "sql_table", "explain_plan_viewer"))
+        v = _pick_fresh(("sql_studio", "sql_window_partition", "er_schema", "sql_table"))
         return v, "SQL Studio & Query Schema"
 
     # 3. Explicit Benchmark / Latency / Speedup (mix 3D Bars, Radial Gauges, CDF Curves, Pareto, Heatmaps)
@@ -1711,96 +1830,169 @@ def _enforce_engine_style(
                     _mirror_items_for_domain_layout(v_data, sc, str(v_data.get("title") or topic[:40]))
 
         # Ensure required data structures are present and rich for the active visual_type
+        # Voice-Text Concept Hydration: ground EVERY layout field in what this scene's voice actually speaks
         title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
         default_badge = "" if engine_style in ["omni_smart_director", "auto_dynamic", "studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative", "hybrid_modern"] else engine_style.replace("_", " ").upper()
         badge = v_data.get("badge") or default_badge
         v_data["title"] = title
         v_data["badge"] = badge
+        _vfacts = _extract_voice_facts(sc.get("narration", ""), topic, str(title), sc.get("dialogue"))
+        _vphrases = _vfacts["phrases"] or [str(title)[:24]]
+        _vclauses = _vfacts["clauses"] or [str(title)]
+        _slug = re.sub(r"[^a-z0-9_]", "_", topic.lower())[:16].strip("_") or "service"
+
+        if current_vtype.startswith("topo_") or current_vtype in ("multi_topology_dual", "dual_topology", "topology_dual"):
+            # Hydrate BOTH upper Plane A and lower Plane B directly from spoken narration concepts instead of generic defaults
+            if not v_data.get("plane_a") or not v_data.get("plane_b"):
+                existing_n = [dict(n) if isinstance(n, dict) else {"name": str(n)} for n in (v_data.get("nodes") or v_data.get("items") or [])]
+                pool_n = list(existing_n)
+                for ph_i, ph in enumerate(_vphrases):
+                    if len(pool_n) >= 6:
+                        break
+                    if not any(ph.lower() in str(x.get("name", "")).lower() for x in pool_n):
+                        cl_s = _vclauses[min(ph_i, len(_vclauses) - 1)][:42]
+                        pool_n.append({"name": ph[:26], "sub": cl_s})
+                while len(pool_n) < 6:
+                    idx_p = len(pool_n)
+                    lbl_fallback = f"{_vphrases[idx_p % len(_vphrases)][:18]} Stage {idx_p + 1}"
+                    pool_n.append({"name": lbl_fallback, "sub": str(_vclauses[idx_p % len(_vclauses)])[:40]})
+                _shapes_a = ("router", "kafka_broker", "api_gateway")
+                _shapes_b = ("server_rack", "k8s_pod_mesh", "database_cluster")
+                if not v_data.get("plane_a"):
+                    v_data["plane_a"] = [dict(pool_n[k], shape=pool_n[k].get("shape") or _shapes_a[k % 3]) for k in range(3)]
+                if not v_data.get("plane_b"):
+                    v_data["plane_b"] = [dict(pool_n[3 + k], shape=pool_n[3 + k].get("shape") or _shapes_b[k % 3]) for k in range(3)]
 
         if current_vtype in ("code_terminal", "terminal_studio", "code_diff_split", "diff_mutex_to_atomic", "diff_n_plus_one_fix", "api_request_response"):
             if not v_data.get("code_snippet") and not v_data.get("command"):
-                v_data["command"] = f"python -m engine --run {topic.lower().replace(' ', '_')[:16]}"
+                fn_nm = _vfacts["fn_name"] or f"run_{_slug}"
+                ent_a = (_vphrases[0] if _vphrases else topic[:16]).lower().replace(" ", "_")[:18]
+                ent_b = (_vphrases[1] if len(_vphrases) > 1 else "quorum_store").lower().replace(" ", "_")[:18]
+                v_data["command"] = _vfacts["command"] or f"python -m {_slug} --worker {ent_a}"
                 v_data["code_snippet"] = (
-                    f"# Scene {idx+1}: {title}\n"
-                    f"async def handle_sync_event(ctx):\n"
-                    f"    cluster = await init_pipeline()\n"
-                    f"    res = cluster.replicate(ctx)\n"
-                    f"    return {{'status': 200, 'synced': True}}"
+                    f"# {title[:36]}\n"
+                    f"async def {fn_nm}(ctx):\n"
+                    f"    state = await {ent_a}.acquire(ctx)\n"
+                    f"    return await {ent_b}.commit_async(state)"
                 )
             if current_vtype in ("code_diff_split", "diff_mutex_to_atomic", "diff_n_plus_one_fix"):
-                v_data.setdefault("left_label", "NAIVE / BLOCKING")
-                v_data.setdefault("right_label", "LOCK-FREE / OPTIMIZED")
-                v_data.setdefault("left_code", "with db.lock():\n    rows = fetch_all()\n    wait_sync(rows)")
-                v_data.setdefault("right_code", "async with pipeline.batch() as b:\n    await b.stream_wal()\n    return {'lag_ms': 2}")
+                ent_a = (_vphrases[0] if _vphrases else _slug).lower().replace(" ", "_")[:16]
+                v_data.setdefault("before_label", "NAIVE / BLOCKING")
+                v_data.setdefault("after_label", f"OPTIMIZED {ent_a.upper()[:14]}")
+                v_data.setdefault("before", f"with {ent_a}.lock():\n    res = query_sync()\n    block_wait(res)")
+                v_data.setdefault("after", f"async with {ent_a}.stream() as s:\n    await s.commit()\n    return {{'lag_ms': 2}}")
+                v_data.setdefault("left_label", v_data["before_label"])
+                v_data.setdefault("right_label", v_data["after_label"])
+                v_data.setdefault("left_code", v_data["before"])
+                v_data.setdefault("right_code", v_data["after"])
 
         elif current_vtype in ("sql_table", "sql_studio", "sql_window_partition", "explain_plan_viewer", "star_snowflake_schema"):
-            if not v_data.get("code_snippet"):
-                tbl_name = topic.lower().replace(" ", "_")[:12]
-                v_data["code_snippet"] = f"SELECT emp_id, salary, DENSE_RANK() OVER (ORDER BY salary DESC) FROM {tbl_name};"
+            if not v_data.get("code_snippet") and not v_data.get("query"):
+                v_data["code_snippet"] = _vfacts["sql_query"] or f"SELECT key_id, COUNT(*), DENSE_RANK() OVER (ORDER BY COUNT(*) DESC)\nFROM {_slug}_events GROUP BY key_id;"
+            v_data.setdefault("query", v_data["code_snippet"])
             if not v_data.get("table_data"):
-                v_data["table_data"] = {
-                    "headers": ["ID", "COMPONENT", "METRIC", "RANK"],
-                    "rows": [
-                        ["101", f"{topic[:10]} A", "120,000", "1"],
-                        ["102", f"{topic[:10]} B", "95,000", "2"],
-                        ["103", f"{topic[:10]} C", "95,000", "2"],
-                        ["104", f"{topic[:10]} D", "80,000", "3"]
-                    ]
-                }
+                cols_s = _vfacts["sql_cols"] or ["entity", "stage", "throughput", "rk"]
+                rows_s = _vfacts["sql_rows"] or [
+                    [_vphrases[ri % len(_vphrases)][:12], f"shard_{ri + 1}", f"{max(2, 96 - ri * 22)}k/s", str(ri + 1)]
+                    for ri in range(4)
+                ]
+                v_data["table_data"] = {"headers": cols_s, "rows": rows_s}
+                v_data["columns"] = cols_s
+                v_data["rows"] = rows_s
 
         elif current_vtype == "architecture_flow":
             if not v_data.get("nodes"):
+                pal_c = ("#38BDF8", "#818CF8", "#FBBF24", "#34D399")
                 v_data["nodes"] = [
-                    {"id": "src", "label": "Client Ingestion", "sub": "TLS + Auth Edge Routing", "edge": "Route", "color": "#38BDF8"},
-                    {"id": "queue", "label": "In-Memory Buffer", "sub": "Batching & Backpressure", "edge": "Compute", "color": "#818CF8"},
-                    {"id": "engine", "label": f"{topic[:16]} Engine", "sub": "Distributed State Sync", "edge": "Persist", "color": "#FBBF24"},
-                    {"id": "target", "label": "Target Cluster", "sub": "Consistent Replicated Store", "color": "#34D399"}
+                    {
+                        "id": f"n{k}",
+                        "label": _vphrases[k % len(_vphrases)][:24],
+                        "sub": _vclauses[k % len(_vclauses)][:48],
+                        "edge": ["Ingest", "Process", "Route", "Sync"][k % 4] if k < 3 else "",
+                        "color": pal_c[k % 4],
+                    }
+                    for k in range(4)
                 ]
 
-        elif current_vtype in ("split_comparison", "iso_comparison"):
+        elif current_vtype in ("split_comparison", "iso_comparison", "compare_sync_vs_async", "compare_b_tree_vs_lsm", "venn_overlap"):
             if not v_data.get("left_points") or not v_data.get("right_points"):
-                v_data["left_label"] = v_data.get("left_label") or "LEGACY / UNOPTIMIZED"
+                p0 = _vphrases[0] if _vphrases else topic[:20]
+                p1 = _vphrases[1] if len(_vphrases) > 1 else "Async Pattern"
+                v_data["left_label"] = v_data.get("left_label") or f"LEGACY {p0.upper()[:16]}"
                 v_data["left_points"] = v_data.get("left_points") or [
-                    "High Lock Contention Under Load",
-                    "Fragile Manual Failover Paths",
-                    "P99 Latency Spikes & Timeouts",
-                    "Table Locks & Unplanned Downtime"
-                ]
-                v_data["right_label"] = v_data.get("right_label") or "MODERN / SCALABLE"
+                    cl[:42] for cl in _vclauses[:3]
+                ] or [f"Blocking on {p0[:20]}", "Tail latency spikes", "Retry queue backlog"]
+                v_data["right_label"] = v_data.get("right_label") or f"MODERN {p1.upper()[:16]}"
                 v_data["right_points"] = v_data.get("right_points") or [
-                    "Sub-Second Zero-Lock Async Sync",
-                    "Bounded Queues & Backpressure",
-                    "Predictable <15ms P99 Tail Latency",
-                    "Automated Multi-AZ Resilient Scale"
+                    f"Zero-lock {p1[:20]}", "Bounded backpressure", "Sub-millisecond P99", "Deterministic failover"
                 ]
 
-        elif current_vtype in ("benchmark_chart", "benchmark_3d", "latency_waterfall", "flamegraph_perf"):
+        elif current_vtype in ("benchmark_chart", "benchmark_3d", "latency_waterfall", "flamegraph_perf", "p99_tail_cdf_curve", "line_area_chart", "donut_3d", "radar_spider", "sankey_flow", "radial_gauge", "slo_burn_rate_gauge", "gauge_slo_availability"):
+            _vm = _vfacts["metrics"]
             if not v_data.get("bars"):
-                v_data["winner_badge"] = v_data.get("winner_badge") or "15X SPEEDUP"
-                v_data["bars"] = [
-                    {"label": "Standard Batch Load", "value": 4500, "display": "4.5s Latency", "color": "#EF4444", "is_winner": False},
-                    {"label": "Pooled Sync Worker", "value": 920, "display": "920ms", "color": "#F97316", "is_winner": False},
-                    {"label": "Optimized Buffer Stream", "value": 350, "display": "350ms", "color": "#FBBF24", "is_winner": False},
-                    {"label": f"{(topic[:18].rsplit(' ', 1)[0] or topic[:14])} Pattern", "value": 24, "display": "2ms P99 (Winner)", "color": "#10B981", "is_winner": True}
+                if len(_vm) >= 2:
+                    s_m = sorted(_vm, key=lambda x: x[1], reverse=True)
+                    bars_dyn = []
+                    bcols = ("#EF4444", "#F97316", "#FBBF24", "#10B981")
+                    for bi, (ml, mv, md) in enumerate(s_m[:4]):
+                        is_w = (bi == len(s_m[:4]) - 1)
+                        bars_dyn.append({"label": ml or _vphrases[bi % len(_vphrases)], "value": max(1, int(mv)), "display": md, "color": "#10B981" if is_w else bcols[bi % 3], "is_winner": is_w})
+                    v_data["bars"] = bars_dyn
+                    v_data["winner_badge"] = v_data.get("winner_badge") or (f"{_vm[-1][2].upper()} VERIFIED")
+                else:
+                    v_data["winner_badge"] = v_data.get("winner_badge") or f"{(_vphrases[0] if _vphrases else topic)[:12].upper()} FAST PATH"
+                    v_data["bars"] = [
+                        {"label": f"Legacy {_vphrases[0][:14]}", "value": 920, "display": "920ms", "color": "#EF4444", "is_winner": False},
+                        {"label": "Pooled Sync Queue", "value": 340, "display": "340ms", "color": "#F97316", "is_winner": False},
+                        {"label": f"Async {_vphrases[-1][:14]}", "value": 24, "display": "24ms P99 (Winner)", "color": "#10B981", "is_winner": True},
+                    ]
+            if current_vtype in ("radial_gauge", "slo_burn_rate_gauge", "gauge_slo_availability") and not v_data.get("main_value"):
+                _best_m = _vm[-1] if _vm else ("P99 SPEEDUP", 98, "99.9%")
+                v_data["main_value"] = _best_m[2]
+                v_data["main_unit"] = (_best_m[0] or "LIVE METRIC").upper()
+                v_data["gauge_percent"] = 96
+                v_data["telemetry"] = [{"label": (ml or f"M{k+1}").upper()[:14], "val": md} for k, (ml, _, md) in enumerate(_vm[:3])] or [
+                    {"label": _vphrases[0][:14].upper(), "val": "24ms"},
+                    {"label": "SLA", "val": "99.99%"},
+                ]
+                v_data["slices"] = [{"label": f"{ml or _vphrases[k % len(_vphrases)][:12]} ({md})", "value": max(10, int(mv))} for k, (ml, mv, md) in enumerate(_vm[:3])] or [
+                    {"label": _vphrases[0][:16], "value": 65}, {"label": "Headroom", "value": 35}
+                ]
+            if current_vtype in ("p99_tail_cdf_curve", "line_area_chart") and not v_data.get("values"):
+                if len(_vm) >= 2:
+                    vals_m = [int(max(2, min(100, (x[1] / max(1.0, max(y[1] for y in _vm))) * 96))) for x in _vm]
+                    while len(vals_m) < 6:
+                        vals_m.append(max(4, vals_m[-1] // 2))
+                    v_data["values"] = vals_m[:8]
+                else:
+                    v_data["values"] = [92, 74, 48, 28, 12, 4]
+                v_data.setdefault("caption", f"{title[:28]} — Latency Profile")
+            if current_vtype == "radar_spider" and not v_data.get("axes"):
+                v_data["axes"] = [{"label": _vphrases[k % len(_vphrases)][:14], "value": 92 - k * 5} for k in range(5)]
+            if current_vtype == "donut_3d" and not v_data.get("slices"):
+                v_data["slices"] = [{"label": _vphrases[k % len(_vphrases)][:18], "value": max(15, 45 - k * 10)} for k in range(3)]
+            if current_vtype == "sankey_flow" and not v_data.get("flows"):
+                v_data["flows"] = [
+                    {"from": _vphrases[k % len(_vphrases)][:16], "to": _vphrases[(k + 1) % len(_vphrases)][:16], "label": ["Stream", "Route", "Commit"][k % 3]}
+                    for k in range(3)
                 ]
 
-        elif current_vtype in ("data_structure_memory", "write_ahead_log_wal", "memory_wal_checkpoint"):
+        elif current_vtype in ("data_structure_memory", "write_ahead_log_wal", "memory_wal_checkpoint", "memory_ring_buffer", "memory_lsm_memtable"):
             if not v_data.get("entries"):
+                ops = ("APPEND", "BUFFER", "COMMIT", "SYNC")
+                sts = ("REPLICATED", "IN-TRANSIT", "BUFFERED", "SYNCED")
                 v_data["entries"] = [
-                    {"address": "0x00A1", "op": "COMMIT LSN 4920", "table": "orders", "status": "REPLICATED"},
-                    {"address": "0x00B4", "op": "INSERT LSN 4921", "table": "payments", "status": "IN-TRANSIT"},
-                    {"address": "0x00C8", "op": "UPDATE LSN 4922", "table": "inventory", "status": "BUFFERED"},
-                    {"address": "0x00D2", "op": "FLUSH LSN 4923", "table": "checkpoints", "status": "SYNCED"}
+                    {"address": f"0x00{chr(65 + k)}{k + 1}", "op": f"{ops[k]} {_vphrases[k % len(_vphrases)][:16]}", "table": _slug[:14], "status": sts[k]}
+                    for k in range(4)
                 ]
 
         elif current_vtype == "circular_hub_mesh":
             if not v_data.get("satellites"):
-                v_data["hub_name"] = v_data.get("hub_name") or "CORE BROKER"
+                v_data["hub_name"] = v_data.get("hub_name") or (_vphrases[0][:18].upper() if _vphrases else topic[:18].upper())
+                pal_s = ("#38BDF8", "#34D399", "#FBBF24", "#A855F7")
                 v_data["satellites"] = [
-                    {"name": "Client Ingestion", "role": "API Gateway", "color": "#EF4444"},
-                    {"name": "App Workers", "role": "Compute Nodes", "color": "#10B981"},
-                    {"name": "State Cache", "role": "Sub-millisecond", "color": "#FBBF24"},
-                    {"name": "Database Cluster", "role": "ACID Store", "color": "#38BDF8"}
+                    {"name": _vphrases[k % len(_vphrases)][:20], "role": _vclauses[k % len(_vclauses)][:22], "color": pal_s[k % 4]}
+                    for k in range(4)
                 ]
 
         elif current_vtype == "chat_thread_ai":

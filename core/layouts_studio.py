@@ -2718,6 +2718,12 @@ def dispatch_studio_layout(
         for pk, pv in d.items():
             if pv not in (None, "", [], {}):
                 merged[pk] = pv
+        # Never let static preset table/query placeholders override live topic-hydrated table_data / code_snippet
+        if isinstance(d.get("table_data"), dict) and (d["table_data"].get("rows") or d["table_data"].get("headers")):
+            merged["columns"] = list(d.get("columns") or d["table_data"].get("headers") or [])
+            merged["rows"] = list(d.get("rows") or d["table_data"].get("rows") or [])
+        if d.get("code_snippet") and not d.get("query"):
+            merged["query"] = d["code_snippet"]
         l = target_l
         d = merged
     if render_pro_layout(stage, l, d, progress, world, _PRO_HELPERS):
