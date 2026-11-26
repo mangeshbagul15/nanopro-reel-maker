@@ -18,7 +18,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional
 
-from core.config import GEMINI_API_KEY, GROQ_API_KEY
+from core.config import DEFAULT_WATERMARK, GEMINI_API_KEY, GROQ_API_KEY
 from core.tone_engine import get_tone_profile
 
 STUDIO_V2_MODE_OPTIONS = [
@@ -851,39 +851,38 @@ def generate_v2_timeline(
     tone: str = "warm_mentor_hi",
     duration_mode: str = "auto",
     voice: str = "",
-    watermark: str = "@nanopro",
+    watermark: str = DEFAULT_WATERMARK,
     audience_level: str = "mid_senior",
     hook_style: str = "auto",
     cta_style: str = "save_share",
     cta_keyword: str = "",
 ) -> Dict[str, Any]:
     """Entry point for Studio V2 Storyboard Director (completely isolated from classic NanoPro)."""
+    wm_clean = str(watermark or DEFAULT_WATERMARK).strip() or DEFAULT_WATERMARK
     sub = resolve_v2_sub_engine(topic, v2_mode, duration_mode=duration_mode)
     if sub == "spatial_isometric":
         tl = _generate_v2_isometric_llm(
-            topic, tone, duration_mode, voice, watermark,
+            topic, tone, duration_mode, voice, wm_clean,
             audience_level, hook_style, cta_style, cta_keyword,
         )
         if tl is None:
-            tl = _fallback_spatial_isometric(topic, watermark, tone, cta_style, cta_keyword)
+            tl = _fallback_spatial_isometric(topic, wm_clean, tone, cta_style, cta_keyword)
     else:
         tl = _generate_v2_vector_llm(
-            topic, tone, duration_mode, voice, watermark,
+            topic, tone, duration_mode, voice, wm_clean,
             audience_level, hook_style, cta_style, cta_keyword,
         )
         if tl is None:
-            tl = _fallback_vector_storyboard(topic, watermark, tone, hook_style, cta_style, cta_keyword)
+            tl = _fallback_vector_storyboard(topic, wm_clean, tone, hook_style, cta_style, cta_keyword)
 
     # Propagate global metadata onto every scene cleanly so parallel scene rendering is self-contained
     ws = tl.get("world_spec")
-    hdr_brand = tl.get("header_brand", watermark)
-    cat_tag = tl.get("category_tag", "TECH · CODING")
     tot = len(tl.get("scenes", []))
     for idx, sc in enumerate(tl.get("scenes", [])):
         vd = sc.setdefault("visual_data", {})
-        vd.setdefault("header_brand", hdr_brand)
-        vd.setdefault("category_tag", cat_tag)
-        vd.setdefault("watermark", watermark)
+        vd["watermark"] = wm_clean
+        if vd.get("widget_type") == "follow_cta":
+            vd["handle_title"] = wm_clean
         vd.setdefault("_scene_idx", idx)
         vd.setdefault("_total_scenes", tot)
         if ws and "world_spec" not in vd:

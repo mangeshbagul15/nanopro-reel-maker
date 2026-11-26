@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from core.config import FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS
+from core.config import DEFAULT_WATERMARK, FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS
 
 _ACCENT_HEX = {
     "cyan": "#38BDF8",
@@ -49,10 +49,12 @@ def _build_isometric_html(
     prev_vd = dict((prev_scene or {}).get("visual_data") or {})
     world_spec = dict(vd.get("world_spec") or {})
     scene_mode = str(vd.get("scene_mode") or "world_cam")
-    watermark = str(vd.get("watermark") or vd.get("header_brand") or "@nanopro").strip()
-    if not watermark.startswith("@"):
-        watermark = "@" + watermark
-    wm_rest = html.escape(watermark[1:])
+    raw_wm = str(vd.get("watermark") or DEFAULT_WATERMARK).strip() or DEFAULT_WATERMARK
+    wm_html = (
+        f'<span class="at">@</span>{html.escape(raw_wm[1:])}'
+        if raw_wm.startswith("@")
+        else html.escape(raw_wm)
+    )
 
     hud_pill = html.escape(str(vd.get("hud_pill") or scene.get("role", "SYSTEM").upper()))
     h_white = html.escape(str(vd.get("headline_white") or ""))
@@ -242,7 +244,7 @@ def _build_isometric_html(
 </head>
 <body>
   <canvas id="iso" width="{width}" height="{height}"></canvas>
-  <div class="wm-pill"><span class="at">@</span>{wm_rest}</div>
+  <div class="wm-pill">{wm_html}</div>
   <div class="top-zone">
     <div class="hud-pill"><span class="dot"></span>{hud_pill}</div>
     <div class="headline">{h_white} <span class="acc">{h_accent}</span></div>

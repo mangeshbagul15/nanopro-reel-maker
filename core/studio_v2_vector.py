@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from core.config import FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS
+from core.config import DEFAULT_WATERMARK, FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS
 
 _ACCENT_HEX = {
     "cyan": "#22D3EE",
@@ -52,26 +52,21 @@ def _svg_icon(name: str, color_hex: str, size: int = 38) -> str:
 
 def _build_vector_html(scene: Dict[str, Any], width: int, height: int) -> str:
     vd = dict(scene.get("visual_data") or {})
-    scene_idx = int(vd.get("_scene_idx", 0))
-    total_scenes = max(1, int(vd.get("_total_scenes", 8)))
-    brand = html.escape(str(vd.get("header_brand") or vd.get("watermark") or "NANOPRO TECH").lstrip("@").upper()[:24])
-    cat_tag = html.escape(str(vd.get("category_tag") or "AI · CODING"))
     tag_pill = html.escape(str(vd.get("tag_pill") or scene.get("role", "TOPIC").upper()))
     h_white = html.escape(str(vd.get("headline_white") or ""))
     h_accent = html.escape(str(vd.get("headline_accent") or ""))
     accent_hex = _ACCENT_HEX.get(str(vd.get("accent_color") or "amber"), "#FACC15")
     widget_type = str(vd.get("widget_type") or "progressive_cards")
-    watermark = html.escape(str(vd.get("watermark") or "@nanopro"))
+    raw_wm = str(vd.get("watermark") or DEFAULT_WATERMARK).strip() or DEFAULT_WATERMARK
+    wm_html = (
+        f'<span class="at">@</span>{html.escape(raw_wm[1:])}'
+        if raw_wm.startswith("@")
+        else html.escape(raw_wm)
+    )
 
     is_wide = width > height
     scale_base = min(width, height) / 1080.0
     pad_x = int(58 * scale_base) if not is_wide else int(110 * scale_base)
-
-    # Progress segments HTML
-    seg_html = "".join(
-        f'<div class="seg {"active" if idx <= scene_idx else ""}"></div>'
-        for idx in range(total_scenes)
-    )
 
     # Build Widget Markup + Animation Timeline Rules
     body_html = ""
@@ -344,16 +339,17 @@ def _build_vector_html(scene: Dict[str, Any], width: int, height: int) -> str:
   .root {{
     position: relative; width: 100%; height: 100%;
     display: flex; flex-direction: column;
-    padding: {int(46*scale_base)}px {pad_x}px {int(64*scale_base)}px;
-    gap: {int(22*scale_base)}px;
+    padding: {int(40*scale_base)}px {pad_x}px {int(52*scale_base)}px;
+    gap: {int(20*scale_base)}px;
   }}
-  .seg-bar {{ display: flex; gap: {int(10*scale_base)}px; width: 100%; }}
-  .seg {{ flex: 1; height: {int(6*scale_base)}px; border-radius: 6px; background: rgba(148,163,184,0.22); }}
-  .seg.active {{ background: #FACC15; box-shadow: 0 0 12px rgba(250,204,21,0.55); }}
-  .top-meta {{
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: {int(21*scale_base)}px; letter-spacing: 3px; color: #94A3B8; font-weight: 600;
+  .top-wm-row {{ display: flex; align-items: center; justify-content: flex-start; }}
+  .wm-pill {{
+    display: inline-flex; align-items: center;
+    padding: {int(8*scale_base)}px {int(20*scale_base)}px; border-radius: 999px;
+    background: rgba(15,23,42,0.88); border: 1.5px solid rgba(148,163,184,0.30);
+    font-size: {int(24*scale_base)}px; font-weight: 800; color: #F8FAFC;
   }}
+  .wm-pill .at {{ color: #FB923C; }}
   .pill-tag {{
     align-self: flex-start; display: inline-flex; align-items: center; gap: 10px;
     padding: {int(10*scale_base)}px {int(22*scale_base)}px; border-radius: 999px;
@@ -524,13 +520,11 @@ def _build_vector_html(scene: Dict[str, Any], width: int, height: int) -> str:
 <body>
   <div class="dot-bg"></div>
   <div class="root">
-    <div class="seg-bar">{seg_html}</div>
-    <div class="top-meta"><span>{brand}</span><span>{cat_tag}</span></div>
+    <div class="top-wm-row"><div class="wm-pill">{wm_html}</div></div>
     <div class="pill-tag"><span class="pill-dot"></span>{tag_pill}</div>
     <div class="headline">{h_white}<span class="acc">{h_accent}</span></div>
     <div class="stage-card">{body_html}</div>
   </div>
-  <div class="corner-wm">{watermark}</div>
 
   <script>
     const draws = Array.from(document.querySelectorAll('.svg-draw'));
