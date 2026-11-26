@@ -579,78 +579,54 @@ def _synthesize_elevenlabs_sync(
         print(f"[Voice] ElevenLabs request failed ({e})")
         return False
 
+def _trim_tts_edge_silence(audio_path: Path, keep_start_sec: float = 0.03, keep_tail_sec: float = 0.14) -> None:
+    """Trims Edge-TTS bloated leading/trailing digital silence while keeping a natural breath."""
+    if not audio_path.exists() or audio_path.stat().st_size < 400:
+        return
+    tmp_trim = audio_path.with_suffix(".trim.mp3")
+    try:
+        filt = (
+            f"aformat=sample_rates=44100:channel_layouts=stereo,"
+            f"silenceremove=start_periods=1:start_silence={keep_start_sec:.2f}:start_threshold=-40dB,"
+            f"areverse,"
+            f"silenceremove=start_periods=1:start_silence={keep_tail_sec:.2f}:start_threshold=-40dB,"
+            f"areverse"
+        )
+        res = subprocess.run(
+            [str(FFMPEG_EXE), "-y", "-i", str(audio_path.resolve()), "-filter:a", filt, "-c:a", "libmp3lame", "-b:a", "192k", str(tmp_trim.resolve())],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20,
+        )
+        if res.returncode == 0 and tmp_trim.exists() and tmp_trim.stat().st_size > 400:
+            shutil.move(str(tmp_trim), str(audio_path))
+    except Exception:
+        pass
+    finally:
+        if tmp_trim.exists():
+            try:
+                tmp_trim.unlink()
+            except Exception:
+                pass
+
+
 async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, tone: str = DEFAULT_CONCRETE_TONE) -> bool:
     """
-    Synthesizes speech using Microsoft Edge-TTS with 2026 Hook-to-Climax Clause Speed Curves
-    (energetic opening clause -> crisp core explanation -> emphatic closing verdict) + breathing pauses.
+    Synthesizes speech using Microsoft Edge-TTS in ONE continuous pass per scene
+    (preventing mid-sentence choppiness or pitch-jump locks) and trims bloated trailing dead silence.
     """
     t_prof = get_tone_profile(tone)
-    cleaned_text = _clean_tts_text(text, preserve_pauses=True)
-    if not cleaned_text:
-        return False
-
     rate = str(t_prof["edge_base"]["rate"])
     pitch = str(t_prof["edge_base"]["pitch"])
-    pause_sec = str(t_prof.get("pause_sec") or "0.24")
-
-    beats = _split_pause_beats(cleaned_text, max_beats=4)
-    if len(beats) > 1:
-        beat_files: List[Path] = []
-        try:
-            for bi, beat_txt in enumerate(beats):
-                b_rate, b_pitch = get_clause_prosody(t_prof["key"], bi, len(beats), beat_txt)
-
-                bp = output_path.parent / f"{output_path.stem}_beat{bi}.mp3"
-                ok = False
-                for _ in range(2):
-                    try:
-                        comm = edge_tts.Communicate(beat_txt, voice, rate=b_rate, pitch=b_pitch)
-                        await comm.save(str(bp))
-                        if bp.exists() and bp.stat().st_size > 400:
-                            ok = True
-                            break
-                    except Exception:
-                        await asyncio.sleep(0.3)
-                if not ok:
-                    beat_files = []
-                    break
-                beat_files.append(bp)
-
-            if len(beat_files) > 1:
-                cmd = [str(FFMPEG_EXE), "-y"]
-                for bp in beat_files:
-                    cmd.extend(["-i", str(bp.resolve())])
-                cmd.extend(["-f", "lavfi", "-t", pause_sec, "-i", "anullsrc=r=44100:cl=stereo"])
-                sil_idx = len(beat_files)
-                parts = []
-                seq = []
-                for idx in range(len(beat_files)):
-                    parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo[b{idx}]")
-                    seq.append(f"[b{idx}]")
-                    if idx < len(beat_files) - 1:
-                        parts.append(f"[{sil_idx}:a]atrim=0:{pause_sec}[p{idx}]")
-                        seq.append(f"[p{idx}]")
-                filt = ";".join(parts) + ";" + "".join(seq) + f"concat=n={len(seq)}:v=0:a=1[outa]"
-                cmd.extend(["-filter_complex", filt, "-map", "[outa]", "-c:a", "libmp3lame", "-b:a", "192k", str(output_path.resolve())])
-                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
-                if res.returncode == 0 and output_path.exists() and output_path.stat().st_size > 1000:
-                    return True
-        except Exception as e:
-            print(f"[Voice] Multi-beat pause stitch notice ({e}), falling back cleanly...")
-        finally:
-            for bp in beat_files:
-                try:
-                    if bp.exists():
-                        bp.unlink()
-                except Exception:
-                    pass
 
     plain_text = _clean_tts_text(text, preserve_pauses=False)
+    if not plain_text:
+        return False
+
     for attempt in range(3):
         try:
             communicate = edge_tts.Communicate(plain_text, voice, rate=rate, pitch=pitch)
             await communicate.save(str(output_path))
             if output_path.exists() and output_path.stat().st_size > 1000:
+                _trim_tts_edge_silence(output_path, keep_start_sec=0.03, keep_tail_sec=0.14)
                 return True
         except Exception as e:
             print(f"[Voice] Edge-TTS attempt {attempt + 1} warning: {e}")
@@ -715,7 +691,7 @@ async def _synthesize_dual_dialogue_scene(
 
     turn_files: List[Path] = []
     turn_metas: List[Tuple[str, str, float]] = []
-    gap_sec = 0.26
+    gap_sec = 0.14
 
     try:
         async def _run_turn(t_idx: int, spk: str, txt: str):
@@ -729,6 +705,7 @@ async def _synthesize_dual_dialogue_scene(
                     comm = edge_tts.Communicate(txt, v_id, rate=t_rate, pitch=t_pitch)
                     await comm.save(str(tp))
                     if tp.exists() and tp.stat().st_size > 800:
+                        _trim_tts_edge_silence(tp, keep_start_sec=0.03, keep_tail_sec=0.10)
                         ok_turn = True
                         break
                 except Exception as e:
@@ -911,12 +888,21 @@ def generate_voiceover(
         d_val = get_audio_duration(p)
         scene_durations.append(d_val if d_val > 0.05 else 1.5)
 
-    # 3. Concatenate scene audios into full reel voiceover via FFmpeg + Voice Clarity/Loudness Mastering
+    # 3. Concatenate scene audios cleanly (uniform 44.1kHz stereo format, zero single-pass loudnorm pumping)
     final_audio_path = OUTPUT_DIR / "reel_voiceover.mp3"
     concat_cmd = [str(FFMPEG_EXE), "-y"]
-    for p in scene_audio_paths:
+    norm_parts = []
+    seq_labels = []
+    for i, p in enumerate(scene_audio_paths):
         concat_cmd.extend(["-i", str(p.resolve())])
-    filter_expr = "".join(f"[{i}:a]" for i in range(len(scene_audio_paths))) + f"concat=n={len(scene_audio_paths)}:v=0:a=1[raw];[raw]highpass=f=75,acompressor=threshold=-18dB:ratio=2.4:attack=12:release=120,loudnorm=I=-14:TP=-1.5:LRA=8[a]"
+        norm_parts.append(f"[{i}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[s{i}]")
+        seq_labels.append(f"[s{i}]")
+    filter_expr = (
+        ";".join(norm_parts)
+        + ";"
+        + "".join(seq_labels)
+        + f"concat=n={len(scene_audio_paths)}:v=0:a=1[raw];[raw]highpass=f=70,alimiter=limit=0.92[a]"
+    )
     concat_cmd.extend(["-filter_complex", filter_expr, "-map", "[a]", "-c:a", "libmp3lame", "-b:a", "192k", str(final_audio_path.resolve())])
 
     res_concat = subprocess.run(concat_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
