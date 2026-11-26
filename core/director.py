@@ -1463,24 +1463,27 @@ def _enforce_engine_style(
         elif current_vtype == "architecture_flow":
             if not v_data.get("nodes"):
                 v_data["nodes"] = [
-                    {"id": "src", "label": "Client Ingestion", "sub": "Traffic & Event Stream", "color": "#38BDF8"},
-                    {"id": "engine", "label": f"{topic[:16]} Engine", "sub": "Distributed State Sync", "color": "#FBBF24"},
-                    {"id": "target", "label": "Target Cluster", "sub": "Persistent Replicated Store", "color": "#34D399"}
+                    {"id": "src", "label": "Client Ingestion", "sub": "TLS + Auth Edge Routing", "edge": "Route", "color": "#38BDF8"},
+                    {"id": "queue", "label": "In-Memory Buffer", "sub": "Batching & Backpressure", "edge": "Compute", "color": "#818CF8"},
+                    {"id": "engine", "label": f"{topic[:16]} Engine", "sub": "Distributed State Sync", "edge": "Persist", "color": "#FBBF24"},
+                    {"id": "target", "label": "Target Cluster", "sub": "Consistent Replicated Store", "color": "#34D399"}
                 ]
 
         elif current_vtype == "split_comparison":
             if not v_data.get("left_points") or not v_data.get("right_points"):
                 v_data["left_label"] = v_data.get("left_label") or "LEGACY / UNOPTIMIZED"
                 v_data["left_points"] = v_data.get("left_points") or [
-                    "High Latency & Contention",
-                    "Fragile Manual Failover",
-                    "Table Locks & Downtime"
+                    "High Lock Contention Under Load",
+                    "Fragile Manual Failover Paths",
+                    "P99 Latency Spikes & Timeouts",
+                    "Table Locks & Unplanned Downtime"
                 ]
                 v_data["right_label"] = v_data.get("right_label") or "MODERN / SCALABLE"
                 v_data["right_points"] = v_data.get("right_points") or [
-                    "Sub-Second Zero-Lock Sync",
-                    "Zero Production Downtime",
-                    "Automated Resilient Scale"
+                    "Sub-Second Zero-Lock Async Sync",
+                    "Bounded Queues & Backpressure",
+                    "Predictable <15ms P99 Tail Latency",
+                    "Automated Multi-AZ Resilient Scale"
                 ]
 
         elif current_vtype == "benchmark_chart":
@@ -1488,6 +1491,7 @@ def _enforce_engine_style(
                 v_data["winner_badge"] = v_data.get("winner_badge") or "15X SPEEDUP"
                 v_data["bars"] = [
                     {"label": "Standard Batch Load", "value": 4500, "display": "4.5s Latency", "color": "#EF4444", "is_winner": False},
+                    {"label": "Pooled Sync Worker", "value": 920, "display": "920ms", "color": "#F97316", "is_winner": False},
                     {"label": "Optimized Buffer Stream", "value": 350, "display": "350ms", "color": "#FBBF24", "is_winner": False},
                     {"label": f"{topic[:16]} Stream", "value": 24, "display": "24ms Lag (Winner)", "color": "#10B981", "is_winner": True}
                 ]
@@ -1497,7 +1501,8 @@ def _enforce_engine_style(
                 v_data["entries"] = [
                     {"address": "0x00A1", "op": "COMMIT LSN 4920", "table": "orders", "status": "REPLICATED"},
                     {"address": "0x00B4", "op": "INSERT LSN 4921", "table": "payments", "status": "IN-TRANSIT"},
-                    {"address": "0x00C8", "op": "UPDATE LSN 4922", "table": "inventory", "status": "BUFFERED"}
+                    {"address": "0x00C8", "op": "UPDATE LSN 4922", "table": "inventory", "status": "BUFFERED"},
+                    {"address": "0x00D2", "op": "FLUSH LSN 4923", "table": "checkpoints", "status": "SYNCED"}
                 ]
 
         elif current_vtype == "circular_hub_mesh":
@@ -1539,14 +1544,27 @@ def _enforce_engine_style(
         elif current_vtype == "hero_hook":
             v_data["question"] = v_data.get("question") or v_data.get("problem_title") or title
             if "pills" not in v_data and (v_data.get("left_pill") or v_data.get("right_pill")):
-                v_data["pills"] = [p for p in [v_data.get("left_pill"), v_data.get("right_pill")] if p]
+                v_data["pills"] = [p for p in [v_data.get("left_pill"), v_data.get("right_pill"), v_data.get("badge") or "DEEP DIVE"] if p]
+            if not v_data.get("pills"):
+                v_data["pills"] = ["Naive Bottleneck", "Core Fix", "Production Scale"]
+            if not v_data.get("sub_callouts"):
+                cl_hook = _split_narration_clauses(sc.get("narration", ""), target_count=4)
+                v_data["sub_callouts"] = [c[:72] for c in cl_hook[:4]] or [
+                    f"Trap: Ignoring {topic[:20]} edge contention",
+                    "Root Cause: Synchronous blocking under peak load",
+                    "Smart Fix: Lock-free staged async pipeline",
+                ]
 
         elif current_vtype == "custom_scene":
             if not v_data.get("blocks"):
-                bullets = [s.strip() for s in sc.get("narration", "").split(".") if len(s.strip()) > 6][:3]
+                bullets = _split_narration_clauses(sc.get("narration", ""), target_count=4)
                 v_data["blocks"] = [
                     {"block": "question_card", "text": title, "stage": 1},
-                    {"block": "list_cards", "items": [{"title": b[:48], "desc": "", "kind": "info"} for b in bullets], "stage": 2}
+                    {"block": "list_cards", "items": [
+                        {"title": " ".join(b.split()[:4])[:36], "sub": b[:64], "kind": "info"}
+                        for b in bullets[:4]
+                    ], "stage": 2},
+                    {"block": "banner", "text": bullets[-1][:58] if bullets else f"{title[:34]} Breakdown", "stage": 3},
                 ]
 
         elif current_vtype == "hybrid_merge":
@@ -1559,7 +1577,13 @@ def _enforce_engine_style(
             v_data["kicker"] = v_data.get("kicker") or "KEY ENGINEERING TAKEAWAY"
             v_data["statement"] = v_data.get("statement") or sc.get("narration", "")[:80] or title
             v_data["highlight_word"] = v_data.get("highlight_word") or ""
-            v_data["bottom_tags"] = v_data.get("bottom_tags") or ["High Precision", "Production Ready"]
+            cl_ks = _split_narration_clauses(sc.get("narration", ""), target_count=4)
+            v_data["bottom_tags"] = v_data.get("bottom_tags") or ["High Precision", "Low Latency", "Production Ready"]
+            if not v_data.get("sub_points"):
+                v_data["sub_points"] = [
+                    {"name": " ".join(c.split()[:4])[:32], "sub": c[:62], "edge": ["Next", "Verify", "Scale", ""][i % 4]}
+                    for i, c in enumerate(cl_ks[:4])
+                ]
 
         elif current_vtype == "step_timeline":
             if not v_data.get("steps"):
@@ -1611,9 +1635,9 @@ def _enforce_engine_style(
         else:
             used_vtypes.add(sc["visual_type"])
 
-        # Guarantee deep multi-section content (4-5 progressive stages + connector labels + footer)
+        # Guarantee deep multi-section content (4-5 progressive stages + connector labels + footer + voice_beats)
         clauses = _split_narration_clauses(sc.get("narration", ""), target_count=5)
-        for col_key in ("nodes", "steps", "stages"):
+        for col_key in ("nodes", "steps", "stages", "milestones"):
             seq = v_data.get(col_key)
             if isinstance(seq, list) and 0 < len(seq) < 4 and clauses:
                 norm_seq = [dict(x) if isinstance(x, dict) else {"name": str(x)} for x in seq]
@@ -1631,6 +1655,46 @@ def _enforce_engine_style(
                     if x_i + 1 < len(norm_seq) and not x.get("edge"):
                         x["edge"] = ["Ingest", "Route", "Process", "Commit"][x_i % 4]
                 v_data[col_key] = norm_seq[:5]
+
+        # Top up sparse bullets, comparison lists, and custom blocks to >= 4 rich items
+        if isinstance(v_data.get("bullets"), list) and 0 < len(v_data["bullets"]) < 4 and clauses:
+            bl = list(v_data["bullets"])
+            for cl in clauses:
+                if len(bl) >= 4:
+                    break
+                hd = " ".join(cl.split()[:4]).strip(" ,.;:-")
+                if not any(hd.lower() in str(x).lower() for x in bl):
+                    bl.append(f"{hd}: {cl[:58]}")
+            v_data["bullets"] = bl[:5]
+        for pt_key in ("left_points", "right_points"):
+            pts_l = v_data.get(pt_key)
+            if isinstance(pts_l, list) and 0 < len(pts_l) < 4 and clauses:
+                for cl in clauses:
+                    if len(pts_l) >= 4:
+                        break
+                    pts_l.append(cl[:46])
+                v_data[pt_key] = pts_l[:5]
+        if isinstance(v_data.get("blocks"), list) and len(v_data["blocks"]) < 2 and clauses:
+            v_data["blocks"].append({
+                "block": "list_cards",
+                "items": [{"title": " ".join(c.split()[:4])[:36], "sub": c[:60], "kind": "info"} for c in clauses[:4]],
+                "stage": 2,
+            })
+
+        # Populate chronological Voice-Synced Highlight Beats on EVERY scene so sparse visuals ALWAYS have multi-label voice progression
+        existing_vb = v_data.get("voice_beats")
+        if not isinstance(existing_vb, list) or len(existing_vb) < 4:
+            vb_list = []
+            for c_idx, cl in enumerate(clauses[:5]):
+                head = " ".join(cl.split()[:4]).strip(" ,.;:-")[:32]
+                vb_list.append({
+                    "label": head or f"Stage {c_idx + 1}",
+                    "sub": cl[:64],
+                    "edge": ["Next", "Process", "Verify", "Scale"][c_idx % 4] if c_idx + 1 < len(clauses[:5]) else "",
+                })
+            if vb_list:
+                v_data["voice_beats"] = vb_list[:5]
+
         if not v_data.get("footer") and clauses:
             v_data["footer"] = clauses[-1][:64]
 

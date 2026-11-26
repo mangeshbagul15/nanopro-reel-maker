@@ -839,9 +839,11 @@ def _render_iso_comparison(stage: StudioStage, data: Dict[str, Any], progress: f
 def _render_terminal_studio(stage: StudioStage, data: Dict[str, Any], progress: float, world: Dict[str, Any]) -> None:
     code_raw = str(data.get("code_snippet") or data.get("code") or "").strip("\n")
     out_raw = str(data.get("output") or "").strip()
-    lines = code_raw.splitlines()[:14] or ["# ready"]
-    term_b = (74, 405, 1006, 1145 if out_raw else 1365)
-    g_box = _ease_out_cubic(_clamp01(progress / 0.18))
+    lines = code_raw.splitlines()[:12] or ["# ready"]
+    has_beats = bool(data.get("voice_beats") or data.get("items") or data.get("sub_points"))
+    term_bottom = 965 if (out_raw and has_beats) else (1145 if out_raw else (1060 if has_beats else 1365))
+    term_b = (74, 405, 1006, term_bottom)
+    g_box = _ease_out_cubic(_clamp01(progress / 0.16))
     stage.draw_glass_card(term_b, radius=26, accent_col=world["cyan"], alpha_mul=g_box, active=True, layered=True)
 
     # Traffic lights + filename bar
@@ -859,7 +861,7 @@ def _render_terminal_studio(stage: StudioStage, data: Dict[str, Any], progress: 
 
     consumed = 0
     for idx, ln in enumerate(lines):
-        if consumed >= typed_budget:
+        if consumed >= typed_budget or ty > term_b[3] - 42:
             break
         show = ln[: max(0, typed_budget - consumed)]
         consumed += len(ln) + 1
@@ -868,15 +870,48 @@ def _render_terminal_studio(stage: StudioStage, data: Dict[str, Any], progress: 
         stage.draw.text((term_b[0] + 28, ty), f"{idx+1:2d}", font=f_code, fill=_with_alpha(world["muted"], g_box * 0.7))
         col = world["emerald"] if ln.lstrip().startswith(("#", "//")) else (world["cyan"] if any(kw in ln for kw in ("def ", "async ", "return ", "SELECT ", "import ", "class ")) else world["text"])
         stage.draw.text((term_b[0] + 76, ty), show[:54], font=f_code, fill=_with_alpha(col, g_box))
-        ty += 42
+        ty += 40
 
     if out_raw:
-        go = _ease_out_cubic(_clamp01((progress - 0.65) / 0.25))
+        go = _ease_out_cubic(_clamp01((progress - 0.28) / 0.24))
         if go > 0.03:
-            out_b = (94, 1175, 986, 1375)
+            oy0 = term_b[3] + 18
+            out_b = (94, oy0, 986, min(1150 if has_beats else 1375, oy0 + 160))
             stage.draw_glass_card(out_b, radius=20, accent_col=world["emerald"], alpha_mul=go, active=True)
             stage.draw_pill(out_b[0] + 92, out_b[1] + 28, "STDOUT", (*world["emerald"][:3], 40), world["emerald"], border_col=world["emerald"], font=_get_font(18, bold=True), alpha_mul=go, pad_x=12, pad_y=4)
-            _draw_wrapped_text(stage.draw, (out_b[0] + 28, out_b[1] + 62), out_raw, _get_font(23, mono=True), _with_alpha(world["emerald"], go), (out_b[2] - out_b[0]) - 56, max_lines=3)
+            _draw_wrapped_text(stage.draw, (out_b[0] + 28, out_b[1] + 58), out_raw, _get_font(22, mono=True), _with_alpha(world["emerald"], go), (out_b[2] - out_b[0]) - 56, max_lines=3)
+
+    if has_beats:
+        raw_b = list(data.get("voice_beats") or data.get("sub_points") or data.get("items") or [])[:4]
+        if raw_b:
+            y_bt = 1170 if out_raw else (term_b[3] + 22)
+            gw = (STAGE_W - 22) // 2
+            rows_b = 2 if len(raw_b) > 2 else 1
+            gh = min(162, max(120, (STAGE_Y1 - 24 - y_bt - 16) // max(1, rows_b)))
+            act_b = min(len(raw_b) - 1, int(max(0.0, min(0.999, progress)) * len(raw_b)))
+            for bi, bt in enumerate(raw_b):
+                if isinstance(bt, str):
+                    bt = {"label": bt, "sub": ""}
+                g_raw = _spring_gate(progress, bi, len(raw_b), 0.22)
+                if g_raw <= 0.02:
+                    continue
+                gb, gbdg, gtit, gsub, glnk = _sub_gate(g_raw, "box"), _sub_gate(g_raw, "badge"), _sub_gate(g_raw, "title"), _sub_gate(g_raw, "sub"), _sub_gate(g_raw, "link")
+                r_i, c_i = divmod(bi, 2)
+                bx0 = STAGE_X0 + c_i * (gw + 22)
+                by0 = y_bt + r_i * (gh + 14)
+                col = resolve_world_color(world, bt.get("color") if isinstance(bt, dict) else None, _ACCENT_CYCLE[bi % len(_ACCENT_CYCLE)])
+                is_act = (act_b == bi and progress > 0.03)
+                stage.draw_glass_card((bx0, by0, bx0 + gw, by0 + gh), radius=18, accent_col=col, alpha_mul=gb, active=is_act, layered=is_act)
+                if gbdg > 0.02:
+                    stage.draw_pill(bx0 + 44, by0 + 28, f"{bi+1:02d}", (*col[:3], 44), col, border_col=col, font=_get_font(17, bold=True, mono=True), alpha_mul=gbdg)
+                lbl_t = str(bt.get("label") or bt.get("name") or bt.get("title") or "")[:30]
+                sub_t = str(bt.get("sub") or bt.get("desc") or "")[:56]
+                if gtit > 0.02:
+                    _draw_wrapped_text(stage.draw, (bx0 + 80, by0 + 16), lbl_t, _get_font(21, bold=True), _with_alpha(world["text"], gtit), gw - 94, max_lines=2)
+                if sub_t and gsub > 0.02:
+                    _draw_wrapped_text(stage.draw, (bx0 + 18, by0 + 76), sub_t, _get_font(18), _with_alpha(world["muted"], gsub), gw - 36, max_lines=2)
+                if bi + 1 < len(raw_b) and glnk > 0.02 and c_i == 0:
+                    _draw_bezier_comet(stage, (bx0 + gw + 2, by0 + gh // 2), (bx0 + gw + 20, by0 + gh // 2), col, reveal=glnk, progress=progress, phase=bi * 0.25, world=world)
 
 
 def _render_kinetic_statement(stage: StudioStage, data: Dict[str, Any], progress: float, world: Dict[str, Any]) -> None:
@@ -884,38 +919,72 @@ def _render_kinetic_statement(stage: StudioStage, data: Dict[str, Any], progress
     stmt = str(data.get("statement") or data.get("title") or "").strip()
     hl = str(data.get("highlight_word") or "").strip()
     tags = [str(t).strip() for t in (data.get("bottom_tags") or []) if str(t).strip()][:4]
+    sub_pts = list(data.get("sub_points") or data.get("voice_beats") or [])[:4]
+    if not sub_pts and tags:
+        sub_pts = [{"name": tg, "sub": "Verified Key Engineering Rule"} for tg in tags]
 
-    g_card = _ease_out_cubic(_clamp01(progress / 0.22))
-    stage.draw_glass_card((80, 480, 1000, 1255), radius=32, accent_col=world["cyan"], alpha_mul=g_card, active=True, layered=True)
+    g_card = _ease_out_cubic(_clamp01(progress / 0.16))
+    hero_bot = 825 if sub_pts else 1235
+    stage.draw_glass_card((80, 415, 1000, hero_bot), radius=30, accent_col=world["cyan"], alpha_mul=g_card, active=True, layered=True)
 
     # Decorative flanking 3D shapes floating harmoniously inside card margins
     flank_s = str(data.get("shape") or "hexagon")
-    _draw_node_visual(stage, 162, 540, 42, 20, 32, world["purple"], g_card * 0.9, shape=flank_s, active=True, progress=progress, phase=0.2)
-    _draw_node_visual(stage, 918, 1185, 42, 20, 32, world["amber"], g_card * 0.9, shape=data.get("secondary_shape", "diamond"), active=True, progress=progress, phase=1.8)
+    _draw_node_visual(stage, 158, 475, 38, 18, 28, world["purple"], g_card * 0.9, shape=flank_s, active=True, progress=progress, phase=0.2)
+    _draw_node_visual(stage, 922, hero_bot - 60, 38, 18, 28, world["amber"], g_card * 0.9, shape=data.get("secondary_shape", "diamond"), active=True, progress=progress, phase=1.8)
 
     if kicker:
-        gk = _ease_out_elastic(_clamp01((progress - 0.05) / 0.25))
-        stage.draw_pill(540, 560, kicker.upper()[:28], (*world["amber"][:3], 42), world["amber"], border_col=world["amber"], font=_get_font(23, bold=True), alpha_mul=gk, pad_x=22, pad_y=9)
+        gk = _ease_out_elastic(_clamp01((progress - 0.04) / 0.22))
+        stage.draw_pill(540, 468, kicker.upper()[:30], (*world["amber"][:3], 42), world["amber"], border_col=world["amber"], font=_get_font(21, bold=True), alpha_mul=gk, pad_x=22, pad_y=8)
 
-    gs = _ease_out_cubic(_clamp01((progress - 0.14) / 0.30))
+    gs = _ease_out_cubic(_clamp01((progress - 0.08) / 0.24))
     if gs > 0.03:
-        f_main = _get_font(54, bold=True)
-        cy = 655
+        f_main = _get_font(44 if sub_pts else 54, bold=True)
+        cy = 528 if kicker else 475
         if hl and hl.lower() in stmt.lower():
             idx = stmt.lower().index(hl.lower())
             before = stmt[:idx].strip()
             exact_hl = stmt[idx:idx + len(hl)]
             after = stmt[idx + len(hl):].strip()
             if before:
-                cy = _draw_wrapped_text(stage.draw, (124, cy), before, f_main, _with_alpha(world["text"], gs), 832, line_gap=10, align="center", max_lines=3) + 14
-            stage.add_glow_orb(540, cy + 44, 150, world["cyan"], alpha=int(130 * gs))
-            cy = _draw_wrapped_text(stage.draw, (124, cy), exact_hl, _get_font(66, bold=True), _with_alpha(world["cyan"], gs), 832, line_gap=10, align="center", max_lines=2) + 14
+                cy = _draw_wrapped_text(stage.draw, (124, cy), before, f_main, _with_alpha(world["text"], gs), 832, line_gap=8, align="center", max_lines=2) + 10
+            stage.add_glow_orb(540, cy + 36, 130, world["cyan"], alpha=int(120 * gs))
+            cy = _draw_wrapped_text(stage.draw, (124, cy), exact_hl, _get_font(54 if sub_pts else 64, bold=True), _with_alpha(world["cyan"], gs), 832, line_gap=8, align="center", max_lines=2) + 10
             if after:
-                _draw_wrapped_text(stage.draw, (124, cy), after, f_main, _with_alpha(world["text"], gs), 832, line_gap=10, align="center", max_lines=3)
+                _draw_wrapped_text(stage.draw, (124, cy), after, f_main, _with_alpha(world["text"], gs), 832, line_gap=8, align="center", max_lines=2)
         else:
-            _draw_wrapped_text(stage.draw, (124, cy + 40), stmt, f_main, _with_alpha(world["text"], gs), 832, line_gap=12, align="center", max_lines=5)
+            _draw_wrapped_text(stage.draw, (124, cy + 16), stmt, f_main, _with_alpha(world["text"], gs), 832, line_gap=10, align="center", max_lines=4)
 
-    if tags:
+    # Progressive Voice-Synced Highlight Cards Below Hero Statement
+    if sub_pts:
+        n_sp = len(sub_pts)
+        y_sp = hero_bot + 24
+        rh_sp = min(155, (STAGE_Y1 - 24 - y_sp) // max(1, n_sp))
+        act_i = min(n_sp - 1, int(max(0.0, min(0.999, progress)) * n_sp))
+        prev_pt = None
+        for i, sp in enumerate(sub_pts):
+            if isinstance(sp, str):
+                sp = {"name": sp, "sub": ""}
+            g_raw = _spring_gate(progress, i, n_sp, 0.22)
+            if g_raw <= 0.02:
+                continue
+            gb, gbdg, gt, gsub, glnk = _sub_gate(g_raw, "box"), _sub_gate(g_raw, "badge"), _sub_gate(g_raw, "title"), _sub_gate(g_raw, "sub"), _sub_gate(g_raw, "link")
+            col = resolve_world_color(world, sp.get("color"), _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
+            ry = y_sp + i * rh_sp
+            ch = rh_sp - 16
+            is_act = (act_i == i and progress > 0.04)
+            if prev_pt is not None:
+                _draw_bezier_comet(stage, prev_pt, (132, ry + 4), col, reveal=gb, progress=progress, phase=i * 0.2, world=world)
+            stage.draw_glass_card((80, ry, 1000, ry + ch), radius=19, accent_col=col, alpha_mul=gb, active=is_act, layered=is_act)
+            if gbdg > 0.02:
+                stage.draw_pill(134, ry + ch // 2, f"{i+1:02d}", (*col[:3], 44), col, border_col=col, font=_get_font(20, bold=True, mono=True), alpha_mul=gbdg)
+            nm = str(sp.get("name") or sp.get("label") or sp.get("title") or "").strip()
+            sb = str(sp.get("sub") or sp.get("desc") or "").strip()
+            if gt > 0.02:
+                _draw_wrapped_text(stage.draw, (186, ry + (16 if sb else ch // 2 - 18)), nm, _get_font(25, bold=True), _with_alpha(world["text"], gt), 785, max_lines=1 if sb else 2)
+            if sb and gsub > 0.02:
+                _draw_wrapped_text(stage.draw, (186, ry + 56), sb, _get_font(20), _with_alpha(world["muted"], gsub), 785, max_lines=2)
+            prev_pt = (132, ry + ch) if glnk > 0.02 or i + 1 < n_sp else None
+    elif tags:
         tx = 540 - (len(tags) * 205) // 2 + 100
         for i, tg in enumerate(tags):
             gt = _ease_out_cubic(_spring_gate(progress, i + 1, len(tags) + 1, 0.25))
@@ -2593,4 +2662,123 @@ def dispatch_studio_layout(
 
     if isinstance(d.get("metric_badges"), list):
         _draw_metric_badges_row(stage, d["metric_badges"], progress, world)
+    if not d.get("_skip_companion"):
+        _draw_voice_beats_companion(stage, d, l, progress, world, topic=topic)
     _draw_step_progress_bar(stage, d, progress, world)
+
+
+_COMPANION_NEEDED_CACHE: Dict[str, bool] = {}
+
+
+def _needs_companion_strip(
+    stage: StudioStage,
+    layout: str,
+    data: Dict[str, Any],
+    world: Dict[str, Any],
+    topic: str = "",
+) -> bool:
+    """Probes at progress=0.85 (once per layout+content shape) so the companion grid never flickers mid-scene."""
+    shape_sig = (
+        f"{layout}|{len(data.get('nodes') or [])}|{len(data.get('steps') or [])}"
+        f"|{len(data.get('items') or [])}|{len(data.get('bullets') or [])}"
+        f"|{len(data.get('bars') or [])}|{len(data.get('blocks') or [])}"
+        f"|{bool(data.get('output'))}|{bool(data.get('voice_beats'))}"
+        f"|{len(str(data.get('code_snippet') or data.get('code') or '').splitlines())}"
+    )
+    if shape_sig in _COMPANION_NEEDED_CACHE:
+        return _COMPANION_NEEDED_CACHE[shape_sig]
+    needed = False
+    try:
+        import numpy as np
+        probe_stage = StudioStage(stage.w, stage.h, world, transition_alpha=1.0)
+        probe_data = dict(data)
+        probe_data["_skip_companion"] = True
+        dispatch_studio_layout(probe_stage, layout, probe_data, progress=0.85, world=world, topic=topic)
+        bot_alpha = np.asarray(probe_stage.fg.crop((80, 1200, 1000, 1515)).getchannel("A"))
+        needed = int((bot_alpha > 15).sum()) < 42000
+    except Exception:
+        needed = False
+    if len(_COMPANION_NEEDED_CACHE) > 256:
+        _COMPANION_NEEDED_CACHE.clear()
+    _COMPANION_NEEDED_CACHE[shape_sig] = needed
+    return needed
+
+
+def _draw_voice_beats_companion(
+    stage: StudioStage,
+    data: Dict[str, Any],
+    layout: str,
+    progress: float,
+    world: Dict[str, Any],
+    topic: str = "",
+) -> None:
+    """
+    Universal Anti-Sparse & Voice-Synced Highlight Strip:
+    Whenever a scene layout leaves the lower canvas zone airy/empty at full reveal (< 52k fg pixels in y=1155..1515),
+    renders a persistent 2x2 progressive multi-label highlight deck synced clause-by-clause with voice.
+    """
+    if not _needs_companion_strip(stage, layout, data, world, topic=topic):
+        return
+
+    beats: List[Dict[str, str]] = []
+    for key in ("voice_beats", "sub_points", "items", "nodes", "steps", "stages", "bullets"):
+        raw = data.get(key)
+        if isinstance(raw, list) and raw:
+            for idx, it in enumerate(raw[:4]):
+                if isinstance(it, dict):
+                    lbl = str(it.get("label") or it.get("name") or it.get("title") or "").strip()
+                    sub = str(it.get("sub") or it.get("desc") or it.get("role") or "").strip()
+                    if lbl or sub:
+                        beats.append({"label": lbl or f"Step {idx+1}", "sub": sub})
+                elif isinstance(it, str) and it.strip():
+                    parts = it.split(":", 1)
+                    beats.append({"label": parts[0].strip(), "sub": parts[1].strip() if len(parts) > 1 else ""})
+            if len(beats) >= 2:
+                break
+
+    if len(beats) < 3:
+        seed_t = str(data.get("title") or data.get("statement") or topic or "Architecture").strip()[:28]
+        defaults = [
+            {"label": f"01 • {seed_t[:18]}", "sub": "Core bottleneck & execution trigger"},
+            {"label": "02 • Signal Flow", "sub": "Structured state & async routing"},
+            {"label": "03 • Edge Guard", "sub": "Backpressure, limits & failover"},
+            {"label": "04 • Verified Outcome", "sub": "Predictable sub-second production scale"},
+        ]
+        for df in defaults:
+            if len(beats) >= 4:
+                break
+            beats.append(df)
+
+    beats = beats[:4]
+    nb = len(beats)
+    cols = 2
+    rows = 2 if nb > 2 else 1
+    gw = (STAGE_W - 22) // 2
+    gh = 166 if rows == 2 else 210
+    y_start = 1158 if rows == 2 else 1245
+    active_idx = min(nb - 1, int(max(0.0, min(0.999, progress)) * nb))
+
+    # Small section eyebrow header
+    gh0 = _ease_out_cubic(_clamp01(progress / 0.16))
+    if gh0 > 0.03:
+        stage.draw_pill(540, y_start - 20, "VOICE-SYNCED BREAKDOWN", (*world["cyan"][:3], 36), world["cyan"], border_col=world["border"], font=_get_font(17, bold=True), alpha_mul=gh0, pad_x=18, pad_y=6)
+
+    for i, bt in enumerate(beats):
+        g_raw = _spring_gate(progress, i, nb, 0.22)
+        if g_raw <= 0.02:
+            continue
+        gb, gbdg, gtit, gsub, glnk = _sub_gate(g_raw, "box"), _sub_gate(g_raw, "badge"), _sub_gate(g_raw, "title"), _sub_gate(g_raw, "sub"), _sub_gate(g_raw, "link")
+        r_i, c_i = divmod(i, cols)
+        x0 = STAGE_X0 + c_i * (gw + 22)
+        y0 = y_start + 8 + r_i * (gh + 16)
+        col = resolve_world_color(world, None, _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
+        is_act = (active_idx == i and progress > 0.03)
+        stage.draw_glass_card((x0, y0, x0 + gw, y0 + gh), radius=18, accent_col=col, alpha_mul=gb, active=is_act, layered=is_act)
+        if gbdg > 0.02:
+            stage.draw_pill(x0 + 46, y0 + 28, f"{i+1:02d}", (*col[:3], 44), col, border_col=col, font=_get_font(17, bold=True, mono=True), alpha_mul=gbdg)
+        if gtit > 0.02:
+            _draw_wrapped_text(stage.draw, (x0 + 82, y0 + 16), bt["label"][:32], _get_font(21, bold=True), _with_alpha(world["text"], gtit), gw - 98, max_lines=2)
+        if bt.get("sub") and gsub > 0.02:
+            _draw_wrapped_text(stage.draw, (x0 + 18, y0 + 78), bt["sub"][:58], _get_font(18), _with_alpha(world["muted"], gsub), gw - 36, max_lines=2)
+        if i + 1 < nb and glnk > 0.02 and c_i == 0:
+            _draw_bezier_comet(stage, (x0 + gw + 2, y0 + gh // 2), (x0 + gw + 20, y0 + gh // 2), col, reveal=glnk, progress=progress, phase=i * 0.25, world=world)

@@ -304,13 +304,39 @@ def _extract_structured_scene_payload(scene: Dict[str, Any], scene_idx: int) -> 
     code_snippet = str(vd.get("code_snippet") or vd.get("command") or vd.get("sql") or "").strip()
     table_data = vd.get("table_data") if isinstance(vd.get("table_data"), dict) else None
 
-    # Last-resort narration key-phrase extraction (ZERO canned strings!)
+    # Extract sequential voice-synced highlight beats from narration clauses
+    clauses_vb = [p.strip() for p in re.split(r"[.!?\n;]+|\s+[—-]\s+|,\s+(?=[A-Za-z0-9])", narration) if len(p.strip()) > 6][:5]
+    if len(clauses_vb) < 4:
+        n_words = narration.split()
+        if len(n_words) >= 12:
+            step_w = max(3, len(n_words) // 4)
+            clauses_vb = [" ".join(n_words[k:k + step_w]).strip(" ,.;:-") for k in range(0, len(n_words), step_w)][:4]
+    raw_vbs = vd.get("voice_beats") if isinstance(vd.get("voice_beats"), list) else []
+    voice_beats: List[Dict[str, str]] = []
+    for vb_i, vb in enumerate(raw_vbs[:5]):
+        if isinstance(vb, dict) and (vb.get("label") or vb.get("name")):
+            voice_beats.append({"label": str(vb.get("label") or vb.get("name"))[:34], "sub": str(vb.get("sub") or "")[:64]})
+    for vb_i, cl in enumerate(clauses_vb[:4]):
+        if len(voice_beats) >= 4:
+            break
+        head = " ".join(cl.split()[:4]).strip(" ,.;:-")[:30]
+        if head and not any(head.lower() in x["label"].lower() for x in voice_beats):
+            voice_beats.append({"label": head, "sub": cl[:62]})
+
+    # Top up sparse card lists (always 4-5 progressive stages so no Option 1 scene feels empty!)
     if not cards and not entries and not bars and not split_data and not code_snippet:
-        sents = [s.strip() for s in re.split(r"[.!?\n]+", narration) if len(s.strip()) > 6][:4]
-        for idx, st_txt in enumerate(sents):
-            cards.append({"title": st_txt[:78], "sub": f"Key Concept {idx+1}", "tag": f"{idx+1:02d}", "val": ""})
+        for idx, vb in enumerate(voice_beats[:4]):
+            cards.append({"title": vb["label"], "sub": vb["sub"] or f"Key Concept {idx+1}", "tag": f"{idx+1:02d}", "val": ""})
         if not cards:
             cards.append({"title": title, "sub": topic or "Technical Breakdown", "tag": "01", "val": ""})
+    elif 0 < len(cards) < 4 and voice_beats:
+        vb_idx = 0
+        while len(cards) < 4 and vb_idx < len(voice_beats):
+            vb = voice_beats[vb_idx]
+            vb_idx += 1
+            if any(vb["label"].lower() in c["title"].lower() for c in cards):
+                continue
+            cards.append({"title": vb["label"], "sub": vb["sub"], "tag": f"{len(cards)+1:02d}", "val": ""})
 
     var_seed = int(vd.get("_variation_seed") or 0)
     arch_hint = str(vd.get("archetype") or vd.get("option1_archetype") or scene.get("option1_archetype") or vtype).lower().strip()
@@ -358,6 +384,8 @@ def _extract_structured_scene_payload(scene: Dict[str, Any], scene_idx: int) -> 
         "archetype": archetype,
         "sub_variant": sub_variant or archetype,
         "cards": cards[:5],
+        "voice_beats": voice_beats[:5],
+        "footer": str(vd.get("footer") or vd.get("summary") or (voice_beats[-1]["sub"] if voice_beats else "")).strip(),
         "entries": entries,
         "bars": bars,
         "winner_badge": str(vd.get("winner_badge") or "").strip(),
@@ -743,6 +771,20 @@ function renderArchetype(){{
     ft.innerHTML=`<div style="font-size:23px;color:${{PAL.emerald}};font-weight:900;">${{ftSummary}}</div>`;
     mount.appendChild(ft);
   }}
+  // Ensure every Option 1 scene also renders a sequential Voice-Synced Multi-Label Highlight Grid when voice_beats exist
+  window.__beatNodes=[];
+  if(Array.isArray(P.voice_beats)&&P.voice_beats.length>=3&&!['pipeline_3d','bento_layers'].includes(P.archetype)){{
+    const wrap=document.createElement('div');
+    wrap.id='voiceBeatsGrid';
+    wrap.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px;';
+    P.voice_beats.slice(0,4).forEach((bt,bi)=>{{
+      const bcol=ACCENTS[bi%ACCENTS.length];
+      const bc=document.createElement('div'); bc.className='gcard'; bc.style.cssText=`padding:16px 18px;border-color:${{bcol}};opacity:0;`;
+      bc.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span class="pill-num" style="min-width:34px;height:34px;font-size:16px;background:${{bcol}};">0${{bi+1}}</span><div class="bt-title" style="font-size:20px;font-weight:800;color:${{PAL.text}};line-height:1.2;">${{(bt.label||'').slice(0,32)}}</div></div><div class="bt-sub" style="font-size:16px;color:${{PAL.muted}};line-height:1.25;">${{(bt.sub||'').slice(0,62)}}</div>`;
+      wrap.appendChild(bc); window.__beatNodes.push(bc);
+    }});
+    mount.appendChild(wrap);
+  }}
 }}
 renderArchetype();
 
@@ -775,6 +817,20 @@ window.__setStudioProgress=function(p, curTime, energy){{
       }}catch(e){{}}
     }});
   }});
+  if(Array.isArray(window.__beatNodes)&&window.__beatNodes.length){{
+    const nb=window.__beatNodes.length;
+    const actB=Math.min(nb-1, Math.floor(Math.max(0, Math.min(0.999, p))*nb));
+    window.__beatNodes.forEach((bn,bi)=>{{
+      const bst=0.05+(bi/nb)*0.72;
+      const bg=Math.max(0,Math.min(1,(p-bst)/0.22));
+      const be=1-Math.pow(1-Math.min(1,bg/0.5),3);
+      bn.style.opacity=be;
+      bn.style.transform=`translateY(${{(1-be)*18}}px)`;
+      bn.classList.toggle('active', bi===actB && p>0.03);
+      bn.querySelectorAll('.bt-title').forEach(t=>{{t.style.opacity=Math.max(0,Math.min(1,(bg-0.2)/0.45));}});
+      bn.querySelectorAll('.bt-sub').forEach(s=>{{s.style.opacity=Math.max(0,Math.min(1,(bg-0.42)/0.48));}});
+    }});
+  }}
   document.querySelectorAll('.hero-footer').forEach(ft=>{{
     const fg=Math.max(0,Math.min(1,(p-0.72)/0.22));
     const fe=1-Math.pow(1-fg,3);
