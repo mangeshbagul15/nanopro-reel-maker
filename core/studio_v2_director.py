@@ -23,31 +23,59 @@ from core.tone_engine import get_tone_profile
 
 STUDIO_V2_MODE_OPTIONS = [
     ("classic_nanopro", "🧠 Classic NanoPro Studio (All 1,221 Engines + 24 Specialist Modes — Untouched)"),
-    ("v2_auto", "⚡ Studio V2 Auto-Director (Picks Clean Vector Storyboard OR Spatial Isometric World)"),
+    ("v2_auto", "⚡ Studio Auto-Director (Picks Best: Vector / Isometric / V5 Live IDE / V7 Whiteboard)"),
     ("v2_vector_storyboard", "📐 Studio V2 — Clean Vector Storyboard (GyanaHut Style · Progressive SVG + Paired Analogy)"),
     ("v2_spatial_isometric", "🌐 Studio V2 — Spatial Isometric World (@thetechypenguin Style · 2.5D Map + Camera Fly + Top HUD)"),
+    ("v5_live_ide", "🖥️ Studio V5 — Live IDE & SQL/Python Simulator (Code Highlight · Click Ripple · Callout · Output Drawer)"),
+    ("v7_blueprint_whiteboard", "✏️ Studio V7 — Blueprint Whiteboard Studio (ByteByteGo / Excalidraw · Dark Grid · Marker Diagrams · Sticky Bubbles)"),
 ]
 
 
 def is_studio_v2_mode(mode_key: str) -> bool:
-    return str(mode_key or "").strip() in ("v2_auto", "v2_vector_storyboard", "v2_spatial_isometric")
+    return str(mode_key or "").strip() in (
+        "v2_auto",
+        "v2_vector_storyboard",
+        "v2_spatial_isometric",
+        "v5_live_ide",
+        "v7_blueprint_whiteboard",
+    )
 
 
 def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto") -> str:
-    """Routes `v2_auto` cleanly between `vector_storyboard` and `spatial_isometric`."""
+    """Routes `v2_auto` cleanly between `vector_storyboard`, `spatial_isometric`, `live_ide`, and `blueprint_whiteboard`."""
     mk = str(mode_key or "v2_auto").strip()
     if mk == "v2_vector_storyboard":
         return "vector_storyboard"
     if mk == "v2_spatial_isometric":
         return "spatial_isometric"
+    if mk == "v5_live_ide":
+        return "live_ide"
+    if mk == "v7_blueprint_whiteboard":
+        return "blueprint_whiteboard"
 
     low = f" {str(topic or '').lower()} "
+    ide_kw = (
+        "sql", "select ", "join", "dense_rank", "window function", "cte", "query", "n+1",
+        "orm", "python", "asyncio", "gil", "pandas", "dataframe", "pytorch", "code",
+        "debug", "ide", "traceback", "exception", "decorator", "generator", "index scan",
+    )
+    if any(k in low for k in ide_kw):
+        return "live_ide"
+
+    wb_kw = (
+        "whiteboard", "excalidraw", "bytebytego", "rate limit", "consistent hash",
+        "cap theorem", "url shortener", "webhook", "oauth", "jwt", "circuit breaker",
+        "pub/sub", "fanout", "system design",
+    )
+    if any(k in low for k in wb_kw):
+        return "blueprint_whiteboard"
+
     iso_kw = (
         "blue-green", "blue green", "canary", "deployment", "devops", "ci/cd", "cicd",
         "kubernetes", "k8s", "docker", "kafka", "flink", "spark", "snowflake", "lakehouse",
         "load balancer", "microservice", "architecture", "pipeline", "etl", "cdc", "debezium",
         "redis", "cache", "sharding", "replication", "failover", "disaster recovery", "rag",
-        "agent", "aws", "azure", "gcp", "terraform", "system design", "distributed", "queue",
+        "agent", "aws", "azure", "gcp", "terraform", "distributed", "queue",
     )
     if any(k in low for k in iso_kw) or str(duration_mode).lower() == "deep_dive":
         return "spatial_isometric"
@@ -101,7 +129,49 @@ def _scene_count_guidance(duration_mode: str, sub_engine: str) -> str:
         return "11 to 16 comprehensive walkthrough scenes (~95-150s total)"
     if sub_engine == "spatial_isometric":
         return "9 to 14 scenes (covering Hook -> Live Baseline -> Build -> Provision -> Test -> Switch -> Edge Cases/State -> Rollback/Cost/DB -> Poll CTA, NO artificial time cap)"
+    if sub_engine == "live_ide":
+        return "7 to 10 punchy coding scenes (Hook Bug -> Naive Query/Loop -> Live Run Traceback/Slow Plan -> Exact Line Fix -> Fast Execution Output -> Benchmark Proof -> CTA)"
+    if sub_engine == "blueprint_whiteboard":
+        return "7 to 11 clear whiteboard scenes (Hook Dilemma -> Naive Sketch Flaw -> Core Blueprint Architecture -> Data Flow & Edge Case -> Trade-Off Sticky Summary -> CTA)"
     return "8 to 11 crisp storyboard scenes (Interview Hook -> Misconception Meter -> Problem Scenario -> Spaghetti vs Clean Hub -> Paired Real-World Analogy -> Takeaway -> Follow CTA)"
+
+
+def _sanitize_whiteboard_nodes(nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Enforces clean spacing inside the 1000x1000 blueprint canvas so marker boxes never overlap."""
+    import math
+    clean = [dict(n) for n in (nodes or []) if isinstance(n, dict)]
+    if not clean:
+        return clean
+    for idx_n, n in enumerate(clean):
+        n["x"] = float(n.get("x", 240 + (idx_n % 3) * 260))
+        n["y"] = float(n.get("y", 260 + (idx_n // 3) * 280))
+        n["w"] = float(n.get("w", 230))
+        n["h"] = float(n.get("h", 110))
+    if len(clean) >= 2:
+        min_dist = 255.0
+        for _ in range(12):
+            moved = False
+            for i in range(len(clean)):
+                for j in range(i + 1, len(clean)):
+                    dx = clean[j]["x"] - clean[i]["x"]
+                    dy = clean[j]["y"] - clean[i]["y"]
+                    d = math.hypot(dx, dy)
+                    if d < min_dist:
+                        if d < 1e-3:
+                            dx, dy, d = 1.0, 0.7, 1.22
+                        push = (min_dist - d) * 0.55
+                        ux, uy = dx / d, dy / d
+                        clean[i]["x"] = max(145.0, min(855.0, clean[i]["x"] - ux * push))
+                        clean[i]["y"] = max(145.0, min(855.0, clean[i]["y"] - uy * push))
+                        clean[j]["x"] = max(145.0, min(855.0, clean[j]["x"] + ux * push))
+                        clean[j]["y"] = max(145.0, min(855.0, clean[j]["y"] + uy * push))
+                        moved = True
+            if not moved:
+                break
+    for n in clean:
+        n["x"] = round(max(135.0, min(865.0, n["x"])))
+        n["y"] = round(max(135.0, min(865.0, n["y"])))
+    return clean
 
 
 def _sanitize_isometric_world_spec(world_spec: Dict[str, Any]) -> Dict[str, Any]:
@@ -185,6 +255,34 @@ def _normalize_v2_scenes(
             else:
                 if not str(vd.get("card_title") or "").strip():
                     vd["card_title"] = str(vd.get("hud_pill") or role.upper())
+        elif sub_engine == "live_ide":
+            lang = str(vd.get("language") or ("sql" if "sql" in topic.lower() else "python")).lower()
+            vd["language"] = lang if lang in ("python", "sql", "bash") else "python"
+            vd.setdefault("file_name", "query.sql" if vd["language"] == "sql" else "app.py")
+            if not isinstance(vd.get("code_lines"), list) or not vd["code_lines"]:
+                vd["code_lines"] = [f"# {short_top}", "result = run_optimized()"]
+            if not isinstance(vd.get("callout"), dict):
+                vd["callout"] = {"title": "INSIGHT", "text": nar[:85], "line": 1, "color": "amber"}
+            if not isinstance(vd.get("output_drawer"), dict):
+                vd["output_drawer"] = {"mode": "terminal", "title": "LIVE OUTPUT", "metric": "OK", "lines": ["$ run", "✓ Done"]}
+        elif sub_engine == "blueprint_whiteboard":
+            vd["diagram_nodes"] = _sanitize_whiteboard_nodes(list(vd.get("diagram_nodes") or []))
+            if not vd["diagram_nodes"]:
+                vd["diagram_nodes"] = [
+                    {"id": "n1", "kind": "box", "label": "Client", "sublabel": "Request", "x": 230, "y": 460, "color": "cyan"},
+                    {"id": "n2", "kind": "cylinder", "label": short_top[:18], "sublabel": "Core Layer", "x": 760, "y": 460, "color": "emerald"},
+                ]
+                vd["diagram_edges"] = [{"from": "n1", "to": "n2", "label": "flow", "color": "amber"}]
+            vd.setdefault("diagram_edges", [])
+            vd.setdefault("sticky_notes", [])
+
+        _engine_labels = {
+            "vector_storyboard": ("v2_vector_storyboard", "Studio V2 (Vector Storyboard)"),
+            "spatial_isometric": ("v2_spatial_isometric", "Studio V2 (Spatial Isometric World)"),
+            "live_ide": ("v5_live_ide", "Studio V5 (Live IDE & SQL/Python Simulator)"),
+            "blueprint_whiteboard": ("v7_blueprint_whiteboard", "Studio V7 (Blueprint Whiteboard Studio)"),
+        }
+        v_type_out, r_eng_out = _engine_labels.get(sub_engine, (f"v2_{sub_engine}", f"Studio ({sub_engine})"))
 
         norm.append({
             "scene_id": i + 1,
@@ -192,8 +290,8 @@ def _normalize_v2_scenes(
             "scene_tone": sc_tone,
             "sfx_cue": str(sc.get("sfx_cue") or ("punch_impact" if i == 0 else ("alert_ping" if "error" in role or "problem" in role else "pop_snap"))),
             "narration": nar,
-            "visual_type": f"v2_{sub_engine}",
-            "routed_engine": f"Studio V2 ({'Vector Storyboard' if sub_engine == 'vector_storyboard' else 'Spatial Isometric World'})",
+            "visual_type": v_type_out,
+            "routed_engine": r_eng_out,
             "art_style": "v2_midnight_navy",
             "backdrop": "v2_clean_canvas",
             "transition": "smooth_fade",
@@ -904,6 +1002,559 @@ Return STRICT JSON:
     }
 
 
+def _fallback_live_ide(topic: str, watermark: str, tone: str, cta_style: str, cta_keyword: str) -> Dict[str, Any]:
+    clean_topic = (topic.strip() or "SQL JOIN & N+1 Query Optimization")[:54]
+    low = clean_topic.lower()
+    is_sql = any(k in low for k in ("sql", "join", "dense_rank", "rank", "window", "cte", "query", "select", "index", "snowflake"))
+    cta_note = f"Comment '{cta_keyword.strip().upper()}' 👇" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this code pattern!"
+
+    if is_sql:
+        scenes = [
+            {
+                "role": "hook",
+                "sfx_cue": "punch_impact",
+                "narration": f"ये SQL query production में दिखती innocent है, लेकिन {clean_topic[:28]} पर database को 10x slow कर देती है.",
+                "visual_data": {
+                    "hud_pill": "SQL CODE AUDIT",
+                    "headline_white": "Slow Query",
+                    "headline_accent": "Exposed.",
+                    "accent_color": "rose",
+                    "language": "sql",
+                    "file_name": "analytics_slow.sql",
+                    "tab_secondary": "explain_plan.log",
+                    "code_lines": [
+                        "SELECT u.id, u.name, o.total",
+                        "FROM users u",
+                        "JOIN orders o ON LOWER(o.email) = LOWER(u.email)",
+                        "WHERE o.created_at >= '2026-01-01';",
+                    ],
+                    "focus_lines": [3],
+                    "line_status": "error",
+                    "diff_marks": {"3": "-"},
+                    "ide_steps": [{"line": 3, "p": 0.14, "click": True}, {"target": "run_btn", "p": 0.45, "click": True}],
+                    "callout": {"title": "⚠️ INDEX BYPASS", "text": "Function LOWER() breaks B-Tree index!", "line": 3, "color": "rose", "delay_p": 0.22},
+                    "output_drawer": {
+                        "mode": "terminal",
+                        "title": "EXPLAIN ANALYZE",
+                        "metric": "Seq Scan · 1,840ms",
+                        "metric_color": "rose",
+                        "open_p": 0.48,
+                        "lines": [
+                            "Seq Scan on orders (cost=0.00..482910.00)",
+                            "✗ Dropped Index idx_orders_email -> full table scan!",
+                            "✗ Execution Time: 1,840 ms (DB CPU 92%)",
+                        ],
+                    },
+                },
+            },
+            {
+                "role": "solution",
+                "sfx_cue": "success_chime",
+                "narration": "एक छोटा fix: indexed column पर functional wrapper हटाकर direct indexed key या expression index use करो.",
+                "visual_data": {
+                    "hud_pill": "LIVE IDE FIX",
+                    "headline_white": "Indexed",
+                    "headline_accent": "Join Fix.",
+                    "accent_color": "emerald",
+                    "language": "sql",
+                    "file_name": "analytics_fast.sql",
+                    "tab_secondary": "explain_plan.log",
+                    "code_lines": [
+                        "SELECT u.id, u.name, o.total,",
+                        "       DENSE_RANK() OVER (ORDER BY o.total DESC) AS rnk",
+                        "FROM users u",
+                        "INNER JOIN orders o ON o.user_id = u.id",
+                        "WHERE o.created_at >= '2026-01-01';",
+                    ],
+                    "focus_lines": [2, 4],
+                    "line_status": "active",
+                    "diff_marks": {"4": "+"},
+                    "ide_steps": [{"line": 4, "p": 0.14, "click": True}, {"target": "run_btn", "p": 0.40, "click": True}],
+                    "callout": {"title": "⚡ INDEX SEEK", "text": "Direct FK join + single-pass window rank", "line": 4, "color": "emerald", "delay_p": 0.20},
+                    "output_drawer": {
+                        "mode": "sql_table",
+                        "title": "LIVE QUERY RESULT",
+                        "metric": "3 rows · 1.2ms ⚡",
+                        "metric_color": "emerald",
+                        "open_p": 0.44,
+                        "table": {
+                            "headers": ["id", "name", "total", "rnk"],
+                            "rows": [["104", "Aarav", "$940", "1"], ["219", "Diya", "$780", "2"], ["308", "Kabir", "$620", "3"]],
+                        },
+                    },
+                },
+            },
+            {
+                "role": "cta",
+                "sfx_cue": "success_chime",
+                "narration": f"1,840ms से सीधा 1.2ms! Next time query slow हो तो पहले EXPLAIN plan देखो — {cta_note}",
+                "visual_data": {
+                    "hud_pill": "BENCHMARK PROOF",
+                    "headline_white": "1,500x",
+                    "headline_accent": "Faster Query!",
+                    "accent_color": "cyan",
+                    "language": "sql",
+                    "file_name": "benchmark.sql",
+                    "tab_secondary": "results.csv",
+                    "code_lines": [
+                        "-- Before: LOWER(email) -> Seq Scan  (1,840 ms)",
+                        "-- After : o.user_id = u.id -> Seek  (1.2 ms)",
+                        "EXPLAIN ANALYZE SELECT ... LIMIT 10;",
+                    ],
+                    "focus_lines": [2],
+                    "line_status": "active",
+                    "ide_steps": [{"line": 2, "p": 0.15, "click": True}, {"target": "run_btn", "p": 0.42, "click": True}],
+                    "callout": {"title": "🚀 VERIFIED", "text": "Always inspect Index Scan vs Seq Scan!", "line": 2, "color": "cyan", "delay_p": 0.20},
+                    "output_drawer": {
+                        "mode": "terminal",
+                        "title": "FINAL BENCHMARK",
+                        "metric": "99.9% Latency Drop",
+                        "metric_color": "emerald",
+                        "open_p": 0.44,
+                        "lines": [
+                            "✓ Before: 1,840.0 ms (Full Table Scan)",
+                            "✓ After :     1.2 ms (B-Tree Index Seek)",
+                        ],
+                    },
+                    "footer_pill": cta_note,
+                },
+            },
+        ]
+    else:
+        scenes = [
+            {
+                "role": "hook",
+                "sfx_cue": "punch_impact",
+                "narration": f"Line 2 को ध्यान से देखो — ये innocent Python loop production में DB को 1,000 queries से crash कर रहा है!",
+                "visual_data": {
+                    "hud_pill": "N+1 BUG CATCH",
+                    "headline_white": "Look at",
+                    "headline_accent": "Line 2.",
+                    "accent_color": "rose",
+                    "language": "python",
+                    "file_name": "orders_api.py",
+                    "tab_secondary": "db_profiler.log",
+                    "code_lines": [
+                        "users = db.fetch_active_users()  # 1 query",
+                        "for user in users:",
+                        "    orders = db.fetch_orders(user.id)  # +1000!",
+                        "    payload.append((user, orders))",
+                    ],
+                    "focus_lines": [2, 3],
+                    "line_status": "error",
+                    "diff_marks": {"3": "-"},
+                    "ide_steps": [{"line": 3, "p": 0.12, "click": True}, {"target": "run_btn", "p": 0.44, "click": True}],
+                    "callout": {"title": "🚨 N+1 QUERY LEAK", "text": "1,000 users = 1,001 DB roundtrips!", "line": 3, "color": "rose", "delay_p": 0.20},
+                    "output_drawer": {
+                        "mode": "terminal",
+                        "title": "LIVE TRACE & PROFILER",
+                        "metric": "1,001 queries · 940ms",
+                        "metric_color": "rose",
+                        "open_p": 0.46,
+                        "lines": [
+                            "$ python orders_api.py",
+                            "✗ SQL Count: 1,001 roundtrips executed",
+                            "✗ TimeoutWarning: DB Pool exhausted (940ms)",
+                        ],
+                    },
+                },
+            },
+            {
+                "role": "solution",
+                "sfx_cue": "success_chime",
+                "narration": "Fix super clean है: loop के अंदर query चलाने की बजाय single batch IN clause या eager JOIN use करो.",
+                "visual_data": {
+                    "hud_pill": "BATCH FIX",
+                    "headline_white": "Single Batch",
+                    "headline_accent": "Query Fix.",
+                    "accent_color": "emerald",
+                    "language": "python",
+                    "file_name": "orders_fixed.py",
+                    "tab_secondary": "db_profiler.log",
+                    "code_lines": [
+                        "users = db.fetch_active_users()",
+                        "user_ids = [u.id for u in users]",
+                        "orders_map = db.fetch_orders_batch(user_ids)",
+                        "payload = [(u, orders_map[u.id]) for u in users]",
+                    ],
+                    "focus_lines": [3],
+                    "line_status": "active",
+                    "diff_marks": {"3": "+"},
+                    "ide_steps": [{"line": 3, "p": 0.14, "click": True}, {"target": "run_btn", "p": 0.40, "click": True}],
+                    "callout": {"title": "⚡ 2 QUERIES TOTAL", "text": "SELECT ... WHERE user_id IN (...)", "line": 3, "color": "emerald", "delay_p": 0.20},
+                    "output_drawer": {
+                        "mode": "terminal",
+                        "title": "PROFILER OUTPUT",
+                        "metric": "2 queries · 8ms ⚡",
+                        "metric_color": "emerald",
+                        "open_p": 0.44,
+                        "lines": [
+                            "$ python orders_fixed.py",
+                            "✓ SQL Count: 2 queries total (117x fewer!)",
+                            "✓ Response Time: 8.1 ms • Pool healthy",
+                        ],
+                    },
+                },
+            },
+            {
+                "role": "cta",
+                "sfx_cue": "success_chime",
+                "narration": f"940ms सीधा 8ms पर! Production PR review में loop के अंदर DB call हमेशा flag करो — {cta_note}",
+                "visual_data": {
+                    "hud_pill": "CODE TAKEAWAY",
+                    "headline_white": "940ms →",
+                    "headline_accent": "8.1ms ⚡",
+                    "accent_color": "cyan",
+                    "language": "python",
+                    "file_name": "benchmark.py",
+                    "tab_secondary": "metrics.json",
+                    "code_lines": [
+                        "# Rule: NEVER query inside a loop",
+                        "assert sql_queries <= 2",
+                        "print(f'Speedup: {940 / 8.1:.0f}x faster!')",
+                    ],
+                    "focus_lines": [2],
+                    "line_status": "active",
+                    "ide_steps": [{"line": 2, "p": 0.14, "click": True}, {"target": "run_btn", "p": 0.38, "click": True}],
+                    "callout": {"title": "💡 PRO RULE", "text": "Always prefetch or batch JOIN!", "line": 2, "color": "amber", "delay_p": 0.20},
+                    "output_drawer": {
+                        "mode": "terminal",
+                        "title": "BENCHMARK SUMMARY",
+                        "metric": "116x Speedup",
+                        "metric_color": "emerald",
+                        "open_p": 0.42,
+                        "lines": [
+                            "✓ N+1 Loop : 940.0 ms (1,001 queries)",
+                            "✓ Batch IN :   8.1 ms (2 queries)",
+                        ],
+                    },
+                    "footer_pill": cta_note,
+                },
+            },
+        ]
+
+    # Expand to 6 cohesive scenes by adding scenario/edge_case/proof beats cleanly when needed
+    if len(scenes) < 6:
+        extra_mid = {
+            "role": "edge_case",
+            "sfx_cue": "pop_snap",
+            "narration": "साथ ही memory spike रोकने के लिए batch chunks (size=500) और connection timeout guard जरूर लगाओ.",
+            "visual_data": {
+                "hud_pill": "PRODUCTION GUARD",
+                "headline_white": "Chunking +",
+                "headline_accent": "Safe Guard.",
+                "accent_color": "amber",
+                "language": "sql" if is_sql else "python",
+                "file_name": "guard.sql" if is_sql else "guard.py",
+                "tab_secondary": "tests.py",
+                "code_lines": (
+                    ["SET statement_timeout = '500ms';", "CREATE INDEX CONCURRENTLY idx_orders_uid", "ON orders(user_id, created_at);"]
+                    if is_sql else
+                    ["for batch in chunked(user_ids, size=500):", "    orders_map.update(db.fetch_orders_batch(batch))"]
+                ),
+                "focus_lines": [1, 2],
+                "line_status": "active",
+                "ide_steps": [{"line": 1, "p": 0.14, "click": True}, {"target": "run_btn", "p": 0.42, "click": True}],
+                "callout": {"title": "🛡️ ZERO LOCKING", "text": "Prevents huge IN-lists & locks", "line": 2, "color": "amber", "delay_p": 0.22},
+                "output_drawer": {
+                    "mode": "terminal",
+                    "title": "TEST SUITE",
+                    "metric": "All 12 checks PASS",
+                    "metric_color": "emerald",
+                    "open_p": 0.45,
+                    "lines": ["✓ No table locks detected", "✓ Memory bounded under 32MB"],
+                },
+            },
+        }
+        scenes.insert(2, extra_mid)
+
+    return {
+        "topic": topic,
+        "v2_engine": "live_ide",
+        "art_style": "v2_midnight_navy",
+        "header_brand": watermark,
+        "scenes": _normalize_v2_scenes(scenes, tone, watermark, "live_ide", topic=topic),
+    }
+
+
+def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_style: str, cta_keyword: str) -> Dict[str, Any]:
+    clean_topic = (topic.strip() or "Rate Limiter & API Gateway System Design")[:54]
+    short_title = " ".join(clean_topic.split()[:3]) or "System"
+    cta_note = f"Comment '{cta_keyword.strip().upper()}' 👇" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this blueprint!"
+
+    scenes = [
+        {
+            "role": "hook",
+            "sfx_cue": "punch_impact",
+            "narration": f"अगर अचानक 100k requests/sec आए, तो बिना {short_title} blueprint के तुम्हारा backend 5 सेकंड में crash हो जाएगा!",
+            "visual_data": {
+                "hud_pill": "SYSTEM DILEMMA",
+                "headline_white": "100k RPS Spike?",
+                "headline_accent": "Backend Crashes!",
+                "accent_color": "rose",
+                "diagram_nodes": [
+                    {"id": "cli", "kind": "box", "label": "100k Users", "sublabel": "Traffic Spike", "x": 220, "y": 240, "w": 240, "h": 115, "color": "amber", "dp": 0.05},
+                    {"id": "api", "kind": "box", "label": "Single API", "sublabel": "Overloaded!", "x": 520, "y": 460, "w": 240, "h": 115, "color": "rose", "dp": 0.20},
+                    {"id": "db", "kind": "cylinder", "label": "Primary DB", "sublabel": "CPU 100% ✗", "x": 790, "y": 690, "w": 230, "h": 125, "color": "rose", "dp": 0.35},
+                ],
+                "diagram_edges": [
+                    {"from": "cli", "to": "api", "label": "flood", "color": "rose", "dp": 0.15},
+                    {"from": "api", "to": "db", "label": "locks", "color": "rose", "dp": 0.30},
+                ],
+                "sticky_notes": [
+                    {"title": "⚠️ NAIVE FLUSH", "text": "No queue or protection = 502 outage!", "color": "rose", "x_pct": 8, "y_pct": 68, "dp": 0.50},
+                ],
+            },
+        },
+        {
+            "role": "solution",
+            "sfx_cue": "pop_snap",
+            "narration": f"इसलिए ByteByteGo style blueprint में सबसे आगे Gateway + {short_title} guard रखा जाता है, जो extra load filter करता है.",
+            "visual_data": {
+                "hud_pill": "BLUEPRINT LAYER 1",
+                "headline_white": "Clean Edge",
+                "headline_accent": "Architecture.",
+                "accent_color": "cyan",
+                "blueprint_zones": [{"label": "EDGE PROTECTION ZONE", "x": 335, "y": 170, "w": 410, "h": 480, "color": "cyan"}],
+                "diagram_nodes": [
+                    {"id": "u", "kind": "box", "label": "Clients", "sublabel": "Mobile / Web", "x": 175, "y": 380, "w": 200, "h": 108, "color": "white", "dp": 0.05},
+                    {"id": "gw", "kind": "diamond", "label": "Gateway", "sublabel": "Auth + Limit", "x": 510, "y": 380, "w": 230, "h": 140, "color": "cyan", "dp": 0.18},
+                    {"id": "rd", "kind": "cylinder", "label": "Redis State", "sublabel": "O(1) Counter", "x": 510, "y": 730, "w": 235, "h": 115, "color": "amber", "dp": 0.34},
+                    {"id": "svc", "kind": "box", "label": "Core Service", "sublabel": "Protected", "x": 830, "y": 380, "w": 210, "h": 110, "color": "emerald", "dp": 0.48},
+                ],
+                "diagram_edges": [
+                    {"from": "u", "to": "gw", "label": "HTTPS", "color": "cyan", "dp": 0.14},
+                    {"from": "gw", "to": "rd", "label": "check", "color": "amber", "dashed": True, "dp": 0.30},
+                    {"from": "gw", "to": "svc", "label": "allow ✓", "color": "emerald", "dp": 0.44},
+                ],
+                "sticky_notes": [
+                    {"title": "✏️ MARKER TIP", "text": "In-memory Redis keeps latency < 1ms", "color": "amber", "x_pct": 8, "y_pct": 66, "dp": 0.56},
+                ],
+            },
+        },
+        {
+            "role": "analogy",
+            "sfx_cue": "whoosh",
+            "narration": "भारी traffic को async Queue में buffer करके Workers आराम से process करते हैं — ताकि database कभी choke न हो.",
+            "visual_data": {
+                "hud_pill": "ASYNC BUFFERING",
+                "headline_white": "Queue Absorbs",
+                "headline_accent": "Traffic Burst.",
+                "accent_color": "emerald",
+                "diagram_nodes": [
+                    {"id": "svc", "kind": "box", "label": "API Tier", "sublabel": "Fast Ack 202", "x": 200, "y": 290, "w": 220, "h": 110, "color": "cyan", "dp": 0.06},
+                    {"id": "q", "kind": "queue", "label": "Event Queue", "sublabel": "Kafka / SQS", "x": 530, "y": 350, "w": 240, "h": 110, "color": "amber", "dp": 0.22},
+                    {"id": "w", "kind": "box", "label": "Workers", "sublabel": "Steady Rate", "x": 820, "y": 460, "w": 215, "h": 110, "color": "emerald", "dp": 0.38},
+                    {"id": "db", "kind": "cylinder", "label": "Storage DB", "sublabel": "Safe Writes", "x": 800, "y": 760, "w": 220, "h": 115, "color": "purple", "dp": 0.52},
+                ],
+                "diagram_edges": [
+                    {"from": "svc", "to": "q", "label": "push", "color": "cyan", "dp": 0.16},
+                    {"from": "q", "to": "w", "label": "pull", "color": "amber", "dp": 0.32},
+                    {"from": "w", "to": "db", "label": "batch", "color": "emerald", "dp": 0.48},
+                ],
+                "sticky_notes": [
+                    {"title": "📌 WHY QUEUES WIN", "text": "Decouples peak burst from DB writes!", "color": "emerald", "x_pct": 8, "y_pct": 63, "dp": 0.58},
+                ],
+            },
+        },
+        {
+            "role": "cta",
+            "sfx_cue": "success_chime",
+            "narration": f"बस यही 3 whiteboard boxes हर scalable system interview में काम आते हैं — {cta_note}",
+            "visual_data": {
+                "hud_pill": "WHITEBOARD CHECKLIST",
+                "headline_white": "3-Layer",
+                "headline_accent": "Scale Pattern.",
+                "accent_color": "amber",
+                "diagram_nodes": [
+                    {"id": "l1", "kind": "box", "label": "1. Edge Guard", "sublabel": "Gateway + Cache", "x": 230, "y": 250, "w": 245, "h": 115, "color": "cyan", "dp": 0.08},
+                    {"id": "l2", "kind": "queue", "label": "2. Buffer", "sublabel": "Async Queue", "x": 520, "y": 470, "w": 235, "h": 115, "color": "amber", "dp": 0.26},
+                    {"id": "l3", "kind": "cylinder", "label": "3. Durable DB", "sublabel": "Partitioned", "x": 790, "y": 690, "w": 235, "h": 120, "color": "emerald", "dp": 0.44},
+                ],
+                "diagram_edges": [
+                    {"from": "l1", "to": "l2", "label": "filter", "color": "cyan", "dp": 0.20},
+                    {"from": "l2", "to": "l3", "label": "flush", "color": "emerald", "dp": 0.38},
+                ],
+                "sticky_notes": [
+                    {"title": "✅ INTERVIEW GOLD", "text": "Always draw Cache -> Queue -> DB!", "color": "amber", "x_pct": 30, "y_pct": 66, "dp": 0.56},
+                ],
+                "footer_pill": cta_note,
+            },
+        },
+    ]
+
+    return {
+        "topic": topic,
+        "v2_engine": "blueprint_whiteboard",
+        "art_style": "v2_midnight_navy",
+        "header_brand": watermark,
+        "scenes": _normalize_v2_scenes(scenes, tone, watermark, "blueprint_whiteboard", topic=topic),
+    }
+
+
+def _generate_v5_ide_llm(
+    topic: str,
+    tone: str,
+    duration_mode: str,
+    voice: str,
+    watermark: str,
+    audience_level: str,
+    hook_style: str,
+    cta_style: str,
+    cta_keyword: str,
+) -> Optional[Dict[str, Any]]:
+    lang_instr = _language_rule(voice, topic)
+    sc_guide = _scene_count_guidance(duration_mode, "live_ide")
+    cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this code tip!"
+
+    prompt = f"""You are Studio V5 Live IDE & SQL/Python Simulator Director.
+Design ONE cohesive coding explainer reel JSON for topic: "{topic}"
+Audience: {audience_level} | Hook: {hook_style} | Final CTA: {cta_note}
+Target Scenes: {sc_guide}
+{lang_instr}
+
+EVERY scene renders inside a realistic dark IDE (VS Code / DataGrip) with syntax highlighting, animated mouse click ripple, a floating callout bubble, and a live output drawer.
+For EVERY scene's `visual_data`, provide:
+- `hud_pill`, `headline_white` (max 3 words), `headline_accent` (max 3 words), `accent_color` ("cyan"|"emerald"|"amber"|"rose")
+- `language`: "python" or "sql"
+- `file_name`: e.g. "query.sql" or "app.py", `tab_secondary`
+- `code_lines`: 4 to 8 realistic, crisp lines of actual code/SQL for that beat (never truncated placeholders!)
+- `focus_lines`: [1-based line numbers] highlighted for this scene
+- `line_status`: "error" for bug/slow scenes, "active" for fix/proof scenes
+- `diff_marks`: optional {{"2": "-", "3": "+"}}
+- `ide_steps`: [{{"line": 2, "p": 0.14, "click": true}}, {{"target": "run_btn", "p": 0.42, "click": true}}]
+- `callout`: {{"title": "⚠️ BUG"|"⚡ FIX", "text": "crisp <55 char note", "line": 2, "color": "rose"|"emerald"|"amber", "delay_p": 0.22}}
+- `output_drawer`: EITHER
+  {{"mode": "sql_table", "title": "QUERY RESULT", "metric": "3 rows · 1.2ms", "metric_color": "emerald", "open_p": 0.44, "table": {{"headers": [...], "rows": [[...],[...]]}}}}
+  OR
+  {{"mode": "terminal", "title": "EXECUTION TRACE", "metric": "940ms -> 8ms", "metric_color": "rose"|"emerald", "open_p": 0.44, "lines": ["$ ...", "✓ ..."]}}
+
+Return STRICT JSON:
+{{ "scenes": [ {{ "scene_id": 1, "role": "hook|problem|solution|edge_case|proof|cta", "sfx_cue": "punch_impact|key_tick|alert_ping|success_chime", "narration": "...", "visual_data": {{...}} }} ] }}"""
+
+    raw_text = ""
+    if GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            for m in ("gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-2.5-flash"):
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    cand = str(getattr(res, "text", "") or "").strip()
+                    if cand:
+                        raw_text = cand
+                        break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    if not raw_text and GROQ_API_KEY:
+        try:
+            from groq import Groq
+            gc = Groq(api_key=GROQ_API_KEY)
+            res = gc.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.35,
+                timeout=20,
+            )
+            raw_text = res.choices[0].message.content.strip() if res.choices else ""
+        except Exception:
+            pass
+
+    parsed = _extract_json_block(raw_text)
+    if not parsed or not isinstance(parsed.get("scenes"), list) or len(parsed["scenes"]) < 3:
+        return None
+    norm = _normalize_v2_scenes(parsed["scenes"], tone, watermark, "live_ide", topic=topic)
+    if len(norm) < 3:
+        return None
+    return {
+        "topic": topic,
+        "v2_engine": "live_ide",
+        "art_style": "v2_midnight_navy",
+        "header_brand": watermark,
+        "scenes": norm,
+    }
+
+
+def _generate_v7_whiteboard_llm(
+    topic: str,
+    tone: str,
+    duration_mode: str,
+    voice: str,
+    watermark: str,
+    audience_level: str,
+    hook_style: str,
+    cta_style: str,
+    cta_keyword: str,
+) -> Optional[Dict[str, Any]]:
+    lang_instr = _language_rule(voice, topic)
+    sc_guide = _scene_count_guidance(duration_mode, "blueprint_whiteboard")
+    cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this blueprint!"
+
+    prompt = f"""You are Studio V7 Blueprint Whiteboard Director (ByteByteGo / Excalidraw dark blueprint grid style).
+Design ONE clean whiteboard diagram reel JSON for topic: "{topic}"
+Audience: {audience_level} | Hook: {hook_style} | Final CTA: {cta_note}
+Target Scenes: {sc_guide}
+{lang_instr}
+
+Each scene draws hand-drawn marker shapes on a 1000x1000 virtual blueprint canvas (nodes spaced >=260 units apart inside x:150..850, y:160..840 so ZERO shapes overlap!) plus sticky callout bubbles.
+For EVERY scene's `visual_data`, provide:
+- `hud_pill`, `headline_white` (max 3 words), `headline_accent` (max 3 words), `accent_color` ("cyan"|"emerald"|"amber"|"rose"|"purple")
+- `blueprint_zones`: optional [{{"label":"ZONE NAME","x":120,"y":180,"w":420,"h":400,"color":"cyan"}}]
+- `diagram_nodes`: 2 to 5 nodes: {{"id":"n1","kind":"box"|"cylinder"|"diamond"|"queue","label":"short name","sublabel":"detail","x":220,"y":420,"w":220,"h":110,"color":"cyan"|"emerald"|"amber"|"rose"|"purple","dp":0.06..0.5}}
+- `diagram_edges`: 1 to 5 arrows: {{"from":"n1","to":"n2","label":"short tag","color":"cyan"|"amber"|"emerald"|"rose","dashed":false,"dp":0.16..0.6}}
+- `sticky_notes`: 1 to 2 sticky callout bubbles placed away from main nodes: {{"title":"📌 KEY RULE","text":"short 5-8 word insight","color":"amber"|"emerald"|"rose","x_pct":8..62,"y_pct":12..72,"dp":0.45..0.7}}
+- Optional `footer_pill` on the CTA scene.
+
+Return STRICT JSON:
+{{ "scenes": [ {{ "scene_id": 1, "role": "hook|problem|solution|analogy|proof|cta", "sfx_cue": "punch_impact|pop_snap|whoosh|success_chime", "narration": "...", "visual_data": {{...}} }} ] }}"""
+
+    raw_text = ""
+    if GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            for m in ("gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-2.5-flash"):
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    cand = str(getattr(res, "text", "") or "").strip()
+                    if cand:
+                        raw_text = cand
+                        break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    if not raw_text and GROQ_API_KEY:
+        try:
+            from groq import Groq
+            gc = Groq(api_key=GROQ_API_KEY)
+            res = gc.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.4,
+                timeout=20,
+            )
+            raw_text = res.choices[0].message.content.strip() if res.choices else ""
+        except Exception:
+            pass
+
+    parsed = _extract_json_block(raw_text)
+    if not parsed or not isinstance(parsed.get("scenes"), list) or len(parsed["scenes"]) < 3:
+        return None
+    norm = _normalize_v2_scenes(parsed["scenes"], tone, watermark, "blueprint_whiteboard", topic=topic)
+    if len(norm) < 3:
+        return None
+    return {
+        "topic": topic,
+        "v2_engine": "blueprint_whiteboard",
+        "art_style": "v2_midnight_navy",
+        "header_brand": watermark,
+        "scenes": norm,
+    }
+
+
 def generate_v2_timeline(
     topic: str,
     v2_mode: str = "v2_auto",
@@ -916,7 +1567,7 @@ def generate_v2_timeline(
     cta_style: str = "save_share",
     cta_keyword: str = "",
 ) -> Dict[str, Any]:
-    """Entry point for Studio V2 Storyboard Director (completely isolated from classic NanoPro)."""
+    """Entry point for Studio V2 / V5 / V7 Storyboard Directors (completely isolated from classic NanoPro)."""
     wm_clean = str(watermark or DEFAULT_WATERMARK).strip() or DEFAULT_WATERMARK
     sub = resolve_v2_sub_engine(topic, v2_mode, duration_mode=duration_mode)
     if sub == "spatial_isometric":
@@ -926,6 +1577,20 @@ def generate_v2_timeline(
         )
         if tl is None:
             tl = _fallback_spatial_isometric(topic, wm_clean, tone, cta_style, cta_keyword)
+    elif sub == "live_ide":
+        tl = _generate_v5_ide_llm(
+            topic, tone, duration_mode, voice, wm_clean,
+            audience_level, hook_style, cta_style, cta_keyword,
+        )
+        if tl is None:
+            tl = _fallback_live_ide(topic, wm_clean, tone, cta_style, cta_keyword)
+    elif sub == "blueprint_whiteboard":
+        tl = _generate_v7_whiteboard_llm(
+            topic, tone, duration_mode, voice, wm_clean,
+            audience_level, hook_style, cta_style, cta_keyword,
+        )
+        if tl is None:
+            tl = _fallback_blueprint_whiteboard(topic, wm_clean, tone, cta_style, cta_keyword)
     else:
         tl = _generate_v2_vector_llm(
             topic, tone, duration_mode, voice, wm_clean,

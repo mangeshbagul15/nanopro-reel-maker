@@ -22,7 +22,8 @@ _RELOAD_ORDER = [
     "core.layouts_studio", "core.web_generative_engine", "core.cinematic_engine",
     "core.director", "core.voice", "core.animator", "core.subtitles",
     "core.renderer", "core.quality_gate", "core.studio_v2_director",
-    "core.studio_v2_vector", "core.studio_v2_isometric", "core.uploader",
+    "core.studio_v2_vector", "core.studio_v2_isometric",
+    "core.studio_v5_ide", "core.studio_v7_whiteboard", "core.uploader",
 ]
 _loaded_core = [m for m in _RELOAD_ORDER if m in sys.modules] + [
     k for k in list(sys.modules.keys()) if k.startswith("core.") and k not in _RELOAD_ORDER
@@ -59,6 +60,8 @@ from core.quality_gate import DEFAULT_QUALITY_MODE, QUALITY_MODES, run_quality_g
 from core.studio_v2_director import STUDIO_V2_MODE_OPTIONS, generate_v2_timeline, is_studio_v2_mode
 from core.studio_v2_vector import render_v2_vector_scene_frames
 from core.studio_v2_isometric import render_v2_isometric_scene_frames
+from core.studio_v5_ide import render_v5_ide_scene_frames
+from core.studio_v7_whiteboard import render_v7_whiteboard_scene_frames
 from core.uploader import (
     upload_to_r2,
     list_r2_videos,
@@ -393,7 +396,7 @@ with st.sidebar:
         [k for k, _ in STUDIO_V2_MODE_OPTIONS],
         format_func=lambda k: _v2_arch_map[k],
         key="studio_v2_arch_select",
-        help="Keep Classic NanoPro Studio untouched, OR pick isolated Studio V2 (Clean Vector Storyboard / Spatial Isometric World).",
+        help="Keep Classic NanoPro Studio untouched, OR pick Studio V2 (Vector / Isometric), Studio V5 (Live IDE Python/SQL), or Studio V7 (Blueprint Whiteboard).",
     )
     st.session_state.setdefault("v2_clean_no_subs_chk", True)
     v2_clean_no_subs = False
@@ -403,12 +406,14 @@ with st.sidebar:
         v2_clean_no_subs = st.checkbox(
             "🧼 Clean Diagram Mode (No Bottom Karaoke Captions — Like Reference Reels)",
             key="v2_clean_no_subs_chk",
-            help="Hides overlapping bottom subtitles so the interactive Vector Storyboard or Isometric World stays 100% readable.",
+            help="Hides overlapping bottom subtitles so the interactive Studio V2/V5/V7 visuals stay 100% readable.",
         )
         st.info(
-            "**Isolated Studio V2 Active (Classic NanoPro Untouched):**\n"
-            "• **Vector Storyboard (`GyanaHut`):** 10-segment story bar + progressive SVG widgets + Paired Analogy Tree\n"
-            "• **Spatial Isometric (`@thetechypenguin`):** Continuous 2.5D Architecture World + Camera Flyover + Top HUD",
+            "**Isolated Studio Generation Active (Classic NanoPro Untouched):**\n"
+            "• **V2 Vector Storyboard (`GyanaHut`):** 10-segment story bar + progressive SVG widgets + Paired Analogy\n"
+            "• **V2 Spatial Isometric (`@thetechypenguin`):** Continuous 2.5D Architecture World + Camera Fly + Top HUD\n"
+            "• **V5 Live IDE (`Python / SQL`):** Code highlight + mouse click ripple + callout bubble + live output drawer\n"
+            "• **V7 Blueprint Whiteboard (`Excalidraw`):** Dark blueprint grid + hand-drawn marker diagrams + sticky bubbles",
             icon="✨",
         )
     else:
@@ -1079,7 +1084,7 @@ with tab_create:
                     if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1
                 ]
                 v_type = str(sc_obj.get("visual_type") or "")
-                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric"):
+                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v5_live_ide", "v7_blueprint_whiteboard"):
                     sc_obj.setdefault("visual_data", {})["watermark"] = channel_watermark
                 if v_type == "v2_vector_storyboard":
                     render_v2_vector_scene_frames(
@@ -1093,6 +1098,22 @@ with tab_create:
                         sc_obj,
                         idx_i + 1,
                         prev_scene=(aligned_scenes[idx_i - 1] if idx_i > 0 else None),
+                        format_ratio=aspect_ratio[0],
+                        scene_words=sc_words,
+                        tone=chosen_tone,
+                    )
+                elif v_type == "v5_live_ide":
+                    render_v5_ide_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
+                        format_ratio=aspect_ratio[0],
+                        scene_words=sc_words,
+                        tone=chosen_tone,
+                    )
+                elif v_type == "v7_blueprint_whiteboard":
+                    render_v7_whiteboard_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
                         tone=chosen_tone,
@@ -1400,10 +1421,25 @@ with tab_create:
                         v_type = sc.get("visual_type", "cards")
                         st.markdown(f"#### 📍 Scene {idx + 1}: `{sc.get('role', 'Scene').upper()}` ({sc['start_time']:.1f}s ➔ {sc['end_time']:.1f}s • {sc['duration']:.1f}s)")
                         st.markdown(f"- **Visual Engine:** `{v_type}`")
-                        st.markdown(f"- **Badge & Title:** `{v_data.get('badge', 'N/A')}` — **{v_data.get('title', 'N/A')}**")
+                        _disp_badge = v_data.get("badge") or v_data.get("hud_pill") or v_data.get("tag_pill") or "N/A"
+                        _disp_title = v_data.get("title") or f"{v_data.get('headline_white', '')} {v_data.get('headline_accent', '')}".strip() or "N/A"
+                        st.markdown(f"- **Badge & Title:** `{_disp_badge}` — **{_disp_title}**")
                         
                         # Show specific elements based on visual type
-                        if v_type == "architecture_flow":
+                        if v_type == "v5_live_ide":
+                            st.markdown(f"- **IDE File & Focus Lines:** `{v_data.get('file_name', 'main.py')}` (`{v_data.get('language', 'python')}`) • Focus lines: `{v_data.get('focus_lines', [])}`")
+                            st.code("\n".join(str(x) for x in (v_data.get("code_lines") or [])[:6]), language=str(v_data.get("language") or "python"))
+                            _dr = v_data.get("output_drawer") or {}
+                            st.markdown(f"- **Output Drawer:** `{_dr.get('mode', 'terminal')}` — **{_dr.get('metric', '')}**")
+                        elif v_type == "v7_blueprint_whiteboard":
+                            _dnodes = " ➔ ".join(f"**[{n.get('label')}]**" for n in (v_data.get("diagram_nodes") or []))
+                            st.markdown(f"- **Marker Nodes:** {_dnodes or 'Whiteboard diagram'}")
+                            _stickies = [f"`{s.get('title')}`: {s.get('text')}" for s in (v_data.get("sticky_notes") or [])]
+                            if _stickies:
+                                st.markdown(f"- **Sticky Bubbles:** {' · '.join(_stickies)}")
+                        elif v_type in ("v2_vector_storyboard", "v2_spatial_isometric"):
+                            st.markdown(f"- **Studio Mode:** `{v_data.get('widget_type') or v_data.get('scene_mode', 'world_cam')}`")
+                        elif v_type == "architecture_flow":
                             nodes = v_data.get("nodes", [])
                             node_labels = " ➔ ".join([f"**[{n.get('label')}]** ({n.get('sub', '')})" for n in nodes]) if nodes else "Pipeline nodes"
                             st.markdown(f"- **Rendered Nodes:** {node_labels}")
