@@ -772,12 +772,10 @@ def generate_timeline(
         from core.palette_engine import STUDIO_WORLDS
         fresh_worlds = [w for w in STUDIO_WORLDS.keys() if w not in avoid_arts[-10:]] or list(STUDIO_WORLDS.keys())
         suggested_world = fresh_worlds[(run_num * 3 + abs(hash(topic.strip().lower()))) % len(fresh_worlds)]
-        # Rotate curated layout suggestions across runs so LLM sees completely fresh templates every click
-        all_candidates = [ly for grp in _DIVERSE_LAYOUT_FAMILIES.values() for ly in grp if ly not in avoid_vtypes[-14:]]
-        if len(all_candidates) < 10:
-            all_candidates = [ly for grp in _DIVERSE_LAYOUT_FAMILIES.values() for ly in grp]
-        rot_offset = (run_num * 7) % max(1, len(all_candidates))
-        fresh_layout_picks = (all_candidates[rot_offset:] + all_candidates[:rot_offset])[:14]
+        from core.semantic_router import retrieve_prompt_candidates
+        sem_cands = retrieve_prompt_candidates(topic, avoid_vtypes=avoid_vtypes[-14:], run_num=run_num, limit_studio=22, limit_opt1=10)
+        fresh_layout_picks = sem_cands["studio"]
+        fresh_opt1_picks = sem_cands["opt1"]
         web_paradigms = [
             "Asymmetric Bento Grid + Flowing SVG Bezier Comets",
             "3D Isometric Floating Orbit + Glowing Radar Waves",
@@ -788,13 +786,16 @@ def generate_timeline(
         ]
         chosen_paradigm = web_paradigms[run_num % len(web_paradigms)]
         variety_directive = (
-            f"\nFRESH VISUAL VARIATION MANDATE (Generation Run #{run_num} — ZERO REPETITION):\n"
+            f"\nFRESH VISUAL VARIATION & DYNAMIC CATALOG SELECTION MANDATE (Generation Run #{run_num} — ZERO REPETITION):\n"
             f"- The user clicked Generate again and expects a COMPLETELY DIFFERENT visual composition, layout geometry, palette, and motion feel from prior videos.\n"
             f"- Use fresh `art_style`: `\"{suggested_world}\"` (AVOID repeating recent styles: {avoid_arts[-8:]}).\n"
             + (
-                f"- AVOID reusing recent visual_types {avoid_vtypes[-12:]}! Prefer fresh layouts from this rotation: {fresh_layout_picks}.\n"
+                f"- SELECT a distinct `visual_type` PER SCENE matched to what that scene teaches (AVOID generic `custom_scene` or repeating recent types {avoid_vtypes[-12:]}).\n"
+                f"- Top semantically-matched Studio layouts from the 1,011-layout library for '{topic}': {fresh_layout_picks}.\n"
+                f"- For closing / interactive showcase scenes, set `visual_type: \"web_scene\"` AND choose `visual_data.option1_archetype` from these topic-matched Option 1 3D/SVG engines: {fresh_opt1_picks}.\n"
+                f"- When you choose valid distinct catalog IDs, the Validator preserves your exact scene routing directly!\n"
                 if engine_style in ("omni_smart_director", "studio_domain_library", "studio_300_domain", "multi_topology_mix", "interactive_storyboard")
-                else f"- Design bespoke `web_scene` compositions inspired by `{chosen_paradigm}` and completely avoid recent intents {avoid_vtypes[-8:]}.\n"
+                else f"- Design bespoke `web_scene` compositions inspired by `{chosen_paradigm}` (or choose `option1_archetype` from {fresh_opt1_picks}) and avoid recent intents {avoid_vtypes[-8:]}.\n"
             )
             + f"- AVOID repeating recent backdrops {avoid_bds[-6:]}; pick distinct `backdrop`, `transition`, and `text_fx` per scene.\n"
         )
@@ -1353,50 +1354,6 @@ def _extract_voice_facts(narration: str, topic: str, title: str, dialogue: Any =
     }
 
 
-def _classify_omni_domain(topic: str, ctx_l: str) -> Dict[str, bool]:
-    """Classifies primary engineering domain from topic first, preventing casual narration words from misrouting."""
-    top_l = str(topic or "").lower()
-
-    def _tok(txt: str, *kws: str) -> bool:
-        return any(re.search(rf"\b{re.escape(kw)}\b", txt) for kw in kws)
-
-    is_comparison = _tok(top_l, "vs", "versus", "difference", "compare", "comparison")
-    is_lakehouse = _tok(top_l, "data lake", "data warehouse", "warehouse", "lakehouse", "medallion", "iceberg", "delta lake", "snowflake", "bigquery", "parquet", "dbt", "olap") or ("lake" in top_l and "warehouse" in top_l)
-    is_streaming = (not is_lakehouse) and _tok(top_l, "kafka", "cdc", "debezium", "flink", "spark", "streaming", "event-driven", "queue")
-    is_sql = _tok(top_l, "sql", "postgres", "mysql", "dense_rank", "window function", "cte", "query optimization", "indexing")
-    is_ai = _tok(top_l, "llm", "rag", "agent", "agents", "mcp", "embedding", "vector", "transformer", "attention", "kv cache", "gpt", "diffusion")
-    is_distributed = _tok(top_l, "raft", "paxos", "quorum", "consistent hashing", "shard", "sharding", "vitess", "saga", "redis", "lock", "distributed", "microservice", "kubernetes", "k8s", "envoy", "grpc", "rate limiter", "token bucket")
-    is_security = _tok(top_l, "zero trust", "oauth", "pkce", "mtls", "jwt", "tls", "ecdh", "encryption", "firewall", "security", "auth")
-    return {
-        "comparison": is_comparison,
-        "lakehouse": is_lakehouse,
-        "streaming": is_streaming,
-        "sql": is_sql,
-        "ai": is_ai,
-        "distributed": is_distributed,
-        "security": is_security,
-    }
-
-
-def _pick_topic_opt1_archetype(topic: str, run_num: int, idx: int, recent_vtypes: set) -> str:
-    """Selects a strictly topic-appropriate Option 1 WebGL/SVG/Spatial archetype (never unrelated cryptography on Lakehouse/Data)."""
-    dom = _classify_omni_domain(topic, topic.lower())
-    if dom["lakehouse"]:
-        pool = ("svg_medallion_funnel", "svg_iceberg_manifest_tree", "svg_parquet_rowgroups", "spatial_lakehouse_tiers", "web_cloud_circuit")
-    elif dom["streaming"]:
-        pool = ("web_kafka_partition_lag", "svg_event_sourcing_log", "web_timeline_ribbon", "svg_flink_watermark_gate", "web_outbox_cdc_flow")
-    elif dom["ai"]:
-        pool = ("web_neural_synapse", "svg_transformer_attention", "svg_hnsw_skip_layers", "web_rag_hybrid_fusion", "spatial_constellation")
-    elif dom["security"]:
-        pool = ("svg_ecdh_key_exchange", "svg_tls_handshake_arcs", "web_oauth_pkce_flow", "spatial_zero_trust_zones")
-    elif dom["distributed"]:
-        pool = ("web_raft_quorum_vote", "web_consistent_ring", "web_saga_choreography", "spatial_constellation", "web_cloud_circuit")
-    else:
-        pool = ("web_cloud_circuit", "web_slo_burn_speedometer", "spatial_constellation", "spatial_orbit_carousel", "web_dual_topology")
-    fresh = [a for a in pool if a not in recent_vtypes] or list(pool)
-    return fresh[(run_num * 3 + idx) % len(fresh)]
-
-
 def _route_omni_best_scene(
     sc: Dict[str, Any],
     idx: int,
@@ -1409,128 +1366,20 @@ def _route_omni_best_scene(
     v_data: Dict[str, Any],
     used_geometries: Optional[set] = None,
 ) -> Tuple[str, str]:
-    """
-    Omni Smart Director v3 — Topic-First Semantic Router across 1,179 visual layouts:
-    Respects primary topic domain (`Data Lakehouse vs Warehouse`, `Streaming`, `Distributed`, `AI`, `SQL`)
-    without casual narration words hijacking unrelated engines, and prevents repeating geometries across scenes.
-    """
-    raw_narr = str(sc.get("narration") or "")
-    narr_l = raw_narr.lower()
-    role_l = str(sc.get("role") or "").lower()
-    ctx_l = f"{topic.lower()} {narr_l} {str(v_data.get('title') or '').lower()}"
-    geoms = used_geometries if used_geometries is not None else set()
-    dom = _classify_omni_domain(topic, ctx_l)
-
-    def _pick_fresh(pool: Tuple[str, ...]) -> str:
-        cands = [x for x in pool if x not in used_vtypes and x not in recent_vtypes]
-        if not cands:
-            cands = [x for x in pool if x not in used_vtypes] or list(pool)
-        return cands[(run_num * 5 + idx * 7 + abs(hash(ctx_l[:32]))) % len(cands)]
-
-    def _has_kw(txt: str, *kws: str) -> bool:
-        return any(re.search(rf"\b{re.escape(kw)}\b", txt) for kw in kws)
-
-    # 1. Hook Scene -> Topic-appropriate visual hook (never random crypto/unrelated widget)
-    if idx == 0 or role_l == "hook":
-        geoms.add("hook_ui")
-        if dom["comparison"]:
-            v = _pick_fresh(("venn_overlap", "cap_theorem_triangle", "split_comparison", "hero_hook"))
-            return v, "Comparison Hook & Scope"
-        if tone == "dual_dialogue_curious":
-            v = _pick_fresh(("chat_thread_ai", "hero_hook", "iso_comparison", "mobile_app_mockup"))
-            return v, "Interactive Q&A Hook"
-        v = _pick_fresh(("hero_hook", "incident_radar", "cap_theorem_triangle", "kinetic_statement"))
-        return v, "Kinetic Concept Hook"
-
-    # 2. Scene-Accurate SQL Schema (ONLY if this scene actually speaks SQL syntax/schema — prevents hijacking streaming/lakehouse scenes)
-    scene_sql_kw = bool(
-        re.search(r"\bSELECT\b.+\bFROM\b|\bDENSE_RANK\b|\bGROUP BY\b|\bCREATE INDEX\b|\bEXPLAIN ANALYZE\b|\bWINDOW\s+FUNCTION\b", raw_narr, re.IGNORECASE)
-        or (dom["sql"] and role_l in ("implementation", "deep_dive", "query", "schema"))
-        or (dom["sql"] and not dom["streaming"] and not dom["lakehouse"] and _has_kw(narr_l, "sql", "postgres", "query", "schema", "index", "table"))
+    """Delegates to the zero-hardcode Full-Catalog Dynamic Semantic Router across all 1,179 engines."""
+    from core.semantic_router import select_semantic_scene_layout
+    return select_semantic_scene_layout(
+        sc=sc,
+        idx=idx,
+        total_scenes=total_scenes,
+        topic=topic,
+        tone=tone,
+        run_num=run_num,
+        used_vtypes=used_vtypes,
+        recent_vtypes=recent_vtypes,
+        v_data=v_data,
+        used_geometries=used_geometries,
     )
-    has_explicit_sql = bool(v_data.get("table_data") or scene_sql_kw)
-    if has_explicit_sql and "sql_schema" not in geoms:
-        geoms.add("sql_schema")
-        v = _pick_fresh(("sql_studio", "sql_table", "sql_window_partition", "er_schema"))
-        return v, "SQL Studio & Query Schema"
-
-    # 3. Comparison / Problem Trade-off -> Data Lake vs Warehouse, Sync vs Async, 2x2 Matrix
-    if ("compare_matrix" not in geoms) and (
-        (v_data.get("left_points") and v_data.get("right_points"))
-        or role_l in ("tradeoff", "comparison")
-        or (dom["comparison"] and role_l in ("problem", "deep_dive"))
-        or _has_kw(narr_l, "trade-off", "tradeoff", "versus", "vs")
-    ):
-        geoms.add("compare_matrix")
-        if dom["lakehouse"]:
-            v = _pick_fresh(("split_comparison", "iso_comparison", "grammar:quadrant:2x2", "venn_overlap"))
-        else:
-            v = _pick_fresh(("iso_comparison", "venn_overlap", "grammar:quadrant:2x2", "compare_sync_vs_async", "compare_b_tree_vs_lsm", "split_comparison"))
-        return v, "Architectural Trade-Off Comparison"
-
-    # 4. Data Architecture / Domain Topology (Topic-First Domain Accuracy!)
-    if "topology" not in geoms and (idx in (1, 2) or role_l in ("architecture", "system", "flow", "mechanics", "problem")):
-        geoms.add("topology")
-        if dom["lakehouse"]:
-            v = _pick_fresh(("medallion_lakehouse", "iceberg_snapshot_tables", "data_warehouse_cluster", "columnar_parquet_blocks", "star_snowflake_schema", "etl_elt_pipeline"))
-            return v, "Data Lakehouse & Storage Architecture"
-        if dom["streaming"]:
-            v = _pick_fresh(("cdc_debezium_flow", "topo_kafka_isr_quorum_dlq", "flink_watermarks_window", "topo_outbox_debezium_snowflake", "kafka_event_backbone"))
-            return v, "Data & Streaming Dual-Plane"
-        if dom["ai"]:
-            v = _pick_fresh(("transformer_self_attn", "rag_chunk_overlap_pipe", "topo_rag_hybrid_rerank", "topo_agent_mcp_tool_sandbox", "hnsw_vector_graph", "mcp_client_host_server"))
-            return v, "AI / LLM & RAG Architecture"
-        if dom["distributed"]:
-            v = _pick_fresh(("topo_sharded_vitess_vtgate", "consistent_hashing_ring", "raft_leader_election", "topo_redis_cluster_sentinel", "rate_limiter_token_bucket", "topo_saga_choreo_compensate"))
-            return v, "Distributed Systems Topology"
-        if dom["security"]:
-            v = _pick_fresh(("osi_7_layers", "quic_http3_0rtt", "topo_zero_trust_spiffe_mtls", "oauth_pkce_jwks_rotator", "zero_trust_proxy"))
-            return v, "Security & Zero-Trust Architecture"
-        v = _pick_fresh(("all_in_one_tech_canvas", "topo_ingress_mesh_wal", "service_mesh_envoy_proxy", "k8s_pod_scheduling", "iso_observability_mesh"))
-        return v, "System Topology Architecture"
-
-    # 5. Benchmark / Telemetry Metrics
-    if "charts_metrics" not in geoms and (v_data.get("bars") or role_l in ("benchmark", "metrics") or _has_kw(narr_l, "benchmark", "speedup", "10x", "15x", "p99", "throughput", "ms lag")):
-        geoms.add("charts_metrics")
-        v = _pick_fresh(("benchmark_3d", "p99_tail_cdf_curve", "radar_spider", "donut_3d", "benchmark_chart"))
-        return v, "Benchmark Charts & Telemetry"
-
-    # 6. Explicit Code / CLI / Implementation
-    if "code_diff" not in geoms and (v_data.get("code_snippet") or v_data.get("command") or re.search(r"\b(?:kubectl|python\s+-m|docker\s+run|async\s+def|curl\s+http)\b", raw_narr, re.IGNORECASE)):
-        geoms.add("code_diff")
-        v = _pick_fresh(("code_diff_split", "diff_mutex_to_atomic", "code_terminal", "diff_n_plus_one_fix"))
-        return v, "Code Diff & Terminal Studio"
-
-    # 7. Memory / Storage Internals
-    if "memory_slots" not in geoms and (v_data.get("entries") or _has_kw(narr_l, "wal", "write-ahead", "buffer pool", "lsn", "ring buffer", "page cache", "parquet")):
-        geoms.add("memory_slots")
-        if dom["lakehouse"]:
-            v = _pick_fresh(("columnar_parquet_blocks", "iceberg_snapshot_tables", "data_quality_lineage"))
-        else:
-            v = _pick_fresh(("memory_wal_checkpoint", "memory_ring_buffer", "b_plus_tree_pages", "memory_lsm_memtable"))
-        return v, "Storage & Memory Internals"
-
-    # 8. Closing Summary / Resolution
-    if idx == total_scenes - 1 or role_l in ("cta", "summary", "takeaway", "resolution", "checklist"):
-        geoms.add("grammar_summary")
-        if dom["lakehouse"]:
-            v = _pick_fresh(("medallion_lakehouse", "grammar:pyramid:3", "checklist_prod_readiness", "grammar:tiers:3"))
-        else:
-            v = _pick_fresh(("grammar:pyramid:4", "grammar:ring:6", "checklist_prod_readiness", "sdlc_cycle_wheel", "grammar:funnel:4"))
-        return v, "Summary & Decision Checklist"
-
-    # 9. Deep-Dive Diagram / Radar / Pyramid / Sankey Variety (Domain-Aware!)
-    if "diagram_viz" not in geoms:
-        geoms.add("diagram_viz")
-        if dom["lakehouse"]:
-            v = _pick_fresh(("radar_spider", "sankey_flow", "columnar_parquet_blocks", "grammar:tiers:3", "donut_3d", "data_quality_lineage"))
-            return v, "Data Feature & Cost Matrix"
-        v = _pick_fresh(("sequence_diagram", "sankey_flow", "radar_spider", "mesh_3d_stage", "donut_3d", "circular_hub_mesh", "git_branch_tree"))
-        return v, "Interactive Diagram & 3D Mesh"
-
-    geoms.add("grammar_geom")
-    v = _pick_fresh(("grammar:chevron:5", "grammar:swimlane:3", "grammar:funnel:4", "grammar:pyramid:4", "grammar:ring:5", "grammar:ladder:4"))
-    return v, "Composable Diagram Grammar"
 
 
 def _extract_crisp_beat_label(clause: str, fallback_idx: int) -> str:
@@ -1797,9 +1646,27 @@ def _enforce_engine_style(
             ),
         }
         if engine_style == "omni_smart_director":
-            routed_v, routed_lbl = _route_omni_best_scene(
-                sc, idx, len(scenes), topic, tone, run_num, used_vtypes, recent_vtypes, v_data, used_geometries=used_geoms_local
+            from core.semantic_router import infer_geometry_family, select_semantic_scene_layout, validate_ai_scene_choice
+            ai_valid = validate_ai_scene_choice(
+                orig_vtype=current_vtype,
+                orig_opt1=v_data.get("option1_archetype"),
+                sc=sc,
+                idx=idx,
+                total_scenes=len(scenes),
+                topic=topic,
+                used_vtypes=used_vtypes,
+                used_geoms=used_geoms_local,
+                v_data=v_data,
             )
+            if ai_valid is not None:
+                routed_v, routed_opt1, routed_lbl = ai_valid
+                if routed_opt1:
+                    v_data["option1_archetype"] = routed_opt1
+                used_geoms_local.add(infer_geometry_family(routed_v))
+            else:
+                routed_v, routed_lbl = select_semantic_scene_layout(
+                    sc, idx, len(scenes), topic, tone, run_num, used_vtypes, recent_vtypes, v_data, used_geometries=used_geoms_local
+                )
             current_vtype = routed_v
             sc["visual_type"] = routed_v
             sc["routed_engine"] = routed_lbl
@@ -1897,7 +1764,10 @@ def _enforce_engine_style(
                 if not v_data.get("plane_b"):
                     v_data["plane_b"] = [dict(pool_n[3 + k], shape=pool_n[3 + k].get("shape") or _shapes_b[k % 3]) for k in range(3)]
 
-        if current_vtype in ("code_terminal", "terminal_studio", "code_diff_split", "diff_mutex_to_atomic", "diff_n_plus_one_fix", "api_request_response"):
+        from core.semantic_router import infer_geometry_family as _infer_geom
+        _vgeom = _infer_geom(current_vtype)
+
+        if _vgeom == "code_diff" or current_vtype.startswith(("code_", "terminal_", "diff_")) or current_vtype == "api_request_response":
             if not v_data.get("code_snippet") and not v_data.get("command"):
                 fn_nm = _vfacts["fn_name"] or f"run_{_slug}"
                 ent_a = (_vphrases[0] if _vphrases else topic[:16]).lower().replace(" ", "_")[:18]
@@ -1920,7 +1790,7 @@ def _enforce_engine_style(
                 v_data.setdefault("left_code", v_data["before"])
                 v_data.setdefault("right_code", v_data["after"])
 
-        elif current_vtype in ("sql_table", "sql_studio", "sql_window_partition", "explain_plan_viewer", "star_snowflake_schema"):
+        elif _vgeom == "sql_schema" or current_vtype == "star_snowflake_schema":
             if not v_data.get("code_snippet") and not v_data.get("query"):
                 v_data["code_snippet"] = _vfacts["sql_query"] or f"SELECT key_id, COUNT(*), DENSE_RANK() OVER (ORDER BY COUNT(*) DESC)\nFROM {_slug}_events GROUP BY key_id;"
             v_data.setdefault("query", v_data["code_snippet"])
@@ -1948,7 +1818,7 @@ def _enforce_engine_style(
                     for k in range(4)
                 ]
 
-        elif current_vtype in ("split_comparison", "iso_comparison", "compare_sync_vs_async", "compare_b_tree_vs_lsm", "venn_overlap"):
+        elif _vgeom == "compare_matrix":
             if not v_data.get("left_points") or not v_data.get("right_points"):
                 p0 = _vphrases[0] if _vphrases else topic[:20]
                 p1 = _vphrases[1] if len(_vphrases) > 1 else "Async Pattern"
@@ -1961,7 +1831,7 @@ def _enforce_engine_style(
                     f"Zero-lock {p1[:20]}", "Bounded backpressure", "Sub-millisecond P99", "Deterministic failover"
                 ]
 
-        elif current_vtype in ("benchmark_chart", "benchmark_3d", "latency_waterfall", "flamegraph_perf", "p99_tail_cdf_curve", "line_area_chart", "donut_3d", "radar_spider", "sankey_flow", "radial_gauge", "slo_burn_rate_gauge", "gauge_slo_availability"):
+        elif _vgeom == "metrics_charts":
             _vm = _vfacts["metrics"]
             if not v_data.get("bars"):
                 if len(_vm) >= 2:
@@ -2145,9 +2015,15 @@ def _enforce_engine_style(
             v_data["arrow4_label"] = v_data.get("arrow4_label") or "Event Sync"
 
         v_data["_variation_seed"] = run_num
-        from core.web_generative_engine import ZERO_TEMPLATE_50_ARCHETYPES
-        fresh_opt1 = [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a not in recent_vtypes] or list(ZERO_TEMPLATE_50_ARCHETYPES)
-        chosen_opt1 = fresh_opt1[(run_num * 5 + idx * 3 + abs(hash(topic.strip().lower()))) % len(fresh_opt1)]
+        from core.semantic_router import pick_best_opt1_archetype
+        chosen_opt1 = v_data.get("option1_archetype") or pick_best_opt1_archetype(
+            topic,
+            narration=sc.get("narration", ""),
+            title=str(title),
+            run_num=run_num,
+            idx=idx,
+            recent_vtypes=recent_vtypes,
+        )
         if engine_style == "pure_zero_template" and current_vtype not in ("svg_scene", "spatial_canvas"):
             v_data.setdefault("_intent", current_vtype)
             v_data.setdefault("option1_archetype", chosen_opt1)
@@ -2166,8 +2042,15 @@ def _enforce_engine_style(
             used_vtypes.add(current_vtype)
             used_vtypes.add(chosen_opt1)
         elif engine_style == "omni_smart_director" and idx == len(scenes) - 1 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-            # Pick a strictly topic-aligned Option 1 WebGL/SVG archetype (e.g. Lakehouse layers for Data, never cryptography!)
-            w_pick = _pick_topic_opt1_archetype(topic, run_num, idx, recent_vtypes)
+            # Pick semantically best Option 1 3D WebGL/SVG archetype dynamically across all 168 Option 1 engines
+            w_pick = pick_best_opt1_archetype(
+                topic,
+                narration=sc.get("narration", ""),
+                title=str(title),
+                run_num=run_num,
+                idx=idx,
+                recent_vtypes=recent_vtypes,
+            )
             v_data.setdefault("_intent", current_vtype)
             v_data.setdefault("option1_archetype", w_pick)
             sc["visual_type"] = "web_scene"
