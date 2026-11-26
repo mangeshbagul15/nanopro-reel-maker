@@ -118,16 +118,19 @@ with st.sidebar:
     )
     chosen_tone = tone_option[0]
 
-    # Auto-sync Edge-TTS Voice Persona & Dual filter whenever Dual Creator Debate tone is selected
+    # Bidirectional Auto-Sync: Tone <-> Language <-> Dual Pair Voice Persona
     _prev_tone = st.session_state.get("_prev_tone_option")
+    _dual_by_lang = {
+        "All": ("dual:hi-IN-SwaraNeural+hi-IN-MadhurNeural", "🗣️🇮🇳 Dual Hinglish: Swara (Curious Q) + Madhur (Mentor A) [Recommended Dual]"),
+        "🇮🇳 Hindi": ("dual:hi-IN-SwaraNeural+hi-IN-MadhurNeural", "🗣️🇮🇳 Dual Hinglish: Swara (Curious Q) + Madhur (Mentor A) [Recommended Dual]"),
+        "🇮🇳 Marathi": ("dual:mr-IN-AarohiNeural+mr-IN-ManoharNeural", "🗣️🇮🇳 Dual Marathi: Aarohi (Curious Q) + Manohar (Mentor A)"),
+        "🇺🇸 English": ("dual:en-US-JennyNeural+en-US-ChristopherNeural", "🗣️🇺🇸 Dual Tech English: Jenny (Curious Q) + Christopher (Mentor A)"),
+    }
     if chosen_tone == DUAL_TONE_KEY and _prev_tone != DUAL_TONE_KEY:
         st.session_state["voice_provider_radio"] = "Microsoft Edge-TTS (Free & Fast)"
-        st.session_state["lang_filter_pills"] = "All"
         st.session_state["gender_filter_pills"] = "🗣️ Dual Pair"
-        st.session_state["edge_voice_select"] = (
-            "dual:hi-IN-SwaraNeural+hi-IN-MadhurNeural",
-            "🗣️🇮🇳 Dual Hinglish: Swara (Curious Q) + Madhur (Mentor A) [Recommended Dual]",
-        )
+        _cur_lf = st.session_state.get("lang_filter_pills") or "All"
+        st.session_state["edge_voice_select"] = _dual_by_lang.get(_cur_lf, _dual_by_lang["All"])
     elif _prev_tone == DUAL_TONE_KEY and chosen_tone != DUAL_TONE_KEY:
         if st.session_state.get("gender_filter_pills") == "🗣️ Dual Pair":
             st.session_state["gender_filter_pills"] = "All"
@@ -135,26 +138,28 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🎙️ Voice & TTS Engine")
+    st.session_state.setdefault("voice_provider_radio", "Microsoft Edge-TTS (Free & Fast)")
+    st.session_state.setdefault("lang_filter_pills", "All")
+    st.session_state.setdefault("gender_filter_pills", "All")
     voice_provider = st.radio(
         "Select Voice Engine Provider:",
         ["ElevenLabs AI (Ultra-Realistic)", "Microsoft Edge-TTS (Free & Fast)"],
-        index=1,
         key="voice_provider_radio",
         help="Microsoft Edge-TTS is 100% free & unlimited (recommended for testing). Switch to ElevenLabs AI when you want ultra-realistic studio voice."
     )
 
-    # Language & Gender filter pills (persist across reruns)
+    # Language & Gender filter pills (persist & cross-sync across reruns with zero warnings)
     col_flt1, col_flt2 = st.columns([1.2, 1])
     with col_flt1:
         if hasattr(st, "pills"):
-            lang_filter = st.pills("Language:", ["All", "🇺🇸 English", "🇮🇳 Hindi", "🇮🇳 Marathi"], default="All", key="lang_filter_pills")
+            lang_filter = st.pills("Language:", ["All", "🇺🇸 English", "🇮🇳 Hindi", "🇮🇳 Marathi"], key="lang_filter_pills")
         else:
-            lang_filter = st.radio("Language:", ["All", "🇺🇸 English", "🇮🇳 Hindi", "🇮🇳 Marathi"], index=0, horizontal=True, key="lang_filter_pills")
+            lang_filter = st.radio("Language:", ["All", "🇺🇸 English", "🇮🇳 Hindi", "🇮🇳 Marathi"], horizontal=True, key="lang_filter_pills")
     with col_flt2:
         if hasattr(st, "pills"):
-            gender_filter = st.pills("Gender:", ["All", "🗣️ Dual Pair", "👨 Male", "👩 Female"], default="All", key="gender_filter_pills")
+            gender_filter = st.pills("Gender:", ["All", "🗣️ Dual Pair", "👨 Male", "👩 Female"], key="gender_filter_pills")
         else:
-            gender_filter = st.radio("Gender:", ["All", "🗣️ Dual Pair", "👨 Male", "👩 Female"], index=0, horizontal=True, key="gender_filter_pills")
+            gender_filter = st.radio("Gender:", ["All", "🗣️ Dual Pair", "👨 Male", "👩 Female"], horizontal=True, key="gender_filter_pills")
 
     l_filter_key = "all" if (not lang_filter or lang_filter == "All") else ("marathi" if "Marathi" in lang_filter else ("hindi" if "Hindi" in lang_filter else "english"))
     g_filter_key = "all" if (not gender_filter or gender_filter == "All") else ("dual" if "Dual" in gender_filter else ("male" if "Male" in gender_filter else "female"))
@@ -186,13 +191,19 @@ with st.sidebar:
         if not available_el_voices:
             available_el_voices = VOICE_CATALOG.get("elevenlabs", [])
 
+        if chosen_tone == DUAL_TONE_KEY:
+            st.warning("ℹ️ `Dual Voice Tech Debate` automatically uses 2 alternating Edge-TTS voices for crisp dialogue pairs.", icon="🗣️")
+
         el_voice_options = [(v["id"], v["label"]) for v in available_el_voices]
         el_voice_options.append(("custom", "✍️ Custom Voice ID (Enter your own Voice ID)"))
+        if st.session_state.get("elevenlabs_voice_select") not in el_voice_options:
+            st.session_state["elevenlabs_voice_select"] = el_voice_options[0]
 
         elevenlabs_voice_choice = st.selectbox(
             f"ElevenLabs Voice Persona ({len(available_el_voices)} available)",
             el_voice_options,
-            format_func=lambda x: x[1]
+            format_func=lambda x: x[1],
+            key="elevenlabs_voice_select",
         )
         if elevenlabs_voice_choice[0] == "custom":
             custom_vid = st.text_input("Enter ElevenLabs Voice ID:", placeholder="e.g. pNInz6obpgDQGcFmaJgB")
@@ -349,7 +360,7 @@ with st.sidebar:
     manual_backdrop_choice = "auto"
     manual_transition_choice = "auto"
     manual_text_fx_choice = "auto"
-    if visual_engine[0] in ("omni_smart_director", "studio_300_domain", "multi_topology_mix", "interactive_storyboard", "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio"):
+    if visual_engine[0] in ("omni_smart_director", "studio_300_domain", "multi_topology_mix", "interactive_storyboard", "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern"):
         with st.expander("🎛️ Manual Studio Overrides (Layout / Theme / FX)", expanded=False):
             from core.cinematic_engine import (
                 ALL_BACKDROPS,
@@ -412,6 +423,13 @@ with st.sidebar:
         )
     elif manual_layout_choice != "auto":
         custom_style_prompt = f"Use layout '{manual_layout_choice}' across visuals where appropriate."
+
+    # Live Synced Configuration Readout (guarantees all settings reflect immediately)
+    st.caption(
+        f"🔗 **Active Sync:** `{chosen_tone}` • `{voice_label.split('—')[0].split('(')[0].strip()[:18]}` • "
+        f"`{aspect_ratio[0]}` • `{duration_option[0]}` • `{visual_engine[0]}`"
+        + (f" • Override `{manual_layout_choice}`" if manual_layout_choice != "auto" else "")
+    )
     
     st.markdown("---")
     st.markdown("### ⚡ Compute & Studio Switcher")
@@ -711,15 +729,37 @@ with tab_create:
                 format_ratio=aspect_ratio[0],
                 visual_history=st.session_state["visual_gen_history"],
             )
-            
+
+            # Apply ALL manual overrides, color cadence & 2026 motion flags BEFORE UI preview table, TTS, & rendering!
+            for _i_ov, _sc_ov in enumerate(timeline.get("scenes", [])):
+                if visual_engine[0] == "omni_smart_director" and "Locked Single" in str(omni_color_flow):
+                    _locked_w = timeline.get("art_style", "sapphire_3d")
+                    _sc_ov["art_style"] = _locked_w
+                    _sc_ov.setdefault("visual_data", {})["art_style"] = _locked_w
+                if not enable_camera_actions:
+                    _sc_ov["_disable_camera_actions"] = True
+                if manual_world_choice != "auto":
+                    _sc_ov["art_style"] = manual_world_choice
+                    _sc_ov.setdefault("visual_data", {})["art_style"] = manual_world_choice
+                    if isinstance(timeline, dict) and _i_ov == 0:
+                        timeline["art_style"] = manual_world_choice
+                if manual_layout_choice != "auto":
+                    _sc_ov["visual_type"] = manual_layout_choice
+                    _sc_ov["routed_engine"] = f"Manual Override ({manual_layout_choice})"
+                if manual_backdrop_choice != "auto":
+                    _sc_ov["backdrop"] = manual_backdrop_choice
+                    _sc_ov.setdefault("visual_data", {})["backdrop"] = manual_backdrop_choice
+                if manual_transition_choice != "auto":
+                    _sc_ov["transition"] = manual_transition_choice
+                    _sc_ov.setdefault("visual_data", {})["transition"] = manual_transition_choice
+                if manual_text_fx_choice != "auto":
+                    _sc_ov["text_fx"] = manual_text_fx_choice
+                    _sc_ov.setdefault("visual_data", {})["text_fx"] = manual_text_fx_choice
+
             with st.expander("🧠 Scene-by-Scene Best Engine, 2026 Tone & Layout Selection", expanded=True):
                 from core.action_engine import get_story_beat_motion
                 _route_rows = []
                 for _sc in timeline.get("scenes", []):
-                    if visual_engine[0] == "omni_smart_director" and "Locked Single" in str(omni_color_flow):
-                        _locked_w = timeline.get("art_style", "sapphire_3d")
-                        _sc["art_style"] = _locked_w
-                        _sc.setdefault("visual_data", {})["art_style"] = _locked_w
                     _vd = _sc.get("visual_data") or {}
                     _sc_tn = str(_sc.get("scene_tone") or chosen_tone)
                     _sc_sfx = str(_sc.get("sfx_cue") or "whoosh")
@@ -767,24 +807,6 @@ with tab_create:
                     pass
 
             for i, sc in enumerate(aligned_scenes):
-                if not enable_camera_actions:
-                    sc["_disable_camera_actions"] = True
-                if manual_world_choice != "auto":
-                    sc["art_style"] = manual_world_choice
-                    sc.setdefault("visual_data", {})["art_style"] = manual_world_choice
-                    if isinstance(timeline, dict) and i == 0:
-                        timeline["art_style"] = manual_world_choice
-                if manual_layout_choice != "auto":
-                    sc["visual_type"] = manual_layout_choice
-                if manual_backdrop_choice != "auto":
-                    sc["backdrop"] = manual_backdrop_choice
-                    sc.setdefault("visual_data", {})["backdrop"] = manual_backdrop_choice
-                if manual_transition_choice != "auto":
-                    sc["transition"] = manual_transition_choice
-                    sc.setdefault("visual_data", {})["transition"] = manual_transition_choice
-                if manual_text_fx_choice != "auto":
-                    sc["text_fx"] = manual_text_fx_choice
-                    sc.setdefault("visual_data", {})["text_fx"] = manual_text_fx_choice
                 all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
 
             # Parallel Multi-Core Scene Rendering (3x-4x faster while writing isolated per-scene dirs cleanly)

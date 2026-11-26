@@ -2071,8 +2071,8 @@ def _enforce_engine_style(
         if not v_data.get("footer") and clauses:
             v_data["footer"] = clauses[-1][:64]
 
-        # Guarantee clean Dual-Voice Conversation turns (`dialogue`) whenever `dual_creator_debate` is selected
-        if tone == DUAL_TONE_KEY:
+        # Guarantee clean Dual-Voice Conversation turns (`dialogue`) whenever `dual_creator_debate` or a `dual:` voice is selected
+        if tone == DUAL_TONE_KEY or str(sc.get("scene_tone") or "") == DUAL_TONE_KEY or (isinstance(sc.get("dialogue"), list) and len(sc.get("dialogue") or []) >= 1):
             sc["scene_tone"] = DUAL_TONE_KEY
             raw_dlg = sc.get("dialogue")
             clean_dlg: List[Dict[str, str]] = []
