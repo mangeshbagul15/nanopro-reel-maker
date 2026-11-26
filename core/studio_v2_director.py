@@ -104,14 +104,52 @@ def _scene_count_guidance(duration_mode: str, sub_engine: str) -> str:
     return "8 to 11 crisp storyboard scenes (Interview Hook -> Misconception Meter -> Problem Scenario -> Spaghetti vs Clean Hub -> Paired Real-World Analogy -> Takeaway -> Follow CTA)"
 
 
+def _sanitize_isometric_world_spec(world_spec: Dict[str, Any]) -> Dict[str, Any]:
+    """Enforces minimum spatial separation (>= 310 iso units) between nodes so 3D shapes & labels never collide."""
+    import math
+    ws = dict(world_spec or {})
+    nodes = [dict(n) for n in (ws.get("nodes") or []) if isinstance(n, dict)]
+    if len(nodes) >= 2:
+        for idx_n, n in enumerate(nodes):
+            n["x"] = float(n.get("x", 240 + (idx_n % 3) * 330))
+            n["y"] = float(n.get("y", 280 + (idx_n // 3) * 330))
+        min_dist = 315.0
+        for _ in range(14):
+            moved = False
+            for i in range(len(nodes)):
+                for j in range(i + 1, len(nodes)):
+                    dx = nodes[j]["x"] - nodes[i]["x"]
+                    dy = nodes[j]["y"] - nodes[i]["y"]
+                    d = math.hypot(dx, dy)
+                    if d < min_dist:
+                        if d < 1e-3:
+                            dx, dy, d = 1.0, 0.7, 1.22
+                        push = (min_dist - d) * 0.55
+                        ux, uy = dx / d, dy / d
+                        nodes[i]["x"] = max(160.0, min(1320.0, nodes[i]["x"] - ux * push))
+                        nodes[i]["y"] = max(180.0, min(1320.0, nodes[i]["y"] - uy * push))
+                        nodes[j]["x"] = max(160.0, min(1320.0, nodes[j]["x"] + ux * push))
+                        nodes[j]["y"] = max(180.0, min(1320.0, nodes[j]["y"] + uy * push))
+                        moved = True
+            if not moved:
+                break
+        for n in nodes:
+            n["x"] = round(n["x"])
+            n["y"] = round(n["y"])
+    ws["nodes"] = nodes
+    return ws
+
+
 def _normalize_v2_scenes(
     scenes: List[Dict[str, Any]],
     tone: str,
     watermark: str,
     sub_engine: str,
+    topic: str = "",
 ) -> List[Dict[str, Any]]:
     norm: List[Dict[str, Any]] = []
     valid_roles = {"hook", "misconception", "scenario", "problem", "solution", "analogy", "proof", "edge_case", "tradeoff", "cta"}
+    short_top = " ".join(str(topic or "this architecture").strip().split()[:6])
     for i, sc in enumerate(scenes):
         if not isinstance(sc, dict):
             continue
@@ -123,7 +161,31 @@ def _normalize_v2_scenes(
             role = "solution"
         sc_tone = str(sc.get("scene_tone") or get_tone_profile(tone, role=role, idx=i).get("key") or "warm_mentor_hi")
         vd = dict(sc.get("visual_data") or {})
-        vd.setdefault("watermark", watermark)
+        vd["watermark"] = watermark
+
+        if sub_engine == "spatial_isometric":
+            sm = str(vd.get("scene_mode") or "world_cam").strip()
+            if sm == "hook_chat":
+                vd.setdefault("chat_channel", "meet · architecture-interview")
+                vd.setdefault("question_sender", "INTERVIEWER")
+                if not str(vd.get("question_text") or "").strip():
+                    vd["question_text"] = f'"{nar[:130]}"'
+                if not str(vd.get("bad_answer") or "").strip():
+                    vd["bad_answer"] = f'"Manual cron scripts se {short_top} dump kar denge..."'
+                vd.setdefault("stamp", "REJECTED ✗")
+            elif sm == "split_compare":
+                if not isinstance(vd.get("left_card"), dict) or not vd["left_card"].get("title"):
+                    vd["left_card"] = {"title": "MANUAL BATCH", "sub": "Cron & Downtime", "color": "rose"}
+                if not isinstance(vd.get("right_card"), dict) or not vd["right_card"].get("title"):
+                    vd["right_card"] = {"title": "AUTO CDC FLOW", "sub": "Zero Data Loss", "color": "emerald"}
+            elif sm == "cta_poll":
+                vd.setdefault("option_a", "⚡ Automated CDC")
+                vd.setdefault("option_b", "🕰️ Nightly Cron")
+                vd.setdefault("footer_note", "Save & follow for production architectures!")
+            else:
+                if not str(vd.get("card_title") or "").strip():
+                    vd["card_title"] = str(vd.get("hud_pill") or role.upper())
+
         norm.append({
             "scene_id": i + 1,
             "role": role,
@@ -754,31 +816,28 @@ Audience: {audience_level} | Hook: {hook_style}
 Target Scenes: {sc_guide}
 {lang_instr}
 
-ARCHITECTURE PARADIGM (CRITICAL!):
-1. First, define `world_spec` — a SINGLE continuous 1200x1200 virtual isometric map containing `nodes` (5 to 7 nodes positioned thoughtfully apart on a 200..1000 x 250..1000 grid so nothing overlaps!), `edges` connecting them, and `zones` (dashed rectangular bounding labels).
+ARCHITECTURE PARADIGM (CRITICAL FOR ZERO VISUAL COLLISION!):
+1. First, define `world_spec` — a SINGLE continuous 1400x1400 virtual isometric map containing `nodes` (5 to 8 nodes spaced AT LEAST 320 units apart on the grid, e.g. `(220,260)`, `(580,260)`, `(940,260)`, `(580,620)`, `(940,620)`, `(940,960)`, `(580,960)` so NO 3D shapes or badges EVER overlap!), `edges` connecting them, and `zones`.
+   - IMPORTANT FOR MULTI-LAYER DATA PIPELINES (e.g. L0 Raw / L1 Harmonized / L2 Curated, Bronze/Silver/Gold): create SEPARATE distinct nodes for major stages (e.g. `sf_l0` cylinder, `sf_l1` cluster/cylinder, `sf_l2` cylinder OR separate nodes spaced >=320 units apart) so the camera actually FLIES from L0 -> L1 -> L2 -> Reports/Alerts!
 Allowed `kind` for nodes:
-  - "factory_cube" (Producer / CI/CD / Ingest / Client App)
-  - "balancer_bar" (Load Balancer / API Gateway / Kafka Broker Bus / Router)
-  - "server_cluster" (3 isometric server racks — e.g. Primary Cluster / Workers / Green v2 / Index Nodes)
-  - "cylinder_store" (Database / Redis Cache / Warehouse / Vector DB — supports optional `"schema_pills": ["col1","col2"]`)
-  - "test_gate" (Approval / Health-Check / Auth / Schema Gate Archway)
+  - "factory_cube" (Producer / CI/CD / AWS DMS / Ingest / Reports & Alerts Engine)
+  - "balancer_bar" (Load Balancer / API Gateway / Airflow & Lambda Orchestrator / Router)
+  - "server_cluster" (3 isometric server racks — e.g. Transform Workers / dbt / Compute Cluster)
+  - "cylinder_store" (Database / S3 Bucket / Redis / Snowflake L0/L1/L2 — supports optional `"schema_pills": ["tag1","tag2"]`)
+  - "test_gate" (Approval / Health-Check / Data Quality Gate Archway)
 Allowed node `color`: "blue", "emerald", "amber", "purple", "rose", "cyan".
-2. Next, design `scenes`:
-  - Scene 1 can use `"scene_mode": "hook_chat"` (Meet/Slack interview question + bad naive answer + red stamp like "REJECTED ✗").
-  - Optional Scene 2 can use `"scene_mode": "split_compare"` (2 large glowing comparison cards `left_card`, `right_card`).
-  - Core Walkthrough Scenes MUST use `"scene_mode": "world_cam"`:
-    - Specify `focus_node_ids` (1 to 3 node ids to smoothly pan & zoom the camera onto!)
-    - Specify `active_edge_ids` (edges animating glowing data packets!)
-    - Specify `node_overrides`: progressive visibility & live state (`{{"node_id": {{"visible": true/false, "badge": "● LIVE"|"STANDBY"|"APPROVED", "checks": true/false, "bug": true/false}}}}`) so the architecture builds up step-by-step across scenes!
-    - Include crisp Top HUD fields: `hud_pill`, `headline_white`, `headline_accent`, `accent_color`, `card_eyebrow`, `card_title`, `card_bullets` (max 2 short bullets!).
-  - Final Scene uses `"scene_mode": "cta_poll"` with `option_a`, `option_b`, `footer_note`: "{cta_note}".
+2. Next, design `scenes` with STRICT mode-specific keys AND concise headlines (`headline_white` max 2-3 words, `headline_accent` max 2-3 words — NEVER exceed 28 chars combined!):
+  - `"hook_chat"` (Scene 1): MUST include `"chat_channel"`, `"question_sender": "INTERVIEWER"`, `"question_text"` (the exact sharp scenario question), `"bad_answer"` (the common naive mistake), `"stamp": "REJECTED ✗"`.
+  - `"split_compare"` (Optional Scene 2): MUST include `"left_card": {{"title":"...","sub":"...","color":"rose"|"blue"}}`, `"right_card": {{"title":"...","sub":"...","color":"emerald"|"cyan"}}`.
+  - `"world_cam"` (Core Walkthrough Scenes): MUST include `"focus_node_ids"` (1 to 2 node IDs per scene for smooth pan/zoom), `"active_edge_ids"`, `"node_overrides"` (`{{"node_id": {{"visible": true/false, "badge": "● LIVE"|"CDC SYNC"|"● ACTIVE"|"L1 CLEAN", "checks": true/false, "bug": true/false}}}}`), `"card_eyebrow"`, `"card_title"` (max 5 words), `"card_bullets"` (max 2 short bullets!).
+  - `"cta_poll"` (Final Scene): MUST include `"option_a"`, `"option_b"`, `"footer_note": "{cta_note}".
 
 Return STRICT JSON:
 {{
   "world_spec": {{
-    "nodes": [{{"id":"n1","kind":"factory_cube","label":"SOURCE","sublabel":"APP","x":240,"y":340,"color":"amber"}}],
+    "nodes": [{{"id":"n1","kind":"cylinder_store","label":"Oracle DB","sublabel":"Banking OLTP","x":220,"y":260,"color":"amber"}}],
     "edges": [{{"id":"e1","from":"n1","to":"n2","color":"cyan","style":"packets"}}],
-    "zones": [{{"label":"PRODUCTION","x":400,"y":650,"w":420,"h":260,"color":"cyan"}}]
+    "zones": [{{"label":"AWS INGESTION","x":420,"y":150,"w":460,"h":300,"color":"cyan"}}]
   }},
   "scenes": [
     {{
@@ -788,11 +847,10 @@ Return STRICT JSON:
       "narration": "...",
       "visual_data": {{
         "scene_mode": "hook_chat|split_compare|world_cam|cta_poll",
-        "hud_pill": "...",
-        "headline_white": "...",
-        "headline_accent": "...",
-        "accent_color": "cyan|emerald|amber|rose|purple",
-        ...mode-specific keys...
+        "hud_pill": "SYSTEM INTERVIEW",
+        "headline_white": "Zero Downtime",
+        "headline_accent": "Pipeline?",
+        "accent_color": "cyan|emerald|amber|rose|purple"
       }}
     }}
   ]
@@ -832,15 +890,16 @@ Return STRICT JSON:
     ws = (parsed or {}).get("world_spec") or {}
     if not parsed or not isinstance(ws.get("nodes"), list) or len(ws["nodes"]) < 3 or not isinstance(parsed.get("scenes"), list) or len(parsed["scenes"]) < 4:
         return None
-    norm = _normalize_v2_scenes(parsed["scenes"], tone, watermark, "spatial_isometric")
+    norm = _normalize_v2_scenes(parsed["scenes"], tone, watermark, "spatial_isometric", topic=topic)
     if len(norm) < 4:
         return None
+    ws_clean = _sanitize_isometric_world_spec(ws)
     return {
         "topic": topic,
         "v2_engine": "spatial_isometric",
         "art_style": "v2_midnight_navy",
-        "header_brand": (watermark or "@nanopro").strip(),
-        "world_spec": ws,
+        "header_brand": (watermark or DEFAULT_WATERMARK).strip(),
+        "world_spec": ws_clean,
         "scenes": norm,
     }
 

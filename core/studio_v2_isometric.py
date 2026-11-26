@@ -34,8 +34,8 @@ def _compute_camera_center(world_spec: Dict[str, Any], focus_ids: List[str]) -> 
     ys = [float(n.get("y", 550)) for n in chosen]
     cx = sum(xs) / len(xs)
     cy = sum(ys) / len(ys)
-    span = max(240.0, max(xs) - min(xs) + max(ys) - min(ys))
-    zoom = max(0.76, min(1.38, 620.0 / span))
+    span = max(320.0, (max(xs) - min(xs)) + (max(ys) - min(ys)) + 120.0)
+    zoom = max(0.64, min(1.06, 560.0 / span))
     return {"cx": cx, "cy": cy, "zoom": round(zoom, 3)}
 
 
@@ -57,9 +57,15 @@ def _build_isometric_html(
     )
 
     hud_pill = html.escape(str(vd.get("hud_pill") or scene.get("role", "SYSTEM").upper()))
-    h_white = html.escape(str(vd.get("headline_white") or ""))
-    h_accent = html.escape(str(vd.get("headline_accent") or ""))
+    raw_hw = str(vd.get("headline_white") or "")
+    raw_ha = str(vd.get("headline_accent") or "")
+    h_len = len(raw_hw) + len(raw_ha)
+    h_white = html.escape(raw_hw)
+    h_accent = html.escape(raw_ha)
     accent_hex = _ACCENT_HEX.get(str(vd.get("accent_color") or "cyan"), "#38BDF8")
+    sc = min(width, height) / 1080.0
+    is_wide = width > height
+    hl_px = int((56 if h_len <= 24 else (46 if h_len <= 36 else 38)) * sc * (0.82 if is_wide else 1.0))
 
     # Camera keyframes for continuous smooth flyover between adjacent world scenes
     cur_cam = _compute_camera_center(world_spec, list(vd.get("focus_node_ids") or []))
@@ -178,8 +184,8 @@ def _build_isometric_html(
   }}
   .hud-pill .dot {{ width: 9px; height: 9px; border-radius: 50%; background: {accent_hex}; opacity: 0.7; }}
   .headline {{
-    font-size: {int(64*sc if not is_wide else 50*sc)}px; font-weight: 900; line-height: 1.12; margin-bottom: {int(22*sc)}px;
-    text-shadow: 0 6px 26px rgba(0,0,0,0.65);
+    font-size: {hl_px}px; font-weight: 900; line-height: 1.12; margin-bottom: {int(20*sc)}px;
+    text-shadow: 0 6px 26px rgba(0,0,0,0.65); max-width: min(100%, {int(960*sc)}px);
   }}
   .headline .acc {{ color: {accent_hex}; }}
   .hud-card {{
@@ -273,7 +279,7 @@ def _build_isometric_html(
       const dx = (wx - camX) * zoom;
       const dy = (wy - camY) * zoom;
       const sx = W * 0.5 + (dx - dy) * 0.86;
-      const sy = H * 0.64 + (dx + dy) * 0.44 - wz * zoom;
+      const sy = H * 0.67 + (dx + dy) * 0.44 - wz * zoom;
       return [sx, sy];
     }}
 
@@ -363,10 +369,10 @@ def _build_isometric_html(
       ctx.save();
       ctx.strokeStyle = 'rgba(148,163,184,0.08)';
       ctx.lineWidth = 1.2;
-      for (let g = 0; g <= 1200; g += 75) {{
-        const a1 = isoProject(g, 0, 0, camX, camY, zoom), b1 = isoProject(g, 1200, 0, camX, camY, zoom);
+      for (let g = 0; g <= 1500; g += 85) {{
+        const a1 = isoProject(g, 0, 0, camX, camY, zoom), b1 = isoProject(g, 1500, 0, camX, camY, zoom);
         ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(b1[0], b1[1]); ctx.stroke();
-        const a2 = isoProject(0, g, 0, camX, camY, zoom), b2 = isoProject(1200, g, 0, camX, camY, zoom);
+        const a2 = isoProject(0, g, 0, camX, camY, zoom), b2 = isoProject(1500, g, 0, camX, camY, zoom);
         ctx.beginPath(); ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.stroke();
       }}
       ctx.restore();
@@ -437,15 +443,28 @@ def _build_isometric_html(
           drawIsoPrism(n.x, n.y, 118, 92, 62, col, camX, camY, zoom);
           drawIsoPrism(n.x - 24, n.y - 16, 26, 26, 102, col, camX, camY, zoom);
           const [lx, ly] = isoProject(n.x, n.y, 82, camX, camY, zoom);
-          drawBadge(lx, ly - 18 * zoom, `${{n.label || 'CI/CD'}}`, '#0F172AEE', col.top, zoom);
+          drawBadge(lx, ly - 18 * zoom, `${{n.label || 'ENGINE'}}`, '#0F172AEE', col.top, zoom);
+          if (ov.badge || n.sublabel) {{
+            const [bx, by] = isoProject(n.x, n.y, -10, camX, camY, zoom);
+            drawBadge(bx, by + 26 * zoom, ov.badge || n.sublabel, '#091128DD', '#CBD5E1', zoom * 0.85);
+          }}
         }} else if (kind === 'balancer_bar') {{
-          drawIsoPrism(n.x, n.y, 230, 56, 42, col, camX, camY, zoom);
-          const [lx, ly] = isoProject(n.x, n.y, 58, camX, camY, zoom);
-          drawBadge(lx, ly - 10 * zoom, n.label || 'LOAD BALANCER', '#1E1B4BEE', '#E9D5FF', zoom);
+          drawIsoPrism(n.x, n.y, 220, 56, 42, col, camX, camY, zoom);
+          const [lx, ly] = isoProject(n.x, n.y, 62, camX, camY, zoom);
+          drawBadge(lx, ly - 12 * zoom, ov.badge || n.label || 'ORCHESTRATOR', '#1E1B4BEE', '#E9D5FF', zoom);
         }} else if (kind === 'cylinder_store') {{
           drawIsoCylinder(n.x, n.y, 68, 72, col, camX, camY, zoom, n.label || 'STORE', n.sublabel || '');
+          const pills = Array.isArray(n.schema_pills) ? n.schema_pills : [];
+          if (pills.length) {{
+            const badgeUp = String(ov.badge || '').toUpperCase();
+            pills.slice(0, 3).forEach((sp, pi) => {{
+              const [px, py] = isoProject(n.x + 86, n.y - 20 + pi * 36, 42 - pi * 8, camX, camY, zoom);
+              const isAct = badgeUp && (badgeUp.includes(String(sp).toUpperCase().split('_')[0]) || String(sp).toUpperCase().includes(badgeUp.split(' ')[0]));
+              drawBadge(px, py, String(sp), isAct ? '#16A34AEE' : '#0F172ADD', isAct ? '#FFFFFF' : col.top, zoom * 0.78);
+            }});
+          }}
           if (ov.badge) {{
-            const [bx, by] = isoProject(n.x, n.y, 102, camX, camY, zoom);
+            const [bx, by] = isoProject(n.x, n.y, 108, camX, camY, zoom);
             drawBadge(bx, by, ov.badge, '#064E3BEE', '#6EE7B7', zoom);
           }}
         }} else if (kind === 'test_gate') {{
