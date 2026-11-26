@@ -1072,7 +1072,7 @@ def _synthesize_bespoke_web_scenes(
     targets: List[Tuple[int, Dict[str, Any]]] = []
     for idx, sc in enumerate(scenes):
         vd = sc.get("visual_data") or {}
-        if str(sc.get("visual_type", "")).lower().strip() == "web_scene" and not str(vd.get("html") or vd.get("web_code") or "").strip():
+        if str(sc.get("visual_type", "")).lower().strip() == "web_scene" and not vd.get("option1_archetype") and not str(vd.get("html") or vd.get("web_code") or "").strip():
             targets.append((idx, sc))
     if not targets:
         return
@@ -1293,33 +1293,10 @@ def _route_omni_best_scene(
             cands = [x for x in pool if x not in used_vtypes] or list(pool)
         return cands[(run_num * 3 + idx * 5) % len(cands)]
 
-    # 1. Explicit code / SQL / memory / benchmark / incident / comparison semantic detection
-    if v_data.get("table_data") or any(k in narr_l for k in ("sql ", "select ", "dense_rank", "window function", "group by", "join ", "query plan")):
-        v = _pick_fresh(("sql_table", "sql_studio", "er_schema"))
-        return v, "SQL Studio & Dataset Execution"
+    def _has_kw(txt: str, *kws: str) -> bool:
+        return any(re.search(rf"\b{re.escape(kw)}\b", txt) for kw in kws)
 
-    if (v_data.get("code_snippet") or v_data.get("command") or any(k in narr_l for k in ("terminal", "cli", "command", "kubectl", "docker ", "python ", "async def", "bash", "curl "))):
-        v = _pick_fresh(("code_terminal", "terminal_studio", "code_diff_split", "api_request_response"))
-        return v, "Terminal & Code Screencast"
-
-    if v_data.get("bars") or any(k in narr_l for k in ("benchmark", "speedup", "10x", "15x", "p99", "throughput", "rps", "latency drops", "milliseconds", "ms lag")):
-        v = _pick_fresh(("benchmark_3d", "benchmark_chart", "latency_waterfall", "flamegraph_perf", "radial_gauge", "metric_gauge_hud"))
-        return v, "Performance Benchmark & Telemetry HUD"
-
-    if v_data.get("entries") or any(k in narr_l for k in ("wal", "write-ahead", "buffer pool", "offset", "lsn", "hex", "ring buffer", "slab", "page cache")):
-        v = _pick_fresh(("data_structure_memory", "write_ahead_log_wal", "memory_wal_checkpoint", "lru_cache_eviction", "b_plus_tree_pages"))
-        return v, "Memory Internals & WAL Slots"
-
-    if (v_data.get("left_points") and v_data.get("right_points")) or role_l in ("tradeoff", "comparison") or any(k in narr_l for k in ("trade-off", "tradeoff", "legacy", "versus", "vs ", "compare", "guardrail", "catch hai", "farq")):
-        v = _pick_fresh(("split_comparison", "iso_comparison", "hybrid_merge", "grammar:quadrant:2x2"))
-        return v, "Split Trade-Off Comparison"
-
-    if v_data.get("alerts") or any(k in narr_l for k in ("outage", "crash", "deadlock", "lock contention", "oom", "failover", "incident", "down", "spike", "choke")):
-        if idx > 0:
-            v = _pick_fresh(("alert_diagram", "circuit_breaker_states", "chaos_monkey_fault_inj", "topo_chaos_mesh_blast_radius"))
-            return v, "Incident Alert & Resilience Radar"
-
-    # 2. Scene 1 Hook (Q&A / Curious Engagement / Hero / WebGL Hook)
+    # 1. Hook Scene ALWAYS leads with Hook / Q&A before keyword rules can hijack it
     if idx == 0 or role_l == "hook":
         if tone == "dual_dialogue_curious":
             v = _pick_fresh(("chat_thread_ai", "hero_hook", "iso_comparison", "kinetic_statement"))
@@ -1327,22 +1304,47 @@ def _route_omni_best_scene(
         v = _pick_fresh(("hero_hook", "kinetic_statement", "chat_thread_ai", "custom_scene"))
         return v, "Kinetic Hook & Storyboard"
 
+    # 2. Explicit SQL / Code / Benchmark / Memory / Trade-Off / Incident semantic detection (word-boundary safe!)
+    if v_data.get("table_data") or _has_kw(narr_l, "sql", "select", "dense_rank", "window function", "group by", "query plan"):
+        v = _pick_fresh(("sql_table", "sql_studio", "er_schema"))
+        return v, "SQL Studio & Dataset Execution"
+
+    if v_data.get("bars") or role_l in ("benchmark", "metrics") or _has_kw(narr_l, "benchmark", "speedup", "10x", "15x", "p99", "throughput", "latency drops", "ms lag"):
+        v = _pick_fresh(("benchmark_3d", "benchmark_chart", "metric_gauge_hud", "radial_gauge"))
+        return v, "Performance Benchmark & Telemetry HUD"
+
+    if v_data.get("code_snippet") or v_data.get("command") or _has_kw(narr_l, "terminal", "cli", "command", "kubectl", "docker", "python", "async def", "bash", "curl", "lua"):
+        v = _pick_fresh(("code_terminal", "terminal_studio", "code_diff_split"))
+        return v, "Terminal & Code Screencast"
+
+    if v_data.get("entries") or _has_kw(narr_l, "wal", "write-ahead", "buffer pool", "lsn", "ring buffer", "slab", "page cache"):
+        v = _pick_fresh(("data_structure_memory", "write_ahead_log_wal", "memory_wal_checkpoint", "lru_cache_eviction", "b_plus_tree_pages"))
+        return v, "Memory Internals & WAL Slots"
+
+    if (v_data.get("left_points") and v_data.get("right_points")) or role_l in ("tradeoff", "comparison") or _has_kw(narr_l, "trade-off", "tradeoff", "legacy", "versus", "vs", "compare", "guardrail", "catch hai", "farq"):
+        v = _pick_fresh(("split_comparison", "iso_comparison", "hybrid_merge", "grammar:quadrant:2x2"))
+        return v, "Split Trade-Off Comparison"
+
+    if v_data.get("alerts") or _has_kw(narr_l, "outage", "crash", "deadlock", "lock contention", "oom", "failover", "incident", "spike", "choke"):
+        v = _pick_fresh(("alert_diagram", "circuit_breaker_states", "chaos_monkey_fault_inj", "topo_chaos_mesh_blast_radius"))
+        return v, "Incident Alert & Resilience Radar"
+
     # 3. Final Summary / Key Takeaways / CTA Scene
     if idx == total_scenes - 1 or role_l in ("cta", "summary", "takeaway", "checklist"):
         v = _pick_fresh(("concept_cards", "checklist_prod_readiness", "grammar:bento:5", "step_timeline", "kanban_board"))
         return v, "Keynote Takeaways & Interactive Bento"
 
-    # 4. Middle Architecture / Mechanics Scenes -> Domain-Matched Topologies + Diagrams
-    if any(k in ctx_l for k in ("kafka", "cdc", "debezium", "flink", "spark", "lakehouse", "iceberg", "dbt", "etl", "elt", "clickhouse", "stream", "event")):
+    # 4. Middle Architecture / Mechanics Scenes -> Domain-Matched Topologies + Diagrams (word-boundary safe!)
+    if _has_kw(ctx_l, "kafka", "cdc", "debezium", "flink", "spark", "lakehouse", "iceberg", "dbt", "etl", "elt", "clickhouse", "stream", "streaming"):
         v = _pick_fresh(("cdc_debezium_flow", "medallion_lakehouse", "topo_flink_cep_iceberg_lake", "topo_kafka_isr_quorum_dlq", "topo_outbox_debezium_snowflake", "etl_elt_pipeline"))
         return v, "Data & Event Streaming Topology"
 
-    if any(k in ctx_l for k in ("rag", "llm", "agent", "mcp", "embedding", "vector", "token", "transformer", "attention", "kv cache", "guardrail", "ai")):
+    if _has_kw(ctx_l, "rag", "llm", "agent", "agents", "mcp", "embedding", "vector", "tokenization", "transformer", "attention", "kv cache", "ai"):
         v = _pick_fresh(("rag_chunk_overlap_pipe", "topo_rag_hybrid_rerank", "topo_agent_mcp_tool_sandbox", "mcp_client_host_server", "transformer_self_attn", "agent_react_tool_loop"))
         return v, "AI / LLM & RAG Pipeline"
 
-    if any(k in ctx_l for k in ("raft", "paxos", "quorum", "consistent hash", "shard", "vitess", "saga", "redis", "lock", "consensus", "distributed", "microservice", "kubernetes", "k8s", "envoy", "grpc")):
-        v = _pick_fresh(("raft_leader_election", "consistent_hashing_ring", "topo_sharded_vitess_vtgate", "topo_saga_choreo_compensate", "topo_redis_cluster_sentinel", "k8s_pod_scheduling", "sequence_diagram"))
+    if _has_kw(ctx_l, "raft", "paxos", "quorum", "consistent hashing", "shard", "sharding", "vitess", "saga", "redis", "lock", "distributed", "microservice", "kubernetes", "k8s", "envoy", "grpc", "rate limiter", "token bucket", "fencing"):
+        v = _pick_fresh(("raft_leader_election", "consistent_hashing_ring", "topo_redis_cluster_sentinel", "topo_sharded_vitess_vtgate", "topo_saga_choreo_compensate", "rate_limiter_token_bucket", "sequence_diagram"))
         return v, "Distributed Systems & Consensus"
 
     # General Multi-Topology / All-in-One Fallback with maximum variety
@@ -1738,7 +1740,7 @@ def _enforce_engine_style(
                     {"label": "Standard Batch Load", "value": 4500, "display": "4.5s Latency", "color": "#EF4444", "is_winner": False},
                     {"label": "Pooled Sync Worker", "value": 920, "display": "920ms", "color": "#F97316", "is_winner": False},
                     {"label": "Optimized Buffer Stream", "value": 350, "display": "350ms", "color": "#FBBF24", "is_winner": False},
-                    {"label": f"{topic[:16]} Stream", "value": 24, "display": "24ms Lag (Winner)", "color": "#10B981", "is_winner": True}
+                    {"label": f"{(topic[:18].rsplit(' ', 1)[0] or topic[:14])} Pattern", "value": 24, "display": "2ms P99 (Winner)", "color": "#10B981", "is_winner": True}
                 ]
 
         elif current_vtype in ("data_structure_memory", "write_ahead_log_wal", "memory_wal_checkpoint"):

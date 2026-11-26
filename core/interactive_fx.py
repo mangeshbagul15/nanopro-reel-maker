@@ -470,7 +470,7 @@ def render_interactive_fx_overlay(
         bbb = f_bub.getbbox(fx_label)
         bw = (bbb[2] - bbb[0]) + 36
         bx = max(84, min(stage_img.width - bw - 84, int(tx - bw // 2)))
-        by = max(385, int(ty - 86))
+        by = max(368, int(ty - 114))
         pop_a = _ease_out_back(min(1.0, ripple_t * 2.2)) * 0.95
         if fx_type == "thought":
             # Cloud scalloped thought bubble with trailing circles
