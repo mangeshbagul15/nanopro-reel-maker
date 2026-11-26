@@ -452,7 +452,9 @@ def render_scene_frames(
     total_frames = max(15, round(duration * VIDEO_FPS))
 
     _STUDIO_MODES = (
-        "studio_300_domain", "pure_zero_template", "studio_domain_library",
+        "omni_smart_director", "studio_300_domain", "multi_topology_mix", "interactive_storyboard",
+        "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio",
+        "pure_zero_template", "studio_domain_library",
         "cinematic_studio", "dual_generative", "auto_dynamic", "hybrid_modern",
     )
     if engine_style in _STUDIO_MODES:

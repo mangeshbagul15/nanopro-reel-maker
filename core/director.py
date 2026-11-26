@@ -427,6 +427,16 @@ Output a single valid JSON object matching this structure:
 """
 
 ENGINE_STYLE_DIRECTIVES = {
+    "omni_smart_director": (
+        "OMNI SMART DIRECTOR (ALL 24 SPECIALIST ENGINES UNIFIED — BEST-PER-SCENE SEMANTIC ROUTER): "
+        "Instead of forcing one visual style across the whole video, select the SINGLE BEST specialist visual engine & layout for EACH INDIVIDUAL SCENE while locking ONE harmonious `art_style` color world across the entire reel:\n"
+        "- Hook / Opening Scene: Use `hero_hook`, `chat_thread_ai` (especially for Q&A/dual dialogue), `kinetic_statement`, or `web_scene` (`option1_archetype`) with a curiosity question/stat.\n"
+        "- Core Architecture / Mechanism Scene: Pick the exact matching Domain/Topology (`cdc_debezium_flow`, `medallion_lakehouse`, `topo_kafka_isr_quorum_dlq` for streaming/data; `raft_leader_election`, `consistent_hashing_ring`, `topo_saga_choreo_compensate` for distributed systems; `rag_chunk_overlap_pipe`, `mcp_client_host_server`, `topo_rag_hybrid_rerank` for AI/LLM; or `all_in_one_tech_canvas` / `topo_ingress_mesh_wal` / `sequence_diagram` generally).\n"
+        "- Implementation / Proof Scene: Use `sql_table` ONLY if explaining SQL queries/schemas, `code_terminal` / `code_diff_split` ONLY if explaining CLI/code, `data_structure_memory` / `write_ahead_log_wal` ONLY for buffers/bytes/offsets, otherwise interactive flow/topology.\n"
+        "- Trade-Off / Metrics / Incident Scene: Use `split_comparison` for A vs B trade-offs, `benchmark_3d` / `latency_waterfall` / `flamegraph_perf` for latency/speedup metrics, or `alert_diagram` / `circuit_breaker_states` for failures/bottlenecks.\n"
+        "- Summary / Takeaways Scene: Use `concept_cards`, `checklist_prod_readiness`, `grammar:bento:5`, or an Option 1 `svg_scene`/`spatial_canvas`.\n"
+        "NEVER use the same `visual_type` twice in one video! Vary `backdrop` (18 styles), `transition` (12 styles), `text_fx` (14 styles), and populate 4-5 progressive `voice_beats` + `choreography.triggers` per scene."
+    ),
     "multi_topology_mix": (
         "MULTI-TOPOLOGY INTERCONNECTED ARCHITECTURE ENGINE: "
         "Every scene in the reel MUST visualize rich multi-component System Topologies (`all_in_one_tech_canvas`, `iso_observability_mesh`, "
@@ -692,7 +702,9 @@ def generate_timeline(
     hist = load_visual_history(visual_history)
     run_num = int(hist.get("run_count", 0)) + 1
     _DIVERSE_ENGINES = (
-        "studio_domain_library", "pure_zero_template", "studio_300_domain",
+        "omni_smart_director", "studio_domain_library", "pure_zero_template", "studio_300_domain",
+        "multi_topology_mix", "interactive_storyboard",
+        "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio",
         "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern",
     )
     if engine_style == "custom_user_style" and custom_style_prompt.strip():
@@ -812,7 +824,7 @@ def generate_timeline(
             f"- Use fresh `art_style`: `\"{suggested_world}\"` (AVOID repeating recent styles: {avoid_arts[-8:]}).\n"
             + (
                 f"- AVOID reusing recent visual_types {avoid_vtypes[-12:]}! Prefer fresh layouts from this rotation: {fresh_layout_picks}.\n"
-                if engine_style in ("studio_domain_library", "studio_300_domain")
+                if engine_style in ("omni_smart_director", "studio_domain_library", "studio_300_domain", "multi_topology_mix", "interactive_storyboard")
                 else f"- Design bespoke `web_scene` compositions inspired by `{chosen_paradigm}` and completely avoid recent intents {avoid_vtypes[-8:]}.\n"
             )
             + f"- AVOID repeating recent backdrops {avoid_bds[-6:]}; pick distinct `backdrop`, `transition`, and `text_fx` per scene.\n"
@@ -1253,6 +1265,94 @@ def _mirror_items_for_domain_layout(v_data: Dict[str, Any], sc: Dict[str, Any], 
         v_data["footer"] = clauses[-1][:64]
 
 
+def _route_omni_best_scene(
+    sc: Dict[str, Any],
+    idx: int,
+    total_scenes: int,
+    topic: str,
+    tone: str,
+    run_num: int,
+    used_vtypes: set,
+    recent_vtypes: set,
+    v_data: Dict[str, Any],
+) -> Tuple[str, str]:
+    """
+    Semantic per-scene Best-Engine Router for `omni_smart_director`:
+    Inspects scene role, narration/dialogue text, visual_data signals, and topic keywords
+    to pick the single most fitting specialist engine + layout without repeating across scenes.
+    Returns `(chosen_visual_type, human_readable_routed_engine_label)`.
+    """
+    narr_l = str(sc.get("narration") or "").lower()
+    role_l = str(sc.get("role") or "").lower()
+    cur_v = str(sc.get("visual_type") or "").lower().strip()
+    ctx_l = f"{topic.lower()} {narr_l} {str(v_data.get('title') or '').lower()}"
+
+    def _pick_fresh(pool: Tuple[str, ...]) -> str:
+        cands = [x for x in pool if x not in used_vtypes and x not in recent_vtypes]
+        if not cands:
+            cands = [x for x in pool if x not in used_vtypes] or list(pool)
+        return cands[(run_num * 3 + idx * 5) % len(cands)]
+
+    # 1. Explicit code / SQL / memory / benchmark / incident / comparison semantic detection
+    if v_data.get("table_data") or any(k in narr_l for k in ("sql ", "select ", "dense_rank", "window function", "group by", "join ", "query plan")):
+        v = _pick_fresh(("sql_table", "sql_studio", "er_schema", "star_snowflake_schema"))
+        return v, "SQL Studio & Dataset Execution"
+
+    if (v_data.get("code_snippet") or v_data.get("command") or any(k in narr_l for k in ("terminal", "cli", "command", "kubectl", "docker ", "python ", "async def", "bash", "curl "))):
+        v = _pick_fresh(("code_terminal", "terminal_studio", "code_diff_split", "api_request_response"))
+        return v, "Terminal & Code Screencast"
+
+    if v_data.get("bars") or any(k in narr_l for k in ("benchmark", "speedup", "10x", "15x", "p99", "throughput", "rps", "latency drops", "milliseconds", "ms lag")):
+        v = _pick_fresh(("benchmark_3d", "benchmark_chart", "latency_waterfall", "flamegraph_perf", "radial_gauge", "metric_gauge_hud"))
+        return v, "Performance Benchmark & Telemetry HUD"
+
+    if v_data.get("entries") or any(k in narr_l for k in ("wal", "write-ahead", "buffer pool", "offset", "lsn", "hex", "ring buffer", "slab", "page cache")):
+        v = _pick_fresh(("data_structure_memory", "write_ahead_log_wal", "memory_wal_checkpoint", "lru_cache_eviction", "b_plus_tree_pages"))
+        return v, "Memory Internals & WAL Slots"
+
+    if (v_data.get("left_points") and v_data.get("right_points")) or role_l in ("tradeoff", "comparison") or any(k in narr_l for k in ("trade-off", "tradeoff", "legacy", "versus", "vs ", "compare", "guardrail", "catch hai", "farq")):
+        v = _pick_fresh(("split_comparison", "iso_comparison", "hybrid_merge", "grammar:quadrant:2x2"))
+        return v, "Split Trade-Off Comparison"
+
+    if v_data.get("alerts") or any(k in narr_l for k in ("outage", "crash", "deadlock", "lock contention", "oom", "failover", "incident", "down", "spike", "choke")):
+        if idx > 0:
+            v = _pick_fresh(("alert_diagram", "circuit_breaker_states", "chaos_monkey_fault_inj", "topo_chaos_mesh_blast_radius"))
+            return v, "Incident Alert & Resilience Radar"
+
+    # 2. Scene 1 Hook (Q&A / Curious Engagement / Hero / WebGL Hook)
+    if idx == 0 or role_l == "hook":
+        if tone == "dual_dialogue_curious":
+            v = _pick_fresh(("chat_thread_ai", "hero_hook", "iso_comparison", "kinetic_statement"))
+            return v, "Interactive Q&A & Curious Hook"
+        v = _pick_fresh(("hero_hook", "kinetic_statement", "chat_thread_ai", "custom_scene"))
+        return v, "Kinetic Hook & Storyboard"
+
+    # 3. Final Summary / Key Takeaways / CTA Scene
+    if idx == total_scenes - 1 or role_l in ("cta", "summary", "takeaway", "checklist"):
+        v = _pick_fresh(("concept_cards", "checklist_prod_readiness", "grammar:bento:5", "step_timeline", "kanban_board"))
+        return v, "Keynote Takeaways & Interactive Bento"
+
+    # 4. Middle Architecture / Mechanics Scenes -> Domain-Matched Topologies + Diagrams
+    if any(k in ctx_l for k in ("kafka", "cdc", "debezium", "flink", "spark", "lakehouse", "iceberg", "dbt", "etl", "elt", "clickhouse", "stream", "event")):
+        v = _pick_fresh(("cdc_debezium_flow", "medallion_lakehouse", "topo_flink_cep_iceberg_lake", "topo_kafka_isr_quorum_dlq", "topo_outbox_debezium_snowflake", "etl_elt_pipeline"))
+        return v, "Data & Event Streaming Topology"
+
+    if any(k in ctx_l for k in ("rag", "llm", "agent", "mcp", "embedding", "vector", "token", "transformer", "attention", "kv cache", "guardrail", "ai")):
+        v = _pick_fresh(("rag_chunk_overlap_pipe", "topo_rag_hybrid_rerank", "topo_agent_mcp_tool_sandbox", "mcp_client_host_server", "transformer_self_attn", "agent_react_tool_loop"))
+        return v, "AI / LLM & RAG Pipeline"
+
+    if any(k in ctx_l for k in ("raft", "paxos", "quorum", "consistent hash", "shard", "vitess", "saga", "redis", "lock", "consensus", "distributed", "microservice", "kubernetes", "k8s", "envoy", "grpc")):
+        v = _pick_fresh(("raft_leader_election", "consistent_hashing_ring", "topo_sharded_vitess_vtgate", "topo_saga_choreo_compensate", "topo_redis_cluster_sentinel", "k8s_pod_scheduling", "sequence_diagram"))
+        return v, "Distributed Systems & Consensus"
+
+    # General Multi-Topology / All-in-One Fallback with maximum variety
+    if cur_v and cur_v not in used_vtypes and cur_v not in recent_vtypes and cur_v not in ("custom_scene",):
+        return cur_v, "AI Domain Layout & Interactive FX"
+
+    v = _pick_fresh(("all_in_one_tech_canvas", "topo_ingress_mesh_wal", "architecture_flow", "sequence_diagram", "circular_hub_mesh", "multi_topology_dual", "sankey_flow", "grammar:flow:5"))
+    return v, "Multi-Topology System Architecture"
+
+
 def _enforce_engine_style(
     timeline: Dict[str, Any],
     engine_style: str,
@@ -1343,7 +1443,7 @@ def _enforce_engine_style(
     recent_trs = set((hist.get("recent_transitions") or [])[-8:])
     recent_tfxs = set((hist.get("recent_text_fx") or [])[-8:])
     is_diverse_engine = engine_style in (
-        "studio_domain_library", "pure_zero_template", "studio_300_domain",
+        "omni_smart_director", "studio_domain_library", "pure_zero_template", "studio_300_domain",
         "multi_topology_mix", "interactive_storyboard",
         "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio",
         "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern",
@@ -1352,7 +1452,7 @@ def _enforce_engine_style(
     art_styles = ["light_whiteboard", "editorial_dark", "blueprint_grid", "neon_fireship"]
     raw_art = str(timeline.get("art_style") or "").strip()
     _STUDIO_SET = (
-        "studio_300_domain", "pure_zero_template", "studio_domain_library",
+        "omni_smart_director", "studio_300_domain", "pure_zero_template", "studio_domain_library",
         "multi_topology_mix", "interactive_storyboard",
         "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio",
         "cinematic_studio", "dual_generative", "auto_dynamic", "hybrid_modern",
@@ -1489,7 +1589,16 @@ def _enforce_engine_style(
                 "llm_guardrails_safety", "chat_thread_ai", "mesh_3d_stage", "neural_net_layers",
             ),
         }
-        if engine_style == "multi_topology_mix":
+        if engine_style == "omni_smart_director":
+            routed_v, routed_lbl = _route_omni_best_scene(
+                sc, idx, len(scenes), topic, tone, run_num, used_vtypes, recent_vtypes, v_data
+            )
+            current_vtype = routed_v
+            sc["visual_type"] = routed_v
+            sc["routed_engine"] = routed_lbl
+            v_data["routed_engine"] = routed_lbl
+            _mirror_items_for_domain_layout(v_data, sc, str(v_data.get("title") or topic[:40]))
+        elif engine_style == "multi_topology_mix":
             fresh_topos = [t for t in _SYSTEM_TOPOLOGY_POOL if t not in recent_vtypes and t not in used_vtypes] or [t for t in _SYSTEM_TOPOLOGY_POOL if t not in used_vtypes] or list(_SYSTEM_TOPOLOGY_POOL)
             chosen_topo = fresh_topos[(run_num * 7 + idx * 5) % len(fresh_topos)]
             current_vtype = chosen_topo
@@ -1549,7 +1658,7 @@ def _enforce_engine_style(
 
         # Ensure required data structures are present and rich for the active visual_type
         title = v_data.get("title") or sc.get("narration", "")[:45] or topic[:40]
-        default_badge = "" if engine_style in ["auto_dynamic", "studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative", "hybrid_modern"] else engine_style.replace("_", " ").upper()
+        default_badge = "" if engine_style in ["omni_smart_director", "auto_dynamic", "studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative", "hybrid_modern"] else engine_style.replace("_", " ").upper()
         badge = v_data.get("badge") or default_badge
         v_data["title"] = title
         v_data["badge"] = badge
@@ -1745,11 +1854,14 @@ def _enforce_engine_style(
             else:
                 sc["visual_type"] = "web_scene"
             used_vtypes.add(chosen_opt1)
-        elif engine_style in ("studio_300_domain", "interactive_storyboard", "auto_dynamic", "hybrid_modern") and (idx + run_num) % 2 == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-            # Combined, Interactive Max & Dynamic Auto: alternate Option 1 web/svg/spatial archetypes with Option 2 domain/topology/grammar layouts across half the reel!
+        elif engine_style in ("omni_smart_director", "studio_300_domain", "interactive_storyboard", "auto_dynamic", "hybrid_modern") and (idx + run_num) % 2 == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas", "sql_table", "sql_studio", "code_terminal", "terminal_studio", "chat_thread_ai", "split_comparison", "benchmark_3d", "benchmark_chart"):
+            # Omni / Combined / Interactive Max: alternate Option 1 web/svg/spatial archetypes with Option 2 domain/topology/grammar layouts cleanly!
             v_data.setdefault("_intent", current_vtype)
             v_data.setdefault("option1_archetype", chosen_opt1)
             sc["visual_type"] = "svg_scene" if chosen_opt1.startswith("svg_") else ("spatial_canvas" if chosen_opt1.startswith("spatial_") else "web_scene")
+            if engine_style == "omni_smart_director":
+                sc["routed_engine"] = "Option 1 WebGL / SVG / Spatial + Motion"
+                v_data["routed_engine"] = sc["routed_engine"]
             used_vtypes.add(current_vtype)
             used_vtypes.add(chosen_opt1)
         else:
@@ -1891,7 +2003,7 @@ def _enforce_engine_style(
                 "triggers": existing_trig if len(existing_trig) >= len(auto_triggers) else auto_triggers
             }
 
-    if engine_style in ("pure_zero_template", "dual_generative", "studio_300_domain", "auto_dynamic", "hybrid_modern"):
+    if engine_style in ("omni_smart_director", "pure_zero_template", "dual_generative", "studio_300_domain", "auto_dynamic", "hybrid_modern"):
         _synthesize_bespoke_web_scenes(scenes, topic, format_ratio=format_ratio, run_num=run_num)
 
     return timeline

@@ -280,16 +280,17 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("studio_300_domain", "🎨 Both Combined: 850+ Domain Layouts + 158 Grammar + 168 Option 1 WebGL/SVG [Recommended]"),
+            ("omni_smart_director", "🧠 Omni Smart Director (All 25 Engines • Best-Per-Scene Auto-Router) [Recommended]"),
+            ("studio_300_domain", "🎨 Both Combined: 1,011 Domain/Grammar + 168 Option 1 WebGL/SVG"),
             ("multi_topology_mix", "🌐 Multi-Topology Mix (46+ Dual-Plane System Topologies + Interactive FX Per Scene)"),
             ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip/Quiz Bubbles & Word Sync)"),
             ("data_streaming_pipelines", "🌊 Data & Event Streaming Topologies (Kafka, CDC Debezium, Flink, Lakehouse, Spark)"),
             ("distributed_consensus_labs", "🛰️ Distributed Systems & Consensus (Raft, Quorum, Hash Rings, Circuit Breakers, Sagas)"),
             ("ai_rag_agents_studio", "🤖 AI, LLM & RAG Pipelines (Hybrid Search, MCP Tools, KV Cache, Guardrails, Agents)"),
-            ("pure_zero_template", "♾️ Option 1: 168+ Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
-            ("studio_domain_library", "📚 Option 2: 850+ Domain Layout Library + 158 Composable Grammar Presets"),
+            ("pure_zero_template", "♾️ Option 1: 168 Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
+            ("studio_domain_library", "📚 Option 2: 1,011 Studio/Domain & Composable Grammar Layouts"),
             ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
-            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 820+ Layouts, 145 Shapes)"),
+            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 1,011 Layouts, 145 Shapes)"),
             ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
             ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
@@ -307,15 +308,17 @@ with st.sidebar:
         ],
         format_func=lambda x: x[1],
         key="visual_engine_select",
-        help="Switch seamlessly between Option 1 (156+ Zero-Template HTML5/Three.js/Animated <svg>/Spatial Scenes), Option 2 (820+ Domain Layouts across 18 Engineering Domains, Pro Charts, IT/Network/Data/SDLC + 158 Composable Diagram Grammar Presets), Multi-Topology Mix, Interactive Motion Max, Dynamic Auto, OR Both Combined!"
+        help="Default 'Omni Smart Director' automatically blends all specialist engines per scene inside ONE unified color theme (Hook, Streaming/Consensus/AI Topologies, SQL/Terminal Proof, Comparison, Benchmarks, Option 1 WebGL/SVG & Interactive Motion FX). Or pin any single specialist engine below."
     )
+    if visual_engine[0] == "omni_smart_director":
+        st.caption("🧠 **All-in-One Smart Blend Active:** Har scene ke context aur spoken words ke mutabik best engine (Topology / SQL / Terminal / Comparison / WebGL / Interactive FX) auto-select hoga with locked Video Color Theme!")
 
     manual_layout_choice = "auto"
     manual_world_choice = "auto"
     manual_backdrop_choice = "auto"
     manual_transition_choice = "auto"
     manual_text_fx_choice = "auto"
-    if visual_engine[0] in ("studio_300_domain", "multi_topology_mix", "interactive_storyboard", "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio"):
+    if visual_engine[0] in ("omni_smart_director", "studio_300_domain", "multi_topology_mix", "interactive_storyboard", "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio"):
         with st.expander("🎛️ Manual Studio Overrides (Layout / Theme / FX)", expanded=False):
             from core.cinematic_engine import (
                 ALL_BACKDROPS,
@@ -410,6 +413,7 @@ with st.sidebar:
     _pw_ok = False
     _resvg_ok = False
     _layout_cnt = 0
+    _opt1_cnt = 0
     _shape_cnt = 0
     _mesh_cnt = 0
     _glyph_cnt = 0
@@ -429,12 +433,14 @@ with st.sidebar:
             ALL_TEXT_FX,
             is_web_engine_available,
         )
+        from core.web_generative_engine import ZERO_TEMPLATE_50_ARCHETYPES
         from core.mesh_shader_engine import ALL_3D_MESHES
         from core.svg_engine import HAS_RESVG, ICON_ALIASES
         if "pw_web_ok" not in st.session_state:
             st.session_state["pw_web_ok"] = bool(is_web_engine_available())
         _pw_ok = bool(st.session_state["pw_web_ok"])
         _layout_cnt = len(ALL_STUDIO_LAYOUTS)
+        _opt1_cnt = len(ZERO_TEMPLATE_50_ARCHETYPES)
         _shape_cnt = len(ALL_145_SHAPES)
         _mesh_cnt = len(ALL_3D_MESHES)
         _glyph_cnt = len(VECTOR_GLYPHS)
@@ -448,12 +454,12 @@ with st.sidebar:
         pass
 
     st.success("🟢 Gemini 3.1 / 3 Flash AI Director: Ready")
-    st.success("🟢 Edge-TTS (Hindi/Hinglish) + ElevenLabs: Ready")
+    st.success("🟢 Edge-TTS (Hindi/Hinglish Dual) + ElevenLabs: Ready")
     st.success("🟢 Groq Whisper Large v3 Alignment: Ready")
     if _layout_cnt > 0:
         st.success(
-            f"🟢 Studio Max 3D Engine: {_layout_cnt} Layouts + Grammar | "
-            f"{_shape_cnt} 3D Shapes + {_mesh_cnt} Meshes | {_glyph_cnt} Glyphs"
+            f"🟢 Omni Studio Max Engine: {_layout_cnt + _opt1_cnt} Total Visuals "
+            f"({_layout_cnt} PIL + {_opt1_cnt} WebGL/SVG) | {_shape_cnt} 3D Shapes + {_mesh_cnt} Meshes"
         )
         st.success(
             f"🟢 Scene FX Matrix: {_bd_cnt} Backdrops · {_tr_cnt} Transitions · "
@@ -474,9 +480,9 @@ with st.sidebar:
 
 # Main Header
 _subtitle_text = (
-    f"Zero-Limit Dual Generative 3D &amp; Vector Studio — "
-    f"{_layout_cnt} Layouts + Diagram Grammar, {_shape_cnt} 3D Shapes + {_mesh_cnt} Meshes, "
-    f"200k+ 3D-Extruded SVGs &amp; Playwright WebGL."
+    f"Omni Smart Director &amp; Dual Generative Studio — "
+    f"{_layout_cnt + _opt1_cnt} Total Visuals ({_layout_cnt} Domain/Grammar + {_opt1_cnt} WebGL/SVG), "
+    f"{_shape_cnt} 3D Shapes + {_mesh_cnt} Meshes, Dual Hinglish Voice &amp; Interactive FX."
     if _layout_cnt > 0
     else "Zero-Limit Dual Generative 3D &amp; Vector Studio — Human Cadence, Karaoke Sync."
 )
@@ -657,6 +663,20 @@ with tab_create:
                 visual_history=st.session_state["visual_gen_history"],
             )
             
+            with st.expander("🧠 Scene-by-Scene Best Engine & Layout Selection", expanded=True):
+                _route_rows = []
+                for _sc in timeline.get("scenes", []):
+                    _vd = _sc.get("visual_data") or {}
+                    _route_rows.append({
+                        "Scene": f"Scene {_sc.get('scene_id', '?')} ({_sc.get('role', 'content')})",
+                        "Selected Engine": _sc.get("routed_engine") or visual_engine[1].split("(")[0].strip(),
+                        "Layout / Mode": _vd.get("option1_archetype") or _sc.get("visual_type", "custom_scene"),
+                        "Theme World": timeline.get("art_style", "sapphire_3d"),
+                        "Backdrop / FX": f"{_sc.get('backdrop', 'auto')} • {_sc.get('transition', 'auto')}",
+                    })
+                if _route_rows:
+                    st.dataframe(_route_rows, use_container_width=True, hide_index=True)
+
             with st.expander("📄 View Raw AI Director Blueprint (JSON)", expanded=False):
                 st.json(timeline)
 
