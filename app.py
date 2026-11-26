@@ -255,14 +255,15 @@ with st.sidebar:
     )
     
     duration_option = st.selectbox(
-        "Video Duration & Depth (No 60s Limit)",
+        "Video Duration & Depth (Zero Scene Limit • AI Decides)",
         [
-            ("auto", "⚡ Dynamic / Auto (Based on topic depth) [Recommended]"),
-            ("short", "⏱️ Quick Explainer (~30-45 sec)"),
-            ("standard", "🎬 Standard Explainer (~60 sec)"),
-            ("deep_dive", "🧠 Deep-Dive Architecture (~90-180+ sec)")
+            ("auto", "⚡ Dynamic / Auto (AI Decides Length & Scenes • No Limit) [Recommended]"),
+            ("short", "⏱️ Quick Pacing (~30-45 sec • AI Decides Scenes)"),
+            ("standard", "🎬 Standard Pacing (~60-90 sec • AI Decides Scenes)"),
+            ("deep_dive", "🧠 Deep-Dive Architecture (~90-240+ sec • AI Decides Scenes)")
         ],
-        format_func=lambda x: x[1]
+        format_func=lambda x: x[1],
+        help="ZERO artificial scene count cap in ANY mode! Dropdown guides target runtime pacing only — AI autonomously decides exact scenes needed based on topic depth."
     )
     
     st.markdown("---")

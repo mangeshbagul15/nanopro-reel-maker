@@ -180,12 +180,10 @@ CRITICAL DIRECTING PRINCIPLES:
    - Provide **4 to 5 exact chronological `choreography.triggers`** keywords (from start, middle, deep-detail, and closing clauses of `narration`) so every box, label, text, and connector link appears progressively RIGHT AS THE NARRATOR SPEAKS IT — never everything all at once!
    - Never output generic placeholder text (e.g., "Client Ingestion", "Block #101", "Pipeline logic"). Use REAL service names, SQL queries, commands, latency numbers, and real architectural internals.
 
-2. DURATION & SCENE FLOW (TRUE TOPIC-ADAPTIVE — ZERO FIXED 5-SCENE LIMIT):
-   - Decide scene count naturally from topic complexity — NEVER pad or squeeze to a fixed number:
-   - Focused concept / quick comparison / single mechanism: 3 scenes.
-   - Standard architecture / dual workflow: 4 to 5 scenes.
-   - Complex multi-tier / distributed / end-to-end project: 6 to 8 scenes.
-   - Each scene should have a clear purpose: Hook / Problem -> Architecture / System Design -> Internal Mechanism / Code / Data Flow -> Resolution / Trade-offs / Takeaway.
+2. DURATION & SCENE FLOW (TRUE TOPIC-ADAPTIVE — ZERO SCENE LIMIT):
+   - Choose BOTH exact scene count AND runtime purely from the topic's depth and natural structure — NO artificial min/max scene cap (`3`, `5`, `9`, `12+`, or however many scenes explain the topic cleanly without rushing or filler).
+   - Every distinct architectural tier, failure mode, code/SQL trace, trade-off, or execution step earns its own dedicated scene.
+   - Flow naturally across Hook / Myth / Outage -> Architecture / System Design -> Internal Mechanism / Code / Data Flow -> Trade-offs / Recovery / Verdict.
 
 3. CONVERSATIONAL HIGH-OCTANE NARRATION:
    - Explain like a staff engineer explaining a real production architecture over coffee.
@@ -402,7 +400,7 @@ Output a single valid JSON object matching this structure:
   "title": "Topic Title",
   "topic_category": "cloud / database / programming / system_design / security / ai",
   "art_style": "editorial_dark / blueprint_grid / light_whiteboard / neon_fireship",
-  "total_target_seconds": 60,
+  "total_target_seconds": 75,
   "scenes": [
     {
       "scene_id": 1,
@@ -682,16 +680,15 @@ def generate_timeline(
             "LANGUAGE & DIALECT MANDATE: Write in natural, high-octane 2026 conversational tech English (Fireship / ByteByteGo / Theo style)."
         )
 
-    # 2. Duration & Depth guidance
+    # 2. Duration & Depth guidance (NO Scene Count Caps — AI chooses scenes freely in ALL modes)
     duration_instructions = {
         "auto": (
-            "TRUE TOPIC-ADAPTIVE SCENE COUNT (choose exact scene count from topic depth, NEVER force 5 scenes): "
-            "focused single mechanism/comparison -> 3 scenes; standard workflow -> 4 to 5 scenes; "
-            "deep distributed/end-to-end architecture -> 6 to 8 scenes."
+            "TRUE TOPIC-ADAPTIVE DEPTH & SCENE COUNT (ZERO SCENE LIMIT — AI DECIDES FREELY): "
+            "Choose whatever scene count and duration fit the topic complexity naturally (whether 3 crisp scenes, 7 architectural stages, or 12+ deep technical scenes — ZERO upper/lower scene cap, never pad or compress artificially)."
         ),
-        "short": "Quick, punchy overview (EXACTLY 3 scenes, ~30-45 seconds). High-impact summary.",
-        "standard": "Standard explainer (4 to 5 scenes, ~60 seconds). Balanced walkthrough.",
-        "deep_dive": "Comprehensive in-depth breakdown (6 to 8 scenes, 90 to 180+ seconds). Detail every pipeline stage, internal buffer, and real implementation commands."
+        "short": "Target Pacing: Quick Explainer (~30-45 sec runtime target). NO fixed scene cap — AI decides the ideal number of tight rapid scenes naturally without fluff.",
+        "standard": "Target Pacing: Standard Explainer (~60-90 sec runtime target). NO fixed scene cap — AI autonomously decides exact scene count based on topic layers & clarity.",
+        "deep_dive": "Target Pacing: Comprehensive Deep-Dive (~90-240+ sec runtime target). NO fixed scene cap — generate as many sequential scenes as needed to thoroughly cover every pipeline stage, internal buffer, code/SQL trace, failure mode, and recovery path."
     }
     dur_guidance = duration_instructions.get(duration_mode, duration_instructions["auto"])
 
@@ -2343,8 +2340,6 @@ def _build_emergency_fallback_timeline(
                 },
             },
         ]
-        if duration_mode == "short":
-            dual_scenes = dual_scenes[:3]
         return {
             "title": clean_topic,
             "topic_category": "system_design",
@@ -2446,8 +2441,6 @@ def _build_emergency_fallback_timeline(
             },
         },
     ]
-    if duration_mode == "short":
-        scenes = scenes[:3]
     return {
         "title": clean_topic,
         "topic_category": "system_design",

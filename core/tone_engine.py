@@ -395,6 +395,7 @@ def collect_sfx_timeline(
             elif verb in ("filter_gate", "travel_token", "slot_reorder"):
                 _add(act_t, "pop_snap", 0.16)
 
-    # Sort chronologically and enforce clean upper cap
+    # Sort chronologically and scale clean upper cap smoothly for multi-scene deep dives
     events.sort(key=lambda e: e["time"])
-    return events[:12]
+    max_sfx = min(24, max(12, len(aligned_scenes) * 2))
+    return events[:max_sfx]
