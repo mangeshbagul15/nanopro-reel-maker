@@ -1275,84 +1275,109 @@ def _route_omni_best_scene(
     used_vtypes: set,
     recent_vtypes: set,
     v_data: Dict[str, Any],
+    used_geometries: Optional[set] = None,
 ) -> Tuple[str, str]:
     """
-    Semantic per-scene Best-Engine Router for `omni_smart_director`:
-    Inspects scene role, narration/dialogue text, visual_data signals, and topic keywords
-    to pick the single most fitting specialist engine + layout without repeating across scenes.
+    Omni Smart Director v2 — Full-Vault 6-Geometry Semantic Router across 1,179 visual layouts:
+    Ensures every scene uses a genuinely distinct visual silhouette (UI/Hook -> Domain Topology ->
+    Flow/Sequence/Chart/SQL -> Code Diff/Memory/Telemetry/SVG -> Geometric Grammar/Comparison ->
+    Option 1 Interactive 3D WebGL) while exploiting all 18 engineering domains & 158 grammars.
     Returns `(chosen_visual_type, human_readable_routed_engine_label)`.
     """
     narr_l = str(sc.get("narration") or "").lower()
     role_l = str(sc.get("role") or "").lower()
     cur_v = str(sc.get("visual_type") or "").lower().strip()
     ctx_l = f"{topic.lower()} {narr_l} {str(v_data.get('title') or '').lower()}"
+    geoms = used_geometries if used_geometries is not None else set()
 
     def _pick_fresh(pool: Tuple[str, ...]) -> str:
         cands = [x for x in pool if x not in used_vtypes and x not in recent_vtypes]
         if not cands:
             cands = [x for x in pool if x not in used_vtypes] or list(pool)
-        return cands[(run_num * 3 + idx * 5) % len(cands)]
+        return cands[(run_num * 5 + idx * 7 + abs(hash(ctx_l[:32]))) % len(cands)]
 
     def _has_kw(txt: str, *kws: str) -> bool:
         return any(re.search(rf"\b{re.escape(kw)}\b", txt) for kw in kws)
 
-    # 1. Hook Scene ALWAYS leads with Hook / Q&A before keyword rules can hijack it
+    # 1. Scene 1 (Hook): Rotate distinct visual hook geometries (UI Chat, Radar Alert, Triangle, Browser/Mobile Mockup, Hero)
     if idx == 0 or role_l == "hook":
+        geoms.add("hook_ui")
         if tone == "dual_dialogue_curious":
-            v = _pick_fresh(("chat_thread_ai", "hero_hook", "iso_comparison", "kinetic_statement"))
-            return v, "Interactive Q&A & Curious Hook"
-        v = _pick_fresh(("hero_hook", "kinetic_statement", "chat_thread_ai", "custom_scene"))
-        return v, "Kinetic Hook & Storyboard"
+            v = _pick_fresh(("chat_thread_ai", "browser_window", "hero_hook", "mobile_app_mockup", "iso_comparison"))
+            return v, "Interactive Q&A UI & Hook"
+        v = _pick_fresh(("incident_radar", "cap_theorem_triangle", "browser_window", "dora_metrics_four_keys", "mobile_app_mockup", "hero_hook"))
+        return v, "Kinetic Visual Hook & Radar"
 
-    # 2. Explicit SQL / Code / Benchmark / Memory / Trade-Off / Incident semantic detection (word-boundary safe!)
+    # 2. Explicit SQL / Dataset scene (rotate rich SQL & Schema visualizers)
     if v_data.get("table_data") or _has_kw(narr_l, "sql", "select", "dense_rank", "window function", "group by", "query plan"):
-        v = _pick_fresh(("sql_table", "sql_studio", "er_schema"))
-        return v, "SQL Studio & Dataset Execution"
+        geoms.add("sql_schema")
+        v = _pick_fresh(("sql_studio", "sql_window_partition", "er_schema", "sql_table", "explain_plan_viewer"))
+        return v, "SQL Studio & Query Schema"
 
+    # 3. Explicit Benchmark / Latency / Speedup (mix 3D Bars, Radial Gauges, CDF Curves, Pareto, Heatmaps)
     if v_data.get("bars") or role_l in ("benchmark", "metrics") or _has_kw(narr_l, "benchmark", "speedup", "10x", "15x", "p99", "throughput", "latency drops", "ms lag"):
-        v = _pick_fresh(("benchmark_3d", "benchmark_chart", "metric_gauge_hud", "radial_gauge"))
-        return v, "Performance Benchmark & Telemetry HUD"
+        geoms.add("charts_metrics")
+        v = _pick_fresh(("benchmark_3d", "radial_gauge", "p99_tail_cdf_curve", "slo_burn_rate_gauge", "donut_3d", "radar_spider", "benchmark_chart"))
+        return v, "Benchmark Charts & Telemetry"
 
+    # 4. Explicit Code / CLI / Implementation (prefer rich split diffs + terminal studios)
     if v_data.get("code_snippet") or v_data.get("command") or _has_kw(narr_l, "terminal", "cli", "command", "kubectl", "docker", "python", "async def", "bash", "curl", "lua"):
-        v = _pick_fresh(("code_terminal", "terminal_studio", "code_diff_split"))
-        return v, "Terminal & Code Screencast"
+        geoms.add("code_diff")
+        v = _pick_fresh(("code_diff_split", "diff_mutex_to_atomic", "code_terminal", "diff_n_plus_one_fix", "terminal_studio"))
+        return v, "Code Diff & Terminal Studio"
 
+    # 5. Memory / WAL / Cache / Storage Internals
     if v_data.get("entries") or _has_kw(narr_l, "wal", "write-ahead", "buffer pool", "lsn", "ring buffer", "slab", "page cache"):
-        v = _pick_fresh(("data_structure_memory", "write_ahead_log_wal", "memory_wal_checkpoint", "lru_cache_eviction", "b_plus_tree_pages"))
+        geoms.add("memory_slots")
+        v = _pick_fresh(("memory_wal_checkpoint", "memory_ring_buffer", "b_plus_tree_pages", "memory_lsm_memtable", "write_ahead_log_wal"))
         return v, "Memory Internals & WAL Slots"
 
+    # 6. Trade-offs / Comparisons -> Alternate 3D Iso vs Venn vs Grammar Quadrant / Dual Matrix
     if (v_data.get("left_points") and v_data.get("right_points")) or role_l in ("tradeoff", "comparison") or _has_kw(narr_l, "trade-off", "tradeoff", "legacy", "versus", "vs", "compare", "guardrail", "catch hai", "farq"):
-        v = _pick_fresh(("split_comparison", "iso_comparison", "hybrid_merge", "grammar:quadrant:2x2"))
-        return v, "Split Trade-Off Comparison"
+        geoms.add("compare_matrix")
+        v = _pick_fresh(("iso_comparison", "venn_overlap", "grammar:quadrant:2x2", "compare_sync_vs_async", "compare_b_tree_vs_lsm", "split_comparison"))
+        return v, "Architectural Trade-Off Matrix"
 
+    # 7. Alerts / Incidents
     if v_data.get("alerts") or _has_kw(narr_l, "outage", "crash", "deadlock", "lock contention", "oom", "failover", "incident", "spike", "choke"):
-        v = _pick_fresh(("alert_diagram", "circuit_breaker_states", "chaos_monkey_fault_inj", "topo_chaos_mesh_blast_radius"))
-        return v, "Incident Alert & Resilience Radar"
+        if "alert_radar" not in geoms:
+            geoms.add("alert_radar")
+            v = _pick_fresh(("circuit_breaker_states", "incident_thundering_herd", "incident_connection_exhaust", "chaos_monkey_fault_inj", "alert_diagram"))
+            return v, "Resilience & Fault Radar"
 
-    # 3. Final Summary / Key Takeaways / CTA Scene
+    # 8. Scene 2 / Architecture -> Deep 18-Domain + IT/SDLC + 30 Dual-Plane Topologies
+    if "topology" not in geoms and (idx == 1 or role_l in ("architecture", "system", "flow", "mechanics")):
+        geoms.add("topology")
+        if _has_kw(ctx_l, "kafka", "cdc", "debezium", "flink", "spark", "lakehouse", "iceberg", "dbt", "etl", "elt", "clickhouse", "stream", "streaming"):
+            v = _pick_fresh(("cdc_debezium_flow", "medallion_lakehouse", "topo_flink_cep_iceberg_lake", "topo_kafka_isr_quorum_dlq", "topo_outbox_debezium_snowflake", "flink_watermarks_window"))
+            return v, "Data & Streaming Dual-Plane"
+        if _has_kw(ctx_l, "rag", "llm", "agent", "agents", "mcp", "embedding", "vector", "tokenization", "transformer", "attention", "kv cache", "ai"):
+            v = _pick_fresh(("transformer_self_attn", "rag_chunk_overlap_pipe", "topo_rag_hybrid_rerank", "topo_agent_mcp_tool_sandbox", "hnsw_vector_graph", "mcp_client_host_server"))
+            return v, "AI / LLM & RAG Architecture"
+        if _has_kw(ctx_l, "raft", "paxos", "quorum", "consistent hashing", "shard", "sharding", "vitess", "saga", "redis", "lock", "distributed", "microservice", "kubernetes", "k8s", "envoy", "grpc", "rate limiter", "token bucket", "fencing"):
+            v = _pick_fresh(("topo_sharded_vitess_vtgate", "consistent_hashing_ring", "raft_leader_election", "topo_redis_cluster_sentinel", "rate_limiter_token_bucket", "topo_saga_choreo_compensate"))
+            return v, "Distributed Systems Topology"
+        if _has_kw(ctx_l, "network", "dns", "http", "quic", "tls", "mtls", "vpc", "cdn", "firewall", "zero trust", "security", "oauth", "jwt"):
+            v = _pick_fresh(("osi_7_layers", "quic_http3_0rtt", "topo_zero_trust_spiffe_mtls", "topo_cdn_edge_origin_shield", "vpc_subnet_topology", "oauth_pkce_jwks_rotator"))
+            return v, "Networking & Zero-Trust Infra"
+        v = _pick_fresh(("all_in_one_tech_canvas", "topo_ingress_mesh_wal", "service_mesh_envoy_proxy", "k8s_pod_scheduling", "iso_observability_mesh", "iso_event_backbone"))
+        return v, "3D System Topology"
+
+    # 9. Geometric Grammar / Interactive Diagram / Pro 3D Chart Variety for middle & closing scenes
     if idx == total_scenes - 1 or role_l in ("cta", "summary", "takeaway", "checklist"):
-        v = _pick_fresh(("concept_cards", "checklist_prod_readiness", "grammar:bento:5", "step_timeline", "kanban_board"))
-        return v, "Keynote Takeaways & Interactive Bento"
+        geoms.add("grammar_summary")
+        v = _pick_fresh(("grammar:pyramid:4", "grammar:ring:6", "checklist_prod_readiness", "sdlc_cycle_wheel", "roadmap_zero_to_billion", "grammar:funnel:4"))
+        return v, "Geometric Summary & Checklist"
 
-    # 4. Middle Architecture / Mechanics Scenes -> Domain-Matched Topologies + Diagrams (word-boundary safe!)
-    if _has_kw(ctx_l, "kafka", "cdc", "debezium", "flink", "spark", "lakehouse", "iceberg", "dbt", "etl", "elt", "clickhouse", "stream", "streaming"):
-        v = _pick_fresh(("cdc_debezium_flow", "medallion_lakehouse", "topo_flink_cep_iceberg_lake", "topo_kafka_isr_quorum_dlq", "topo_outbox_debezium_snowflake", "etl_elt_pipeline"))
-        return v, "Data & Event Streaming Topology"
+    # Pick an unseen geometric family (Cycle -> Sankey/Radar/Sequence -> Mesh3D -> Grammar Funnel/Chevron/Swimlane)
+    if "diagram_viz" not in geoms:
+        geoms.add("diagram_viz")
+        v = _pick_fresh(("sequence_diagram", "sankey_flow", "radar_spider", "mesh_3d_stage", "donut_3d", "neural_net_layers", "attention_heatmap", "circular_hub_mesh", "git_branch_tree"))
+        return v, "Interactive Diagram & 3D Mesh"
 
-    if _has_kw(ctx_l, "rag", "llm", "agent", "agents", "mcp", "embedding", "vector", "tokenization", "transformer", "attention", "kv cache", "ai"):
-        v = _pick_fresh(("rag_chunk_overlap_pipe", "topo_rag_hybrid_rerank", "topo_agent_mcp_tool_sandbox", "mcp_client_host_server", "transformer_self_attn", "agent_react_tool_loop"))
-        return v, "AI / LLM & RAG Pipeline"
-
-    if _has_kw(ctx_l, "raft", "paxos", "quorum", "consistent hashing", "shard", "sharding", "vitess", "saga", "redis", "lock", "distributed", "microservice", "kubernetes", "k8s", "envoy", "grpc", "rate limiter", "token bucket", "fencing"):
-        v = _pick_fresh(("raft_leader_election", "consistent_hashing_ring", "topo_redis_cluster_sentinel", "topo_sharded_vitess_vtgate", "topo_saga_choreo_compensate", "rate_limiter_token_bucket", "sequence_diagram"))
-        return v, "Distributed Systems & Consensus"
-
-    # General Multi-Topology / All-in-One Fallback with maximum variety
-    if cur_v and cur_v not in used_vtypes and cur_v not in recent_vtypes and cur_v not in ("custom_scene",):
-        return cur_v, "AI Domain Layout & Interactive FX"
-
-    v = _pick_fresh(("all_in_one_tech_canvas", "topo_ingress_mesh_wal", "architecture_flow", "sequence_diagram", "circular_hub_mesh", "multi_topology_dual", "sankey_flow", "grammar:flow:5"))
-    return v, "Multi-Topology System Architecture"
+    geoms.add("grammar_geom")
+    v = _pick_fresh(("grammar:chevron:5", "grammar:swimlane:3", "grammar:waterfall:5", "grammar:funnel:4", "grammar:pyramid:4", "grammar:ring:5", "grammar:ladder:4"))
+    return v, "Composable Diagram Grammar"
 
 
 def _extract_crisp_beat_label(clause: str, fallback_idx: int) -> str:
@@ -1502,6 +1527,12 @@ def _enforce_engine_style(
     role_tone_defaults = ["fireship_octane", "staff_engineer", "dramatic_performance", "interview_prep", "conversational_casual"]
     used_vtypes: set = set()
     used_bds_local: set = set()
+    used_geoms_local: set = set()
+    # Omni Smart Director: Curated Multi-World Cinema Cadence (contrasting dark/light worlds across scenes unless single-world forced)
+    _OMNI_WORLD_CADENCE = (
+        "obsidian_studio", "sapphire_3d", "slate_ivory", "midnight_gold", "emerald_matrix", "aurora_borealis"
+    )
+    multi_world_omni = (engine_style == "omni_smart_director") and bool(timeline.get("multi_world", True))
     for idx, sc in enumerate(scenes):
         if tone != "auto_dynamic":
             sc["scene_tone"] = tone
@@ -1509,7 +1540,12 @@ def _enforce_engine_style(
             sc["scene_tone"] = role_tone_defaults[idx % len(role_tone_defaults)]
 
         v_data = sc.get("visual_data", {})
-        v_data["art_style"] = topic_art_style
+        if multi_world_omni:
+            sc_world = _OMNI_WORLD_CADENCE[(idx + run_num) % len(_OMNI_WORLD_CADENCE)]
+            sc["art_style"] = sc_world
+            v_data["art_style"] = sc_world
+        else:
+            v_data["art_style"] = topic_art_style
         if engine_style in _STUDIO_SET and ALL_BACKDROPS:
             cur_bd = str(v_data.get("backdrop") or sc.get("backdrop") or "").lower().strip()
             if is_diverse_engine and (not cur_bd or cur_bd in recent_bds or cur_bd in used_bds_local):
@@ -1609,7 +1645,7 @@ def _enforce_engine_style(
         }
         if engine_style == "omni_smart_director":
             routed_v, routed_lbl = _route_omni_best_scene(
-                sc, idx, len(scenes), topic, tone, run_num, used_vtypes, recent_vtypes, v_data
+                sc, idx, len(scenes), topic, tone, run_num, used_vtypes, recent_vtypes, v_data, used_geometries=used_geoms_local
             )
             current_vtype = routed_v
             sc["visual_type"] = routed_v
@@ -1681,7 +1717,7 @@ def _enforce_engine_style(
         v_data["title"] = title
         v_data["badge"] = badge
 
-        if current_vtype in ("code_terminal", "terminal_studio", "code_diff_split", "api_request_response"):
+        if current_vtype in ("code_terminal", "terminal_studio", "code_diff_split", "diff_mutex_to_atomic", "diff_n_plus_one_fix", "api_request_response"):
             if not v_data.get("code_snippet") and not v_data.get("command"):
                 v_data["command"] = f"python -m engine --run {topic.lower().replace(' ', '_')[:16]}"
                 v_data["code_snippet"] = (
@@ -1691,8 +1727,13 @@ def _enforce_engine_style(
                     f"    res = cluster.replicate(ctx)\n"
                     f"    return {{'status': 200, 'synced': True}}"
                 )
+            if current_vtype in ("code_diff_split", "diff_mutex_to_atomic", "diff_n_plus_one_fix"):
+                v_data.setdefault("left_label", "NAIVE / BLOCKING")
+                v_data.setdefault("right_label", "LOCK-FREE / OPTIMIZED")
+                v_data.setdefault("left_code", "with db.lock():\n    rows = fetch_all()\n    wait_sync(rows)")
+                v_data.setdefault("right_code", "async with pipeline.batch() as b:\n    await b.stream_wal()\n    return {'lag_ms': 2}")
 
-        elif current_vtype in ("sql_table", "sql_studio", "star_snowflake_schema"):
+        elif current_vtype in ("sql_table", "sql_studio", "sql_window_partition", "explain_plan_viewer", "star_snowflake_schema"):
             if not v_data.get("code_snippet"):
                 tbl_name = topic.lower().replace(" ", "_")[:12]
                 v_data["code_snippet"] = f"SELECT emp_id, salary, DENSE_RANK() OVER (ORDER BY salary DESC) FROM {tbl_name};"
@@ -1899,18 +1940,20 @@ def _enforce_engine_style(
             used_vtypes.add(current_vtype)
             used_vtypes.add(chosen_opt1)
         elif engine_style == "omni_smart_director" and idx == len(scenes) - 1 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-            # In Omni Smart Director, preserve specialized topologies/SQL/Terminal on content scenes and showcase full WebGL Option 1 (`web_*`) cleanly on closing scene when available
-            web_pool = [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a.startswith("web_") and a not in recent_vtypes] or [a for a in ZERO_TEMPLATE_50_ARCHETYPES if a.startswith("web_")]
-            if web_pool:
-                w_pick = web_pool[(run_num * 3 + idx) % len(web_pool)]
-                v_data.setdefault("_intent", current_vtype)
-                v_data.setdefault("option1_archetype", w_pick)
-                sc["visual_type"] = "web_scene"
-                sc["routed_engine"] = "Option 1 WebGL / HTML5 Showcase"
-                v_data["routed_engine"] = sc["routed_engine"]
-                used_vtypes.add(w_pick)
-            else:
-                used_vtypes.add(sc["visual_type"])
+            # Showcase full-diversity Option 1 WebGL/SVG archetypes (Icosahedron 3D Hub, Speedometer Telemetry, Orbital Rings, Constellation, Waterfall, Pyramid) — never boring matrix_grid!
+            _SHOWCASE_OPT1_POOL = (
+                "web_neural_synapse", "web_cloud_circuit", "web_slo_burn_speedometer",
+                "spatial_orbit_carousel", "svg_gossip_epidemic_net", "svg_ecdh_key_exchange",
+                "svg_hnsw_skip_layers", "web_kafka_partition_lag", "spatial_constellation",
+            )
+            web_pool = [a for a in _SHOWCASE_OPT1_POOL if a not in recent_vtypes] or list(_SHOWCASE_OPT1_POOL)
+            w_pick = web_pool[(run_num * 3 + idx) % len(web_pool)]
+            v_data.setdefault("_intent", current_vtype)
+            v_data.setdefault("option1_archetype", w_pick)
+            sc["visual_type"] = "web_scene"
+            sc["routed_engine"] = "Option 1 Interactive 3D WebGL"
+            v_data["routed_engine"] = sc["routed_engine"]
+            used_vtypes.add(w_pick)
         else:
             used_vtypes.add(sc["visual_type"])
 

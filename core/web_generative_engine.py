@@ -806,9 +806,14 @@ function renderArchetype(){{
     ft.innerHTML=`<div style="font-size:23px;color:${{PAL.emerald}};font-weight:900;">${{ftSummary}}</div>`;
     mount.appendChild(ft);
   }}
-  // Ensure every Option 1 scene also renders a sequential Voice-Synced Multi-Label Highlight Grid when voice_beats exist
+  // Only append compact Voice-Synced Breakdown grid when primary archetype has <=2 cards and is not already a full-stage diagram/chart/mesh
   window.__beatNodes=[];
-  if(Array.isArray(P.voice_beats)&&P.voice_beats.length>=3&&!['pipeline_3d','bento_layers'].includes(P.archetype)){{
+  const _NO_EXTRA_GRID = new Set([
+    'pipeline_3d','bento_layers','matrix_grid','hub_mesh','spatial_constellation',
+    'dual_topology','telemetry','svg_rings','svg_sequence','svg_blueprint',
+    'pyramid_tiers','waterfall_spans','flame_bars','fsm_cycle','split_vs','alert_radar','benchmark'
+  ]);
+  if(Array.isArray(P.voice_beats)&&P.voice_beats.length>=3&&!_NO_EXTRA_GRID.has(P.archetype)&&animNodes.length<=2){{
     const wrap=document.createElement('div');
     wrap.id='voiceBeatsGrid';
     wrap.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px;';

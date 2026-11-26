@@ -2823,6 +2823,20 @@ def _needs_companion_strip(
     topic: str = "",
 ) -> bool:
     """Probes at progress=0.85 (once per layout+content shape) so the companion grid never flickers mid-scene."""
+    # Specialized diagrams, 3D meshes, charts, UI mockups, and geometric grammars keep pure silhouette without extra bottom 2x2 grid
+    l_low = str(layout or "").lower()
+    _PURE_GEOM = (
+        "mesh_3d_stage", "atom_orbit_3d", "dna_helix_3d", "radar_spider", "donut_3d",
+        "sankey_flow", "neural_net_layers", "attention_heatmap", "heatmap_matrix",
+        "confusion_matrix", "candlestick_pro", "line_area_chart", "sequence_diagram",
+        "er_schema", "sdlc_cycle_wheel", "circular_hub_mesh", "mobile_app_mockup",
+        "browser_window", "chat_thread_ai", "kanban_board", "pricing_tiers",
+        "code_diff_split", "diff_n_plus_one_fix", "diff_mutex_to_atomic",
+        "p99_tail_cdf_curve", "box_whisker_latency", "pareto_frontier_plot",
+        "all_in_one_tech_canvas", "benchmark_3d", "benchmark_chart", "radial_gauge",
+    )
+    if l_low in _PURE_GEOM or any(l_low.startswith(p) for p in ("grammar:pyramid", "grammar:funnel", "grammar:ring", "grammar:quadrant", "grammar:chevron", "grammar:swimlane", "grammar:bento")):
+        return False
     shape_sig = (
         f"{layout}|{len(data.get('nodes') or [])}|{len(data.get('steps') or [])}"
         f"|{len(data.get('items') or [])}|{len(data.get('bullets') or [])}"

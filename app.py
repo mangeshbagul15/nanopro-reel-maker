@@ -290,13 +290,24 @@ with st.sidebar:
         help="Auto Omni blends Hook/Q&A, Streaming/Consensus/RAG Topologies, SQL/Terminal Proof, Benchmarks, WebGL/SVG & Interactive FX per scene inside 1 consistent color world. Or switch to Pin Single Specialist Engine to force one specific visual style.",
     )
     if visual_engine_mode.startswith("🧠"):
-        visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All Engines Unified • Best-Per-Scene Auto-Router)")
+        visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All 1,179 Layouts • 6-Geometry Cinema)")
+        omni_color_flow = st.radio(
+            "Omni Scene Color Cadence",
+            [
+                "🌈 Dynamic Multi-World Contrast (Shift Dark/Light Mood Per Scene) [Recommended]",
+                "🎨 Locked Single Color World (1 Harmonious Palette Across Video)",
+            ],
+            index=0,
+            key="omni_color_flow_radio",
+        )
         st.info(
-            "**Auto-Active Pillars (1 Locked Color World):**\n"
-            "• **Hook/Q&A** · **Topologies** · **SQL/CLI** · **Trade-Offs & Benchmarks** · **Option 1 WebGL/SVG + FX**",
+            "**6 Distinct Visual Geometries Per Video (Zero Repeat):**\n"
+            "1. **Hook/UI/Radar** · 2. **18-Domain Topology** · 3. **Sequence/Sankey/Radar/SQL** · "
+            "4. **Code Diff/Gauge/WAL** · 5. **Pyramid/Funnel/Ring Grammar** · 6. **3D WebGL/SVG Finale**",
             icon="🧠",
         )
     else:
+        omni_color_flow = "🎨 Locked Single Color World"
         visual_engine = st.selectbox(
             "Specialist Visual Engine (24 Modes)",
             [
@@ -683,12 +694,16 @@ with tab_create:
             with st.expander("🧠 Scene-by-Scene Best Engine & Layout Selection", expanded=True):
                 _route_rows = []
                 for _sc in timeline.get("scenes", []):
+                    if visual_engine[0] == "omni_smart_director" and "Locked Single" in str(omni_color_flow):
+                        _locked_w = timeline.get("art_style", "sapphire_3d")
+                        _sc["art_style"] = _locked_w
+                        _sc.setdefault("visual_data", {})["art_style"] = _locked_w
                     _vd = _sc.get("visual_data") or {}
                     _route_rows.append({
                         "Scene": f"Scene {_sc.get('scene_id', '?')} ({_sc.get('role', 'content')})",
                         "Selected Engine": _sc.get("routed_engine") or visual_engine[1].split("(")[0].strip(),
                         "Layout / Mode": _vd.get("option1_archetype") or _sc.get("visual_type", "custom_scene"),
-                        "Theme World": timeline.get("art_style", "sapphire_3d"),
+                        "Theme World": _sc.get("art_style") or timeline.get("art_style", "sapphire_3d"),
                         "Backdrop / FX": f"{_sc.get('backdrop', 'auto')} • {_sc.get('transition', 'auto')}",
                     })
                 if _route_rows:
