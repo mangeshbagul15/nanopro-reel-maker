@@ -32,7 +32,18 @@ _QUERY_EXPANSIONS: Dict[str, Tuple[str, ...]] = {
     "lakehouse": ("medallion", "iceberg", "delta", "parquet", "lake", "warehouse", "acid"),
     "warehouse": ("olap", "snowflake", "star", "bigquery", "redshift", "cluster", "bi"),
     "lake": ("medallion", "iceberg", "delta", "parquet", "storage", "object"),
-    "spark": ("parquet", "iceberg", "delta", "lakehouse", "etl", "shuffle", "cluster"),
+    "snowflake": ("snowflake", "partition", "pruning", "warehouse", "olap", "star", "bigquery", "cluster", "bi"),
+    "spark": ("parquet", "iceberg", "delta", "lakehouse", "etl", "shuffle", "cluster", "notebook"),
+    "aws": ("aws", "vpc", "eks", "s3", "redshift", "alb", "privatelink", "cloud", "infra", "zone"),
+    "azure": ("azure", "aks", "synapse", "adls", "vnet", "front", "cloud", "infra", "zone"),
+    "bank": ("banking", "bank", "core", "cbs", "hsm", "pin", "aml", "fraud", "ledger", "upi", "swift", "failover", "dr", "vault"),
+    "banking": ("bank", "core", "cbs", "hsm", "pin", "aml", "fraud", "ledger", "upi", "swift", "failover", "dr"),
+    "python": ("python", "stack", "heap", "refcount", "gil", "gc", "asyncio", "event", "loop", "notebook", "pandas"),
+    "pandas": ("pandas", "numpy", "notebook", "duckdb", "dataframe", "analytics", "cell"),
+    "pytorch": ("pytorch", "neural", "backprop", "convolution", "tensor", "vector", "mlops", "deep", "learning"),
+    "ml": ("pytorch", "neural", "backprop", "convolution", "vector", "embedding", "model"),
+    "join": ("sql", "join", "venn", "rows", "table", "inner", "left", "merge"),
+    "networking": ("tcp", "bitfield", "packet", "geo", "arcs", "bgp", "dns", "vpc", "waf", "mtls"),
     "dbt": ("etl", "elt", "warehouse", "lineage", "quality", "medallion"),
     "kafka": ("cdc", "debezium", "isr", "dlq", "consumer", "partition", "event", "backbone", "stream"),
     "flink": ("watermark", "cep", "window", "stream", "event", "iceberg"),
@@ -117,17 +128,17 @@ def infer_geometry_family(layout_key: str, base_kind: str = "") -> str:
         return "option1_webgl"
     if any(x in k for x in ("hero_hook", "chat_thread", "mobile_app_mockup", "browser_window", "kinetic_statement", "incident_radar", "alert_diagram")):
         return "hook_ui"
-    if any(x in k for x in ("sql_", "er_schema", "explain_plan", "b_plus_tree", "mvcc_")) or bk == "sql_studio":
+    if any(x in k for x in ("sql_", "er_schema", "explain_plan", "b_plus_tree", "mvcc_", "sql_live_join")) or bk == "sql_studio":
         return "sql_schema"
-    if any(x in k for x in ("code_", "diff_", "terminal_", "git_branch", "api_request_response", "json_payload", "yaml_", "regex_")) or bk in ("terminal_studio", "code_diff_split"):
+    if any(x in k for x in ("code_", "diff_", "terminal_", "git_branch", "api_request_response", "json_payload", "yaml_", "regex_", "ide_split", "mac_terminal", "dual_sync_diagram", "algorithm_dry_run")) or bk in ("terminal_studio", "code_diff_split"):
         return "code_diff"
     if any(x in k for x in ("compare", "comparison", "venn_", "quadrant", "matrix_2x2", "hybrid_merge", "cap_theorem")) or bk == "iso_comparison":
         return "compare_matrix"
-    if any(x in k for x in ("benchmark", "radar_", "donut_", "radial_gauge", "metric_gauge", "flamegraph", "waterfall", "p99_", "sankey_")) or bk in ("benchmark_3d", "radial_gauge"):
+    if any(x in k for x in ("benchmark", "radar_", "donut_", "radial_gauge", "metric_gauge", "flamegraph", "waterfall", "p99_", "sankey_", "notebook_interactive", "racing_timeseries", "sre_observability", "browser_devtools")) or bk in ("benchmark_3d", "radial_gauge"):
         return "metrics_charts"
-    if any(x in k for x in ("memory_", "wal_", "_wal", "buffer", "cache_", "parquet", "iceberg", "delta_lake", "lsm_", "bloom_", "data_structure_memory")) or bk in ("memory_lanes", "slots"):
+    if any(x in k for x in ("memory_", "wal_", "_wal", "buffer", "cache_", "parquet", "iceberg", "delta_lake", "lsm_", "bloom_", "data_structure_memory", "python_stack_heap", "snowflake_micro_partition", "db_live_cutover", "bitfield_protocol")) or bk in ("memory_lanes", "slots"):
         return "memory_storage"
-    if any(x in k for x in ("checklist", "roadmap", "pyramid", "funnel", "sdlc_", "tiers", "concept_cards", "kanban_")) or k.startswith(("grammar:pyramid", "grammar:tiers", "grammar:funnel", "grammar:checklist")):
+    if any(x in k for x in ("checklist", "roadmap", "pyramid", "funnel", "sdlc_", "tiers", "concept_cards", "kanban_", "bento_apple", "vertical_scrollytelling", "ai_thinking_tool")) or k.startswith(("grammar:pyramid", "grammar:tiers", "grammar:funnel", "grammar:checklist")):
         return "summary_checklist"
     return "topology"
 
@@ -177,6 +188,7 @@ def _get_catalog() -> Dict[str, Any]:
     ALL 168 Option 1 archetypes once per process with BM25 document frequency stats.
     """
     from core.layouts_studio import ALL_STUDIO_LAYOUTS, MULTI_TOPOLOGY_30_PRESETS, _CORE_STUDIO_PRESETS_LC
+    from core.layouts_domain_specialists import DOMAIN_SPECIALIST_DESCRIPTIONS
     from core.layouts_pro import _PRO_EXTRA_PRESETS
     from core.layouts_it_sdlc import _IT_70_EXTRA_PRESETS
     from core.layouts_domain_220 import DOMAIN_PRESETS_220
@@ -194,7 +206,7 @@ def _get_catalog() -> Dict[str, Any]:
     studio_map: Dict[str, Dict[str, Any]] = {}
     opt1_map: Dict[str, Dict[str, Any]] = {}
 
-    # 1. Index ALL Classic Studio Primitives + 1,011 Domain/Pro/Grammar layouts
+    # 1. Index ALL Classic Studio Primitives + 1,040+ Domain/Pro/Specialist/Grammar layouts
     generic_skip = {"custom_scene"}
     all_studio_keys = list(dict.fromkeys(list(_CLASSIC_STUDIO_DESCRIPTIONS.keys()) + list(ALL_STUDIO_LAYOUTS)))
     for layout_key in all_studio_keys:
@@ -204,6 +216,8 @@ def _get_catalog() -> Dict[str, Any]:
         base_kind = ""
         if layout_key in _CLASSIC_STUDIO_DESCRIPTIONS:
             meta_texts.append(_CLASSIC_STUDIO_DESCRIPTIONS[layout_key])
+        if layout_key in DOMAIN_SPECIALIST_DESCRIPTIONS:
+            meta_texts.append(DOMAIN_SPECIALIST_DESCRIPTIONS[layout_key])
         for pm in preset_maps:
             if layout_key in pm:
                 raw = pm[layout_key]
@@ -442,6 +456,12 @@ def _apply_role_bonus(entry: Dict[str, Any], sig: Dict[str, Any], idx: int, used
     if not sig["is_hook"] and not sig["is_final"] and idx in (1, 2, 3):
         if geom in ("topology", "memory_storage") and geom not in used_geoms:
             bonus += 3.2
+
+    # Non-box rich visual diversity: prefer visual charts, SQL, diff, diagrams & heatmaps over plain repeating slot cards
+    if geom in ("metrics_charts", "sql_schema", "code_diff", "compare_matrix", "memory_storage"):
+        bonus += 1.25
+    elif eid in ("sequence_diagram", "er_schema", "state_machine", "sankey_flow", "attention_heatmap", "flamegraph_perf", "latency_waterfall", "donut_3d", "radar_spider"):
+        bonus += 1.45
 
     return bonus
 

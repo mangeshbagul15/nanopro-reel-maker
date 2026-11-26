@@ -171,11 +171,11 @@ CRITICAL DIRECTING PRINCIPLES:
    - Provide **4 to 5 exact chronological `choreography.triggers`** keywords (from start, middle, deep-detail, and closing clauses of `narration`) so every box, label, text, and connector link appears progressively RIGHT AS THE NARRATOR SPEAKS IT — never everything all at once!
    - Never output generic placeholder text (e.g., "Client Ingestion", "Block #101", "Pipeline logic"). Use REAL service names, SQL queries, commands, latency numbers, and real architectural internals.
 
-2. DURATION & SCENE FLOW (ZERO ARTIFICIAL 60-SECOND LIMIT):
-   - The video should naturally cover the depth required for the topic.
-   - For short overviews: 3 to 4 focused scenes.
-   - For standard / detailed explainers: 4 to 6 scenes.
-   - For comprehensive deep-dives: 6 to 8 scenes.
+2. DURATION & SCENE FLOW (TRUE TOPIC-ADAPTIVE — ZERO FIXED 5-SCENE LIMIT):
+   - Decide scene count naturally from topic complexity — NEVER pad or squeeze to a fixed number:
+   - Focused concept / quick comparison / single mechanism: 3 scenes.
+   - Standard architecture / dual workflow: 4 to 5 scenes.
+   - Complex multi-tier / distributed / end-to-end project: 6 to 8 scenes.
    - Each scene should have a clear purpose: Hook / Problem -> Architecture / System Design -> Internal Mechanism / Code / Data Flow -> Resolution / Trade-offs / Takeaway.
 
 3. CONVERSATIONAL HIGH-OCTANE NARRATION:
@@ -745,7 +745,11 @@ def generate_timeline(
 
     # 2. Duration & Depth guidance
     duration_instructions = {
-        "auto": "Natural duration based on topic depth (typically 4 to 6 scenes). Completely explain the core architecture and trade-offs.",
+        "auto": (
+            "TRUE TOPIC-ADAPTIVE SCENE COUNT (choose exact scene count from topic depth, NEVER force 5 scenes): "
+            "focused single mechanism/comparison -> 3 scenes; standard workflow -> 4 to 5 scenes; "
+            "deep distributed/end-to-end architecture -> 6 to 8 scenes."
+        ),
         "short": "Quick, punchy overview (EXACTLY 3 scenes, ~30-45 seconds). High-impact summary.",
         "standard": "Standard explainer (4 to 5 scenes, ~60 seconds). Balanced walkthrough.",
         "deep_dive": "Comprehensive in-depth breakdown (6 to 8 scenes, 90 to 180+ seconds). Detail every pipeline stage, internal buffer, and real implementation commands."
@@ -812,7 +816,9 @@ def generate_timeline(
         f"{style_directive}\n"
         f"{variety_directive}\n"
         f"MANDATORY REQUIREMENT: For EVERY scene, make sure the visual_data fields (node labels, schemas, table rows, code snippet, bullet points, metrics) "
-        f"EXACTLY match and illustrate what the narrator is speaking in that scene's narration. Never use generic or unrelated placeholders.\n"
+        f"EXACTLY match and illustrate what the narrator is speaking cleanly (NEVER cut Hinglish sentences in half — use concise English tech nouns on cards!). "
+        f"You may also optionally include `actions` ([{{'verb': 'travel_token|wire_handshake|construct_assemble|spotlight_sequence|disrupt_shake|filter_gate|fanout_split|inspect_zoom|state_flip|buffer_fill_drain|cipher_scramble|slot_reorder', 'word': 'spoken_trigger_word', 'from_idx': 0, 'to_idx': 1, 'label': 'SHORT TAG'}}]), "
+        f"`sub_visual_type` for >12s long scenes, or custom Layer-2 `visual_data.html` (`window.__setStudioProgress(p)`) for rare physics simulations.\n"
         f"Autonomously design the complete storyboard blueprint JSON now."
     )
     
@@ -1383,19 +1389,22 @@ def _route_omni_best_scene(
 
 
 def _extract_crisp_beat_label(clause: str, fallback_idx: int) -> str:
-    """Extracts a sharp, readable English/tech milestone title from a spoken clause without awkward trailing Hinglish prepositions."""
+    """Extracts a sharp, readable English/tech milestone title without trailing or broken Hinglish grammar scraps."""
     _STOP = {
         "par", "aur", "karke", "mein", "hai", "hain", "ko", "ki", "ka", "ke", "se", "toh", "bhi",
         "yeh", "woh", "jab", "tab", "ab", "bas", "bahut", "achha", "waah", "yaar", "honestly",
         "relax", "simple", "ek", "do", "charo", "lagao", "karo", "deti", "dete", "hota", "hoti",
+        "nahi", "karta", "karti", "karte", "hote", "rahte", "rahta", "jaati", "jaata", "lekin",
+        "jabki", "dono", "liya", "liye", "wala", "wali", "wale", "isse", "uske", "isme", "apne",
+        "yahan", "wahan", "tarah", "sath", "saath", "the", "and", "for", "with", "from", "that", "this",
     }
-    words = [re.sub(r"[^A-Za-z0-9_+.\-()/]", "", w) for w in clause.split()]
-    kept = [w for w in words if w and w.lower() not in _STOP]
-    pick = kept[:3] if kept else [w for w in words if w][:3]
+    words = [re.sub(r"[^A-Za-z0-9_+.\-()/]", "", w) for w in str(clause or "").split()]
+    kept = [w for w in words if w and len(w) >= 2 and w.lower() not in _STOP]
+    pick = kept[:3] if kept else [w for w in words if len(w) >= 2][:3]
     lbl = " ".join(pick).strip(" .,:;-")
-    if len(lbl) < 4:
+    if len(lbl) < 3:
         return f"Stage {fallback_idx + 1}"
-    return lbl[:30]
+    return lbl[:28]
 
 
 def _enforce_engine_style(
@@ -1984,7 +1993,7 @@ def _enforce_engine_style(
             v_data["bottom_tags"] = v_data.get("bottom_tags") or ["High Precision", "Low Latency", "Production Ready"]
             if not v_data.get("sub_points"):
                 v_data["sub_points"] = [
-                    {"name": " ".join(c.split()[:4])[:32], "sub": c[:62], "edge": ["Next", "Verify", "Scale", ""][i % 4]}
+                    {"name": _extract_crisp_beat_label(c, i), "sub": _extract_crisp_beat_label(c, i), "edge": ["Next", "Verify", "Scale", ""][i % 4]}
                     for i, c in enumerate(cl_ks[:4])
                 ]
 
@@ -2070,13 +2079,13 @@ def _enforce_engine_style(
                 while len(norm_seq) < 4 and c_i < len(clauses):
                     cl = clauses[c_i]
                     c_i += 1
-                    head = " ".join(cl.split()[:5]).strip(" ,.;:-")
+                    head = _extract_crisp_beat_label(cl, c_i)
                     if any(head.lower() in str(x.get("name", "")).lower() for x in norm_seq):
                         continue
-                    norm_seq.append({"name": head[:38], "sub": cl[:64]})
+                    norm_seq.append({"name": head[:28], "sub": _extract_crisp_beat_label(cl, c_i)})
                 for x_i, x in enumerate(norm_seq):
                     if not x.get("sub") and x_i < len(clauses):
-                        x["sub"] = clauses[x_i][:64]
+                        x["sub"] = _extract_crisp_beat_label(clauses[x_i], x_i)
                     if not x.get("cue_phrase") and x_i < len(clauses):
                         cws = [re.sub(r"[^a-zA-Z0-9_\u0900-\u097F-]", "", w) for w in clauses[x_i].split()]
                         kws = [w for w in cws if len(w) >= 4]
@@ -2085,28 +2094,28 @@ def _enforce_engine_style(
                         x["edge"] = ["Ingest", "Route", "Process", "Commit"][x_i % 4]
                 v_data[col_key] = norm_seq[:5]
 
-        # Top up sparse bullets, comparison lists, and custom blocks to >= 4 rich items
+        # Top up sparse bullets, comparison lists, and custom blocks cleanly without broken Hinglish fragments
         if isinstance(v_data.get("bullets"), list) and 0 < len(v_data["bullets"]) < 4 and clauses:
             bl = list(v_data["bullets"])
-            for cl in clauses:
+            for bi, cl in enumerate(clauses):
                 if len(bl) >= 4:
                     break
-                hd = " ".join(cl.split()[:4]).strip(" ,.;:-")
+                hd = _extract_crisp_beat_label(cl, bi)
                 if not any(hd.lower() in str(x).lower() for x in bl):
-                    bl.append(f"{hd}: {cl[:58]}")
+                    bl.append(hd)
             v_data["bullets"] = bl[:5]
         for pt_key in ("left_points", "right_points"):
             pts_l = v_data.get(pt_key)
             if isinstance(pts_l, list) and 0 < len(pts_l) < 4 and clauses:
-                for cl in clauses:
+                for bi, cl in enumerate(clauses):
                     if len(pts_l) >= 4:
                         break
-                    pts_l.append(cl[:46])
+                    pts_l.append(_extract_crisp_beat_label(cl, bi))
                 v_data[pt_key] = pts_l[:5]
         if isinstance(v_data.get("blocks"), list) and len(v_data["blocks"]) < 2 and clauses:
             v_data["blocks"].append({
                 "block": "list_cards",
-                "items": [{"title": " ".join(c.split()[:4])[:36], "sub": c[:60], "kind": "info"} for c in clauses[:4]],
+                "items": [{"title": _extract_crisp_beat_label(c, bi), "sub": _extract_crisp_beat_label(c, bi), "kind": "info"} for bi, c in enumerate(clauses[:4])],
                 "stage": 2,
             })
 

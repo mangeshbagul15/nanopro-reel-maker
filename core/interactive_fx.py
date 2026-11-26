@@ -119,7 +119,11 @@ def _extract_component_keywords(scene: Dict[str, Any]) -> List[Tuple[str, str]]:
     """Extracts ordered (label, keyword_tokens) pairs for progressive storyboard matching."""
     vd = scene.get("visual_data") or {}
     raw_items: List[Any] = []
-    for k in ("nodes", "steps", "stages", "milestones", "voice_beats", "sub_points", "items", "bullets", "satellites", "bars", "entries"):
+    if not raw_items and (vd.get("plane_a") or vd.get("plane_b")):
+        raw_items = list(vd.get("plane_a") or [])[:3] + list(vd.get("plane_b") or [])[:3]
+    for k in ("nodes", "steps", "stages", "milestones", "spans", "flows", "voice_beats", "sub_points", "items", "bullets", "satellites", "bars", "entries"):
+        if raw_items:
+            break
         val = vd.get(k)
         if isinstance(val, list) and val:
             raw_items = val[:6]
@@ -186,7 +190,7 @@ def compute_voice_stage_timeline(
             kw_pool.extend([t for t in tk.split() if len(t) >= 3])
         if idx < len(comps):
             ck = re.sub(r"[^a-z0-9\u0900-\u097f\s]", " ", comps[idx][1])
-            kw_pool.extend([t for t in ck.split() if len(t) >= 4])
+            kw_pool.extend([t for t in ck.split() if len(t) >= 3])
 
         found_t: Optional[float] = None
         if clean_words and kw_pool:

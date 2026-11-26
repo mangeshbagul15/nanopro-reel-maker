@@ -47,7 +47,7 @@ def detect_web_engine() -> Tuple[bool, Optional[str]]:
     try:
         from playwright.sync_api import sync_playwright
         p = sync_playwright().start()
-        kwargs: Dict[str, Any] = {"headless": True, "args": ["--no-sandbox", "--disable-dev-shm-usage"]}
+        kwargs: Dict[str, Any] = {"headless": True, "args": ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-vsync"]}
         if exe_path:
             kwargs["executable_path"] = exe_path
         browser = p.chromium.launch(**kwargs)
@@ -512,8 +512,9 @@ canvas#bg3d{{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-
 .dot{{width:11px;height:11px;border-radius:50%;background:{cyan};}}
 h1{{font-size:48px;line-height:1.14;font-weight:900;letter-spacing:-0.02em;color:{text_col};}}
 #mainMount{{flex:1;position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:22px;padding-top:16px;min-height:0;}}
-.gcard{{background:{card_bg};backdrop-filter:blur(16px);border:2px solid {border_col};border-radius:24px;padding:24px 28px;color:{text_col};box-shadow:0 16px 38px rgba(0,0,0,0.18);position:relative;overflow:hidden;}}
-.gcard.active{{border-color:{cyan};box-shadow:0 0 34px {_rgba_css(world['cyan'],0.24)}, 0 18px 42px rgba(0,0,0,0.24);}}
+.gcard{{background:{card_bg};backdrop-filter:blur(16px);border:2px solid {border_col};border-radius:24px;padding:24px 28px;color:{text_col};box-shadow:0 16px 38px rgba(0,0,0,0.18);position:relative;overflow:hidden;transition:transform 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;}}
+.gcard.active{{border-color:{cyan};box-shadow:0 0 38px {_rgba_css(world['cyan'],0.32)}, 0 18px 46px rgba(0,0,0,0.28);}}
+#mainMount{{transition:transform 0.22s ease;}}
 .pill-num{{min-width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,{cyan},{purple});color:#fff;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}}
 .ctitle{{font-size:28px;font-weight:800;line-height:1.22;color:{text_col};}}
 .csub{{font-size:21px;color:{muted_col};margin-top:6px;line-height:1.3;}}
@@ -843,11 +844,13 @@ window.__setStudioProgress=function(p, curTime, energy, gates, curWord, fxLabel,
     const easeBox=1-Math.pow(1-Math.min(1,g/0.48),3);
     const easeTitle=Math.max(0,Math.min(1,(g-0.24)/0.44));
     const easeSub=Math.max(0,Math.min(1,(g-0.44)/0.50));
-    const dim=(p>0.05 && g>0.7 && i!==activeIdx)?0.78:1.0;
+    const dim=(p>0.05 && g>0.7 && i!==activeIdx)?0.72:1.0;
+    const isActNode=(i===activeIdx && p>0.04 && p<0.94);
     el.style.opacity=(easeBox*dim);
-    el.style.transform=`translateY(${{(1-easeBox)*26}}px) scale(${{0.94+0.06*easeBox}})`;
+    const scMorph=isActNode?(1.038):(0.94+0.05*easeBox);
+    el.style.transform=`translateY(${{(1-easeBox)*26}}px) scale(${{scMorph.toFixed(4)}})`;
     el.classList.toggle('active', i===activeIdx && p>0.03);
-    el.querySelectorAll('.pill-num').forEach(b=>{{b.style.opacity=Math.min(1,g*2.1);b.style.transform=`scale(${{0.72+0.28*Math.min(1,g*2.0)}})`;}});
+    el.querySelectorAll('.pill-num').forEach(b=>{{b.style.opacity=Math.min(1,g*2.1);b.style.transform=`scale(${{(isActNode?1.14:0.72+0.28*Math.min(1,g*2.0)).toFixed(3)}})`;}});
     el.querySelectorAll('.ctitle').forEach(t=>{{t.style.opacity=easeTitle;}});
     el.querySelectorAll('.csub').forEach(s=>{{s.style.opacity=easeSub;}});
     el.querySelectorAll('svg line, svg path').forEach((ln,li)=>{{
@@ -858,7 +861,21 @@ window.__setStudioProgress=function(p, curTime, energy, gates, curWord, fxLabel,
         ln.style.strokeDashoffset=String(len*(1-lg));
       }}catch(e){{}}
     }});
+    el.querySelectorAll('svg circle, svg rect').forEach((sh)=>{{
+      try{{
+        const ms=isActNode?1.08:1.0;
+        sh.style.transformBox='fill-box';
+        sh.style.transformOrigin='center';
+        sh.style.transform=`scale(${{ms}})`;
+      }}catch(e){{}}
+    }});
   }});
+  // CSS/SVG Live Camera Reflow & Error Vibration on mount
+  const isErrFx=fxLabel && /ERR|LOCK|FAIL|DROP|TIMEOUT/i.test(String(fxLabel));
+  const shkX=isErrFx?Math.round(Math.sin(p*95)*9):0;
+  const shkY=isErrFx?Math.round(Math.cos(p*80)*6):0;
+  const camScale=(p>0.08 && p<0.90)?(1.0 + 0.025*Math.sin(Math.min(1,(p-0.08)/0.82)*Math.PI)):1.0;
+  mount.style.transform=`translate(${{shkX}}px, ${{shkY}}px) scale(${{camScale.toFixed(4)}})`;
   if(Array.isArray(window.__beatNodes)&&window.__beatNodes.length){{
     const nb=window.__beatNodes.length;
     const actB=(typeof actStage==='number'&&actStage>=0)?Math.min(nb-1,actStage):Math.min(nb-1, Math.floor(Math.max(0, Math.min(0.999, p))*nb));
@@ -1050,7 +1067,7 @@ def render_web_generative_frames(
     try:
         from playwright.sync_api import sync_playwright
         p = sync_playwright().start()
-        kwargs: Dict[str, Any] = {"headless": True, "args": ["--no-sandbox", "--disable-dev-shm-usage"]}
+        kwargs: Dict[str, Any] = {"headless": True, "args": ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-vsync"]}
         if exe_path:
             kwargs["executable_path"] = exe_path
         browser = p.chromium.launch(**kwargs)

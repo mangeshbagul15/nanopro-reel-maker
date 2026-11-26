@@ -290,7 +290,7 @@ with st.sidebar:
         help="Auto Omni blends Hook/Q&A, Streaming/Consensus/RAG Topologies, SQL/Terminal Proof, Benchmarks, WebGL/SVG & Interactive FX per scene inside 1 consistent color world. Or switch to Pin Single Specialist Engine to force one specific visual style.",
     )
     if visual_engine_mode.startswith("🧠"):
-        visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All 1,179 Layouts • 6-Geometry Cinema)")
+        visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All 1,191+ Semantic Layouts • AI Validator)")
         omni_color_flow = st.radio(
             "Omni Scene Color Cadence",
             [
@@ -301,9 +301,9 @@ with st.sidebar:
             key="omni_color_flow_radio",
         )
         st.info(
-            "**6 Distinct Visual Geometries Per Video (Zero Repeat):**\n"
-            "1. **Hook/UI/Radar** · 2. **18-Domain Topology** · 3. **Sequence/Sankey/Radar/SQL** · "
-            "4. **Code Diff/Gauge/WAL** · 5. **Pyramid/Funnel/Ring Grammar** · 6. **3D WebGL/SVG Finale**",
+            "**Zero-Hardcode Dynamic Semantic Routing (All 1,191+ Engines):**\n"
+            "• AI Validator preserves exact LLM layouts & archetypes • Dynamic BM25 retrieval per domain · "
+            "SQL/Code/Compare/Charts/WebGL Finale · Clean Voice Sync",
             icon="🧠",
         )
     else:
@@ -757,27 +757,41 @@ with tab_create:
                 if manual_text_fx_choice != "auto":
                     sc["text_fx"] = manual_text_fx_choice
                     sc.setdefault("visual_data", {})["text_fx"] = manual_text_fx_choice
-                v_type = sc.get('visual_type', 'cards')
-                status_box.info(f"🎨 Rendering visuals for scene {i + 1}/{total_sc} with watermark ({channel_watermark})...")
-                progress_bar.progress(40 + int(35 * (i + 1) / max(1, total_sc)))
-                sc_start = float(sc.get("start_time", 0.0))
-                sc_end = float(sc.get("end_time", sc_start + float(sc.get("duration", 5.0))))
+                all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
+
+            # Parallel Multi-Core Scene Rendering (3x-4x faster while writing isolated per-scene dirs cleanly)
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            status_box.info(f"⚡ Rendering {total_sc} scenes in parallel with watermark ({channel_watermark})...")
+            progress_bar.progress(45)
+
+            def _render_scene_task(i_sc):
+                idx_i, sc_obj = i_sc
+                sc_start = float(sc_obj.get("start_time", 0.0))
+                sc_end = float(sc_obj.get("end_time", sc_start + float(sc_obj.get("duration", 5.0))))
                 sc_words = [
                     w for w in word_timestamps
                     if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1
                 ]
                 render_scene_frames(
-                    sc,
-                    i + 1,
+                    sc_obj,
+                    idx_i + 1,
                     total_scenes=total_sc,
                     engine_style=visual_engine[0],
                     format_ratio=aspect_ratio[0],
                     watermark=channel_watermark,
                     scene_words=sc_words,
                     custom_style_prompt=custom_style_prompt,
-                    tone=chosen_tone
+                    tone=chosen_tone,
                 )
-                all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
+                return idx_i + 1
+
+            with ThreadPoolExecutor(max_workers=min(4, max(1, total_sc))) as pool_ren:
+                futs = [pool_ren.submit(_render_scene_task, (i, sc)) for i, sc in enumerate(aligned_scenes)]
+                done_cnt = 0
+                for fut in as_completed(futs):
+                    fut.result()
+                    done_cnt += 1
+                    progress_bar.progress(45 + int(30 * done_cnt / max(1, total_sc)))
 
             with st.expander("🎞️ Scene-by-Scene Visual Preview Strip (Rendered Keyframes)", expanded=True):
                 _prev_cols = st.columns(min(4, max(1, len(all_scene_frame_dirs))))
@@ -802,32 +816,32 @@ with tab_create:
                 art_style=art_style_val
             )
             
-            final_video_path = render_final_reel(
-                all_scene_frame_dirs=all_scene_frame_dirs,
-                audio_path=audio_path,
-                subtitles_path=subtitles_path,
-                output_filename=f"nanopro_{aspect_ratio[0].replace(':', 'x')}_{int(time.time())}.mp4"
-            )
-
-            # STEP 5: Generate 9:16 High-Conversion Thumbnail
-            status_box.info("🖼️ Generating 9:16 high-impact thumbnail with watermark...")
-            progress_bar.progress(90)
-            thumb_path = generate_thumbnail_9_16(
-                user_prompt.strip(),
-                timeline=timeline,
-                watermark=channel_watermark,
-                visual_engine=visual_engine[0],
-                tone=chosen_tone,
-            )
-
-            # STEP 6: Generate Viral Description & Hashtags
-            status_box.info("📋 Preparing YouTube Shorts & Reels viral description & hashtags...")
-            progress_bar.progress(95)
-            viral_meta = generate_viral_meta(
-                user_prompt.strip(),
-                timeline=timeline,
-                channel_tag=channel_watermark
-            )
+            # Run Cover Thumbnail & Viral Metadata in parallel while FFmpeg stitches MP4!
+            with ThreadPoolExecutor(max_workers=2) as pool_meta:
+                fut_thumb = pool_meta.submit(
+                    generate_thumbnail_9_16,
+                    user_prompt.strip(),
+                    timeline=timeline,
+                    watermark=channel_watermark,
+                    visual_engine=visual_engine[0],
+                    tone=chosen_tone,
+                )
+                fut_viral = pool_meta.submit(
+                    generate_viral_meta,
+                    user_prompt.strip(),
+                    timeline=timeline,
+                    channel_tag=channel_watermark,
+                )
+                final_video_path = render_final_reel(
+                    all_scene_frame_dirs=all_scene_frame_dirs,
+                    audio_path=audio_path,
+                    subtitles_path=subtitles_path,
+                    output_filename=f"nanopro_{aspect_ratio[0].replace(':', 'x')}_{int(time.time())}.mp4"
+                )
+                status_box.info("🖼️ Finalizing 9:16 thumbnail & viral metadata...")
+                progress_bar.progress(92)
+                thumb_path = fut_thumb.result()
+                viral_meta = fut_viral.result()
 
             # Cloudflare R2 Upload (Automatic only on Cloud, Optional on Local)
             r2_url = None

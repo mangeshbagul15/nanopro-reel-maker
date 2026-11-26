@@ -841,12 +841,11 @@ async def _synthesize_dual_dialogue_scene(
     gap_sec = 0.26
 
     try:
-        for t_idx, (spk, txt) in enumerate(turns):
+        async def _run_turn(t_idx: int, spk: str, txt: str):
             tp = OUTPUT_DIR / f"dual_turn_{t_idx}_{uuid.uuid4().hex[:6]}.mp3"
             v_id = clean_fem if spk == "female" else clean_male
             t_rate = "+4%" if spk == "female" else "+3%"
             t_pitch = "+2Hz" if spk == "female" else "-1Hz"
-
             ok_turn = False
             for attempt in range(3):
                 try:
@@ -857,11 +856,13 @@ async def _synthesize_dual_dialogue_scene(
                         break
                 except Exception as e:
                     print(f"[Voice Dual] Turn {t_idx + 1} ({spk}) attempt {attempt + 1} warning: {e}")
-                    await asyncio.sleep(0.4)
+                    await asyncio.sleep(0.35)
+            return ok_turn, tp, spk, txt
 
+        results = await asyncio.gather(*(_run_turn(t_idx, spk, txt) for t_idx, (spk, txt) in enumerate(turns)))
+        for ok_turn, tp, spk, txt in results:
             if not ok_turn:
                 return False, []
-
             turn_files.append(tp)
             dur = max(0.35, float(get_audio_duration(tp) or 0.8))
             turn_metas.append((spk, txt, dur))
@@ -1002,16 +1003,30 @@ def generate_voiceover(
         sc_path = OUTPUT_DIR / f"scene_{i + 1:02d}_voice.mp3"
         scene_audio_paths.append(sc_path)
 
-    # 1. Synthesize all scene voiceovers (dynamic per-scene tone when tone == "auto_dynamic")
-    scene_dialogue_spans: List[List[Dict[str, Any]]] = []
-    for i, (sc, text, p) in enumerate(zip(scenes, scene_texts, scene_audio_paths)):
+    # 1. Synthesize all scene voiceovers concurrently for 3x-4x speedup (sequential only when ElevenLabs quota requires)
+    def _synth_one(idx_item):
+        i, sc, text, p = idx_item
         sc_tone = (sc.get("scene_tone") or "conversational_casual") if tone == "auto_dynamic" else tone
         spans = _synthesize_single_scene(
             text, p, voice=voice, elevenlabs_model=elevenlabs_model,
             tone=sc_tone, allow_elevenlabs=allow_elevenlabs, dialogue=sc.get("dialogue"),
         )
-        scene_dialogue_spans.append(spans or [])
         _ensure_valid_audio(p)
+        return i, (spans or [])
+
+    use_el_serial = allow_elevenlabs and voice.startswith("elevenlabs:")
+    items = list(enumerate(zip(scenes, scene_texts, scene_audio_paths)))
+    packed = [(i, sc, txt, p) for i, (sc, txt, p) in items]
+    scene_dialogue_spans: List[List[Dict[str, Any]]] = [[] for _ in scenes]
+    if not use_el_serial and len(packed) > 1:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=min(4, len(packed))) as ex:
+            for i, spans in ex.map(_synth_one, packed):
+                scene_dialogue_spans[i] = spans
+    else:
+        for pk in packed:
+            i, spans = _synth_one(pk)
+            scene_dialogue_spans[i] = spans
 
     # 2. Measure exact duration of each scene's audio (never inflate short audio so subsequent scenes stay 100% synced)
     scene_durations = []

@@ -17,21 +17,21 @@ def _get_encoder_args() -> List[str]:
         return _CACHED_ENCODER_ARGS
 
     candidates = [
-        # Candidate 1: Windows Media Foundation Hardware Acceleration with 8 Mbps high-bitrate
+        # Candidate 1: NVIDIA NVENC Hardware Acceleration (Prioritized on RTX 3050 / GPU systems)
+        (
+            ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "18", "-b:v", "8M", "-pix_fmt", "yuv420p"],
+            "NVIDIA NVENC Hardware"
+        ),
+        # Candidate 2: Windows Media Foundation Hardware Acceleration
         (
             ["-c:v", "h264_mf", "-b:v", "8M", "-pix_fmt", "yuv420p"],
             "Windows Media Foundation Hardware (MF 8Mbps High Bitrate)"
         ),
-        # Candidate 2: High-Fidelity libx264 CPU with visually lossless CRF 18
+        # Candidate 3: High-Fidelity libx264 CPU fallback
         (
             ["-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p"],
             "libx264 High-Fidelity CPU (CRF 18)"
         ),
-        # Candidate 3: NVIDIA NVENC Hardware Acceleration
-        (
-            ["-c:v", "h264_nvenc", "-preset", "p5", "-cq", "18", "-b:v", "8M", "-pix_fmt", "yuv420p"],
-            "NVIDIA NVENC Hardware"
-        )
     ]
 
     for args, name in candidates:

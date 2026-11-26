@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from core.config import ASSETS_DIR
 from core.layouts_domain_220 import DOMAIN_220_LAYOUTS, render_domain_220_or_grammar
+from core.layouts_domain_specialists import DOMAIN_SPECIALIST_LAYOUTS, render_domain_specialist_layout
 from core.layouts_it_sdlc import IT_SDLC_35_LAYOUTS, render_it_sdlc_layout
 from core.layouts_pro import EXTRA_32_LAYOUTS, render_pro_layout
 from core.mesh_shader_engine import draw_procedural_3d_mesh
@@ -77,20 +78,22 @@ def _card_flip_scale_x(t: float) -> float:
     return max(0.14, math.sin(_ease_out_cubic(t) * (math.pi / 2.0)))
 
 
-_ACTIVE_VOICE_GATES: Optional[List[float]] = None
+import threading
+
+_GATE_TLS = threading.local()
 
 
 def _set_active_voice_gates(gates: Optional[List[float]] = None) -> None:
-    """Sets per-component spoken-word gate overrides for the active frame render."""
-    global _ACTIVE_VOICE_GATES
-    _ACTIVE_VOICE_GATES = list(gates) if gates else None
+    """Sets per-component spoken-word gate overrides cleanly in thread-local storage."""
+    _GATE_TLS.gates = list(gates) if gates else None
 
 
 def _spring_gate(progress: float, idx: int, total: int, span: float = 0.22) -> float:
     """Locks each component entrance to exact spoken-word timestamps when available, else distributes evenly."""
-    if _ACTIVE_VOICE_GATES:
-        gi = max(0, min(len(_ACTIVE_VOICE_GATES) - 1, int(idx)))
-        return _clamp01(_ACTIVE_VOICE_GATES[gi])
+    active_gates = getattr(_GATE_TLS, "gates", None)
+    if active_gates:
+        gi = max(0, min(len(active_gates) - 1, int(idx)))
+        return _clamp01(active_gates[gi])
     n = max(1, total)
     if n <= 1:
         return _clamp01((progress - 0.02) / max(0.14, span))
@@ -296,7 +299,9 @@ class StudioStage:
         self.gdraw = ImageDraw.Draw(self.glow)
         self.draw = ImageDraw.Draw(self.fg)
         self.anchors: List[Tuple[int, int, str]] = []
+        self.anchor_cards: List[Dict[str, Any]] = []
         self.focus_dimming: bool = False
+        self.motion_profile: str = "flow_slide"
 
     def add_shadow_ellipse(self, bbox: Tuple[int, int, int, int], alpha_mul: float = 1.0) -> None:
         eff = alpha_mul * self.t_alpha
@@ -355,6 +360,8 @@ class StudioStage:
         elev: int = 10,
         flip_t: float = 1.0,
         layered: bool = False,
+        label: str = "",
+        stage_idx: int = -1,
     ) -> Tuple[int, int, int, int]:
         eff = _clamp01(alpha_mul) * self.t_alpha
         if eff <= 0.02:
@@ -362,14 +369,37 @@ class StudioStage:
         if self.focus_dimming and not active and (bbox[2] - bbox[0]) < 860:
             eff *= 0.80
         x0, y0, x1, y1 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+        # Voice-beat Elastic Focus + 5 Role-Adaptive Entrance Physics (works across ALL 1,041 Studio layouts)
+        mprof = str(getattr(self, "motion_profile", "flow_slide") or "flow_slide")
+        if eff < 0.96:
+            ent = 1.0 - _clamp01(alpha_mul)
+            if mprof == "pop_bounce":
+                pad_s = int(round(math.sin(_clamp01(alpha_mul) * math.pi) * 10))
+                x0 -= pad_s; y0 -= pad_s; x1 += pad_s; y1 += pad_s
+            elif mprof == "stack_snap":
+                dy_s = -int(round(ent * 42))
+                y0 += dy_s; y1 += dy_s
+            elif mprof == "split_collide":
+                dx_s = int(round(ent * (52 if (x0 + x1) * 0.5 < self.width * 0.5 else -52)))
+                x0 -= dx_s; x1 -= dx_s
+            else:
+                dx_s = int(round(ent * 36))
+                x0 -= dx_s; x1 -= dx_s
+        if active and (x1 - x0) < 780 and (y1 - y0) < 640:
+            x0 -= 6; y0 -= 5; x1 += 6; y1 += 5
         if flip_t < 0.99:
             sx = _card_flip_scale_x(flip_t)
             cx = (x0 + x1) * 0.5
             hw = max(8.0, (x1 - x0) * 0.5 * sx)
             x0, x1 = int(round(cx - hw)), int(round(cx + hw))
         b = (x0, y0, x1, y1)
-        if (x1 - x0) >= 140 and 380 <= (y0 + y1) * 0.5 <= 1560 and eff > 0.15:
-            self.anchors.append((int((x0 + x1) * 0.5), int((y0 + y1) * 0.5), "active" if active else "card"))
+        if (x1 - x0) >= 80 and 300 <= (y0 + y1) * 0.5 <= 1560 and eff > 0.15:
+            cx_a, cy_a = int((x0 + x1) * 0.5), int((y0 + y1) * 0.5)
+            self.anchors.append((cx_a, cy_a, "active" if active else "card"))
+            self.anchor_cards.append({
+                "cx": cx_a, "cy": cy_a, "x0": x0, "y0": y0, "x1": x1, "y1": y1,
+                "label": str(label or ""), "active": bool(active), "idx": int(stage_idx if stage_idx >= 0 else len(self.anchor_cards)),
+            })
         if elev > 0:
             self.add_shadow_rect((x0 + 3, y0 + elev, x1 + 3, y1 + elev + 4), radius=radius, alpha_mul=alpha_mul)
         if layered and (x1 - x0) > 40:
@@ -668,17 +698,23 @@ def _render_iso_architecture(stage: StudioStage, data: Dict[str, Any], progress:
         e_pop = _ease_out_elastic(g) if g < 0.95 else 1.0
 
         cy = y_top + i * y_step
-        is_left = (i % 2 == 0)
+        is_left = (i % 2 == 0) if stage.motion_profile != "stack_snap" else True
         col = resolve_world_color(world, nd.get("color"), _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
         active = (int(min(n - 1, progress * n)) == i) or bool(nd.get("highlight"))
         slide_off = int((1.0 - g_box) * (-42 if is_left else 42))
 
-        shape_cx = (196 if is_left else 884) + slide_off
-        card_x0 = (318 if is_left else 88) + slide_off
-        card_x1 = (992 if is_left else 762) + slide_off
+        if stage.motion_profile == "stack_snap":
+            shape_cx = 166 + (i * 18) + slide_off
+            card_x0 = 264 + (i * 18) + slide_off
+            card_x1 = 992
+        else:
+            shape_cx = (196 if is_left else 884) + slide_off
+            card_x0 = (318 if is_left else 88) + slide_off
+            card_x1 = (992 if is_left else 762) + slide_off
         card_b = (card_x0, cy - 66, card_x1, cy + 72)
 
-        stage.draw_glass_card(card_b, radius=22, accent_col=col, alpha_mul=g_box, active=active, layered=(i == n - 1))
+        name_lbl = str(nd.get("name") or nd.get("title") or nd.get("label") or "").strip()
+        stage.draw_glass_card(card_b, radius=22, accent_col=col, alpha_mul=g_box, active=active, layered=(i == n - 1), label=name_lbl, stage_idx=i)
         b_cx = card_x0 + 42
         if g_badge > 0.03:
             stage.draw_pill(b_cx, cy - 22, f"{i+1:02d}", (*col[:3], 42), world["text"], border_col=(*col[:3], 210), font=_get_font(20, bold=True), alpha_mul=g_badge, pad_x=12, pad_y=4)
@@ -1852,6 +1888,15 @@ def _render_flamegraph_perf(stage: StudioStage, data: Dict[str, Any], progress: 
         return
     g_box = _ease_out_cubic(_clamp01(progress / 0.18))
     stage.draw_glass_card((68, STAGE_Y0 + 20, 1012, STAGE_Y1 - 40), radius=24, accent_col=world["amber"], alpha_mul=g_box)
+    depths = [int(sp.get("depth", i % 5)) if isinstance(sp, dict) else i for i, sp in enumerate(spans)]
+    max_d = max(1, max(depths))
+    avail_h = max(320, (STAGE_Y1 - 70) - (STAGE_Y0 + 60))
+    row_step = min(145, max(108, avail_h // max(2, max_d + 1)))
+    box_h = min(110, row_step - 16)
+    stack_total_h = (max_d + 1) * row_step - 16
+    base_bottom = (STAGE_Y0 + 45) + (avail_h + stack_total_h) // 2
+    base_bottom = min(STAGE_Y1 - 56, max(STAGE_Y0 + 220, base_bottom))
+    inner_x0, inner_w = 94, 892
     for i, sp in enumerate(spans):
         if isinstance(sp, str):
             sp = {"name": sp, "depth": i, "start": 0.0, "width": 1.0 - i * 0.1}
@@ -1861,16 +1906,27 @@ def _render_flamegraph_perf(stage: StudioStage, data: Dict[str, Any], progress: 
             continue
         d = int(sp.get("depth", i % 5))
         s = _clamp01(float(sp.get("start", 0.0)))
-        w = max(0.14, min(1.0 - s, float(sp.get("width", max(0.28, 1.0 - i * 0.16)))))
+        w = max(0.16, min(1.0 - s, float(sp.get("width", max(0.28, 1.0 - i * 0.16)))))
         hot = bool(sp.get("hot", False))
         col = world["rose"] if hot else resolve_world_color(world, sp.get("color"), _ACCENT_CYCLE[d % len(_ACCENT_CYCLE)])
-        x0 = int(96 + s * 888)
-        x1 = int(x0 + w * 888 * _ease_out_cubic(g))
-        y0 = STAGE_Y1 - 140 - d * 135
-        stage.draw_glass_card((x0, y0, max(x0 + 60, x1), y0 + 104), radius=14, accent_col=col, alpha_mul=a_mul, active=hot)
-        _draw_wrapped_text(stage.draw, (x0 + 14, y0 + 20), str(sp.get("name") or ""), _get_font(22, bold=True), _with_alpha(world["text"], a_mul), max(40, x1 - x0 - 28), max_lines=1)
+        x0 = int(inner_x0 + s * inner_w)
+        x1 = min(inner_x0 + inner_w, int(x0 + w * inner_w * _ease_out_cubic(g)))
+        x1 = max(x0 + 72, x1)
+        y0 = base_bottom - (d + 1) * row_step + 16
+        y0 = max(STAGE_Y0 + 46, y0)
+        stage.draw_glass_card((x0, y0, x1, y0 + box_h), radius=14, accent_col=col, alpha_mul=a_mul, active=hot)
+        txt_max = max(36, x1 - x0 - 28)
+        raw_nm = str(sp.get("name") or "")
+        f_nm = _get_font(21 if txt_max >= 200 else 17, bold=True)
+        while len(raw_nm) > 6 and stage.draw.textlength(raw_nm, font=f_nm) > txt_max:
+            raw_nm = raw_nm[:-4].rstrip() + "..."
+        stage.draw.text((x0 + 14, y0 + 20), raw_nm, font=f_nm, fill=_with_alpha(world["text"], a_mul))
         if sp.get("duration") or sp.get("pct"):
-            _draw_wrapped_text(stage.draw, (x0 + 14, y0 + 58), str(sp.get("duration") or sp.get("pct")), _get_font(19, mono=True), _with_alpha(col, a_mul), max(40, x1 - x0 - 28), max_lines=1)
+            sub_s = str(sp.get("duration") or sp.get("pct"))
+            f_sb = _get_font(18, mono=True)
+            while len(sub_s) > 4 and stage.draw.textlength(sub_s, font=f_sb) > txt_max:
+                sub_s = sub_s[:-4].rstrip() + ".."
+            stage.draw.text((x0 + 14, y0 + 56), sub_s, font=f_sb, fill=_with_alpha(col, a_mul))
 
 
 def _render_latency_waterfall(stage: StudioStage, data: Dict[str, Any], progress: float, world: Dict[str, Any]) -> None:
@@ -2684,7 +2740,7 @@ _CORE_STUDIO_PRESETS_LC: Dict[str, Tuple[str, Dict[str, Any]]] = {
 # UNIFIED 1010+ STUDIO LAYOUT DISPATCHER (Core 184 + Pro 154 + IT 155 + Domain 360 + Grammar 158)
 # =========================================================================
 ALL_STUDIO_LAYOUTS: Tuple[str, ...] = (
-    CORE_STUDIO_100_LAYOUTS + EXTRA_32_LAYOUTS + IT_SDLC_35_LAYOUTS + DOMAIN_220_LAYOUTS + GRAMMAR_50_PRESETS
+    CORE_STUDIO_100_LAYOUTS + EXTRA_32_LAYOUTS + IT_SDLC_35_LAYOUTS + DOMAIN_220_LAYOUTS + GRAMMAR_50_PRESETS + DOMAIN_SPECIALIST_LAYOUTS
 )
 
 _PRO_HELPERS: Dict[str, Any] = {
@@ -2726,7 +2782,9 @@ def dispatch_studio_layout(
             merged["query"] = d["code_snippet"]
         l = target_l
         d = merged
-    if render_pro_layout(stage, l, d, progress, world, _PRO_HELPERS):
+    if render_domain_specialist_layout(stage, l, d, progress, world, _PRO_HELPERS):
+        pass
+    elif render_pro_layout(stage, l, d, progress, world, _PRO_HELPERS):
         pass
     elif render_it_sdlc_layout(stage, l, d, progress, world, _PRO_HELPERS):
         pass
@@ -2841,7 +2899,7 @@ def _needs_companion_strip(
         "p99_tail_cdf_curve", "box_whisker_latency", "pareto_frontier_plot",
         "all_in_one_tech_canvas", "benchmark_3d", "benchmark_chart", "radial_gauge",
     )
-    if l_low in _PURE_GEOM or any(l_low.startswith(p) for p in ("grammar:pyramid", "grammar:funnel", "grammar:ring", "grammar:quadrant", "grammar:chevron", "grammar:swimlane", "grammar:bento")):
+    if l_low in _PURE_GEOM or l_low in DOMAIN_SPECIALIST_LAYOUTS or any(l_low.startswith(p) for p in ("grammar:pyramid", "grammar:funnel", "grammar:ring", "grammar:quadrant", "grammar:chevron", "grammar:swimlane", "grammar:bento")):
         return False
     shape_sig = (
         f"{layout}|{len(data.get('nodes') or [])}|{len(data.get('steps') or [])}"

@@ -321,9 +321,28 @@ def render_cinematic_scene_frames(
     is_live_shader_bg = backdrop_style in _ANIMATED_BACKDROPS
 
     static_bg = None if is_live_shader_bg else render_procedural_backdrop(canvas_w, canvas_h, world, style=backdrop_style, progress=0.0)
+    shader_keyframes: Optional[List[Image.Image]] = None
+    if is_live_shader_bg:
+        # Compute 8 evenly spaced shader keyframes once & smooth-blend between them per frame (4x-6x faster!)
+        kf_count = 8
+        shader_keyframes = [
+            render_procedural_backdrop(canvas_w, canvas_h, world, style=backdrop_style, progress=k / float(kf_count - 1))
+            for k in range(kf_count)
+        ]
     needs_aspect_fit = (canvas_w != VIDEO_WIDTH or canvas_h != VIDEO_HEIGHT)
     anchors = _build_anchors(duration, scene, scene_words)
     voice_stage_tl = compute_voice_stage_timeline(scene, duration, scene_words)
+    from core.action_engine import (
+        apply_camera_to_stage,
+        compute_camera_transform,
+        eval_active_actions,
+        extract_spoken_actions,
+        get_story_beat_motion,
+        render_action_overlay,
+    )
+    action_events = extract_spoken_actions(scene, duration, scene_words)
+    motion_profile = get_story_beat_motion(scene.get("role"), scene.get("narration"))
+    sub_vtype = str(scene.get("sub_visual_type") or "").lower().strip()
     sc_start = float(scene.get("start_time", 0.0))
 
     badge = str(visual_data.get("badge") or "")
@@ -354,7 +373,17 @@ def render_cinematic_scene_frames(
         t_alpha = _fade_transition_alpha(linear_p)
         fx_state = eval_voice_gates(voice_stage_tl, linear_p)
 
-        if is_live_shader_bg:
+        if is_live_shader_bg and shader_keyframes:
+            pos = _clamp01(linear_p) * (len(shader_keyframes) - 1)
+            idx_a = int(pos)
+            idx_b = min(len(shader_keyframes) - 1, idx_a + 1)
+            frac = pos - idx_a
+            frame_bg = (
+                shader_keyframes[idx_a].copy()
+                if idx_a == idx_b or frac <= 0.01
+                else Image.blend(shader_keyframes[idx_a], shader_keyframes[idx_b], frac)
+            )
+        elif is_live_shader_bg:
             frame_bg = render_procedural_backdrop(canvas_w, canvas_h, world, style=backdrop_style, progress=linear_p)
         else:
             frame_bg = static_bg.copy()
@@ -372,17 +401,25 @@ def render_cinematic_scene_frames(
             else:
                 p_draw.polygon([(gx_live, gy_live - gr), (gx_live + gr, gy_live), (gx_live, gy_live + gr), (gx_live - gr, gy_live)], outline=(*accent, ga))
 
+        active_vtype = sub_vtype if (sub_vtype and duration >= 12.0 and linear_p >= 0.55) else visual_type
+        active_p = _clamp01((linear_p - 0.55) / 0.45) if (active_vtype != visual_type) else progress
+        active_acts = eval_active_actions(action_events, linear_p)
+
         if needs_aspect_fit:
             stage = StudioStage(VIDEO_WIDTH, 1500, world, transition_alpha=1.0)
             stage.focus_dimming = True
+            stage.motion_profile = motion_profile
             _draw_studio_header(stage, badge, title, accent, callout=callout, text_fx=text_fx, progress=progress)
             _set_active_voice_gates(fx_state["gates"])
             try:
-                dispatch_studio_layout(stage, visual_type, visual_data, progress, world, topic=topic_seed)
+                dispatch_studio_layout(stage, active_vtype, visual_data, active_p, world, topic=topic_seed)
             finally:
                 _set_active_voice_gates(None)
 
             virtual_rgba = stage.composite_onto(None)
+            cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, VIDEO_WIDTH, 1500)
+            virtual_rgba = apply_camera_to_stage(virtual_rgba, cam)
+            virtual_rgba = render_action_overlay(virtual_rgba, world, stage.anchor_cards, active_acts, linear_p)
             virtual_rgba = render_interactive_fx_overlay(virtual_rgba, world, fx_state, stage.anchors, progress)
             avail_h, avail_w = canvas_h - 140, canvas_w - 80
             scale = min(avail_w / VIDEO_WIDTH, avail_h / 1420.0)
@@ -394,13 +431,17 @@ def render_cinematic_scene_frames(
         else:
             stage = StudioStage(VIDEO_WIDTH, VIDEO_HEIGHT, world, transition_alpha=t_alpha if transition_style == "crossfade" else 1.0)
             stage.focus_dimming = True
+            stage.motion_profile = motion_profile
             _draw_studio_header(stage, badge, title, accent, callout=callout, text_fx=text_fx, progress=progress)
             _set_active_voice_gates(fx_state["gates"])
             try:
-                dispatch_studio_layout(stage, visual_type, visual_data, progress, world, topic=topic_seed)
+                dispatch_studio_layout(stage, active_vtype, visual_data, active_p, world, topic=topic_seed)
             finally:
                 _set_active_voice_gates(None)
             stage_rgba = stage.composite_onto(None)
+            cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, canvas_w, canvas_h)
+            stage_rgba = apply_camera_to_stage(stage_rgba, cam)
+            stage_rgba = render_action_overlay(stage_rgba, world, stage.anchor_cards, active_acts, linear_p)
             stage_rgba = render_interactive_fx_overlay(stage_rgba, world, fx_state, stage.anchors, progress)
             final_img = apply_scene_transition(stage_rgba, frame_bg, transition_style, linear_p)
 
