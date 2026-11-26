@@ -313,6 +313,7 @@ def render_cinematic_scene_frames(
     from core.tone_engine import get_tone_profile
     t_prof = get_tone_profile(tone, scene_tone=scene.get("scene_tone"), role=scene.get("role"), idx=scene_idx - 1)
     effective_tone = t_prof["key"]
+    enable_cam_actions = not bool(scene.get("_disable_camera_actions"))
     art_style = str(visual_data.get("art_style") or scene.get("art_style") or t_prof.get("preferred_world") or "editorial_dark").strip()
     topic_seed = str(scene.get("topic") or visual_data.get("title") or "").strip()
     world = resolve_studio_world(art_style=art_style, tone=effective_tone, visual_data=visual_data, topic=topic_seed)
@@ -414,9 +415,10 @@ def render_cinematic_scene_frames(
                 _set_active_voice_gates(None)
 
             virtual_rgba = stage.composite_onto(None)
-            cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, VIDEO_WIDTH, 1500, is_hook=is_hook_scene, tone=effective_tone)
-            virtual_rgba = apply_camera_to_stage(virtual_rgba, cam)
-            virtual_rgba = render_action_overlay(virtual_rgba, world, stage.anchor_cards, active_acts, linear_p)
+            if enable_cam_actions:
+                cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, VIDEO_WIDTH, 1500, is_hook=is_hook_scene, tone=effective_tone)
+                virtual_rgba = apply_camera_to_stage(virtual_rgba, cam)
+                virtual_rgba = render_action_overlay(virtual_rgba, world, stage.anchor_cards, active_acts, linear_p)
             virtual_rgba = render_interactive_fx_overlay(virtual_rgba, world, fx_state, stage.anchors, progress)
             avail_h, avail_w = canvas_h - 140, canvas_w - 80
             scale = min(avail_w / VIDEO_WIDTH, avail_h / 1420.0)
@@ -436,9 +438,10 @@ def render_cinematic_scene_frames(
             finally:
                 _set_active_voice_gates(None)
             stage_rgba = stage.composite_onto(None)
-            cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, canvas_w, canvas_h, is_hook=is_hook_scene, tone=effective_tone)
-            stage_rgba = apply_camera_to_stage(stage_rgba, cam)
-            stage_rgba = render_action_overlay(stage_rgba, world, stage.anchor_cards, active_acts, linear_p)
+            if enable_cam_actions:
+                cam = compute_camera_transform(stage.anchor_cards, active_acts, linear_p, canvas_w, canvas_h, is_hook=is_hook_scene, tone=effective_tone)
+                stage_rgba = apply_camera_to_stage(stage_rgba, cam)
+                stage_rgba = render_action_overlay(stage_rgba, world, stage.anchor_cards, active_acts, linear_p)
             stage_rgba = render_interactive_fx_overlay(stage_rgba, world, fx_state, stage.anchors, progress)
             final_img = apply_scene_transition(stage_rgba, frame_bg, transition_style, linear_p)
 

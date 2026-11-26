@@ -278,7 +278,7 @@ with st.sidebar:
         help="Auto Omni blends Hook/Q&A, Streaming/Consensus/RAG Topologies, SQL/Terminal Proof, Benchmarks, WebGL/SVG & Interactive FX per scene inside 1 consistent color world. Or switch to Pin Single Specialist Engine to force one specific visual style.",
     )
     if visual_engine_mode.startswith("🧠"):
-        visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All 1,191+ Semantic Layouts • AI Validator)")
+        visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All 1,221 Semantic Engines • AI Validator)")
         omni_color_flow = st.radio(
             "Omni Scene Color Cadence",
             [
@@ -289,9 +289,9 @@ with st.sidebar:
             key="omni_color_flow_radio",
         )
         st.info(
-            "**Zero-Hardcode Dynamic Semantic Routing (All 1,191+ Engines):**\n"
-            "• AI Validator preserves exact LLM layouts & archetypes • Dynamic BM25 retrieval per domain · "
-            "SQL/Code/Compare/Charts/WebGL Finale · Clean Voice Sync",
+            "**Zero-Hardcode 2026 Semantic Routing (1,221 Total Engines):**\n"
+            "• 30 IT Domain & 2026 UI Specialists (Snowflake, SQL JOIN, AWS/Azure, Bank CBS/DR, AI IDE, Excalidraw, SRE)\n"
+            "• 12-Verb Action Overlays + Virtual Camera Zoom + Error Shake • Topic-Adaptive Duration",
             icon="🧠",
         )
     else:
@@ -299,16 +299,16 @@ with st.sidebar:
         visual_engine = st.selectbox(
             "Specialist Visual Engine (24 Modes)",
             [
-                ("studio_300_domain", "🎨 Both Combined: 1,011 Domain/Grammar + 168 Option 1 WebGL/SVG"),
+                ("studio_300_domain", "🎨 Both Combined: 1,041 Domain/Grammar + 168 Option 1 WebGL/SVG"),
                 ("multi_topology_mix", "🌐 Multi-Topology Mix (46+ Dual-Plane System Topologies + Interactive FX Per Scene)"),
                 ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip/Quiz Bubbles & Word Sync)"),
                 ("data_streaming_pipelines", "🌊 Data & Event Streaming Topologies (Kafka, CDC Debezium, Flink, Lakehouse, Spark)"),
                 ("distributed_consensus_labs", "🛰️ Distributed Systems & Consensus (Raft, Quorum, Hash Rings, Circuit Breakers, Sagas)"),
                 ("ai_rag_agents_studio", "🤖 AI, LLM & RAG Pipelines (Hybrid Search, MCP Tools, KV Cache, Guardrails, Agents)"),
                 ("pure_zero_template", "♾️ Option 1: 168 Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
-                ("studio_domain_library", "📚 Option 2: 1,011 Studio/Domain & Composable Grammar Layouts"),
+                ("studio_domain_library", "📚 Option 2: 1,041 Studio/Domain & Composable Grammar Layouts"),
                 ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
-                ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 1,011 Layouts, 145 Shapes)"),
+                ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 1,041 Layouts, 145 Shapes)"),
                 ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
                 ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
                 ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
@@ -327,6 +327,20 @@ with st.sidebar:
             format_func=lambda x: x[1],
             key="visual_engine_select",
             help="Force any single specialist visual engine across the entire video."
+        )
+
+    with st.expander("🎬 2026 Motion, Camera & Micro-SFX Controls", expanded=True):
+        enable_camera_actions = st.checkbox(
+            "🎥 Virtual Camera Zoom + 12-Verb Action Overlays",
+            value=True,
+            key="enable_cam_actions_chk",
+            help="Follows speaking cards with smooth zoom/pan, 2s Hook Pattern Interrupt punch, Iconify SVG packet flight, and error screen-shake."
+        )
+        enable_micro_sfx = st.checkbox(
+            "🔊 Action-Synced Micro-SFX + 2s Hook Punch Audio",
+            value=True,
+            key="enable_micro_sfx_chk",
+            help="Mixes tactile pop_snap, alert_ping, key_tick, success_chime & whoosh SFX timed to Whisper words & scene cuts."
         )
 
     manual_layout_choice = "auto"
@@ -474,8 +488,12 @@ with st.sidebar:
     st.success("🟢 Groq Whisper Large v3 Alignment: Ready")
     if _layout_cnt > 0:
         st.success(
-            f"🟢 Omni Studio Max Engine: {_layout_cnt + _opt1_cnt} Total Visuals "
-            f"({_layout_cnt} PIL + {_opt1_cnt} WebGL/SVG) | {_shape_cnt} 3D Shapes + {_mesh_cnt} Meshes"
+            f"🟢 Omni Studio Max Engine: {_layout_cnt + _opt1_cnt + 12} Total Semantic Engines "
+            f"({_layout_cnt} Named + 12 Primitives + {_opt1_cnt} WebGL/SVG) | {_shape_cnt} Shapes + {_mesh_cnt} Meshes"
+        )
+        st.success(
+            f"🟢 2026 Choreography & Audio Sync: {len(UI_TONE_OPTIONS)} Creator Tones · "
+            "12 Action Verbs · Virtual Camera · Clause Speed Curves · 5 Micro-SFX"
         )
         st.success(
             f"🟢 Scene FX Matrix: {_bd_cnt} Backdrops · {_tr_cnt} Transitions · "
@@ -496,11 +514,11 @@ with st.sidebar:
 
 # Main Header
 _subtitle_text = (
-    f"Omni Smart Director &amp; Dual Generative Studio — "
-    f"{_layout_cnt + _opt1_cnt} Total Visuals ({_layout_cnt} Domain/Grammar + {_opt1_cnt} WebGL/SVG), "
-    f"{_shape_cnt} 3D Shapes + {_mesh_cnt} Meshes, Dual Hinglish Voice &amp; Interactive FX."
+    f"2026 Smart Director &amp; Dual Studio — "
+    f"{_layout_cnt + _opt1_cnt + 12} Semantic Engines ({_layout_cnt} Domain/Grammar/2026 UI + {_opt1_cnt} WebGL/SVG), "
+    f"9 Viral Creator Tones, 12-Verb Virtual Camera, Clause Speed Curves &amp; Micro-SFX Sync."
     if _layout_cnt > 0
-    else "Zero-Limit Dual Generative 3D &amp; Vector Studio — Human Cadence, Karaoke Sync."
+    else "Zero-Limit 2026 Dual Generative Studio — 9 Viral Tones, Virtual Camera &amp; Micro-SFX Sync."
 )
 st.markdown('<div class="main-title">🎬 NanoPro Reel Maker <span style="font-size:0.42em;vertical-align:middle;opacity:0.85;">Studio Max</span></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="sub-title">{_subtitle_text}</div>', unsafe_allow_html=True)
@@ -513,20 +531,34 @@ with tab_create:
     if "user_prompt_input" not in st.session_state:
         st.session_state.user_prompt_input = "Explain AWS Database Migration Service (DMS) architecture with zero downtime"
 
-    # Quick Prompts
-    st.markdown("**Quick Preset Topics:**")
+    # Quick Prompts (8 Topic & Domain Specialist Showcase Presets)
+    st.markdown("**Quick 2026 Preset Topics (Click to Load):**")
     col1, col2, col3, col4 = st.columns(4)
-    if col1.button("☁️ AWS DMS Architecture"):
+    if col1.button("☁️ AWS DMS CDC", use_container_width=True):
         st.session_state.user_prompt_input = "Explain AWS Database Migration Service (DMS) architecture with zero downtime"
         st.rerun()
-    if col2.button("📊 SQL DENSE_RANK"):
-        st.session_state.user_prompt_input = "Explain SQL DENSE_RANK vs RANK with real data table and duplicate salaries"
+    if col2.button("📊 SQL JOIN & RANK", use_container_width=True):
+        st.session_state.user_prompt_input = "Explain SQL INNER JOIN vs LEFT JOIN and DENSE_RANK with live tables"
         st.rerun()
-    if col3.button("❄️ Snowflake Pruning"):
+    if col3.button("❄️ Snowflake Pruning", use_container_width=True):
         st.session_state.user_prompt_input = "How Snowflake micro-partitions and query pruning work under the hood"
         st.rerun()
-    if col4.button("🐍 Python GIL"):
-        st.session_state.user_prompt_input = "Explain Python Global Interpreter Lock (GIL) and why multi-threading blocks"
+    if col4.button("🐍 Python Memory/GIL", use_container_width=True):
+        st.session_state.user_prompt_input = "Explain Python stack vs heap memory, GIL and asyncio event loop"
+        st.rerun()
+
+    col5, col6, col7, col8 = st.columns(4)
+    if col5.button("🚨 3AM DB Outage", use_container_width=True):
+        st.session_state.user_prompt_input = "Friday 11:45 PM database deadlock outage: 502 retry storm root cause & circuit breaker fix"
+        st.rerun()
+    if col6.button("🏦 Bank CBS & DR HSM", use_container_width=True):
+        st.session_state.user_prompt_input = "How Banking Core Ledger (CBS), HSM PIN Vault & Active-Active DR failover handle UPI scale"
+        st.rerun()
+    if col7.button("🧪 Line-4 N+1 Debug", use_container_width=True):
+        st.session_state.user_prompt_input = "Stop writing N+1 queries inside loops: catching ORM leaks in IDE with batch JOIN fix"
+        st.rerun()
+    if col8.button("🤖 PyTorch & Agents", use_container_width=True):
+        st.session_state.user_prompt_input = "PyTorch tensor backprop, multi-agent workflow DAG and MCP tool execution"
         st.rerun()
 
     # Prompt Input Box bound directly to session state
@@ -679,7 +711,8 @@ with tab_create:
                 visual_history=st.session_state["visual_gen_history"],
             )
             
-            with st.expander("🧠 Scene-by-Scene Best Engine & Layout Selection", expanded=True):
+            with st.expander("🧠 Scene-by-Scene Best Engine, 2026 Tone & Layout Selection", expanded=True):
+                from core.action_engine import get_story_beat_motion
                 _route_rows = []
                 for _sc in timeline.get("scenes", []):
                     if visual_engine[0] == "omni_smart_director" and "Locked Single" in str(omni_color_flow):
@@ -687,12 +720,16 @@ with tab_create:
                         _sc["art_style"] = _locked_w
                         _sc.setdefault("visual_data", {})["art_style"] = _locked_w
                     _vd = _sc.get("visual_data") or {}
+                    _sc_tn = str(_sc.get("scene_tone") or chosen_tone)
+                    _sc_sfx = str(_sc.get("sfx_cue") or "whoosh")
+                    _mprof = get_story_beat_motion(_sc.get("role"), _sc.get("narration"), tone=_sc_tn)
                     _route_rows.append({
                         "Scene": f"Scene {_sc.get('scene_id', '?')} ({_sc.get('role', 'content')})",
                         "Selected Engine": _sc.get("routed_engine") or visual_engine[1].split("(")[0].strip(),
                         "Layout / Mode": _vd.get("option1_archetype") or _sc.get("visual_type", "custom_scene"),
+                        "2026 Tone & SFX": f"{_sc_tn} • {(_sc_sfx if enable_micro_sfx else 'muted')}",
+                        "Motion / FX": f"{(_mprof if enable_camera_actions else 'static_card')} • {_sc.get('backdrop', 'auto')}",
                         "Theme World": _sc.get("art_style") or timeline.get("art_style", "sapphire_3d"),
-                        "Backdrop / FX": f"{_sc.get('backdrop', 'auto')} • {_sc.get('transition', 'auto')}",
                     })
                 if _route_rows:
                     st.dataframe(_route_rows, use_container_width=True, hide_index=True)
@@ -729,6 +766,8 @@ with tab_create:
                     pass
 
             for i, sc in enumerate(aligned_scenes):
+                if not enable_camera_actions:
+                    sc["_disable_camera_actions"] = True
                 if manual_world_choice != "auto":
                     sc["art_style"] = manual_world_choice
                     sc.setdefault("visual_data", {})["art_style"] = manual_world_choice
@@ -803,7 +842,7 @@ with tab_create:
                 aligned_scenes=aligned_scenes,
                 art_style=art_style_val
             )
-            sfx_events = collect_sfx_timeline(aligned_scenes, word_timestamps=word_timestamps, tone=chosen_tone)
+            sfx_events = collect_sfx_timeline(aligned_scenes, word_timestamps=word_timestamps, tone=chosen_tone) if enable_micro_sfx else []
 
             # Run Cover Thumbnail & Viral Metadata in parallel while FFmpeg stitches MP4!
             with ThreadPoolExecutor(max_workers=2) as pool_meta:
@@ -900,13 +939,6 @@ with tab_create:
                         mime="text/plain",
                         use_container_width=True
                     )
-                
-                # Top KPI Row
-                kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-                kpi1.metric("⏱️ Duration", f"{total_duration:.1f}s")
-                kpi2.metric("🎬 Scenes", f"{len(aligned_scenes)}")
-                kpi3.metric("🗣️ Words", f"{len(word_timestamps)}")
-                kpi4.metric("📐 Format", f"{aspect_ratio[0]}")
 
                 # Permanent Cloudflare R2 CDN Link Section
                 if r2_url:
