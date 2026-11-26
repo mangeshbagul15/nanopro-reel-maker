@@ -259,7 +259,7 @@ def _render_sql_live_join(stage, d, progress, world, h):
     _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 545, STAGE_X1, STAGE_Y1 - 40), world["emerald"], 1.0, "JOIN OUTPUT (MATCHED ROWS MERGED)", h, mono=True)
     q_txt = str(d.get("query") or d.get("code_snippet") or "SELECT u.id, u.name, o.total FROM users u INNER JOIN orders o ON u.id = o.uid;")
     stage.draw.text((STAGE_X0 + 28, STAGE_Y0 + 615), q_txt[:70], font=gf(19, bold=True, mono=True), fill=world["amber"])
-    out_rows = [("1", "Ananya", "₹4,200", "MATCH ✅"), ("2", "Rohan", "₹1,850", "MATCH ✅")]
+    out_rows = [("1", "Ananya", "₹4,200", "MATCH [OK]"), ("2", "Rohan", "₹1,850", "MATCH [OK]")]
     for i, (oid, onm, tot, stg) in enumerate(out_rows):
         g = h["_ease_out_cubic"](sg(progress, i + 1, 3, 0.28))
         if g > 0.03:
@@ -327,7 +327,7 @@ def _render_snowflake_pruner(stage, d, progress, world, h):
         alpha = 1.0 if (not pruned or is_hit) else 0.24
         stage.draw_glass_card((px, py, px + cw, py + ch), radius=14, accent_col=col, alpha_mul=alpha, active=(pruned and is_hit))
         stage.draw.text((px + 34, py + 44), f"P{idx + 1:02d}", font=gf(25, bold=True, mono=True), fill=wa(world["text"], alpha))
-    st_lbl = "PRUNED: 20 SKIPPED  |  SCANNED: 4 PARTITIONS ✅" if pruned else "SCANNING FULL CLUSTER METADATA..."
+    st_lbl = "PRUNED: 20 SKIPPED  |  SCANNED: 4 PARTITIONS [OK]" if pruned else "SCANNING FULL CLUSTER METADATA..."
     stage.draw_pill(540, STAGE_Y0 + 735, st_lbl, (*world["emerald"][:3], 42), world["emerald"] if pruned else world["cyan"], border_col=world["emerald"] if pruned else world["cyan"], font=gf(21, bold=True, mono=True))
 
     _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 810, STAGE_X1, STAGE_Y1 - 40), world["amber"], 1.0, "VIRTUAL WAREHOUSE AUTO-SCALE (XS -> M -> XL)", h, mono=True)
@@ -435,7 +435,7 @@ def _render_vector_space_3b1b(stage, d, progress, world, h):
     stage.draw_pill(va[0] - 40, va[1] - 32, "vec_query", (*world["cyan"][:3], 42), world["cyan"], border_col=world["cyan"], font=gf(20, bold=True, mono=True))
     stage.draw_pill(vb[0], vb[1] - 32, "vec_doc", (*world["emerald"][:3], 42), world["emerald"], border_col=world["emerald"], font=gf(20, bold=True, mono=True))
     sim = 0.72 + 0.24 * _c01(progress)
-    stage.draw_pill(540, STAGE_Y1 - 110, f"cos(theta) = {sim:.3f}  |  Dot Product Aligned ✅", (*world["emerald"][:3], 44), world["emerald"], border_col=world["emerald"], font=gf(23, bold=True, mono=True))
+    stage.draw_pill(540, STAGE_Y1 - 110, f"cos(theta) = {sim:.3f}  |  Dot Product Aligned [OK]", (*world["emerald"][:3], 44), world["emerald"], border_col=world["emerald"], font=gf(23, bold=True, mono=True))
 
 
 def _render_ai_thinking_trace(stage, d, progress, world, h):
@@ -454,7 +454,7 @@ def _render_ai_thinking_trace(stage, d, progress, world, h):
 
 def _render_multi_agent_swimlane(stage, d, progress, world, h):
     gf, wa, sg = h["_get_font"], h["_with_alpha"], h["_spring_gate"]
-    lanes = [("Coordinator", 0.0, 0.24, "Plan & Shard", "cyan"), ("Researcher", 0.24, 0.44, "Docs + Schema", "purple"), ("Coder Agent", 0.24, 0.50, "Patch + Tests", "emerald"), ("Verifier", 0.74, 0.26, "Suite Pass ✅", "amber")]
+    lanes = [("Coordinator", 0.0, 0.24, "Plan & Shard", "cyan"), ("Researcher", 0.24, 0.44, "Docs + Schema", "purple"), ("Coder Agent", 0.24, 0.50, "Patch + Tests", "emerald"), ("Verifier", 0.74, 0.26, "Suite Pass [OK]", "amber")]
     _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 16, STAGE_X1, STAGE_Y1 - 40), world["cyan"], 1.0, "PARALLEL SWARM TIMELINE (0ms -> 800ms)", h, mono=True)
     for i, (nm, st_f, dur_f, task, ck) in enumerate(lanes):
         g = h["_ease_out_cubic"](sg(progress, i, 4, 0.25))
@@ -496,13 +496,13 @@ def _render_banking_rails(stage, d, progress, world, h):
 def _render_dr_failover(stage, d, progress, world, h):
     gf, gw, wa = h["_get_font"], h["_draw_wrapped_text"], h["_with_alpha"]
     failed = progress >= 0.42
-    _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 24, STAGE_X1, STAGE_Y0 + 440), world["rose"] if failed else world["cyan"], 1.0, "PRIMARY DC (MUMBAI) — " + ("OUTAGE DETECTED ❌" if failed else "ACTIVE"), h, mono=True)
+    _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 24, STAGE_X1, STAGE_Y0 + 440), world["rose"] if failed else world["cyan"], 1.0, "PRIMARY DC (MUMBAI) — " + ("OUTAGE DETECTED [X]" if failed else "ACTIVE"), h, mono=True)
     gw(stage.draw, (STAGE_X0 + 34, STAGE_Y0 + 140), "Core Banking Nodes + SAN Vault Mirror" if not failed else "Power/Link Fault Triggered Automated Fencing!", gf(30, bold=True), world["rose"] if failed else world["text"], STAGE_W - 68)
     g_sw = _c01((progress - 0.35) / 0.30)
     if g_sw > 0.04:
         h["_draw_bezier_comet"](stage, (540, STAGE_Y0 + 446), (540, STAGE_Y0 + 625), world["emerald"], reveal=g_sw, progress=progress, label="DNS + WAL CUTOVER", world=world)
     dr_on = progress >= 0.58
-    _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 630, STAGE_X1, STAGE_Y1 - 60), world["emerald"] if dr_on else world["amber"], 1.0, "DR VAULT DC (HYDERABAD) — " + ("PROMOTED ACTIVE ✅" if dr_on else "HOT STANDBY"), h, mono=True)
+    _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 630, STAGE_X1, STAGE_Y1 - 60), world["emerald"] if dr_on else world["amber"], 1.0, "DR VAULT DC (HYDERABAD) — " + ("PROMOTED ACTIVE [OK]" if dr_on else "HOT STANDBY"), h, mono=True)
     gw(stage.draw, (STAGE_X0 + 34, STAGE_Y0 + 750), "Zero Data Loss (RPO = 0)  |  Switchover Time (RTO < 18s)", gf(30, bold=True), world["emerald"] if dr_on else world["muted"], STAGE_W - 68)
     stage.draw_pill(540, STAGE_Y0 + 960, "CONTINUOUS AUDIT INTEGRITY VERIFIED", (*world["emerald"][:3], 42), world["emerald"], border_col=world["emerald"], font=gf(22, bold=True, mono=True))
 
@@ -561,12 +561,12 @@ def _render_security_replay(stage, d, progress, world, h):
     stage.draw_glass_card((430, STAGE_Y0 + 150, 650, STAGE_Y1 - 160), radius=30, accent_col=world["cyan"], active=True, label="WAF + mTLS SHIELD")
     gw(stage.draw, (445, STAGE_Y0 + 520), "WAF + mTLS SHIELD", gf(26, bold=True), world["cyan"], 190, align="center")
     # Attacks bounce left, Verified tokens reach right
-    for i, atk in enumerate(["SQLi Flood ❌", "Bot Spike ❌"]):
+    for i, atk in enumerate(["SQLi Flood [X]", "Bot Spike [X]"]):
         ay = STAGE_Y0 + 230 + i * 210
         ax = int(STAGE_X0 + 36 + _c01(progress * 1.6) * 240)
         stage.draw_pill(ax, ay, atk, (*world["rose"][:3], 52), world["rose"], border_col=world["rose"], font=gf(20, bold=True, mono=True))
     vx = int(STAGE_X0 + 40 + _c01(progress) * 730)
-    stage.draw_pill(vx, STAGE_Y0 + 780, "JWT + mTLS OK ✅", (*world["emerald"][:3], 52), world["emerald"], border_col=world["emerald"], font=gf(21, bold=True, mono=True))
+    stage.draw_pill(vx, STAGE_Y0 + 780, "JWT + mTLS OK [OK]", (*world["emerald"][:3], 52), world["emerald"], border_col=world["emerald"], font=gf(21, bold=True, mono=True))
     stage.draw_glass_card((740, STAGE_Y0 + 680, STAGE_X1 - 36, STAGE_Y0 + 880), radius=20, accent_col=world["emerald"], active=(progress > 0.65), label="ORIGIN API")
     stage.draw.text((768, STAGE_Y0 + 764), "PROTECTED API", font=gf(22, bold=True), fill=world["emerald"])
 
@@ -608,7 +608,7 @@ def _render_ide_workbench(stage, d, progress, world, h):
             col = world["rose"] if ln.startswith("-") else (world["emerald"] if ln.startswith("+") else world["text"])
             stage.draw.text((STAGE_X0 + 260, STAGE_Y0 + 125 + i * 76), ln[:38], font=gf(22, bold=True, mono=True), fill=wa(col, g))
     stage.draw.line((STAGE_X0, STAGE_Y0 + 740, STAGE_X1, STAGE_Y0 + 740), fill=world["border"], width=2)
-    stage.draw.text((STAGE_X0 + 28, STAGE_Y0 + 785), "$ pytest -q -> [PASS] 1.8ms P99 • EXIT 0 ✅", font=gf(25, bold=True, mono=True), fill=world["emerald"])
+    stage.draw.text((STAGE_X0 + 28, STAGE_Y0 + 785), "$ pytest -q -> [PASS] 1.8ms P99 • EXIT 0 [OK]", font=gf(25, bold=True, mono=True), fill=world["emerald"])
 
 
 def _render_dual_sync_diagram_code(stage, d, progress, world, h):
@@ -665,7 +665,7 @@ def _render_mac_terminal(stage, d, progress, world, h):
             col = world["text"] if ck == "text" else world[ck]
             stage.draw.text((STAGE_X0 + 36, STAGE_Y0 + 135 + i * 110), ln, font=gf(27, bold=(i == 0), mono=True), fill=wa(col, g))
     if progress > 0.72:
-        stage.draw_pill(300, STAGE_Y1 - 140, "EXIT 0 • VERIFIED ✅", world["card_bg"], world["emerald"], border_col=world["emerald"], font=gf(22, bold=True, mono=True))
+        stage.draw_pill(300, STAGE_Y1 - 140, "EXIT 0 • VERIFIED [OK]", world["card_bg"], world["emerald"], border_col=world["emerald"], font=gf(22, bold=True, mono=True))
 
 
 def _render_db_cutover(stage, d, progress, world, h):
@@ -677,7 +677,7 @@ def _render_db_cutover(stage, d, progress, world, h):
     gw(stage.draw, (595, STAGE_Y0 + 180), "v2 Indexed Schema\n100% Shadow Parity", gf(30, bold=True), world["emerald"], 380)
     h["_draw_bezier_comet"](stage, (518, STAGE_Y0 + 310), (562, STAGE_Y0 + 310), world["cyan"], reveal=_c01(progress * 1.4), progress=progress, label="SYNC", world=world)
     _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 660, STAGE_X1, STAGE_Y1 - 80), world["emerald"] if cut else world["cyan"], 1.0, "ATOMIC DNS / ROUTER CUTOVER SWITCH", h, mono=True)
-    stage.draw_pill(540, STAGE_Y0 + 910, "TRAFFIC CUTOVER -> V2 SHADOW ACTIVE ✅" if cut else "DUAL-WRITE VERIFYING PARITY...", world["card_bg"], world["emerald"] if cut else world["amber"], border_col=world["emerald"] if cut else world["amber"], font=gf(24, bold=True, mono=True))
+    stage.draw_pill(540, STAGE_Y0 + 910, "TRAFFIC CUTOVER -> V2 SHADOW ACTIVE [OK]" if cut else "DUAL-WRITE VERIFYING PARITY...", world["card_bg"], world["emerald"] if cut else world["amber"], border_col=world["emerald"] if cut else world["amber"], font=gf(24, bold=True, mono=True))
 
 
 # -------------------------------------------------------------------------
@@ -699,12 +699,12 @@ def _render_browser_devtools(stage, d, progress, world, h):
 
 def _render_benchmark_race(stage, d, progress, world, h):
     gf = h["_get_font"]
-    _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 24, STAGE_X1, STAGE_Y0 + 520), world["rose"], 1.0, "LANE 1: BLOCKING SYNC (4,200 ms ❌)", h, mono=True)
+    _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 24, STAGE_X1, STAGE_Y0 + 520), world["rose"], 1.0, "LANE 1: BLOCKING SYNC (4,200 ms [X])", h, mono=True)
     sx = STAGE_X0 + 30 + int((STAGE_W - 230) * min(0.32, progress * 0.35))
     stage.draw_pill(sx + 80, STAGE_Y0 + 270, "BLOCKED...", (*world["rose"][:3], 52), world["rose"], border_col=world["rose"], font=gf(23, bold=True, mono=True))
-    _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 570, STAGE_X1, STAGE_Y1 - 60), world["emerald"], 1.0, "LANE 2: LOCK-FREE ASYNC (14 ms ✅ • 300x)", h, mono=True)
+    _draw_top_panel(stage, (STAGE_X0, STAGE_Y0 + 570, STAGE_X1, STAGE_Y1 - 60), world["emerald"], 1.0, "LANE 2: LOCK-FREE ASYNC (14 ms [OK] • 300x)", h, mono=True)
     fx = STAGE_X0 + 30 + int((STAGE_W - 230) * _c01(progress * 1.15))
-    stage.draw_pill(fx + 80, STAGE_Y0 + 820, "FINISHED ✅", (*world["emerald"][:3], 52), world["emerald"], border_col=world["emerald"], font=gf(23, bold=True, mono=True))
+    stage.draw_pill(fx + 80, STAGE_Y0 + 820, "FINISHED [OK]", (*world["emerald"][:3], 52), world["emerald"], border_col=world["emerald"], font=gf(23, bold=True, mono=True))
 
 
 def _render_cpu_pipeline(stage, d, progress, world, h):

@@ -119,7 +119,7 @@ _AUTO_VERB_PATTERNS: List[Tuple[str, Tuple[str, ...], str, str, str]] = [
     ("construct_assemble", ("warehouse", "lakehouse", "datalake", "lake", "medallion", "schema", "bucket", "bronze", "silver", "gold"), "BUILD STACK", "database", "emerald"),
     ("filter_gate", ("ratelimit", "waf", "firewall", "filter", "drop", "429", "guardrail", "block"), "RATE GATE", "shield", "rose"),
     ("fanout_split", ("shard", "fanout", "partition", "broadcast", "loadbalance", "shuffle"), "FANOUT", "router", "purple"),
-    ("state_flip", ("cutover", "atomic", "failover", "promote", "switch", "lockfree", "healthy"), "SWITCH ✅", "check", "emerald"),
+    ("state_flip", ("cutover", "atomic", "failover", "promote", "switch", "lockfree", "healthy"), "SWITCH [OK]", "check", "emerald"),
     ("buffer_fill_drain", ("lag", "buffer", "queue", "drain", "flush", "evict", "backpressure"), "QUEUE DRAIN", "queue", "amber"),
     ("cipher_scramble", ("encrypt", "hash", "cipher", "tls", "mtls", "aes", "hsm"), "ENCRYPT", "lock", "purple"),
     ("inspect_zoom", ("explain", "index", "offset", "lsn", "debug", "trace", "p99", "metric"), "INSPECT", "search", "cyan"),
@@ -288,19 +288,27 @@ def compute_camera_transform(
 
 
 def apply_camera_to_stage(stage_rgba: Image.Image, cam: Dict[str, Any]) -> Image.Image:
-    """Applies smooth virtual zoom/pan + error shake onto `stage_rgba` without shifting top/bottom HUD."""
+    """
+    Applies smooth virtual zoom/pan ONLY to the diagram stage region (y >= 310) so the
+    top badge/title/AUDIO chrome stays crisp and never collides, plus error shake (dx, dy).
+    """
     z = float(cam.get("zoom", 1.0))
     dx, dy = int(cam.get("dx", 0)), int(cam.get("dy", 0))
     if z <= 1.002 and dx == 0 and dy == 0:
         return stage_rgba
     w, h = stage_rgba.size
-    out = stage_rgba
-    if z > 1.002:
-        cw, ch = max(100, int(w / z)), max(100, int(h / z))
-        cx = max(cw // 2, min(w - cw // 2, int(cam.get("cx", w // 2))))
-        cy = max(ch // 2, min(h - ch // 2, int(cam.get("cy", h // 2))))
-        cropped = stage_rgba.crop((cx - cw // 2, cy - ch // 2, cx + cw // 2, cy + ch // 2))
-        out = cropped.resize((w, h), Image.Resampling.BILINEAR)
+    header_y = min(312, int(h * 0.18))
+    out = stage_rgba.copy()
+    if z > 1.002 and h > header_y + 120:
+        body = stage_rgba.crop((0, header_y, w, h))
+        bw, bh = body.size
+        cw, ch = max(100, int(bw / z)), max(100, int(bh / z))
+        cx = max(cw // 2, min(bw - cw // 2, int(cam.get("cx", bw // 2))))
+        cy_raw = int(cam.get("cy", header_y + bh // 2)) - header_y
+        cy = max(ch // 2, min(bh - ch // 2, cy_raw))
+        zoomed = body.crop((cx - cw // 2, cy - ch // 2, cx + cw // 2, cy + ch // 2)).resize((bw, bh), Image.Resampling.BILINEAR)
+        out.paste((0, 0, 0, 0), (0, header_y, w, h))
+        out.paste(zoomed, (0, header_y))
     if dx != 0 or dy != 0:
         shaken = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         shaken.paste(out, (dx, dy))
@@ -429,9 +437,9 @@ def render_action_overlay(
             gx, gy = (p0[0] + p1[0]) // 2, (p0[1] + p1[1]) // 2
             dr.line((gx, gy - 85, gx, gy + 85), fill=(*world["cyan"][:3], alp), width=6)
             bx = int(p0[0] + (gx - 28 - p0[0]) * min(1.0, t * 1.3))
-            _draw_pill_badge(dr, bx, gy - 26, "DROP ❌", (127, 29, 29, 240), (254, 202, 202, alp), (244, 63, 94, alp))
+            _draw_pill_badge(dr, bx, gy - 26, "DROP [X]", (127, 29, 29, 240), (254, 202, 202, alp), (244, 63, 94, alp))
             px = int(p0[0] + (p1[0] - p0[0]) * t)
-            _draw_pill_badge(dr, px, gy + 32, "PASS ✅", (6, 78, 59, 240), (167, 243, 208, alp), (16, 185, 129, alp))
+            _draw_pill_badge(dr, px, gy + 32, "PASS [OK]", (6, 78, 59, 240), (167, 243, 208, alp), (16, 185, 129, alp))
 
         elif verb == "inspect_zoom":
             rad = int(52 + 12 * math.sin(t * math.pi * 4.0))
@@ -453,11 +461,11 @@ def render_action_overlay(
         elif verb == "cipher_scramble":
             ciph = "".join(chr(65 + ((ord(ch) + int(t * 17) + k) % 26)) for k, ch in enumerate("PAYLOAD"))
             txt = ciph if t < 0.7 else f"ENC:{ciph[:5]}"
-            _draw_pill_badge(dr, (p0[0] + p1[0]) // 2, (p0[1] + p1[1]) // 2, f"🔐 {txt}", (30, 27, 75, 240), (*world["purple"][:3], alp), (*world["purple"][:3], alp))
+            _draw_pill_badge(dr, (p0[0] + p1[0]) // 2, (p0[1] + p1[1]) // 2, f"{txt}", (30, 27, 75, 240), (*world["purple"][:3], alp), (*world["purple"][:3], alp))
 
         elif verb == "slot_reorder":
             ux = int(p0[0] + (p1[0] - p0[0]) * t)
             uy = int(p0[1] + (p1[1] - p0[1]) * t - math.sin(t * math.pi) * 65)
-            _draw_pill_badge(dr, ux, uy, "⇄ SWAP", (15, 23, 42, 240), (*col, alp), (*col, alp))
+            _draw_pill_badge(dr, ux, uy, "<-> SWAP", (15, 23, 42, 240), (*col, alp), (*col, alp))
 
     return Image.alpha_composite(stage_img.convert("RGBA"), ov)
