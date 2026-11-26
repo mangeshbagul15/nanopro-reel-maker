@@ -451,7 +451,10 @@ def render_scene_frames(
     duration = max(1.5, float(scene.get("duration", 5.0)))
     total_frames = max(15, round(duration * VIDEO_FPS))
 
-    _STUDIO_MODES = ("studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative")
+    _STUDIO_MODES = (
+        "studio_300_domain", "pure_zero_template", "studio_domain_library",
+        "cinematic_studio", "dual_generative", "auto_dynamic", "hybrid_modern",
+    )
     if engine_style in _STUDIO_MODES:
         use_web = (engine_style in ("pure_zero_template", "dual_generative")) or (scene.get("visual_type") in ("web_scene", "webgl_scene", "html_scene")) or bool((scene.get("visual_data") or {}).get("html"))
         if use_web:

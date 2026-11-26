@@ -427,6 +427,8 @@ def _parse_grammar_items(spec_str: str, data: Dict[str, Any]) -> Tuple[str, List
     """
     g = data.get("grammar") if isinstance(data.get("grammar"), dict) else {}
     raw = str(g.get("expr") or spec_str or "").lower().strip()
+    if raw.startswith("grammar:"):
+        raw = raw.split(":", 1)[1].strip()
     kind = str(g.get("kind") or raw.split(":", 1)[0] or "flow").strip()
     param = raw.split(":", 1)[1] if ":" in raw else ""
 
@@ -437,15 +439,20 @@ def _parse_grammar_items(spec_str: str, data: Dict[str, Any]) -> Tuple[str, List
 
     if not norm:
         cnt = 4
-        if "x" in param:
-            parts = param.split("x")
-            try:
-                cnt = max(2, min(12, int(parts[0]) * int(parts[1])))
-            except ValueError:
-                cnt = 6
-        elif param.isdigit():
-            cnt = max(2, min(10, int(param)))
-        norm = [{"name": f"Node {i+1}", "sub": f"{kind.upper()} Component"} for i in range(cnt)]
+        m_grid = re.search(r"(\d+)\s*x\s*(\d+)", param)
+        m_num = re.search(r"(\d+)", param)
+        if m_grid:
+            cnt = max(2, min(12, int(m_grid.group(1)) * int(m_grid.group(2))))
+        elif m_num:
+            cnt = max(2, min(10, int(m_num.group(1))))
+        elif kind in ("dual", "split"):
+            cnt = 2
+        elif kind in ("triangle",):
+            cnt = 3
+        elif kind in ("quadrant", "matrix"):
+            cnt = 4
+        label_prefix = param.replace("_", " ").replace(":", " ").strip().title() if param else kind.upper()
+        norm = [{"name": f"{label_prefix[:18]} #{i+1}", "sub": f"{kind.upper()} Stage"} for i in range(cnt)]
 
     return f"{kind}:{param}" if param else kind, norm
 
@@ -854,31 +861,59 @@ def _render_archetype(
 
 
 GRAMMAR_50_PRESETS: Tuple[str, ...] = (
-    # 2D Grid Matrices (8)
+    # 2D Grid & Matrix Compositions (22)
     "grammar:grid:2x2", "grammar:grid:3x2", "grammar:grid:2x3", "grammar:grid:3x3",
-    "grammar:matrix:2x2", "grammar:matrix:3x2", "grammar:matrix:3x3", "grammar:bento:4",
-    # Bento & Mosaic Compositions (4)
-    "grammar:bento:5", "grammar:bento:3", "grammar:quadrant:2x2", "grammar:quadrant:matrix",
-    # Sequential Flow & Chevron Pipelines (8)
-    "grammar:flow:3", "grammar:flow:4", "grammar:flow:5", "grammar:code_flow:4",
-    "grammar:chevron:3", "grammar:chevron:4", "grammar:chevron:5", "grammar:pipeline:4",
-    # Rings, Hubs & Orbits (8)
+    "grammar:grid:4x2", "grammar:grid:2x4", "grammar:grid:nodes_2x2", "grammar:grid:shards_3x2",
+    "grammar:grid:layers_2x3", "grammar:grid:pillars_2x2", "grammar:grid:checks_3x2", "grammar:grid:rules_3x3",
+    "grammar:matrix:2x2", "grammar:matrix:3x2", "grammar:matrix:2x3", "grammar:matrix:3x3",
+    "grammar:matrix:risk_2x2", "grammar:matrix:iso_2x2", "grammar:matrix:auth_3x2", "grammar:matrix:perf_3x3",
+    "grammar:matrix:sla_2x2", "grammar:matrix:rbac_3x2",
+    # Bento & Asymmetric Mosaics (16)
+    "grammar:bento:3", "grammar:bento:4", "grammar:bento:5", "grammar:bento:kpi_4",
+    "grammar:bento:hero_5", "grammar:bento:slo_4", "grammar:bento:cache_5", "grammar:bento:rag_4",
+    "grammar:bento:infra_5", "grammar:bento:sec_4", "grammar:quadrant:2x2", "grammar:quadrant:matrix",
+    "grammar:quadrant:effort_impact", "grammar:quadrant:cap_risk", "grammar:quadrant:cost_latency", "grammar:quadrant:build_buy",
+    # Sequential Flow, Code Flow & Chevron Pipelines (26)
+    "grammar:flow:3", "grammar:flow:4", "grammar:flow:5", "grammar:flow:ingest_4",
+    "grammar:flow:cdc_5", "grammar:flow:auth_4", "grammar:flow:rag_5", "grammar:flow:deploy_4",
+    "grammar:flow:checkout_5", "grammar:flow:sync_3", "grammar:code_flow:3", "grammar:code_flow:4",
+    "grammar:code_flow:5", "grammar:code_flow:async_4", "grammar:code_flow:sql_4", "grammar:code_flow:rust_5",
+    "grammar:chevron:3", "grammar:chevron:4", "grammar:chevron:5", "grammar:chevron:etl_4",
+    "grammar:chevron:ci_5", "grammar:chevron:release_4", "grammar:pipeline:3", "grammar:pipeline:4",
+    "grammar:pipeline:5", "grammar:pipeline:stream_5",
+    # Rings, Hubs, Orbits & Cycles (22)
     "grammar:ring:3", "grammar:ring:4", "grammar:ring:5", "grammar:ring:6",
-    "grammar:hub:4", "grammar:hub:5", "grammar:orbit:4", "grammar:cycle:5",
-    # Hierarchical Trees & Triangles (6)
-    "grammar:tree:2", "grammar:tree:3", "grammar:tree:4",
-    "grammar:triangle:cap", "grammar:triangle:cia", "grammar:triangle:cost",
-    # Slots & Memory Arrays (6)
+    "grammar:ring:raft_5", "grammar:ring:hash_6", "grammar:ring:sdlc_6", "grammar:ring:react_4",
+    "grammar:hub:3", "grammar:hub:4", "grammar:hub:5", "grammar:hub:gateway_5",
+    "grammar:hub:mesh_4", "grammar:hub:broker_5", "grammar:orbit:3", "grammar:orbit:4",
+    "grammar:orbit:5", "grammar:orbit:6", "grammar:cycle:3", "grammar:cycle:4",
+    "grammar:cycle:5", "grammar:cycle:6",
+    # Hierarchical Trees & Triangles (16)
+    "grammar:tree:2", "grammar:tree:3", "grammar:tree:4", "grammar:tree:ast_3",
+    "grammar:tree:btree_4", "grammar:tree:dom_3", "grammar:tree:merkle_4", "grammar:tree:org_3",
+    "grammar:tree:behavior_4", "grammar:tree:index_3", "grammar:triangle:cap", "grammar:triangle:cia",
+    "grammar:triangle:cost", "grammar:triangle:iron", "grammar:triangle:perf", "grammar:triangle:quorum",
+    # Slots, Memory Arrays & Swimlanes (18)
     "grammar:slots:3", "grammar:slots:4", "grammar:slots:5", "grammar:slots:6",
-    "grammar:swimlane:3", "grammar:swimlane:4",
-    # Vertical Tiers, Pyramids, Funnels & Ladders (10)
+    "grammar:slots:ringbuf_5", "grammar:slots:cache_6", "grammar:slots:ecs_5", "grammar:slots:wal_4",
+    "grammar:slots:kv_6", "grammar:slots:tsn_5", "grammar:swimlane:2", "grammar:swimlane:3",
+    "grammar:swimlane:4", "grammar:swimlane:async_3", "grammar:swimlane:svc_4", "grammar:swimlane:saga_4",
+    "grammar:swimlane:payment_3", "grammar:swimlane:etl_4",
+    # Tiers, Stacks, Pyramids, Funnels & Ladders (22)
     "grammar:tiers:3", "grammar:tiers:4", "grammar:tiers:5", "grammar:tiers:6",
-    "grammar:pyramid:4", "grammar:pyramid:5", "grammar:funnel:4", "grammar:funnel:5",
-    "grammar:ladder:4", "grammar:ladder:5",
-    # Dual Compare, Sequences, Timelines, Waterfalls & Tables (6)
-    "grammar:dual:vs", "grammar:dual:tradeoff", "grammar:timeline_v:4",
-    "grammar:waterfall:5", "grammar:seq:4", "grammar:table:4x4",
+    "grammar:tiers:osi_6", "grammar:tiers:mem_4", "grammar:tiers:sec_5", "grammar:stack:3",
+    "grammar:stack:4", "grammar:stack:5", "grammar:pyramid:3", "grammar:pyramid:4",
+    "grammar:pyramid:5", "grammar:pyramid:test_4", "grammar:funnel:3", "grammar:funnel:4",
+    "grammar:funnel:5", "grammar:funnel:latency_4", "grammar:ladder:3", "grammar:ladder:4",
+    "grammar:ladder:5", "grammar:ladder:growth_5",
+    # Dual Compare, Sequences, Timelines, Waterfalls & Tables (14 -> 156 total!)
+    "grammar:dual:vs", "grammar:dual:tradeoff", "grammar:dual:before_after", "grammar:split:60_40",
+    "grammar:split:sync_async", "grammar:timeline_v:3", "grammar:timeline_v:4", "grammar:timeline_v:5",
+    "grammar:waterfall:4", "grammar:waterfall:5", "grammar:waterfall:6", "grammar:seq:3",
+    "grammar:seq:4", "grammar:seq:5", "grammar:table:3x3", "grammar:table:4x4",
 )
+
+GRAMMAR_150_PRESETS: Tuple[str, ...] = GRAMMAR_50_PRESETS
 
 
 def render_domain_220_or_grammar(

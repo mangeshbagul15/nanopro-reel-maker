@@ -240,12 +240,12 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("studio_300_domain", "🎨 Both Combined: 670+ Domain Layouts + 56 Grammar + 54 Option 1 WebGL/SVG [Recommended]"),
-            ("pure_zero_template", "♾️ Option 1: 54+ Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
-            ("studio_domain_library", "📚 Option 2: 670+ Domain Layout Library + 56 Composable Grammar Presets"),
+            ("studio_300_domain", "🎨 Both Combined: 820+ Domain Layouts + 156 Grammar + 156 Option 1 WebGL/SVG [Recommended]"),
+            ("pure_zero_template", "♾️ Option 1: 156+ Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
+            ("studio_domain_library", "📚 Option 2: 820+ Domain Layout Library + 156 Composable Grammar Presets"),
             ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
-            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (46 Worlds, 670+ Layouts, 145 Shapes, 200k+ 3D SVGs)"),
-            ("auto_dynamic", "⚡ Dynamic / Auto (AI Decides Visuals, Progressive Flow & Voice Choreography)"),
+            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 820+ Layouts, 145 Shapes)"),
+            ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
             ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
             ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
             ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
@@ -262,7 +262,7 @@ with st.sidebar:
         ],
         format_func=lambda x: x[1],
         key="visual_engine_select",
-        help="Switch seamlessly between Option 1 (54+ Zero-Template HTML5/Three.js/Animated <svg>/Spatial Scenes), Option 2 (670+ Domain Layouts across 18 Engineering Domains, Pro Charts, IT/Network/Data/SDLC + 56 Composable Diagram Grammar Presets), OR Both Combined!"
+        help="Switch seamlessly between Option 1 (156+ Zero-Template HTML5/Three.js/Animated <svg>/Spatial Scenes), Option 2 (820+ Domain Layouts across 18 Engineering Domains, Pro Charts, IT/Network/Data/SDLC + 156 Composable Diagram Grammar Presets), Dynamic Auto (unique history every click), OR Both Combined!"
     )
 
     manual_layout_choice = "auto"

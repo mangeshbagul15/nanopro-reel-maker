@@ -5,13 +5,15 @@ from core.config import GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, MISTRA
 
 VISUAL_HISTORY_PATH = OUTPUT_DIR / "visual_history.json"
 
-# Compatible geometry families across ALL_STUDIO_LAYOUTS (Core 103 + Pro 104 + IT/SDLC 105 + Domain 360 + Grammar 56)
+# Compatible geometry families across ALL_STUDIO_LAYOUTS (Core 153 + Pro 154 + IT/SDLC 155 + Domain 360 + Grammar 156)
 _DIVERSE_LAYOUT_FAMILIES: Dict[str, Tuple[str, ...]] = {
     "hook": (
         "hero_hook", "custom_scene", "cap_theorem_triangle", "incident_radar", "alert_diagram",
         "kinetic_statement", "grammar:grid:2x2", "grammar:bento:4", "grammar:quadrant:2x2",
         "checklist_scorecard", "pacelc_tradeoff", "venn_overlap", "incident_thundering_herd",
-        "incident_split_brain", "chaos_monkey_fault_inj", "dora_metrics_four_keys",
+        "incident_split_brain", "incident_connection_exhaust", "incident_oom_kill_loop",
+        "chaos_monkey_fault_inj", "dora_metrics_four_keys", "status_outage_banner",
+        "grammar:bento:kpi_4", "grammar:quadrant:cost_latency", "grammar:triangle:cap",
     ),
     "flow": (
         "architecture_flow", "iso_architecture", "cdc_debezium_flow", "etl_elt_pipeline", "outbox_pattern_cdc",
@@ -19,45 +21,59 @@ _DIVERSE_LAYOUT_FAMILIES: Dict[str, Tuple[str, ...]] = {
         "lsm_tree_compaction", "write_ahead_log_wal", "rate_limiter_token_bucket", "idempotency_key_store",
         "strangler_fig_migration", "event_sourcing_snapshots", "rag_chunk_overlap_pipe", "llm_tokenization_bpe",
         "browser_critical_path", "payment_idempotent_retry", "kalman_sensor_fusion", "flink_watermarks_window",
-        "grammar:flow:4", "grammar:flow:5", "grammar:chevron:4", "grammar:swimlane:3", "grammar:timeline_v:4",
+        "iso_saga_compensator", "iso_outbox_relay", "iso_zero_downtime_mig", "iso_vector_hybrid_rag",
+        "debezium_chunk_snap", "e2e_test_sharding", "s3_presigned_upload", "io_uring_shared_ring",
+        "grammar:flow:4", "grammar:flow:5", "grammar:chevron:4", "grammar:swimlane:3",
+        "grammar:timeline_v:4", "grammar:pipeline:stream_5",
     ),
     "hub": (
         "circular_hub_mesh", "node_graph", "consistent_hashing_ring", "raft_leader_election",
         "circuit_breaker_states", "epoll_event_loop", "gossip_protocol_cluster", "sdlc_cycle_wheel",
         "sharding_hash_range", "hexagonal_ports_adapters", "radar_spider", "agent_react_tool_loop",
-        "mcp_client_host_server", "multi_agent_supervisor", "service_mesh_envoy_proxy", "ros2_dds_pubsub",
-        "grammar:ring:5", "grammar:hub:4", "grammar:orbit:4",
+        "mcp_client_host_server", "supervisor_agent_orbit", "service_mesh_envoy_proxy", "ros2_dds_pubsub",
+        "iso_observability_mesh", "iso_canary_rollout_tree", "hash_ring_vnodes", "redis_cluster_16k",
+        "cf_durable_objects", "canary_score_judge",
+        "grammar:ring:5", "grammar:hub:4", "grammar:orbit:4", "grammar:cycle:6",
     ),
     "tiers": (
         "layer_stack_3d", "pyramid_hierarchy", "l1_l2_l3_cache_tiers", "osi_7_layers", "medallion_lakehouse",
         "docker_cgroups_namespaces", "hnsw_vector_graph", "clean_architecture_rings", "tree_hierarchy",
         "b_plus_tree_pages", "merkle_tree_proof", "k8s_pod_scheduling", "iceberg_snapshot_tables",
-        "llm_guardrails_safety", "pci_dss_token_vault", "quic_http3_0rtt", "tls_13_handshake",
+        "llm_guardrails_safety", "pci_dss_token_vault", "quic_http3_0rtt", "mtls_handshake_1rtt",
+        "cot_reasoning_tree", "docker_image_layers_ui", "dnssec_trust_chain", "vault_dynamic_leases",
         "grammar:tiers:4", "grammar:pyramid:4", "grammar:funnel:4", "grammar:tree:3", "grammar:ladder:4",
     ),
     "compare": (
         "split_comparison", "iso_comparison", "code_diff_split", "hybrid_merge", "pacelc_tradeoff",
         "process_thread_context", "index_seek_vs_scan", "dma_zero_copy_io", "matrix_2x2",
         "monolith_modular_vs_micro", "bfs_dfs_traversal", "venn_overlap", "compare_sync_vs_async",
-        "compare_rest_vs_grpc", "llm_prefill_vs_decode", "optimistic_vs_zk_rollup",
-        "grammar:dual:vs", "grammar:dual:tradeoff", "grammar:grid:3x2",
+        "compare_rest_vs_grpc", "compare_pull_vs_push", "compare_b_tree_vs_lsm",
+        "llm_prefill_vs_decode", "optimistic_vs_zk_rollup", "crdt_gcounter_merge", "reward_hacking_shield",
+        "grammar:dual:vs", "grammar:dual:tradeoff", "grammar:grid:3x2", "grammar:split:sync_async",
     ),
     "metrics": (
         "benchmark_chart", "benchmark_3d", "metric_gauge_hud", "radial_gauge", "latency_waterfall",
         "flamegraph_perf", "funnel_metrics", "stat_grid_2x2", "line_area_chart", "donut_3d",
         "pareto_frontier_plot", "box_whisker_latency", "slo_burn_rate_gauge", "big_o_complexity_curves",
-        "gauge_slo_availability", "benchmark_throughput_ops", "grammar:waterfall:5",
+        "gauge_slo_availability", "benchmark_throughput_ops", "multi_series_area", "p99_tail_cdf_curve",
+        "latency_knee_point", "error_budget_burn", "amdahl_parallel_law", "usl_scalability_curve",
+        "benchmark_p99_tail_latency", "perf_flamegraph_mutex", "perf_waterfall_db_lock",
+        "grammar:waterfall:5", "grammar:funnel:latency_4",
     ),
     "code": (
         "code_terminal", "terminal_studio", "sql_table", "sql_studio", "data_structure_memory",
         "memory_lanes", "api_request_response", "er_schema", "columnar_parquet_blocks",
         "isolation_levels_matrix", "jwt_header_payload_sig", "memory_ring_buffer", "memory_lsm_memtable",
-        "sql_window_partition", "sql_covering_index", "diff_n_plus_one_fix", "grammar:slots:5", "grammar:table:4x4",
+        "memory_wal_checkpoint", "memory_mvcc_tuple_hdr", "sql_window_partition", "sql_covering_index",
+        "sql_jsonb_gin_index", "diff_n_plus_one_fix", "diff_mutex_to_atomic", "api_webhook_hmac_verify",
+        "explain_plan_viewer", "openapi_schema_docs",
+        "grammar:slots:5", "grammar:table:4x4", "grammar:code_flow:4",
     ),
     "summary": (
         "concept_cards", "checklist_scorecard", "kinetic_statement", "hybrid_merge",
         "step_timeline", "grammar:grid:2x2", "grammar:bento:5", "pyramid_hierarchy",
         "rfc_adr_decision_log", "checklist_prod_readiness", "checklist_sql_tuning",
+        "checklist_migration_safety", "roadmap_zero_to_billion", "grammar:ladder:5",
     ),
 }
 
@@ -112,13 +128,16 @@ def _save_visual_history(
         updated[key] = cur[-cap:]
 
     scenes = timeline.get("scenes") or []
-    _push_unique("recent_art_styles", [str(timeline.get("art_style") or "")], 14)
+    _push_unique("recent_art_styles", [str(timeline.get("art_style") or "")], 18)
     _push_unique(
         "recent_visual_types",
-        [str((sc.get("visual_data") or {}).get("_intent") or sc.get("visual_type") or "") for sc in scenes if isinstance(sc, dict)],
-        28,
+        [
+            str((sc.get("visual_data") or {}).get("option1_archetype") or (sc.get("visual_data") or {}).get("_intent") or sc.get("visual_type") or "")
+            for sc in scenes if isinstance(sc, dict)
+        ],
+        48,
     )
-    _push_unique("recent_backdrops", [str(sc.get("backdrop") or "") for sc in scenes if isinstance(sc, dict)], 12)
+    _push_unique("recent_backdrops", [str(sc.get("backdrop") or "") for sc in scenes if isinstance(sc, dict)], 14)
     _push_unique("recent_transitions", [str(sc.get("transition") or "") for sc in scenes if isinstance(sc, dict)], 10)
     _push_unique("recent_text_fx", [str(sc.get("text_fx") or "") for sc in scenes if isinstance(sc, dict)], 10)
 
@@ -1225,7 +1244,10 @@ def _enforce_engine_style(
 
     art_styles = ["light_whiteboard", "editorial_dark", "blueprint_grid", "neon_fireship"]
     raw_art = str(timeline.get("art_style") or "").strip()
-    _STUDIO_SET = ("studio_300_domain", "pure_zero_template", "studio_domain_library", "cinematic_studio", "dual_generative")
+    _STUDIO_SET = (
+        "studio_300_domain", "pure_zero_template", "studio_domain_library",
+        "cinematic_studio", "dual_generative", "auto_dynamic", "hybrid_modern",
+    )
     if engine_style in _STUDIO_SET:
         from core.palette_engine import STUDIO_WORLDS
         studio_pool = list(STUDIO_WORLDS.keys())
@@ -1530,8 +1552,8 @@ def _enforce_engine_style(
             else:
                 sc["visual_type"] = "web_scene"
             used_vtypes.add(chosen_opt1)
-        elif engine_style == "studio_300_domain" and (idx + run_num) % max(2, len(scenes)) == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
-            # Both Combined: rotate which scene renders as bespoke Option 1 web/svg/spatial vs Option 2 domain layouts
+        elif engine_style in ("studio_300_domain", "auto_dynamic", "hybrid_modern") and (idx + run_num) % max(2, len(scenes)) == 0 and current_vtype not in ("web_scene", "svg_scene", "spatial_canvas"):
+            # Combined & Dynamic Auto: alternate Option 1 web/svg/spatial archetypes with Option 2 domain/grammar layouts
             v_data.setdefault("_intent", current_vtype)
             v_data.setdefault("option1_archetype", chosen_opt1)
             sc["visual_type"] = "svg_scene" if chosen_opt1.startswith("svg_") else ("spatial_canvas" if chosen_opt1.startswith("spatial_") else "web_scene")
@@ -1561,7 +1583,7 @@ def _enforce_engine_style(
                 "triggers": auto_triggers
             }
 
-    if engine_style in ("pure_zero_template", "dual_generative", "studio_300_domain"):
+    if engine_style in ("pure_zero_template", "dual_generative", "studio_300_domain", "auto_dynamic", "hybrid_modern"):
         _synthesize_bespoke_web_scenes(scenes, topic, format_ratio=format_ratio, run_num=run_num)
 
     return timeline

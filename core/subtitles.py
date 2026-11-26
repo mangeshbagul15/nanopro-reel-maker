@@ -86,7 +86,92 @@ _HINGLISH_LEXICON: Dict[str, str] = {
     "डेडलॉक": "deadlock", "स्केल": "scale", "ट्रैफिक": "traffic", "बॉटलनेक": "bottleneck",
     "एपीआई": "API", "एसक्यूएल": "SQL", "रेडिस": "Redis", "काफ्का": "Kafka", "डॉकर": "Docker",
     "पायथन": "Python", "जावा": "Java", "क्लाउड": "cloud", "बैकएंड": "backend", "फ्रंटएंड": "frontend",
+    # Extended Standard English Loanwords & Variants (prevents Intaravyoo / Sistam translit)
+    "इंटरव्यु": "interview", "इंटरव्यूज": "interviews", "इंटरव्यूअर": "interviewer", "इन्टरव्यू": "interview",
+    "इंटरव्ह्यूज": "interviews", "इंजीनियर": "engineer", "इंजीनियर्स": "engineers", "इंजीनियरिंग": "engineering",
+    "इंजिनिअर": "engineer", "इंजिनिअरिंग": "engineering", "कंपनी": "company", "कंपनियां": "companies",
+    "सर्विस": "service", "सर्विसेज": "services", "माइक्रोसर्विस": "microservice", "मायक्रोसर्व्हिसेस": "microservices",
+    "मैसेज": "message", "मेसेज": "message", "डिजाइन": "design", "डिझाइन": "design",
+    "लॉग": "log", "लॉग्स": "logs", "क्लाइंट": "client", "क्लाइंट्स": "clients",
+    "इमेज": "image", "वीडियो": "video", "व्हिडिओ": "video", "ऑडियो": "audio",
+    "लेवल": "level", "पैटर्न": "pattern", "फंक्शन": "function", "फंक्शंस": "functions",
+    "टेस्ट": "test", "टेस्टिंग": "testing", "एरर": "error", "एरर्स": "errors",
+    "वर्जन": "version", "अपडेट": "update", "सिंक": "sync", "स्टोरेज": "storage",
+    "पार्टिशन": "partition", "शार्डिंग": "sharding", "रेप्लिका": "replica",
+    "लोड": "load", "बैलेंसर": "balancer", "सिक्योरिटी": "security", "प्रोटोकॉल": "protocol",
+    "इवेंट": "event", "इवेंट्स": "events", "स्ट्रीम": "stream", "स्ट्रीमिंग": "streaming",
+    "पाइपलाइन": "pipeline", "बैटरी": "battery", "स्पीड": "speed", "मोबाइल": "mobile",
+    "ट्रेनिंग": "training", "एजेंट": "agent", "एजेंट्स": "agents", "रील": "reel", "रील्स": "reels",
+    "सब्सक्राइब": "subscribe", "कमेंट": "comment", "इम्पॉर्टेंट": "important", "सिंपल": "simple",
+    "कॉन्सेप्ट": "concept", "कॉन्सेप्ट्स": "concepts", "फीचर": "feature", "फीचर्स": "features",
+    "लॉजिक": "logic", "इंटरनेट": "internet", "ब्राउजर": "browser", "ट्रेडऑफ": "trade-off",
+    "ट्रेड-ऑफ": "trade-off", "बेंचमार्क": "benchmark", "ऑप्टिमाइज": "optimize", "ऑप्टिमाइजेशन": "optimization",
+    "स्केलेबल": "scalable", "स्केलेबिलिटी": "scalability", "अवेलेबिलिटी": "availability",
+    "कंसिस्टेंसी": "consistency", "रिलायबिलिटी": "reliability", "ट्रांजैक्शन": "transaction",
+    "कमिट": "commit", "रोलबैक": "rollback", "रेस्पॉन्स": "response", "पेयलोड": "payload",
+    "हेडर": "header", "कुकी": "cookie", "डिबग": "debug", "डेवलपर": "developer", "डिप्लॉय": "deploy",
+    "डिप्लॉयमेंट": "deployment", "रिलीज": "release", "क्यू": "queue", "ब्रोकर": "broker",
+    "वर्कर": "worker", "वर्कर्स": "workers", "वेयरहाउस": "warehouse", "डैशबोर्ड": "dashboard",
+    "मेट्रिक": "metric", "मेट्रिक्स": "metrics", "प्रोजेक्ट": "project", "सवाल": "sawaal",
+    "इंडेक्सिंग": "indexing", "डेटासेट": "dataset", "एल्गोरिदम": "algorithm", "वेरिएबल": "variable",
+    "मेथड": "method", "क्लास": "class", "ऑब्जेक्ट": "object", "पैकेज": "package",
+    "फ्रेमवर्क": "framework", "लाइब्रेरी": "library", "टर्मिनल": "terminal", "कमांड": "command",
+    "स्क्रिप्ट": "script", "फाइल": "file", "फाइल्स": "files", "फ़ाइल": "file", "रिकॉर्ड": "record",
+    "रिकॉर्ड्स": "records", "इंस्टेंस": "instance", "नोड": "node", "नोड्स": "nodes",
+    "प्रॉक्सी": "proxy", "गेटवे": "gateway", "राउटर": "router", "स्विच": "switch",
+    "फायरवॉल": "firewall", "बैकअप": "backup", "स्नैपशॉट": "snapshot", "चेकपॉइंट": "checkpoint",
+    "थ्रॉटल": "throttle", "लिमिट": "limit", "रेट": "rate", "टाइमआउट": "timeout",
+    "रीट्राई": "retry", "चेकआउट": "checkout", "पेमेंट": "payment", "कार्ड": "card",
+    "वेक्टर": "vector", "प्रॉम्प्ट": "prompt", "आउटपुट": "output", "इनपुट": "input",
+    "करियर": "career", "रिज्यूमे": "resume", "सैलरी": "salary", "सवाल-जवाब": "Q&A",
+    "क्वेश्चन": "question", "क्वेश्चंस": "questions", "आंसर": "answer", "आंसर्स": "answers",
+    "बेसिकली": "basically", "एक्चुअली": "actually", "ऑब्वियसली": "obviously", "सिम्पली": "simply",
+    "डायरेक्टली": "directly", "ऑटोमैटिकली": "automatically", "रेगुलर": "regular", "रियल": "real",
+    "टाइम": "time", "फुल": "full", "हाई": "high", "लो": "low", "फास्ट": "fast", "स्लो": "slow",
 }
+
+# Standard English words that Devanagari transliteration or ASR may mangle -> enforce crisp English spelling
+_PHONETIC_TO_ENGLISH_REPAIRS: Dict[str, str] = {
+    "intaravyoo": "interview", "intaravyu": "interview", "intarvyu": "interview", "intarview": "interview",
+    "intaravyoos": "interviews", "intarvyus": "interviews", "intaravyooar": "interviewer",
+    "sistam": "system", "sistams": "systems", "detabes": "database", "daataabes": "database",
+    "sarvar": "server", "sarvars": "servers", "letensi": "latency", "laatensi": "latency",
+    "kweri": "query", "kweris": "queries", "indeks": "index", "indeksing": "indexing",
+    "enjinier": "engineer", "injiniyar": "engineer", "injiniyaring": "engineering",
+    "prodakshan": "production", "daauntaim": "downtime", "maigreshan": "migration",
+    "aarkitekchar": "architecture", "parformens": "performance", "problam": "problem",
+    "solyushan": "solution", "klaient": "client", "klaaynt": "client", "klastar": "cluster",
+    "kontenar": "container", "bafar": "buffer", "memori": "memory", "netavark": "network",
+    "prosas": "process", "rekvest": "request", "rispons": "response", "paipalaain": "pipeline",
+    "taimaaut": "timeout", "dedalok": "deadlock", "sikyorithi": "security", "protokol": "protocol",
+    "traanzekshan": "transaction", "skelabailiti": "scalability", "kansingstensi": "consistency",
+    "konsept": "concept", "phichar": "feature", "phankshan": "function", "maikrosarvis": "microservice",
+    "elgoritham": "algorithm", "elgoritam": "algorithm", "paithan": "Python", "jaava": "Java",
+    "dokar": "Docker", "redis": "Redis", "kaphka": "Kafka", "klaud": "cloud",
+    "baekend": "backend", "phrantend": "frontend", "imporatant": "important", "impartant": "important",
+    "baesikali": "basically", "ekchuali": "actually", "aansar": "answer", "kveshchan": "question",
+    "sekand": "second", "sekands": "seconds", "minat": "minute", "minats": "minutes",
+    "parsent": "percent", "milisekand": "milliseconds", "rijyume": "resume", "karier": "career",
+}
+
+_STANDARD_ENGLISH_VOCAB: tuple = tuple(sorted(set(
+    list(_PHONETIC_TO_ENGLISH_REPAIRS.values()) + [
+        "interview", "interviews", "interviewer", "system", "database", "server", "latency",
+        "throughput", "cache", "thread", "memory", "buffer", "query", "index", "production",
+        "downtime", "migration", "architecture", "performance", "problem", "solution", "client",
+        "cluster", "container", "network", "process", "request", "response", "pipeline",
+        "timeout", "deadlock", "security", "protocol", "transaction", "scalability", "availability",
+        "consistency", "reliability", "concept", "feature", "function", "microservice", "algorithm",
+        "engineer", "engineering", "developer", "deploy", "deployment", "release", "benchmark",
+        "optimization", "partition", "sharding", "replica", "rollback", "commit", "snapshot",
+        "checkpoint", "backlog", "worker", "broker", "queue", "gateway", "proxy", "router",
+        "firewall", "monitoring", "dashboard", "metrics", "analytics", "warehouse", "streaming",
+        "kubernetes", "docker", "postgres", "redis", "kafka", "python", "react", "javascript",
+        "typescript", "question", "answer", "example", "pattern", "trade-off", "simple",
+        "important", "basically", "actually", "automatically", "minutes", "seconds", "percent",
+        "milliseconds", "channel", "subscribe", "comment", "video", "audio", "reel",
+    ]
+)))
 
 _DEV_VOWELS = {
     "अ": "a", "आ": "aa", "इ": "i", "ई": "ee", "उ": "u", "ऊ": "oo", "ऋ": "ri",
@@ -205,19 +290,24 @@ def _extract_scene_roman_vocab(scene: Dict[str, Any]) -> List[str]:
 def devanagari_word_to_hinglish(word: str, scene_vocab: Optional[List[str]] = None) -> str:
     """
     Converts any word (including Devanagari words or digits) into clean, understandable
-    Roman Hinglish / English with zero Devanagari characters left.
+    Roman Hinglish / English with zero Devanagari characters left and standard English
+    spelling preserved for loanwords (e.g. 'Intaravyoo' -> 'interview').
     """
     w = str(word or "").translate(_DEV_TO_ASCII_DIGITS).strip()
     if not w:
         return ""
-    if not _HAS_DEVANAGARI_RE.search(w):
-        return w
 
-    # Preserve leading/trailing punctuation while translating core Devanagari word
+    # Preserve leading/trailing punctuation while normalizing core token
     m = re.match(r"^([^A-Za-z0-9\u0900-\u097F]*)(.*?)([^A-Za-z0-9\u0900-\u097F]*)$", w)
     lead, core, trail = m.groups() if m else ("", w, "")
     if not core:
         return lead + trail
+
+    if not _HAS_DEVANAGARI_RE.search(w):
+        core_l = core.lower()
+        if core_l in _PHONETIC_TO_ENGLISH_REPAIRS:
+            return f"{lead}{_PHONETIC_TO_ENGLISH_REPAIRS[core_l]}{trail}"
+        return w
 
     # Direct dictionary lookup
     if core in _HINGLISH_LEXICON:
@@ -228,26 +318,33 @@ def devanagari_word_to_hinglish(word: str, scene_vocab: Optional[List[str]] = No
     conv_parts: List[str] = []
     for p in parts:
         if not _HAS_DEVANAGARI_RE.search(p):
-            conv_parts.append(p)
+            pl = p.lower()
+            conv_parts.append(_PHONETIC_TO_ENGLISH_REPAIRS.get(pl, p))
             continue
         if p in _HINGLISH_LEXICON:
             conv_parts.append(_HINGLISH_LEXICON[p])
             continue
         rom = _transliterate_devanagari_token(p)
-        # Phonetic fuzzy match against scene's known English/Hinglish vocabulary
-        if scene_vocab and len(rom) >= 4:
-            rom_l = rom.lower()
-            best_tok, best_score = "", 0.0
-            for cand in scene_vocab:
-                cl = cand.lower()
-                if abs(len(cl) - len(rom_l)) > 4:
-                    continue
-                sc = difflib.SequenceMatcher(None, rom_l, cl).ratio()
-                if sc > best_score:
-                    best_score = sc
-                    best_tok = cand
-            if best_score >= 0.74 and best_tok:
-                rom = best_tok
+        rom_l = rom.lower()
+        if rom_l in _PHONETIC_TO_ENGLISH_REPAIRS:
+            rom = _PHONETIC_TO_ENGLISH_REPAIRS[rom_l]
+        else:
+            # Phonetic fuzzy match against scene vocab AND global standard English vocabulary
+            cand_pool = list(scene_vocab or []) + list(_STANDARD_ENGLISH_VOCAB)
+            if cand_pool and len(rom) >= 5:
+                best_tok, best_score = "", 0.0
+                for cand in cand_pool:
+                    cl = cand.lower()
+                    if abs(len(cl) - len(rom_l)) > 3:
+                        continue
+                    # Higher bar (0.80) on global English list so authentic Hindi/Marathi words stay Hinglish!
+                    min_sc = 0.74 if (scene_vocab and cand in scene_vocab) else 0.80
+                    sc = difflib.SequenceMatcher(None, rom_l, cl).ratio()
+                    if sc >= min_sc and sc > best_score:
+                        best_score = sc
+                        best_tok = cand
+                if best_tok:
+                    rom = best_tok
         conv_parts.append(rom)
 
     out = "".join(conv_parts)
@@ -325,8 +422,9 @@ def generate_ass_subtitles(
         font_size = 62
         margin_v = 420
 
-    # Light-mode canvas needs solid dark pill / heavier outline so white+yellow karaoke text pops cleanly
-    is_light_canvas = (str(art_style).lower().strip() in ("light_whiteboard", "studio_white"))
+    # Light/White/Light-Grey canvas needs solid dark pill / heavier outline so white+yellow karaoke text pops cleanly
+    from core.palette_engine import is_light_studio_world
+    is_light_canvas = is_light_studio_world(art_style)
     border_style = 3 if is_light_canvas else 1
     outline_px = 12 if is_light_canvas else 5
     back_col = "&HC80F172A" if is_light_canvas else "&H90000000"

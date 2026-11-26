@@ -276,10 +276,68 @@ _PRO_EXTRA_PRESETS: Dict[str, Tuple[str, str, Tuple[str, ...]]] = {
     "cap_pacelc_matrix": ("pros_cons_scale", "PACELC Partition & Latency Choice", ("PA/EL: Dynamo/Cassandra", "PC/EC: Spanner/Cockroach")),
     "amortized_cost_analysis": ("countdown_hero", "O(1) Amortized Dynamic Resize", ("Doubling Strategy Token Credit",)),
     "flywheel_compounding_loop": ("orbit_ecosystem", "Compounding Systems Flywheel", ("Better Latency", "Higher Trust", "More Scale", "Lower Cost")),
+
+    # --- +13 AI / LLM / Reasoning (Total 39 in AI Pillar) ---
+    "cot_reasoning_tree": ("rag_pipeline_3d", "Chain-of-Thought Search Tree", ("Root Query", "Branch Plan A", "Verify Branch B", "Prune Low Score")),
+    "parallel_tool_calls": ("agent_loop_3d", "Parallel Function Calling Fan-Out", ("Planner", "SQL Tool", "Search API", "Merge Obs")),
+    "cosine_sim_heatmap": ("attention_heatmap", "Embedding Cosine Similarity Grid", ("Doc 1", "Doc 2", "Doc 3", "Query")),
+    "hybrid_rrf_rerank": ("sankey_flow", "Reciprocal Rank Fusion (BM25 + Dense)", ("BM25 Sparse|RRF Fusion|50%", "Dense Vector|RRF Fusion|50%", "RRF Fusion|Top-K Context|96%")),
+    "prompt_prefix_compress": ("before_after_slider", "Prompt Token Pruning Compression", ("Raw 4,800 Tokens\n$0.14 / Call", "Compressed 1,200 Tokens\n4x Faster Prefill ✓")),
+    "vlm_patch_encoder": ("neural_net_layers", "Vision Transformer Image Patch Grid", ("16x16 Patches", "Linear Proj", "Cross-Attn", "Text Tokens")),
+    "audio_mel_bands": ("heatmap_matrix", "Log-Mel Spectrogram Speech Bands", ("40Hz", "400Hz", "2kHz", "8kHz")),
+    "reward_hacking_shield": ("split_screen_50_50", "RLHF Reward Hacking Mitigation", ("Unconstrained Policy\nVerbosity Exploits", "KL-Penalty Guard\nConcise Accuracy ✓")),
+    "synthetic_distill_pipe": ("rag_pipeline_3d", "Teacher -> Student Model Distillation", ("70B Teacher", "Verified Trace", "Filter Quality", "7B Student")),
+    "lora_rank_sweeps": ("line_area_chart", "LoRA Rank r=4..64 Accuracy vs VRAM", ("r=4", "r=8", "r=16", "r=32", "r=64")),
+    "episodic_agent_store": ("timeline_gantt", "Long-Horizon Agent Episodic Memory", ("Working Scratch", "Session Redis", "Episodic Qdrant", "Long-Term SQL")),
+    "prefix_kv_reuse": ("kanban_board", "System Prompt KV Prefix Reuse", ("Shared Sys KV", "Tenant Doc KV", "Per-User Tail")),
+    "cascade_model_router": ("sankey_flow", "Small-to-Large LLM Model Router", ("Easy 75%|8B Fast|$0.0002", "Hard 25%|Frontier Pro|99% Acc")),
+
+    # --- +13 Graphs, Analytics & Observability (Total 39 in Analytics Pillar) ---
+    "multi_series_area": ("line_area_chart", "Read vs Write Throughput Ramp", ("Baseline", "Shard x2", "Cache Hit", "Peak 95K")),
+    "stacked_traffic_area": ("line_area_chart", "API Traffic by Edge vs Origin", ("Edge Cached", "Origin API", "Background", "Total RPS")),
+    "p99_tail_cdf_curve": ("line_area_chart", "Cumulative Latency Distribution (CDF)", ("P50 4ms", "P90 12ms", "P99 38ms", "P99.9 110ms")),
+    "scatter_trend_fit": ("scatter_plot", "Memory vs Latency Regression Fit", ("Small Pool", "Optimal Knee", "Swap Cliff")),
+    "latency_knee_point": ("line_area_chart", "Load Saturation Little's Law Knee", ("20% Util", "50% Util", "78% Knee", "95% Spike")),
+    "error_budget_burn": ("donut_3d", "30-Day SLO Error Budget Status", ("Healthy 78%", "Canary Burn 14%", "Buffer 8%")),
+    "memory_slab_treemap": ("kanban_board", "Heap & PageCache Memory Partition", ("Buffer Pool 62%", "WAL Cache 18%", "Temp Sort 20%")),
+    "queue_sawtooth_chart": ("candlestick_pro", "GC Allocation & Pause Sawtooth", ("Alloc Ramp", "Young GC", "Survivors", "Steady")),
+    "cache_miss_heatmap": ("heatmap_matrix", "Key Prefix Hot-Shard Miss Matrix", ("Shard 0", "Shard 1", "Shard 2", "Shard 3")),
+    "cohort_ltv_curve": ("line_area_chart", "Net Dollar Retention Expansion Cohort", ("M1 100%", "M3 108%", "M6 118%", "M12 134%")),
+    "ab_ci_error_bars": ("candlestick_pro", "Experiment 95% Confidence Intervals", ("Control", "Variant A", "Variant B", "Winner")),
+    "core_cpu_util_bars": ("token_prob_bars", "Per-Core Saturation Skew Check", ("Core 0 IRQ Hot", "Core 1 Worker", "Core 2 Worker", "Core 3 Idle")),
+    "egress_bandwidth_area": ("donut_3d", "Cross-AZ vs CDN Network Egress", ("CDN Edge", "Cross-AZ Sync", "DB Replication")),
+
+    # --- +12 UI / Developer UX Mockups (Total 38 in UI Pillar) ---
+    "cli_progress_board": ("terminal_studio" if False else "notification_stack", "Live CI Runner Deployment Progress", ("Build Docker SHA256 ✓", "Integration Tests 142/142 ✓", "Canary 25% Health Green ✓")),
+    "openapi_schema_docs": ("browser_window", "OpenAPI 3.1 Interactive Spec Portal", ("GET /v2/tenants/{id}/usage • Typed SDK Ready",)),
+    "git_blame_gutter_ui": ("split_screen_50_50", "IDE Inline Commit Blame & PR Link", ("Legacy Line 112\nPR #402 by @ops", "Refactored Line 112\nPR #988 • -65% Alloc ✓")),
+    "flame_modal_viewer": ("token_prob_bars", "Continuous eBPF Profile Hotspots", ("serde_json::from_str", "sha256_compress", "tls_handshake", "pg_bind_exec")),
+    "explain_plan_viewer": ("kanban_board", "Query Plan Operator Cost Breakdown", ("Hash Join 12%", "Index Only 4%", "Bitmap Heap 84%")),
+    "secret_rotation_ui": ("timeline_gantt", "Automated Zero-Downtime Key Rotation", ("Dual Key Issue", "Grace Overlap 24h", "Revoke Legacy Key")),
+    "audit_event_feed_ui": ("chat_thread_ai", "Immutable Compliance Audit Stream", ("Admin: Updated RBAC Role Policy", "System: Signed Hash #9941A", "Verifier: Chain Validated ✓")),
+    "status_outage_banner": ("mobile_app_mockup", "Real-Time Status Incident Updates", ("US-East Investigating", "Failover Complete", "All Systems Operational")),
+    "saml_sso_handshake_ui": ("browser_window", "Enterprise SAML 2.0 / OIDC SSO Login", ("Verified Assertion • JIT SCIM Group Synced",)),
+    "k8s_pod_lens_ui": ("mobile_app_mockup", "Kubernetes Pod Live Resource Metrics", ("CPU 240m / 500m", "RAM 412Mi / 1Gi", "Restarts: 0 Ready")),
+    "tf_plan_diff_card": ("diff_patch_card" if False else "before_after_slider", "Terraform IaC State Plan Diff", ("~ aws_rds_cluster\nstorage_iops = 3000", "+ aws_rds_cluster\nstorage_iops = 12000 ✓")),
+    "docker_image_layers_ui": ("kanban_board", "Multi-Stage Image Size Reduction", ("Ubuntu Fat (920MB)", "Node Slim (240MB)", "Distroless (28MB)")),
+
+    # --- +12 Science, Math & Distributed Systems (Total 38 in Science Pillar) ---
+    "amdahl_parallel_law": ("line_area_chart", "Amdahl's Law Serial Bottleneck Cap", ("1 Core", "4 Cores", "16 Cores", "64 Cores Cap")),
+    "little_law_concurrency": ("equation_proof", "Little's Law: L = λ · W", ("Avg In-Flight = Arrival Rate × Latency",)),
+    "usl_scalability_curve": ("line_area_chart", "Universal Scalability Law (USL) Retrograde", ("Linear", "Contention", "Coherency Peak", "Retrograde Drop")),
+    "bloom_fpr_curve": ("line_area_chart", "Bloom Filter False Positive Rate vs Bits", ("4 bits", "8 bits", "10 bits (1%)", "16 bits (0.04%)")),
+    "hyperloglog_registers": ("token_prob_bars", "HyperLogLog 16KB Billion Unique Count", ("Bucket 0x1A Leading0", "Bucket 0x4F Leading0", "Harmonic Mean Est", "0.8% Std Error")),
+    "hash_ring_vnodes": ("orbit_ecosystem", "Virtual Nodes Smooth Consistent Ring", ("VNode N1-A", "VNode N2-B", "VNode N3-A", "VNode N1-C")),
+    "vector_clock_events": ("agent_loop_3d", "Lamport & Vector Clocks Causal Order", ("Node A [2,1,0]", "Node B [2,2,0]", "Node C [2,2,1]", "Concurrent Detect")),
+    "crdt_gcounter_merge": ("split_screen_50_50", "State-Based CRDT Max-Vector Merge", ("Replica 1 Counter\n[A:5, B:2]", "Replica 2 Counter\n[A:3, B:9] -> [5,9] ✓")),
+    "paxos_prepare_phase": ("chat_thread_ai", "Single-Decree Paxos Two-Phase Quorum", ("Proposer: Prepare(n=42)", "Acceptor Quorum: Promise + MaxVal", "Proposer: Accept(n=42, v)", "Quorum: Chosen ✓")),
+    "raft_append_entries": ("rag_pipeline_3d", "Raft Leader Term & Log Replication", ("Leader Term 7", "AppendEntries RPC", "Majority fsync", "Commit Index++")),
+    "canary_score_judge": ("radar_spider", "Automated Canary Mann-Whitney Judge", ("CPU", "P99", "5xx", "GC", "Mem")),
+    "backpressure_flow_rate": ("sankey_flow", "Reactive Streams Request(N) Credit", ("Fast Producer|Bounded Buffer|Throttle N", "Consumer Drain|Refill Credit|Zero OOM")),
 }
 
 EXTRA_32_LAYOUTS: Tuple[str, ...] = (
-    # AI / ML & True 3D Mesh (26)
+    # AI / ML & True 3D Mesh (39)
     "neural_net_layers", "attention_heatmap", "embedding_cluster", "rag_pipeline_3d",
     "agent_loop_3d", "token_prob_bars", "mesh_3d_stage",
     "transformer_self_attn", "kv_cache_sliding", "lora_adapter_merge", "moe_routing_chart",
@@ -287,7 +345,11 @@ EXTRA_32_LAYOUTS: Tuple[str, ...] = (
     "rlhf_ppo_loop", "diffusion_denoise_steps", "quantization_int4", "graph_rag_hops",
     "vllm_paged_attn", "supervisor_agent_orbit", "voice_pipeline_vad", "semantic_cache_clusters",
     "reranker_cross_encoder", "embedding_hnsw_layers", "fine_tune_loss_curve",
-    # Charts & Analytics (26)
+    "cot_reasoning_tree", "parallel_tool_calls", "cosine_sim_heatmap", "hybrid_rrf_rerank",
+    "prompt_prefix_compress", "vlm_patch_encoder", "audio_mel_bands", "reward_hacking_shield",
+    "synthetic_distill_pipe", "lora_rank_sweeps", "episodic_agent_store", "prefix_kv_reuse",
+    "cascade_model_router",
+    # Charts & Analytics (39)
     "line_area_chart", "donut_3d", "radar_spider", "sankey_flow",
     "candlestick_pro", "heatmap_matrix", "scatter_plot", "confusion_matrix",
     "cohort_retention_grid", "pareto_frontier_plot", "box_whisker_latency", "violin_distribution",
@@ -295,7 +357,11 @@ EXTRA_32_LAYOUTS: Tuple[str, ...] = (
     "slo_burn_rate_gauge", "anomaly_zscore_bands", "funnel_conversion_drop", "bullet_kpi_targets",
     "histogram_p99_tail", "correlation_matrix_pro", "cumulative_throughput_area", "sparkline_kpi_board",
     "latency_heatmap_hour", "resource_quota_meter",
-    # UI / Mockups / Social (26)
+    "multi_series_area", "stacked_traffic_area", "p99_tail_cdf_curve", "scatter_trend_fit",
+    "latency_knee_point", "error_budget_burn", "memory_slab_treemap", "queue_sawtooth_chart",
+    "cache_miss_heatmap", "cohort_ltv_curve", "ab_ci_error_bars", "core_cpu_util_bars",
+    "egress_bandwidth_area",
+    # UI / Mockups / Social (38)
     "mobile_app_mockup", "browser_window", "chat_thread_ai", "notification_stack",
     "kanban_board", "pricing_tiers", "quote_spotlight", "split_screen_50_50", "countdown_hero",
     "ide_split_debugger", "pr_review_thread", "billing_usage_meter", "feature_flag_toggle_ui",
@@ -303,7 +369,10 @@ EXTRA_32_LAYOUTS: Tuple[str, ...] = (
     "diff_patch_card", "auth_oauth_consent", "role_permission_matrix", "search_autocomplete_ui",
     "toast_alert_banner", "changelog_release_notes", "profile_badge_showcase", "table_pagination_pro",
     "mobile_push_alert",
-    # Science / Math / Strategy (26)
+    "cli_progress_board", "openapi_schema_docs", "git_blame_gutter_ui", "flame_modal_viewer",
+    "explain_plan_viewer", "secret_rotation_ui", "audit_event_feed_ui", "status_outage_banner",
+    "saml_sso_handshake_ui", "k8s_pod_lens_ui", "tf_plan_diff_card", "docker_image_layers_ui",
+    # Science / Math / Strategy (38)
     "mindmap_radial", "timeline_gantt", "equation_proof", "before_after_slider",
     "pros_cons_scale", "atom_orbit_3d", "dna_helix_3d", "orbit_ecosystem",
     "fourier_wave_decompose", "gradient_descent_valley", "bayesian_prior_posterior", "markov_transition_graph",
@@ -311,6 +380,9 @@ EXTRA_32_LAYOUTS: Tuple[str, ...] = (
     "crispr_gene_edit", "protein_folding_energy", "neural_synapse_spike", "entropy_info_gain",
     "game_theory_payoff", "pareto_80_20_rule", "big_o_complexity_curves", "cap_pacelc_matrix",
     "amortized_cost_analysis", "flywheel_compounding_loop",
+    "amdahl_parallel_law", "little_law_concurrency", "usl_scalability_curve", "bloom_fpr_curve",
+    "hyperloglog_registers", "hash_ring_vnodes", "vector_clock_events", "crdt_gcounter_merge",
+    "paxos_prepare_phase", "raft_append_entries", "canary_score_judge", "backpressure_flow_rate",
 )
 
 EXTRA_PRO_100_LAYOUTS: Tuple[str, ...] = EXTRA_32_LAYOUTS
@@ -401,7 +473,6 @@ def render_pro_layout(
     _res_col = helpers["resolve_world_color"]
     _bezier = helpers["_draw_bezier_comet"]
     _draw_vis = helpers["_draw_node_visual"]
-    d = data or {}
     g0 = _ease(min(1.0, progress / 0.20))
 
     # --- 1. TRUE NUMPY 3D MESH STAGE & SCIENCE 3D MODELS ---
@@ -536,7 +607,14 @@ def render_pro_layout(
         else:
             series = list(d.get("values") or d.get("points") or [22, 34, 29, 51, 68, 62, 89, 96])[:12]
             nums = [float(x.get("y") if isinstance(x, dict) else x) for x in series]
-            mn, mx = min(nums + [0]), max(nums + [1.0])
+            mn, mx = min(nums + [0.0]), max(nums + [1.0])
+            # Dashed horizontal gridlines & clean Y-axis tick values for readable charts
+            for frac in (0.25, 0.5, 0.75, 1.0):
+                gy = int(ay1 - frac * (ay1 - ay0))
+                tick_val = mn + frac * (mx - mn)
+                for gx in range(ax0, ax1, 20):
+                    stage.draw.line((gx, gy, min(ax1, gx + 10), gy), fill=_with_alpha((*world["border"][:3], 95), g0), width=1)
+                stage.draw.text((88, gy - 12), f"{int(round(tick_val))}", font=_get_font(17, mono=True), fill=_with_alpha(world["muted"], g0))
             coords = []
             for i, val in enumerate(nums):
                 px = int(ax0 + (i / max(1, len(nums) - 1)) * (ax1 - ax0))
@@ -545,20 +623,25 @@ def render_pro_layout(
             show_n = max(2, int(len(coords) * min(1.0, progress / 0.72)))
             pts = coords[:show_n]
             if l == "candlestick_pro":
-                cw = max(20, (ax1 - ax0) // (len(coords) * 2))
+                cw = max(22, (ax1 - ax0) // (len(coords) * 2))
                 for i, (px, py) in enumerate(pts):
                     up = (i == 0) or (nums[i] >= nums[i - 1])
                     cc = world["emerald"] if up else world["rose"]
-                    stage.draw.line((px, max(ay0, py - 46), px, min(ay1, py + 46)), fill=_with_alpha(cc, g0), width=4)
-                    stage.draw.rounded_rectangle((px - cw // 2, py - 24, px + cw // 2, py + 24), radius=6, fill=_with_alpha(cc, g0))
+                    stage.draw.line((px, max(ay0, py - 48), px, min(ay1, py + 48)), fill=_with_alpha(cc, g0), width=4)
+                    stage.draw.rounded_rectangle((px - cw // 2, py - 24, px + cw // 2, py + 24), radius=6, fill=_with_alpha(cc, g0), outline=_with_alpha(world["text"], g0 * 0.45), width=1)
             else:
                 if len(pts) >= 2:
                     poly = [(pts[0][0], ay1)] + pts + [(pts[-1][0], ay1)]
-                    stage.draw.polygon(poly, fill=_with_alpha((*world["cyan"][:3], 42), g0))
-                    stage.add_glow_line(pts, world["cyan"], width=12, alpha=140)
-                    stage.draw.line(pts, fill=_with_alpha(world["cyan"], g0), width=5)
-                for px, py in pts:
-                    stage.draw.ellipse((px - 8, py - 8, px + 8, py + 8), fill=_with_alpha(world["emerald"], g0), outline=_with_alpha((255, 255, 255, 230), g0), width=2)
+                    stage.draw.polygon(poly, fill=_with_alpha((*world["cyan"][:3], 48), g0))
+                    stage.add_glow_line(pts, world["cyan"], width=12, alpha=145)
+                    stage.draw.line(pts, fill=_with_alpha(world["cyan"], g0), width=6)
+                for idx_pt, (px, py) in enumerate(pts):
+                    stage.draw.ellipse((px - 8, py - 8, px + 8, py + 8), fill=_with_alpha(world["emerald"], g0), outline=_with_alpha(world["text"], g0), width=2)
+                    if idx_pt == len(pts) - 1:
+                        stage.add_glow_orb(px, py, 24, world["emerald"], alpha=int(150 * g0))
+                        stage.draw_pill(min(890, max(210, px)), max(ay0 + 24, py - 38), f"Peak: {nums[idx_pt]:.0f}", world["card_alt"], world["emerald"], border_col=world["emerald"], font=_get_font(18, bold=True), alpha_mul=g0)
+        if d.get("caption"):
+            stage.draw_pill(540, SY1 - 88, str(d["caption"])[:40], world["card_alt"], world["text"], border_col=world["cyan"], font=_get_font(20, bold=True), alpha_mul=g0)
         return True
 
     if l == "donut_3d":

@@ -72,23 +72,50 @@ def _rgba_css(rgb: Tuple[int, ...], alpha: float) -> str:
 
 
 ZERO_TEMPLATE_50_ARCHETYPES: Tuple[str, ...] = (
-    # 20 Interactive HTML5 / Canvas 3D Web Scenes (`web_scene`)
+    # 54 Interactive HTML5 / Canvas 3D Web Scenes (`web_scene`)
     "web_pipeline_3d", "web_hub_mesh", "web_bento_layers", "web_orbit_nodes",
     "web_memory_wal", "web_benchmark_race", "web_split_vs", "web_telemetry_hud",
     "web_terminal_sql", "web_alert_radar", "web_flamegraph_html", "web_waterfall_trace",
     "web_state_fsm", "web_kanban_stream", "web_packet_dissector", "web_neural_synapse",
     "web_timeline_ribbon", "web_quadrant_radar", "web_ring_consensus", "web_diff_inspector",
-    # 18 Animated Crisp Vector Blueprints (`svg_scene`)
+    "web_outbox_cdc_flow", "web_saga_choreography", "web_cqrs_read_write", "web_token_bucket_gauge",
+    "web_leaky_bucket_pipe", "web_consistent_ring", "web_raft_quorum_vote", "web_paxos_ballot_round",
+    "web_lsm_compaction_ui", "web_btree_page_split", "web_mvcc_version_chain", "web_bloom_bit_probe",
+    "web_redis_cluster_slots", "web_kafka_partition_lag", "web_envoy_circuit_trip", "web_k8s_hpa_scale",
+    "web_docker_overlay_fs", "web_ebpf_xdp_filter", "web_graphql_supergraph", "web_grpc_stream_mux",
+    "web_sse_push_stream", "web_oauth_pkce_flow", "web_passkey_webauthn", "web_rag_hybrid_fusion",
+    "web_vllm_paged_kv", "web_speculative_decode", "web_moe_gating_panel", "web_double_entry_ledger",
+    "web_idempotency_vault", "web_load_shedding_queue", "web_hedged_request_p99", "web_slo_burn_meter",
+    "web_zero_downtime_ddl", "web_shadow_traffic_diff",
+    # 52 Animated Crisp Vector Blueprints (`svg_scene`)
     "svg_circuit_bus", "svg_concentric_shields", "svg_dag_lineage", "svg_sequence_lanes",
     "svg_btree_split", "svg_raft_heartbeat", "svg_shard_hash_ring", "svg_tls_handshake_arcs",
     "svg_medallion_funnel", "svg_cache_hierarchy", "svg_lock_contention", "svg_vector_embeddings",
     "svg_microservice_mesh", "svg_dns_resolver_tree", "svg_tcp_congestion_wave", "svg_merkle_proof_tree",
     "svg_transformer_attention", "svg_event_sourcing_log",
-    # 16 Freeform 3D-Camera Spatial Glass Compositions (`spatial_canvas`)
+    "svg_quic_0rtt_flight", "svg_bgp_as_path_arcs", "svg_nat_hole_punch", "svg_anycast_pop_routes",
+    "svg_kafka_consumer_rebal", "svg_flink_watermark_gate", "svg_iceberg_manifest_tree", "svg_parquet_rowgroups",
+    "svg_wal_lsn_append", "svg_two_phase_commit_seq", "svg_deadlock_wait_graph", "svg_cpu_cache_mesi_bus",
+    "svg_nvme_sq_cq_ring", "svg_dma_zero_copy_bus", "svg_virtual_mem_tlb", "svg_epoll_reactor_loop",
+    "svg_crdt_state_merge", "svg_vector_clock_dag", "svg_gossip_epidemic_net", "svg_bloom_hash_probes",
+    "svg_hnsw_skip_layers", "svg_lora_rank_inject", "svg_diffusion_noise_sched", "svg_react_fiber_tree",
+    "svg_browser_paint_pipe", "svg_canary_traffic_split", "svg_argocd_gitops_sync", "svg_vault_envelope_kms",
+    "svg_double_ledger_arrows", "svg_card_auth_clearing", "svg_zk_snark_circuit", "svg_kalman_sensor_loop",
+    "svg_pid_control_curve", "svg_a_star_path_grid",
+    # 50 Freeform 3D-Camera Spatial Glass Compositions (`spatial_canvas`)
     "spatial_isometric_stack", "spatial_floating_cards", "spatial_depth_carousel", "spatial_constellation_map",
     "spatial_layered_slices", "spatial_split_hologram", "spatial_radar_sweep", "spatial_code_glass_pane",
     "spatial_metric_monolith", "spatial_queue_conveyor", "spatial_pipeline_tunnel", "spatial_pyramid_tier",
     "spatial_heatmap_tiles", "spatial_orbit_carousel", "spatial_comparison_bridge", "spatial_mastery_crown",
+    "spatial_multi_az_rack", "spatial_geo_cdn_edges", "spatial_lakehouse_tiers", "spatial_feature_store_bus",
+    "spatial_zero_trust_zones", "spatial_service_mesh_pods", "spatial_observability_hub", "spatial_incident_warroom",
+    "spatial_gpu_tensor_cube", "spatial_kv_memory_blocks", "spatial_agent_swarm_ring", "spatial_mcp_tool_bridge",
+    "spatial_sql_query_planes", "spatial_index_seek_layers", "spatial_sharded_ring_3d", "spatial_replica_fanout",
+    "spatial_circuit_gate_3d", "spatial_backpressure_dam", "spatial_idempotent_shield", "spatial_payment_vault_3d",
+    "spatial_merkle_lattice", "spatial_ecdh_key_exchange", "spatial_webgpu_cull_pass", "spatial_ecs_array_slices",
+    "spatial_mobile_sync_vault", "spatial_compose_recompose", "spatial_edge_iot_gateway", "spatial_ros2_dds_bus",
+    "spatial_slam_pose_graph", "spatial_sim2real_physics", "spatial_finops_autoscaler", "spatial_dora_velocity_hud",
+    "spatial_chaos_blast_zone", "spatial_adr_decision_wall",
 )
 
 _OPTION1_ARCH_FAMILY: Dict[str, str] = {
@@ -99,18 +126,54 @@ _OPTION1_ARCH_FAMILY: Dict[str, str] = {
     "web_state_fsm": "fsm_cycle", "web_kanban_stream": "bento_layers", "web_packet_dissector": "svg_sequence",
     "web_neural_synapse": "hub_mesh", "web_timeline_ribbon": "pipeline_3d", "web_quadrant_radar": "matrix_grid",
     "web_ring_consensus": "svg_rings", "web_diff_inspector": "split_vs",
+    "web_outbox_cdc_flow": "pipeline_3d", "web_saga_choreography": "svg_sequence", "web_cqrs_read_write": "split_vs",
+    "web_token_bucket_gauge": "telemetry", "web_leaky_bucket_pipe": "waterfall_spans", "web_consistent_ring": "svg_rings",
+    "web_raft_quorum_vote": "hub_mesh", "web_paxos_ballot_round": "svg_sequence", "web_lsm_compaction_ui": "pyramid_tiers",
+    "web_btree_page_split": "svg_blueprint", "web_mvcc_version_chain": "memory_wal", "web_bloom_bit_probe": "matrix_grid",
+    "web_redis_cluster_slots": "bento_layers", "web_kafka_partition_lag": "benchmark", "web_envoy_circuit_trip": "fsm_cycle",
+    "web_k8s_hpa_scale": "telemetry", "web_docker_overlay_fs": "pyramid_tiers", "web_ebpf_xdp_filter": "flame_bars",
+    "web_graphql_supergraph": "hub_mesh", "web_grpc_stream_mux": "pipeline_3d", "web_sse_push_stream": "svg_sequence",
+    "web_oauth_pkce_flow": "svg_sequence", "web_passkey_webauthn": "bento_layers", "web_rag_hybrid_fusion": "pipeline_3d",
+    "web_vllm_paged_kv": "memory_wal", "web_speculative_decode": "benchmark", "web_moe_gating_panel": "hub_mesh",
+    "web_double_entry_ledger": "split_vs", "web_idempotency_vault": "memory_wal", "web_load_shedding_queue": "alert_radar",
+    "web_hedged_request_p99": "waterfall_spans", "web_slo_burn_meter": "telemetry", "web_zero_downtime_ddl": "terminal_sql",
+    "web_shadow_traffic_diff": "split_vs",
     "svg_circuit_bus": "svg_blueprint", "svg_concentric_shields": "svg_rings", "svg_dag_lineage": "svg_blueprint",
     "svg_sequence_lanes": "svg_sequence", "svg_btree_split": "svg_blueprint", "svg_raft_heartbeat": "svg_rings",
     "svg_shard_hash_ring": "svg_rings", "svg_tls_handshake_arcs": "svg_sequence", "svg_medallion_funnel": "pyramid_tiers",
     "svg_cache_hierarchy": "pyramid_tiers", "svg_lock_contention": "split_vs", "svg_vector_embeddings": "spatial_constellation",
     "svg_microservice_mesh": "hub_mesh", "svg_dns_resolver_tree": "svg_blueprint", "svg_tcp_congestion_wave": "waterfall_spans",
     "svg_merkle_proof_tree": "svg_blueprint", "svg_transformer_attention": "matrix_grid", "svg_event_sourcing_log": "memory_wal",
+    "svg_quic_0rtt_flight": "svg_sequence", "svg_bgp_as_path_arcs": "svg_blueprint", "svg_nat_hole_punch": "svg_sequence",
+    "svg_anycast_pop_routes": "hub_mesh", "svg_kafka_consumer_rebal": "svg_rings", "svg_flink_watermark_gate": "waterfall_spans",
+    "svg_iceberg_manifest_tree": "svg_blueprint", "svg_parquet_rowgroups": "matrix_grid", "svg_wal_lsn_append": "memory_wal",
+    "svg_two_phase_commit_seq": "svg_sequence", "svg_deadlock_wait_graph": "svg_rings", "svg_cpu_cache_mesi_bus": "svg_blueprint",
+    "svg_nvme_sq_cq_ring": "svg_rings", "svg_dma_zero_copy_bus": "split_vs", "svg_virtual_mem_tlb": "pyramid_tiers",
+    "svg_epoll_reactor_loop": "fsm_cycle", "svg_crdt_state_merge": "split_vs", "svg_vector_clock_dag": "svg_blueprint",
+    "svg_gossip_epidemic_net": "spatial_constellation", "svg_bloom_hash_probes": "matrix_grid", "svg_hnsw_skip_layers": "pyramid_tiers",
+    "svg_lora_rank_inject": "bento_layers", "svg_diffusion_noise_sched": "waterfall_spans", "svg_react_fiber_tree": "svg_blueprint",
+    "svg_browser_paint_pipe": "pipeline_3d", "svg_canary_traffic_split": "svg_blueprint", "svg_argocd_gitops_sync": "svg_rings",
+    "svg_vault_envelope_kms": "pyramid_tiers", "svg_double_ledger_arrows": "svg_sequence", "svg_card_auth_clearing": "svg_sequence",
+    "svg_zk_snark_circuit": "svg_blueprint", "svg_kalman_sensor_loop": "fsm_cycle", "svg_pid_control_curve": "flame_bars",
+    "svg_a_star_path_grid": "matrix_grid",
     "spatial_isometric_stack": "spatial_stack", "spatial_floating_cards": "bento_layers", "spatial_depth_carousel": "orbit_nodes",
     "spatial_constellation_map": "spatial_constellation", "spatial_layered_slices": "spatial_stack", "spatial_split_hologram": "split_vs",
     "spatial_radar_sweep": "alert_radar", "spatial_code_glass_pane": "terminal_sql", "spatial_metric_monolith": "telemetry",
     "spatial_queue_conveyor": "pipeline_3d", "spatial_pipeline_tunnel": "flame_bars", "spatial_pyramid_tier": "pyramid_tiers",
     "spatial_heatmap_tiles": "matrix_grid", "spatial_orbit_carousel": "svg_rings", "spatial_comparison_bridge": "split_vs",
     "spatial_mastery_crown": "pyramid_tiers",
+    "spatial_multi_az_rack": "spatial_stack", "spatial_geo_cdn_edges": "spatial_constellation", "spatial_lakehouse_tiers": "pyramid_tiers",
+    "spatial_feature_store_bus": "pipeline_3d", "spatial_zero_trust_zones": "svg_rings", "spatial_service_mesh_pods": "spatial_constellation",
+    "spatial_observability_hub": "hub_mesh", "spatial_incident_warroom": "alert_radar", "spatial_gpu_tensor_cube": "spatial_stack",
+    "spatial_kv_memory_blocks": "memory_wal", "spatial_agent_swarm_ring": "orbit_nodes", "spatial_mcp_tool_bridge": "hub_mesh",
+    "spatial_sql_query_planes": "terminal_sql", "spatial_index_seek_layers": "spatial_stack", "spatial_sharded_ring_3d": "svg_rings",
+    "spatial_replica_fanout": "spatial_constellation", "spatial_circuit_gate_3d": "fsm_cycle", "spatial_backpressure_dam": "waterfall_spans",
+    "spatial_idempotent_shield": "bento_layers", "spatial_payment_vault_3d": "spatial_stack", "spatial_merkle_lattice": "spatial_constellation",
+    "spatial_ecdh_key_exchange": "svg_sequence", "spatial_webgpu_cull_pass": "flame_bars", "spatial_ecs_array_slices": "matrix_grid",
+    "spatial_mobile_sync_vault": "spatial_stack", "spatial_compose_recompose": "pipeline_3d", "spatial_edge_iot_gateway": "spatial_constellation",
+    "spatial_ros2_dds_bus": "hub_mesh", "spatial_slam_pose_graph": "orbit_nodes", "spatial_sim2real_physics": "spatial_stack",
+    "spatial_finops_autoscaler": "benchmark", "spatial_dora_velocity_hud": "telemetry", "spatial_chaos_blast_zone": "alert_radar",
+    "spatial_adr_decision_wall": "bento_layers",
 }
 
 
@@ -394,9 +457,9 @@ def _build_default_webgl_html(
     text_col = _rgb_css(world["text"])
     muted_col = _rgb_css(world["muted"])
     is_light = bool(world.get("is_light"))
-    card_bg = "rgba(255,255,255,0.92)" if is_light else "rgba(15,23,42,0.84)"
-    card_alt = "rgba(241,245,249,0.96)" if is_light else "rgba(24,35,58,0.92)"
-    border_col = "rgba(148,163,184,0.34)" if is_light else "rgba(56,189,248,0.32)"
+    card_bg = "rgba(255,255,255,0.95)" if is_light else "rgba(15,23,42,0.88)"
+    card_alt = "rgba(241,245,249,0.98)" if is_light else "rgba(24,35,58,0.94)"
+    border_col = "rgba(71,85,105,0.34)" if is_light else "rgba(56,189,248,0.36)"
     sub_reserve = 500 if height >= 1600 else (180 if height >= 1000 else 140)
     hud_html = _hud_overlay_snippet(width, height, scene_idx, total_scenes, world, watermark)
 
@@ -408,24 +471,24 @@ body{{width:{width}px;height:{height}px;overflow:hidden;background:linear-gradie
 canvas#bg3d{{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}}
 .stage{{position:relative;z-index:2;padding:106px 64px {sub_reserve}px;height:100%;display:flex;flex-direction:column;gap:22px;}}
 .hdr{{display:flex;flex-direction:column;gap:14px;flex-shrink:0;}}
-.badge{{display:inline-flex;align-items:center;gap:11px;padding:9px 22px;border-radius:999px;border:2px solid {cyan};background:{card_bg};color:{cyan};font-weight:800;font-size:22px;width:max-content;letter-spacing:0.03em;box-shadow:0 0 26px {_rgba_css(world['cyan'],0.24)};}}
+.badge{{display:inline-flex;align-items:center;gap:11px;padding:9px 22px;border-radius:999px;border:2px solid {cyan};background:{card_bg};color:{cyan};font-weight:800;font-size:22px;width:max-content;letter-spacing:0.03em;box-shadow:0 0 26px {_rgba_css(world['cyan'],0.22)};}}
 .dot{{width:11px;height:11px;border-radius:50%;background:{cyan};}}
-h1{{font-size:48px;line-height:1.14;font-weight:900;letter-spacing:-0.02em;}}
+h1{{font-size:48px;line-height:1.14;font-weight:900;letter-spacing:-0.02em;color:{text_col};}}
 #mainMount{{flex:1;position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:22px;padding-top:16px;min-height:0;}}
-.gcard{{background:{card_bg};backdrop-filter:blur(16px);border:2px solid {border_col};border-radius:24px;padding:24px 28px;box-shadow:0 16px 38px rgba(0,0,0,0.28);position:relative;overflow:hidden;}}
-.gcard.active{{border-color:{cyan};box-shadow:0 0 34px {_rgba_css(world['cyan'],0.28)}, 0 18px 42px rgba(0,0,0,0.34);}}
+.gcard{{background:{card_bg};backdrop-filter:blur(16px);border:2px solid {border_col};border-radius:24px;padding:24px 28px;color:{text_col};box-shadow:0 16px 38px rgba(0,0,0,0.18);position:relative;overflow:hidden;}}
+.gcard.active{{border-color:{cyan};box-shadow:0 0 34px {_rgba_css(world['cyan'],0.24)}, 0 18px 42px rgba(0,0,0,0.24);}}
 .pill-num{{min-width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,{cyan},{purple});color:#fff;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}}
-.ctitle{{font-size:28px;font-weight:800;line-height:1.22;}}
+.ctitle{{font-size:28px;font-weight:800;line-height:1.22;color:{text_col};}}
 .csub{{font-size:21px;color:{muted_col};margin-top:6px;line-height:1.3;}}
-.hero-footer{{margin-top:auto;padding:24px 28px;border-radius:24px;background:{card_alt};border:2px solid {emerald};box-shadow:0 0 32px {_rgba_css(world['emerald'],0.24)};text-align:center;}}
+.hero-footer{{margin-top:auto;padding:24px 28px;border-radius:24px;background:{card_alt};border:2px solid {emerald};color:{text_col};box-shadow:0 0 32px {_rgba_css(world['emerald'],0.20)};text-align:center;}}
 .hero-num{{font-size:64px;font-weight:900;background:linear-gradient(90deg,{cyan},{emerald});-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.05;}}
-.term-box{{background:rgba(9,13,24,0.94);border:2px solid {cyan};border-radius:24px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.45);}}
-.term-hdr{{display:flex;align-items:center;gap:10px;padding:16px 22px;background:rgba(30,41,59,0.75);border-bottom:1px solid {border_col};}}
+.term-box{{background:rgba(9,13,24,0.96);border:2px solid {cyan};border-radius:24px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.38);color:#f8fafc;}}
+.term-hdr{{display:flex;align-items:center;gap:10px;padding:16px 22px;background:rgba(30,41,59,0.82);border-bottom:1px solid rgba(148,163,184,0.28);}}
 .tlight{{width:14px;height:14px;border-radius:50%;}}
-.term-code{{padding:24px;font-family:'JetBrains Mono','Cascadia Code',Consolas,monospace;font-size:22px;line-height:1.5;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;}}
-.tbl-wrap{{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',Consolas,monospace;font-size:20px;}}
+.term-code{{padding:24px;font-family:'JetBrains Mono','Cascadia Code',Consolas,monospace;font-size:22px;line-height:1.5;color:#f1f5f9;white-space:pre-wrap;word-break:break-word;}}
+.tbl-wrap{{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',Consolas,monospace;font-size:20px;color:{text_col};}}
 .tbl-wrap th{{text-align:left;padding:14px 16px;color:{emerald};border-bottom:2px solid {border_col};font-weight:800;}}
-.tbl-wrap td{{padding:13px 16px;border-bottom:1px solid rgba(148,163,184,0.14);}}
+.tbl-wrap td{{padding:13px 16px;border-bottom:1px solid rgba(148,163,184,0.18);color:{text_col};}}
 </style></head>
 <body>
 <canvas id="bg3d" width="{width}" height="{height}"></canvas>
@@ -439,7 +502,7 @@ h1{{font-size:48px;line-height:1.14;font-weight:900;letter-spacing:-0.02em;}}
 </div>
 <script>
 const P={payload_json};
-const PAL={{cyan:'{cyan}',purple:'{purple}',emerald:'{emerald}',amber:'{amber}',rose:'{rose}',text:'{text_col}',muted:'{muted_col}',cardAlt:'{card_alt}'}};
+const PAL={{cyan:'{cyan}',purple:'{purple}',emerald:'{emerald}',amber:'{amber}',rose:'{rose}',text:'{text_col}',muted:'{muted_col}',cardAlt:'{card_alt}',cardBg:'{card_bg}'}};
 const ACCENTS=[PAL.cyan,PAL.purple,PAL.emerald,PAL.amber,PAL.rose];
 document.getElementById('titleTxt').textContent=P.title;
 document.getElementById('badgeTxt').textContent=P.badge;
@@ -624,7 +687,7 @@ function renderArchetype(){{
       const arrows=list.map((c,i)=>`<line x1="${{xs[i%2]}}" y1="${{90+i*75}}" x2="${{xs[1+((i+1)%2)]}}" y2="${{90+i*75}}" stroke="${{ACCENTS[i%ACCENTS.length]}}" stroke-width="4"/><text x="440" y="${{80+i*75}}" text-anchor="middle" fill="${{PAL.text}}" font-size="18" font-weight="800">${{(c.title||'Step').slice(0,26)}}</text>`).join('');
       inner=`<svg viewBox="0 0 880 400" width="100%" height="360">${{lines}}${{arrows}}</svg>`;
     }} else {{
-      const paths=list.map((c,i)=>`<rect x="${{70+(i%2)*400}}" y="${{40+Math.floor(i/2)*180}}" width="340" height="120" rx="18" fill="rgba(15,23,42,0.75)" stroke="${{ACCENTS[i%ACCENTS.length]}}" stroke-width="2.5"/><text x="${{240+(i%2)*400}}" y="${{96+Math.floor(i/2)*180}}" text-anchor="middle" fill="${{PAL.text}}" font-size="20" font-weight="800">${{(c.title||'Module').slice(0,22)}}</text><text x="${{240+(i%2)*400}}" y="${{128+Math.floor(i/2)*180}}" text-anchor="middle" fill="${{ACCENTS[i%ACCENTS.length]}}" font-size="15" font-weight="700">${{(c.sub||P.sub_variant||'SVG NODE').slice(0,26)}}</text>`).join('');
+      const paths=list.map((c,i)=>`<rect x="${{70+(i%2)*400}}" y="${{40+Math.floor(i/2)*180}}" width="340" height="120" rx="18" fill="${{PAL.cardBg}}" stroke="${{ACCENTS[i%ACCENTS.length]}}" stroke-width="2.5"/><text x="${{240+(i%2)*400}}" y="${{96+Math.floor(i/2)*180}}" text-anchor="middle" fill="${{PAL.text}}" font-size="20" font-weight="800">${{(c.title||'Module').slice(0,22)}}</text><text x="${{240+(i%2)*400}}" y="${{128+Math.floor(i/2)*180}}" text-anchor="middle" fill="${{ACCENTS[i%ACCENTS.length]}}" font-size="15" font-weight="700">${{(c.sub||P.sub_variant||'SVG NODE').slice(0,26)}}</text>`).join('');
       inner=`<svg viewBox="0 0 880 390" width="100%" height="350"><line x1="240" y1="160" x2="640" y2="220" stroke="${{PAL.cyan}}" stroke-width="3" stroke-dasharray="8 6"/>${{paths}}</svg>`;
     }}
     svgBox.innerHTML=inner; mount.appendChild(svgBox); animNodes.push(svgBox);
