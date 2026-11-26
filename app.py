@@ -24,6 +24,9 @@ _RELOAD_ORDER = [
     "core.web_generative_engine",
     "core.cinematic_engine",
     "core.quality_gate",
+    "core.studio_v2_director",
+    "core.studio_v2_vector",
+    "core.studio_v2_isometric",
 ]
 for _m in _RELOAD_ORDER:
     if _m in sys.modules:
@@ -47,6 +50,9 @@ from core.animator import render_scene_frames, generate_thumbnail_9_16
 from core.subtitles import generate_ass_subtitles
 from core.renderer import render_final_reel
 from core.quality_gate import DEFAULT_QUALITY_MODE, QUALITY_MODES, run_quality_gate_and_self_heal
+from core.studio_v2_director import STUDIO_V2_MODE_OPTIONS, generate_v2_timeline, is_studio_v2_mode
+from core.studio_v2_vector import render_v2_vector_scene_frames
+from core.studio_v2_isometric import render_v2_isometric_scene_frames
 from core.uploader import (
     upload_to_r2,
     list_r2_videos,
@@ -175,6 +181,7 @@ with st.sidebar:
             ("enable_cam_actions", "enable_cam_actions_chk"),
             ("enable_micro_sfx", "enable_micro_sfx_chk"),
             ("quality_mode", "quality_gate_select"),
+            ("studio_v2_mode", "studio_v2_arch_select"),
         ):
             if _sk in _ps:
                 st.session_state[_wk] = _ps[_sk]
@@ -356,67 +363,93 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### 🎨 Visual Engine & Style")
-    visual_engine_mode = st.radio(
-        "Engine Mode",
-        [
-            "🧠 Auto Omni Smart Director (All Engines Unified) [Recommended]",
-            "🎛️ Pin Single Specialist Engine (24 Modes)",
-        ],
-        index=0,
-        key="visual_engine_mode_radio",
-        help="Auto Omni blends Hook/Q&A, Streaming/Consensus/RAG Topologies, SQL/Terminal Proof, Benchmarks, WebGL/SVG & Interactive FX per scene inside 1 consistent color world. Or switch to Pin Single Specialist Engine to force one specific visual style.",
+    st.session_state.setdefault("studio_v2_arch_select", "classic_nanopro")
+    _v2_arch_map = dict(STUDIO_V2_MODE_OPTIONS)
+    chosen_studio_arch = st.selectbox(
+        "Studio Generation Architecture",
+        [k for k, _ in STUDIO_V2_MODE_OPTIONS],
+        format_func=lambda k: _v2_arch_map[k],
+        key="studio_v2_arch_select",
+        help="Keep Classic NanoPro Studio untouched, OR pick isolated Studio V2 (Clean Vector Storyboard / Spatial Isometric World).",
     )
-    if visual_engine_mode.startswith("🧠"):
-        visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All 1,221 Semantic Engines • AI Validator)")
-        omni_color_flow = st.radio(
-            "Omni Scene Color Cadence",
-            [
-                "🌈 Dynamic Multi-World Contrast (Shift Dark/Light Mood Per Scene) [Recommended]",
-                "🎨 Locked Single Color World (1 Harmonious Palette Across Video)",
-            ],
-            index=0,
-            key="omni_color_flow_radio",
+    st.session_state.setdefault("v2_clean_no_subs_chk", True)
+    v2_clean_no_subs = False
+    if is_studio_v2_mode(chosen_studio_arch):
+        visual_engine = (chosen_studio_arch, _v2_arch_map[chosen_studio_arch])
+        omni_color_flow = "🎨 Studio V2 Isolated Clean Navy World"
+        v2_clean_no_subs = st.checkbox(
+            "🧼 Clean Diagram Mode (No Bottom Karaoke Captions — Like Reference Reels)",
+            key="v2_clean_no_subs_chk",
+            help="Hides overlapping bottom subtitles so the interactive Vector Storyboard or Isometric World stays 100% readable.",
         )
         st.info(
-            "**Zero-Hardcode 2026 Semantic Routing (1,221 Total Engines):**\n"
-            "• 30 IT Domain & 2026 UI Specialists (Snowflake, SQL JOIN, AWS/Azure, Bank CBS/DR, AI IDE, Excalidraw, SRE)\n"
-            "• 12-Verb Action Overlays + Virtual Camera Zoom + Error Shake • Topic-Adaptive Duration",
-            icon="🧠",
+            "**Isolated Studio V2 Active (Classic NanoPro Untouched):**\n"
+            "• **Vector Storyboard (`GyanaHut`):** 10-segment story bar + progressive SVG widgets + Paired Analogy Tree\n"
+            "• **Spatial Isometric (`@thetechypenguin`):** Continuous 2.5D Architecture World + Camera Flyover + Top HUD",
+            icon="✨",
         )
     else:
-        omni_color_flow = "🎨 Locked Single Color World"
-        visual_engine = st.selectbox(
-            "Specialist Visual Engine (24 Modes)",
+        visual_engine_mode = st.radio(
+            "Engine Mode",
             [
-                ("studio_300_domain", "🎨 Both Combined: 1,041 Domain/Grammar + 168 Option 1 WebGL/SVG"),
-                ("multi_topology_mix", "🌐 Multi-Topology Mix (46+ Dual-Plane System Topologies + Interactive FX Per Scene)"),
-                ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip/Quiz Bubbles & Word Sync)"),
-                ("data_streaming_pipelines", "🌊 Data & Event Streaming Topologies (Kafka, CDC Debezium, Flink, Lakehouse, Spark)"),
-                ("distributed_consensus_labs", "🛰️ Distributed Systems & Consensus (Raft, Quorum, Hash Rings, Circuit Breakers, Sagas)"),
-                ("ai_rag_agents_studio", "🤖 AI, LLM & RAG Pipelines (Hybrid Search, MCP Tools, KV Cache, Guardrails, Agents)"),
-                ("pure_zero_template", "♾️ Option 1: 168 Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
-                ("studio_domain_library", "📚 Option 2: 1,041 Studio/Domain & Composable Grammar Layouts"),
-                ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
-                ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 1,041 Layouts, 145 Shapes)"),
-                ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
-                ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
-                ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
-                ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
-                ("bytebytego_dsl", "📊 ByteByteGo Architecture & Cloud Topology (Pipelines / Microservices)"),
-                ("sql_deepdive", "🗄️ SQL Table, Query & Dataset Execution (Schemas / DENSE_RANK / Window Functions)"),
-                ("split_comparison", "⚖️ Architectural Split Comparison (Legacy vs Modern / Trade-offs)"),
-                ("benchmark_speed", "⚡ Performance Benchmark Bars & Latency (Throughput / Speedup 15x)"),
-                ("memory_internals", "🧩 Memory Buffer, CDC WAL & Partition Slots (Low-level Bytes / Offsets)"),
-                ("network_mesh", "🌐 Circular Hub & Spoke Event Mesh (Message Broker / Radar Nodes)"),
-                ("telemetry_hud", "⏱️ Speedometer & Live Telemetry HUD (99.999% SLA / CPU / Event Counters)"),
-                ("alert_troubleshoot", "🚨 Production Incident Alert & Post-Mortem (Radar Alert / Bottlenecks)"),
-                ("concept_keynote", "💡 Kinetic Concept Keynote (Punchy Principles & Bullet Cards)"),
-                ("custom_user_style", "✍️ Custom Visual Style... (Type your own custom visual aesthetic)")
+                "🧠 Auto Omni Smart Director (All Engines Unified) [Recommended]",
+                "🎛️ Pin Single Specialist Engine (24 Modes)",
             ],
-            format_func=lambda x: x[1],
-            key="visual_engine_select",
-            help="Force any single specialist visual engine across the entire video."
+            index=0,
+            key="visual_engine_mode_radio",
+            help="Auto Omni blends Hook/Q&A, Streaming/Consensus/RAG Topologies, SQL/Terminal Proof, Benchmarks, WebGL/SVG & Interactive FX per scene inside 1 consistent color world. Or switch to Pin Single Specialist Engine to force one specific visual style.",
         )
+        if visual_engine_mode.startswith("🧠"):
+            visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All 1,221 Semantic Engines • AI Validator)")
+            omni_color_flow = st.radio(
+                "Omni Scene Color Cadence",
+                [
+                    "🌈 Dynamic Multi-World Contrast (Shift Dark/Light Mood Per Scene) [Recommended]",
+                    "🎨 Locked Single Color World (1 Harmonious Palette Across Video)",
+                ],
+                index=0,
+                key="omni_color_flow_radio",
+            )
+            st.info(
+                "**Zero-Hardcode 2026 Semantic Routing (1,221 Total Engines):**\n"
+                "• 30 IT Domain & 2026 UI Specialists (Snowflake, SQL JOIN, AWS/Azure, Bank CBS/DR, AI IDE, Excalidraw, SRE)\n"
+                "• 12-Verb Action Overlays + Virtual Camera Zoom + Error Shake • Topic-Adaptive Duration",
+                icon="🧠",
+            )
+        else:
+            omni_color_flow = "🎨 Locked Single Color World"
+            visual_engine = st.selectbox(
+                "Specialist Visual Engine (24 Modes)",
+                [
+                    ("studio_300_domain", "🎨 Both Combined: 1,041 Domain/Grammar + 168 Option 1 WebGL/SVG"),
+                    ("multi_topology_mix", "🌐 Multi-Topology Mix (46+ Dual-Plane System Topologies + Interactive FX Per Scene)"),
+                    ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip/Quiz Bubbles & Word Sync)"),
+                    ("data_streaming_pipelines", "🌊 Data & Event Streaming Topologies (Kafka, CDC Debezium, Flink, Lakehouse, Spark)"),
+                    ("distributed_consensus_labs", "🛰️ Distributed Systems & Consensus (Raft, Quorum, Hash Rings, Circuit Breakers, Sagas)"),
+                    ("ai_rag_agents_studio", "🤖 AI, LLM & RAG Pipelines (Hybrid Search, MCP Tools, KV Cache, Guardrails, Agents)"),
+                    ("pure_zero_template", "♾️ Option 1: 168 Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
+                    ("studio_domain_library", "📚 Option 2: 1,041 Studio/Domain & Composable Grammar Layouts"),
+                    ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
+                    ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 1,041 Layouts, 145 Shapes)"),
+                    ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
+                    ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
+                    ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
+                    ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
+                    ("bytebytego_dsl", "📊 ByteByteGo Architecture & Cloud Topology (Pipelines / Microservices)"),
+                    ("sql_deepdive", "🗄️ SQL Table, Query & Dataset Execution (Schemas / DENSE_RANK / Window Functions)"),
+                    ("split_comparison", "⚖️ Architectural Split Comparison (Legacy vs Modern / Trade-offs)"),
+                    ("benchmark_speed", "⚡ Performance Benchmark Bars & Latency (Throughput / Speedup 15x)"),
+                    ("memory_internals", "🧩 Memory Buffer, CDC WAL & Partition Slots (Low-level Bytes / Offsets)"),
+                    ("network_mesh", "🌐 Circular Hub & Spoke Event Mesh (Message Broker / Radar Nodes)"),
+                    ("telemetry_hud", "⏱️ Speedometer & Live Telemetry HUD (99.999% SLA / CPU / Event Counters)"),
+                    ("alert_troubleshoot", "🚨 Production Incident Alert & Post-Mortem (Radar Alert / Bottlenecks)"),
+                    ("concept_keynote", "💡 Kinetic Concept Keynote (Punchy Principles & Bullet Cards)"),
+                    ("custom_user_style", "✍️ Custom Visual Style... (Type your own custom visual aesthetic)")
+                ],
+                format_func=lambda x: x[1],
+                key="visual_engine_select",
+                help="Force any single specialist visual engine across the entire video."
+            )
 
     # ---------------------------------------------------------------------
     # 3 Clean Compact Expanders (Audio/Captions · Audience/Hook/CTA · Overrides)
@@ -621,6 +654,7 @@ with st.sidebar:
                 "enable_cam_actions": enable_camera_actions,
                 "enable_micro_sfx": enable_micro_sfx,
                 "quality_mode": chosen_quality_mode,
+                "studio_v2_mode": chosen_studio_arch,
             }
             _saved_slug = save_custom_creator_preset(_new_preset_name, _payload_settings)
             st.session_state["creator_preset_select"] = _saved_slug
@@ -935,46 +969,60 @@ with tab_create:
             if "visual_gen_history" not in st.session_state:
                 st.session_state["visual_gen_history"] = load_visual_history()
 
-            timeline = generate_timeline(
-                full_prompt,
-                tone=chosen_tone,
-                engine_style=visual_engine[0],
-                duration_mode=duration_option[0],
-                custom_style_prompt=custom_style_prompt,
-                voice=chosen_voice,
-                format_ratio=aspect_ratio[0],
-                visual_history=st.session_state["visual_gen_history"],
-                audience_level=chosen_audience,
-                hook_style=chosen_hook_style,
-                cta_style=chosen_cta_style,
-                cta_keyword=chosen_cta_keyword,
-            )
+            if is_studio_v2_mode(chosen_studio_arch):
+                timeline = generate_v2_timeline(
+                    full_prompt,
+                    v2_mode=chosen_studio_arch,
+                    tone=chosen_tone,
+                    duration_mode=duration_option[0],
+                    voice=chosen_voice,
+                    watermark=channel_watermark,
+                    audience_level=chosen_audience,
+                    hook_style=chosen_hook_style,
+                    cta_style=chosen_cta_style,
+                    cta_keyword=chosen_cta_keyword,
+                )
+            else:
+                timeline = generate_timeline(
+                    full_prompt,
+                    tone=chosen_tone,
+                    engine_style=visual_engine[0],
+                    duration_mode=duration_option[0],
+                    custom_style_prompt=custom_style_prompt,
+                    voice=chosen_voice,
+                    format_ratio=aspect_ratio[0],
+                    visual_history=st.session_state["visual_gen_history"],
+                    audience_level=chosen_audience,
+                    hook_style=chosen_hook_style,
+                    cta_style=chosen_cta_style,
+                    cta_keyword=chosen_cta_keyword,
+                )
 
-            # Apply ALL manual overrides, color cadence & 2026 motion flags BEFORE UI preview table, TTS, & rendering!
-            for _i_ov, _sc_ov in enumerate(timeline.get("scenes", [])):
-                if visual_engine[0] == "omni_smart_director" and "Locked Single" in str(omni_color_flow):
-                    _locked_w = timeline.get("art_style", "sapphire_3d")
-                    _sc_ov["art_style"] = _locked_w
-                    _sc_ov.setdefault("visual_data", {})["art_style"] = _locked_w
-                if not enable_camera_actions:
-                    _sc_ov["_disable_camera_actions"] = True
-                if manual_world_choice != "auto":
-                    _sc_ov["art_style"] = manual_world_choice
-                    _sc_ov.setdefault("visual_data", {})["art_style"] = manual_world_choice
-                    if isinstance(timeline, dict) and _i_ov == 0:
-                        timeline["art_style"] = manual_world_choice
-                if manual_layout_choice != "auto":
-                    _sc_ov["visual_type"] = manual_layout_choice
-                    _sc_ov["routed_engine"] = f"Manual Override ({manual_layout_choice})"
-                if manual_backdrop_choice != "auto":
-                    _sc_ov["backdrop"] = manual_backdrop_choice
-                    _sc_ov.setdefault("visual_data", {})["backdrop"] = manual_backdrop_choice
-                if manual_transition_choice != "auto":
-                    _sc_ov["transition"] = manual_transition_choice
-                    _sc_ov.setdefault("visual_data", {})["transition"] = manual_transition_choice
-                if manual_text_fx_choice != "auto":
-                    _sc_ov["text_fx"] = manual_text_fx_choice
-                    _sc_ov.setdefault("visual_data", {})["text_fx"] = manual_text_fx_choice
+                # Apply ALL manual overrides, color cadence & 2026 motion flags BEFORE UI preview table, TTS, & rendering!
+                for _i_ov, _sc_ov in enumerate(timeline.get("scenes", [])):
+                    if visual_engine[0] == "omni_smart_director" and "Locked Single" in str(omni_color_flow):
+                        _locked_w = timeline.get("art_style", "sapphire_3d")
+                        _sc_ov["art_style"] = _locked_w
+                        _sc_ov.setdefault("visual_data", {})["art_style"] = _locked_w
+                    if not enable_camera_actions:
+                        _sc_ov["_disable_camera_actions"] = True
+                    if manual_world_choice != "auto":
+                        _sc_ov["art_style"] = manual_world_choice
+                        _sc_ov.setdefault("visual_data", {})["art_style"] = manual_world_choice
+                        if isinstance(timeline, dict) and _i_ov == 0:
+                            timeline["art_style"] = manual_world_choice
+                    if manual_layout_choice != "auto":
+                        _sc_ov["visual_type"] = manual_layout_choice
+                        _sc_ov["routed_engine"] = f"Manual Override ({manual_layout_choice})"
+                    if manual_backdrop_choice != "auto":
+                        _sc_ov["backdrop"] = manual_backdrop_choice
+                        _sc_ov.setdefault("visual_data", {})["backdrop"] = manual_backdrop_choice
+                    if manual_transition_choice != "auto":
+                        _sc_ov["transition"] = manual_transition_choice
+                        _sc_ov.setdefault("visual_data", {})["transition"] = manual_transition_choice
+                    if manual_text_fx_choice != "auto":
+                        _sc_ov["text_fx"] = manual_text_fx_choice
+                        _sc_ov.setdefault("visual_data", {})["text_fx"] = manual_text_fx_choice
 
             with st.expander("🧠 Scene-by-Scene Best Engine, 2026 Tone & Layout Selection", expanded=True):
                 from core.action_engine import get_story_beat_motion
@@ -1042,17 +1090,34 @@ with tab_create:
                     w for w in word_timestamps
                     if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1
                 ]
-                render_scene_frames(
-                    sc_obj,
-                    idx_i + 1,
-                    total_scenes=total_sc,
-                    engine_style=visual_engine[0],
-                    format_ratio=aspect_ratio[0],
-                    watermark=channel_watermark,
-                    scene_words=sc_words,
-                    custom_style_prompt=custom_style_prompt,
-                    tone=chosen_tone,
-                )
+                v_type = str(sc_obj.get("visual_type") or "")
+                if v_type == "v2_vector_storyboard":
+                    render_v2_vector_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
+                        format_ratio=aspect_ratio[0],
+                        scene_words=sc_words,
+                    )
+                elif v_type == "v2_spatial_isometric":
+                    render_v2_isometric_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
+                        prev_scene=(aligned_scenes[idx_i - 1] if idx_i > 0 else None),
+                        format_ratio=aspect_ratio[0],
+                        scene_words=sc_words,
+                    )
+                else:
+                    render_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
+                        total_scenes=total_sc,
+                        engine_style=visual_engine[0],
+                        format_ratio=aspect_ratio[0],
+                        watermark=channel_watermark,
+                        scene_words=sc_words,
+                        custom_style_prompt=custom_style_prompt,
+                        tone=chosen_tone,
+                    )
                 return idx_i + 1
 
             with ThreadPoolExecutor(max_workers=min(4, max(1, total_sc))) as pool_ren:
@@ -1073,6 +1138,10 @@ with tab_create:
                 status_box.info(msg)
                 progress_bar.progress(min(79, 69 + int(10 * max(0.0, min(1.0, frac)))))
 
+            effective_caption_style = (
+                "off" if (is_studio_v2_mode(chosen_studio_arch) and v2_clean_no_subs) else chosen_caption_style
+            )
+
             aligned_scenes, all_scene_frame_dirs, qg_report = run_quality_gate_and_self_heal(
                 topic=user_prompt.strip(),
                 aligned_scenes=aligned_scenes,
@@ -1082,7 +1151,7 @@ with tab_create:
                 quality_mode=chosen_quality_mode,
                 render_single_scene_fn=_qg_rerender_scene,
                 format_ratio=aspect_ratio[0],
-                caption_style=chosen_caption_style,
+                caption_style=effective_caption_style,
                 platform_safe_zone=chosen_platform_zone,
                 progress_cb=_qg_progress,
             )
@@ -1099,7 +1168,7 @@ with tab_create:
                             st.image(str(_mid_f), caption=f"S{_si + 1}: {_r_eng}", use_container_width=True)
 
             # STEP 4: Video Stitching via Local Hardware / Cloud
-            status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 ({chosen_caption_style}, {chosen_bgm_style} BGM, Micro-SFX)...")
+            status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 ({effective_caption_style}, {chosen_bgm_style} BGM, Micro-SFX)...")
             progress_bar.progress(80)
             art_style_val = timeline.get("art_style", "editorial_dark") if isinstance(timeline, dict) else "editorial_dark"
             subtitles_path = generate_ass_subtitles(
@@ -1108,7 +1177,7 @@ with tab_create:
                 tone=chosen_tone,
                 aligned_scenes=aligned_scenes,
                 art_style=art_style_val,
-                caption_style=chosen_caption_style,
+                caption_style=effective_caption_style,
                 platform_safe_zone=chosen_platform_zone,
             )
             sfx_events = collect_sfx_timeline(aligned_scenes, word_timestamps=word_timestamps, tone=chosen_tone) if enable_micro_sfx else []
