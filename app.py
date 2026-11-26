@@ -8,39 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-# Ensure fresh module imports on Streamlit Cloud hot-reloads in topological DAG order
-import importlib
-_RELOAD_ORDER = [
-    "core.config",
-    "core.tone_engine",
-    "core.palette_engine",
-    "core.svg_engine",
-    "core.mesh_shader_engine",
-    "core.shapes_3d",
-    "core.layouts_pro",
-    "core.layouts_it_sdlc",
-    "core.layouts_domain_220",
-    "core.layouts_studio",
-    "core.web_generative_engine",
-    "core.cinematic_engine",
-    "core.quality_gate",
-    "core.studio_v2_director",
-    "core.studio_v2_vector",
-    "core.studio_v2_isometric",
-]
-for _m in _RELOAD_ORDER:
-    if _m in sys.modules:
-        try:
-            importlib.reload(sys.modules[_m])
-        except Exception:
-            pass
-for mod_name in list(sys.modules.keys()):
-    if mod_name.startswith("core.") and mod_name not in _RELOAD_ORDER:
-        try:
-            importlib.reload(sys.modules[mod_name])
-        except Exception:
-            pass
-
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
 from core.presets import load_creator_presets, save_custom_creator_preset
 from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline
@@ -59,6 +26,16 @@ from core.uploader import (
     delete_from_r2,
     get_r2_storage_stats
 )
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_r2_stats():
+    return get_r2_storage_stats()
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_r2_videos():
+    return list_r2_videos()
 
 # Page Config
 st.set_page_config(
@@ -699,7 +676,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### ☁️ Cloudflare R2 Storage")
     try:
-        r2_stats = get_r2_storage_stats()
+        r2_stats = _cached_r2_stats()
         st.write(f"💾 **Used:** {r2_stats['total_mb']} MB / 10 GB")
         st.progress(min(1.0, max(0.01, r2_stats["percent_used"] / 100)))
         st.caption(f"📁 **Total Saved Reels:** {r2_stats['total_files']} files")
@@ -1481,17 +1458,19 @@ with tab_storage:
     st.markdown("### ☁️ Cloudflare R2 Media & Storage Manager")
     st.markdown("Review all uploaded reels, view permanent universal URLs, and permanently delete unwanted videos to keep your 10 GB storage free.")
 
-    stats = get_r2_storage_stats()
+    stats = _cached_r2_stats()
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total Stored Reels", f"{stats['total_files']} files")
     c2.metric("Storage Used", f"{stats['total_mb']} MB")
     c3.metric("Free Space Left", f"{stats['free_gb_remaining']} GB", delta="10 GB Free Tier")
     if c4.button("🔄 Refresh Gallery", use_container_width=True):
+        _cached_r2_stats.clear()
+        _cached_r2_videos.clear()
         st.rerun()
 
     st.markdown("---")
 
-    videos = list_r2_videos()
+    videos = _cached_r2_videos()
     if not videos:
         st.info("ℹ️ No videos stored in Cloudflare R2 yet. Once you generate reels in the Studio, they will appear here with preview and delete options!")
     else:
@@ -1501,7 +1480,10 @@ with tab_storage:
                 col_left, col_right = st.columns([1, 1.2])
                 with col_left:
                     if vid["url"]:
-                        st.video(vid["url"])
+                        if st.checkbox("▶️ Load Video Preview", key=f"load_r2_prev_{idx}_{vid['name']}", value=(idx == 0)):
+                            st.video(vid["url"])
+                        else:
+                            st.caption("Click checkbox above to stream preview cleanly without slowing page load.")
                     else:
                         st.warning("Video streaming preview not available.")
                 with col_right:
@@ -1517,6 +1499,8 @@ with tab_storage:
                         with col_btn2:
                             if st.button("🗑️ Delete Permanently", key=f"del_btn_{idx}_{vid['name']}", type="secondary", use_container_width=True):
                                 if delete_from_r2(vid["name"]):
+                                    _cached_r2_stats.clear()
+                                    _cached_r2_videos.clear()
                                     st.success(f"Deleted {vid['name']} from Cloudflare R2!")
                                     time.sleep(1)
                                     st.rerun()

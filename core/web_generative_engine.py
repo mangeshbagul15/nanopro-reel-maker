@@ -25,16 +25,23 @@ def _is_streamlit_cloud() -> bool:
     return os.path.exists("/mount/src") or os.environ.get("STREAMLIT_SHARING_MODE") == "true"
 
 
-def detect_web_engine() -> Tuple[bool, Optional[str]]:
-    """Checks once whether Playwright + headless Chromium/Edge works cleanly without OOM."""
+def detect_web_engine(verify_launch: bool = False) -> Tuple[bool, Optional[str]]:
+    """
+    Fast-checks whether Playwright + Chromium/Edge is installed & ready without freezing
+    UI startup for 18+ seconds launching a dummy browser process.
+    Set `verify_launch=True` only when an explicit live launch test is needed.
+    """
     global _PROBE_RESULT
-    if _PROBE_RESULT is not None:
+    if _PROBE_RESULT is not None and not verify_launch:
         return _PROBE_RESULT
     if _is_streamlit_cloud():
         _PROBE_RESULT = (False, None)
         return _PROBE_RESULT
     try:
-        from playwright.sync_api import sync_playwright  # noqa: F401
+        import importlib.util
+        if importlib.util.find_spec("playwright") is None:
+            _PROBE_RESULT = (False, None)
+            return _PROBE_RESULT
     except Exception:
         _PROBE_RESULT = (False, None)
         return _PROBE_RESULT
@@ -44,6 +51,11 @@ def detect_web_engine() -> Tuple[bool, Optional[str]]:
         if os.path.exists(p):
             exe_path = p
             break
+
+    if not verify_launch and exe_path:
+        _PROBE_RESULT = (True, exe_path)
+        return _PROBE_RESULT
+
     try:
         from playwright.sync_api import sync_playwright
         p = sync_playwright().start()
