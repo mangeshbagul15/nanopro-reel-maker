@@ -10,7 +10,7 @@ if str(BASE_DIR) not in sys.path:
 
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
 from core.presets import load_creator_presets, save_custom_creator_preset
-from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline
+from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline, is_dual_tone
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles, load_visual_history, reset_visual_history
 from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS, VOICE_CATALOG
 from core.animator import render_scene_frames, generate_thumbnail_9_16
@@ -190,12 +190,12 @@ with st.sidebar:
         "🇮🇳 Marathi": ("dual:mr-IN-AarohiNeural+mr-IN-ManoharNeural", "🗣️🇮🇳 Dual Marathi: Aarohi (Curious Q) + Manohar (Mentor A)"),
         "🇺🇸 English": ("dual:en-US-JennyNeural+en-US-ChristopherNeural", "🗣️🇺🇸 Dual Tech English: Jenny (Curious Q) + Christopher (Mentor A)"),
     }
-    if chosen_tone == DUAL_TONE_KEY and _prev_tone != DUAL_TONE_KEY:
+    if is_dual_tone(chosen_tone) and not is_dual_tone(_prev_tone):
         st.session_state["voice_provider_radio"] = "Microsoft Edge-TTS (Free & Fast)"
         st.session_state["gender_filter_pills"] = "🗣️ Dual Pair"
         _cur_lf = st.session_state.get("lang_filter_pills") or "All"
         st.session_state["edge_voice_select"] = _dual_by_lang.get(_cur_lf, _dual_by_lang["All"])
-    elif _prev_tone == DUAL_TONE_KEY and chosen_tone != DUAL_TONE_KEY:
+    elif is_dual_tone(_prev_tone) and not is_dual_tone(chosen_tone):
         if st.session_state.get("gender_filter_pills") == "🗣️ Dual Pair":
             st.session_state["gender_filter_pills"] = "All"
     st.session_state["_prev_tone_option"] = chosen_tone
@@ -255,8 +255,8 @@ with st.sidebar:
         if not available_el_voices:
             available_el_voices = VOICE_CATALOG.get("elevenlabs", [])
 
-        if chosen_tone == DUAL_TONE_KEY:
-            st.warning("ℹ️ `Dual Voice Tech Debate` automatically uses 2 alternating Edge-TTS voices for crisp dialogue pairs.", icon="🗣️")
+        if is_dual_tone(chosen_tone):
+            st.warning("ℹ️ Dual Voice Dialogue automatically uses 2 alternating Edge-TTS voices for crisp dialogue pairs.", icon="🗣️")
 
         el_voice_options = [(v["id"], v["label"]) for v in available_el_voices]
         el_voice_options.append(("custom", "✍️ Custom Voice ID (Enter your own Voice ID)"))
@@ -299,7 +299,7 @@ with st.sidebar:
         chosen_voice = edge_voice_choice[0]
         voice_label = edge_voice_choice[1]
 
-        if chosen_tone == DUAL_TONE_KEY or str(chosen_voice).startswith("dual:"):
+        if is_dual_tone(chosen_tone) or str(chosen_voice).startswith("dual:"):
             all_edge = VOICE_CATALOG.get("edge_tts", [])
             fem_pool = [(v["id"], v["label"]) for v in all_edge if v.get("gender") == "female"]
             male_pool = [(v["id"], v["label"]) for v in all_edge if v.get("gender") == "male"]

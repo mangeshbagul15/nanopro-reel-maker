@@ -6,6 +6,7 @@ from core.tone_engine import (
     DEFAULT_CONCRETE_TONE,
     DEFAULT_TONE_KEY,
     DUAL_TONE_KEY,
+    is_dual_tone,
     TONE_PROFILES,
     get_tone_directive,
     get_tone_profile,
@@ -634,7 +635,7 @@ def generate_timeline(
         style_directive = ENGINE_STYLE_DIRECTIVES.get(engine_style, ENGINE_STYLE_DIRECTIVES["auto_dynamic"])
     
     # 1. Language & Dialect based on the selected Voice Persona & Tone
-    if tone == DUAL_TONE_KEY or str(voice).startswith("dual:"):
+    if is_dual_tone(tone) or str(voice).startswith("dual:"):
         v_low = str(voice).lower()
         if "mr-in" in v_low:
             lang_directive = (
@@ -2106,8 +2107,8 @@ def _enforce_engine_style(
             v_data["footer"] = clauses[-1][:64]
 
         # Guarantee clean Dual-Voice Conversation turns (`dialogue`) whenever `dual_creator_debate` or a `dual:` voice is selected
-        if tone == DUAL_TONE_KEY or str(sc.get("scene_tone") or "") == DUAL_TONE_KEY or (isinstance(sc.get("dialogue"), list) and len(sc.get("dialogue") or []) >= 1):
-            sc["scene_tone"] = DUAL_TONE_KEY
+        if is_dual_tone(tone) or is_dual_tone(sc.get("scene_tone")) or (isinstance(sc.get("dialogue"), list) and len(sc.get("dialogue") or []) >= 1):
+            sc["scene_tone"] = DUAL_TONE_KEY if tone != "dual_dialogue_curious" else "dual_dialogue_curious"
             raw_dlg = sc.get("dialogue")
             clean_dlg: List[Dict[str, str]] = []
             if isinstance(raw_dlg, list):
@@ -2302,7 +2303,7 @@ def _build_emergency_fallback_timeline(
     is_marathi = voice.startswith("mr-") or voice.endswith("|mr")
     is_hindi = voice.startswith("hi-") or voice.endswith("|hi")
 
-    if scene_tone == DUAL_TONE_KEY or str(voice).startswith("dual:"):
+    if is_dual_tone(scene_tone) or str(voice).startswith("dual:"):
         dual_scenes = [
             {
                 "scene_id": 1,

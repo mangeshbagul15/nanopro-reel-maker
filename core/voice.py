@@ -19,6 +19,7 @@ from core.tone_engine import (
     TONE_PROFILES,
     get_clause_prosody,
     get_tone_profile,
+    is_dual_tone,
     resolve_effective_tone,
 )
 
@@ -781,7 +782,7 @@ def _synthesize_single_scene(
       per-turn alternating Female Builder + Male Architect clips stitched cleanly with pauses.
     Returns `dialogue_spans` (empty list for single-speaker scenes).
     """
-    is_dual = (voice.startswith("dual:") or tone == DUAL_TONE_KEY) and isinstance(dialogue, list) and len(dialogue) >= 1
+    is_dual = (voice.startswith("dual:") or is_dual_tone(tone)) and isinstance(dialogue, list) and len(dialogue) >= 1
     if is_dual:
         fem_v, male_v = parse_dual_voice_pair(voice)
         ok_dual, spans = asyncio.run(_synthesize_dual_dialogue_scene(dialogue, output_path, fem_voice=fem_v, male_voice=male_v))

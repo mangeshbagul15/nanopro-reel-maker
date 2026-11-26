@@ -13,6 +13,11 @@ from typing import Any, Dict, List, Optional, Tuple
 DEFAULT_TONE_KEY = "auto_2026_director"
 DEFAULT_CONCRETE_TONE = "whiteboard_analogy"
 DUAL_TONE_KEY = "dual_creator_debate"
+DUAL_TONE_KEYS = (DUAL_TONE_KEY, "dual_dialogue_curious")
+
+
+def is_dual_tone(tone: Optional[str]) -> bool:
+    return str(tone or "").strip().lower() in DUAL_TONE_KEYS
 
 
 TONE_PROFILES: Dict[str, Dict[str, Any]] = {
@@ -254,6 +259,327 @@ TONE_PROFILES: Dict[str, Dict[str, Any]] = {
         "default_sfx": "pop_snap",
         "camera_zoom_bias": 1.08,
     },
+    # ------------------------------------------------------------------
+    # Classic Legacy Studio Tones (Restored Alongside 2026 Profiles)
+    # ------------------------------------------------------------------
+    "dual_dialogue_curious": {
+        "label": "🗣️ Dual Voice Hinglish Dialogue (Focused Technical Questions • Direct Architecture Answers)",
+        "directive": (
+            "Two speakers discuss the exact technical topic directly with zero scripted catchphrases, zero filler pleasantries, and zero emotional fluff:\n"
+            "- FEMALE (`\"speaker\": \"female\"`): Raises sharp, topic-specific architectural or engineering questions (e.g., comparing storage models, failure modes, throughput bottlenecks).\n"
+            "- MALE (`\"speaker\": \"male\"`): Gives clear, accurate, step-by-step technical explanations, concrete internals, and trade-offs directly answering her question.\n"
+            "RULES: Include `\"dialogue\"` (2-4 alternating turns `female` -> `male`) and set `\"narration\"` to their clean concatenation. Keep every word strictly focused on technical substance."
+        ),
+        "elevenlabs": {"stability": 0.44, "similarity_boost": 0.84, "style": 0.42, "use_speaker_boost": True},
+        "edge_base": {"rate": "+3%", "pitch": "+0Hz"},
+        "hook_curve": {"rate": "+5%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "+3%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+2%", "pitch": "-1Hz"},
+        "pause_sec": "0.22",
+        "atempo": "1.02",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx110\fscy110",
+        "subtitle_name": "classic_dual_cyan",
+        "preferred_world": "sapphire_3d",
+        "accent_key": "cyan",
+        "animator_theme": "emerald_matrix",
+        "reveal_power": 0.96,
+        "motion_profile": "split_collide",
+        "preferred_layouts": ("chat_thread_ai", "mobile_app_mockup", "excalidraw_sketch_board", "iso_comparison"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.07,
+    },
+    "peaceful_human_guide": {
+        "label": "🧘 Calm Technical Guide (Steady Hinglish Pace, Clear Problem Breakdown & Tight Visual Sync)",
+        "directive": (
+            "CALM, CLEAR TECHNICAL EXPLAINER (PURE CONTENT, ZERO FLUFF): "
+            "Deliver calm, crystal-clear technical explanations in clean Hinglish with crisp English engineering nouns. "
+            "Focus 100% on the topic's actual architecture, mechanics, and trade-offs — NEVER insert filler catchphrases."
+        ),
+        "elevenlabs": {"stability": 0.56, "similarity_boost": 0.84, "style": 0.24, "use_speaker_boost": True},
+        "edge_base": {"rate": "+3%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+4%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "+3%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+2%", "pitch": "+0Hz"},
+        "pause_sec": "0.26",
+        "atempo": "1.01",
+        "subtitle_tag": r"\c&H0099D334&\fscx108\fscy108",
+        "subtitle_name": "classic_calm_mint",
+        "preferred_world": "navy_studio",
+        "accent_key": "emerald",
+        "animator_theme": "emerald_matrix",
+        "reveal_power": 0.97,
+        "motion_profile": "flow_slide",
+        "preferred_layouts": ("architecture_flow", "excalidraw_sketch_board", "iso_architecture"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.06,
+    },
+    "trusted_dost_guide": {
+        "label": "🤝 Clear Dost & Architect Guide (Direct Hinglish Explanation, Focused Q&A & Clean Visual Sync)",
+        "directive": (
+            "FRIENDLY TECHNICAL EXPLAINER (PURE CONTENT, ZERO FLUFF): "
+            "Warm, approachable Hinglish peer voice explaining the topic's real internals, architecture flow, and trade-offs directly."
+        ),
+        "elevenlabs": {"stability": 0.48, "similarity_boost": 0.82, "style": 0.34, "use_speaker_boost": True},
+        "edge_base": {"rate": "+4%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+6%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "+4%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "+0Hz"},
+        "pause_sec": "0.24",
+        "atempo": "1.02",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx110\fscy110",
+        "subtitle_name": "classic_dost_cyan",
+        "preferred_world": "sapphire_3d",
+        "accent_key": "cyan",
+        "animator_theme": "cyber_cyan",
+        "reveal_power": 0.95,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("hero_hook", "architecture_flow", "split_comparison"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.07,
+    },
+    "purposeful_hinglish_mentor": {
+        "label": "🎯 Purposeful Hinglish Mentor (Crystal-Clear Male Mentor, Production Depth, Edge Cases & Visual Sync)",
+        "directive": (
+            "PURPOSEFUL HINGLISH MENTOR (CLEAR MECHANICS + EDGE CASES, ZERO FLUFF): "
+            "Warm, authoritative Hinglish technical mentor explaining step-by-step system mechanics, real trade-offs, and production edge cases directly from Scene 1."
+        ),
+        "elevenlabs": {"stability": 0.52, "similarity_boost": 0.84, "style": 0.30, "use_speaker_boost": True},
+        "edge_base": {"rate": "+5%", "pitch": "-1Hz"},
+        "hook_curve": {"rate": "+6%", "pitch": "+0Hz"},
+        "mid_curve": {"rate": "+5%", "pitch": "-1Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "-1Hz"},
+        "pause_sec": "0.24",
+        "atempo": "1.03",
+        "subtitle_tag": r"\c&H0024BFFF&\fscx110\fscy110",
+        "subtitle_name": "classic_mentor_amber",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "amber",
+        "animator_theme": "indigo_cyan",
+        "reveal_power": 0.95,
+        "motion_profile": "stack_snap",
+        "preferred_layouts": ("architecture_flow", "all_in_one_tech_canvas", "bento_apple_keynote"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.08,
+    },
+    "senior_hinglish_mentor": {
+        "label": "🧑‍💻 Senior Hinglish Mentor (Experienced Architect Voice, System Trade-offs & Progressive Visuals)",
+        "directive": (
+            "SENIOR HINGLISH MENTOR & ARCHITECTURAL BREAKDOWN (PURE CONTENT): "
+            "Crisp senior-engineer Hinglish explanation covering real problem statement, internal architecture stages, engineering trade-offs, and practical production takeaway."
+        ),
+        "elevenlabs": {"stability": 0.56, "similarity_boost": 0.85, "style": 0.24, "use_speaker_boost": True},
+        "edge_base": {"rate": "+5%", "pitch": "+0Hz"},
+        "hook_curve": {"rate": "+6%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "+4%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "-1Hz"},
+        "pause_sec": "0.24",
+        "atempo": "1.03",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx110\fscy110",
+        "subtitle_name": "classic_senior_cyan",
+        "preferred_world": "navy_studio",
+        "accent_key": "cyan",
+        "animator_theme": "indigo_cyan",
+        "reveal_power": 0.96,
+        "motion_profile": "stack_snap",
+        "preferred_layouts": ("cloud_infra_zone_builder", "architecture_flow", "split_comparison"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.08,
+    },
+    "youth_friend_turbo": {
+        "label": "🚀 Energetic Tech Explainer (Crisp Natural Voice, Fast Concept Breakdown & Synced Visuals)",
+        "directive": (
+            "LIVELY TECHNICAL EXPLAINER (CLEAR & COMPLETE, ZERO FILLER): "
+            "Natural, upbeat Hinglish pacing with complete 12-16 word technical sentences covering concrete architecture details and trade-offs cleanly synced with visuals."
+        ),
+        "elevenlabs": {"stability": 0.42, "similarity_boost": 0.82, "style": 0.40, "use_speaker_boost": True},
+        "edge_base": {"rate": "+6%", "pitch": "+2Hz"},
+        "hook_curve": {"rate": "+8%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+6%", "pitch": "+1Hz"},
+        "verdict_curve": {"rate": "+4%", "pitch": "+0Hz"},
+        "pause_sec": "0.20",
+        "atempo": "1.04",
+        "subtitle_tag": r"\c&H002BF6FF&\fscx112\fscy112",
+        "subtitle_name": "classic_turbo_pop",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "amber",
+        "animator_theme": "cyber_cyan",
+        "reveal_power": 0.91,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("hero_hook", "benchmark_3d", "bento_apple_keynote"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.09,
+    },
+    "mentor_storyteller": {
+        "label": "🌟 Structured Tech Educator (Simple Words, Natural Pauses & Step-by-Step Clarity) [Ultra Pro]",
+        "directive": (
+            "INTUITIVE TECHNICAL STORYTELLER (PURE CONCEPT CLARITY): "
+            "Explain complex systems in plain language with relatable real-world engineering intuition and step-by-step architectural clarity."
+        ),
+        "elevenlabs": {"stability": 0.36, "similarity_boost": 0.82, "style": 0.46, "use_speaker_boost": True},
+        "edge_base": {"rate": "+3%", "pitch": "+2Hz"},
+        "hook_curve": {"rate": "+5%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+3%", "pitch": "+1Hz"},
+        "verdict_curve": {"rate": "+2%", "pitch": "+0Hz"},
+        "pause_sec": "0.26",
+        "atempo": "1.02",
+        "subtitle_tag": r"\c&H0099D334&\fscx110\fscy110",
+        "subtitle_name": "classic_storyteller_mint",
+        "preferred_world": "studio_white",
+        "accent_key": "emerald",
+        "animator_theme": "emerald_matrix",
+        "reveal_power": 0.97,
+        "motion_profile": "stack_snap",
+        "preferred_layouts": ("excalidraw_sketch_board", "iso_architecture", "medallion_lakehouse"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.07,
+    },
+    "auto_dynamic": {
+        "label": "⚡ Dynamic / Auto Classic (AI Adapts Voice Pace & Visual Cadence Per Technical Scene)",
+        "directive": (
+            "DYNAMIC PER-SCENE TONE & VOICE CHOREOGRAPHY: "
+            "Dynamically shift emotional tone & pacing across the video storyboard: "
+            "Hook/Intro -> energetic (`fireship_octane` or `interview_prep`), Problem/Mistake -> suspenseful (`dramatic_performance`), "
+            "Architecture/Mechanism -> authoritative (`staff_engineer`), Closing Summary/CTA -> warm (`conversational_casual`)."
+        ),
+        "elevenlabs": {"stability": 0.44, "similarity_boost": 0.83, "style": 0.36, "use_speaker_boost": True},
+        "edge_base": {"rate": "+4%", "pitch": "+0Hz"},
+        "hook_curve": {"rate": "+7%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "+4%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+2%", "pitch": "-1Hz"},
+        "pause_sec": "0.24",
+        "atempo": "1.03",
+        "subtitle_tag": r"\c&H002BF6FF&\fscx112\fscy112",
+        "subtitle_name": "classic_auto_pop",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "cyan",
+        "animator_theme": "cyber_cyan",
+        "reveal_power": 0.94,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("hero_hook", "architecture_flow", "split_comparison"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.08,
+    },
+    "fireship_octane": {
+        "label": "🔥 High-Tempo Code Breakdown (Rapid Technical Pacing & High-Contrast Visuals)",
+        "directive": (
+            "SCRIPT TONE & VISUAL SYNC MANDATE: Write in high-octane Fireship style. "
+            "Punchy sentences, witty comparisons, rapid pacing, zero corporate throat-clearing. "
+            "Prefer fast kinetic visuals (`kinetic_statement`, `split_comparison`, `code_terminal`, `hero_hook`)."
+        ),
+        "elevenlabs": {"stability": 0.44, "similarity_boost": 0.78, "style": 0.25, "use_speaker_boost": True},
+        "edge_base": {"rate": "+7%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+9%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+7%", "pitch": "+1Hz"},
+        "verdict_curve": {"rate": "+5%", "pitch": "+0Hz"},
+        "pause_sec": "0.18",
+        "atempo": "1.05",
+        "subtitle_tag": r"\c&H0024BFFF&\fscx114\fscy114",
+        "subtitle_name": "classic_fireship_snap",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "amber",
+        "animator_theme": "gold_purple",
+        "reveal_power": 0.89,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("code_terminal", "split_comparison", "benchmark_3d"),
+        "default_sfx": "key_tick",
+        "camera_zoom_bias": 1.10,
+    },
+    "dramatic_performance": {
+        "label": "🎭 Deep Focus Production Breakdown (Measured Pacing, Incident Context & Deliberate Pauses)",
+        "directive": (
+            "SCRIPT TONE & VISUAL SYNC MANDATE: Emotionally rich, theatrical, dramatic performance. "
+            "Build tension and suspense around the production problem, incident context, and root-cause reveal."
+        ),
+        "elevenlabs": {"stability": 0.34, "similarity_boost": 0.82, "style": 0.42, "use_speaker_boost": True},
+        "edge_base": {"rate": "-2%", "pitch": "-3Hz"},
+        "hook_curve": {"rate": "+1%", "pitch": "-1Hz"},
+        "mid_curve": {"rate": "-2%", "pitch": "-3Hz"},
+        "verdict_curve": {"rate": "+1%", "pitch": "-2Hz"},
+        "pause_sec": "0.28",
+        "atempo": "0.99",
+        "subtitle_tag": r"\c&H005E3FF4&\fscx112\fscy112",
+        "subtitle_name": "classic_dramatic_crimson",
+        "preferred_world": "crimson_studio",
+        "accent_key": "rose",
+        "animator_theme": "crimson_alert",
+        "reveal_power": 1.04,
+        "motion_profile": "disrupt_shake",
+        "preferred_layouts": ("alert_diagram", "live_sre_observability_console", "dr_active_active_failover"),
+        "default_sfx": "alert_ping",
+        "camera_zoom_bias": 1.11,
+    },
+    "staff_engineer": {
+        "label": "🧠 Senior Staff Engineer Authority (Calm Deep Voice & Architectural Blueprint)",
+        "directive": (
+            "SCRIPT TONE & VISUAL SYNC MANDATE: Senior Staff Engineer / ByteByteGo masterclass style. "
+            "Calm, deeply authoritative, mature technical confidence focusing on real-world trade-offs and internals."
+        ),
+        "elevenlabs": {"stability": 0.68, "similarity_boost": 0.85, "style": 0.10, "use_speaker_boost": True},
+        "edge_base": {"rate": "+2%", "pitch": "-2Hz"},
+        "hook_curve": {"rate": "+4%", "pitch": "-1Hz"},
+        "mid_curve": {"rate": "+2%", "pitch": "-2Hz"},
+        "verdict_curve": {"rate": "+1%", "pitch": "-2Hz"},
+        "pause_sec": "0.26",
+        "atempo": "1.01",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx106\fscy106",
+        "subtitle_name": "classic_staff_cyan",
+        "preferred_world": "navy_studio",
+        "accent_key": "cyan",
+        "animator_theme": "indigo_cyan",
+        "reveal_power": 0.98,
+        "motion_profile": "stack_snap",
+        "preferred_layouts": ("architecture_flow", "all_in_one_tech_canvas", "data_structure_memory"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.07,
+    },
+    "conversational_casual": {
+        "label": "☕ Conversational Tech Walkthrough (Natural Direct Cadence & Clear System Flow)",
+        "directive": (
+            "SCRIPT TONE & VISUAL SYNC MANDATE: Conversational, warm, and friendly, like explaining architecture cleanly over coffee. "
+            "Natural direct phrasing without stiff jargon or hype."
+        ),
+        "elevenlabs": {"stability": 0.52, "similarity_boost": 0.78, "style": 0.16, "use_speaker_boost": True},
+        "edge_base": {"rate": "+4%", "pitch": "+0Hz"},
+        "hook_curve": {"rate": "+5%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "+4%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "+0Hz"},
+        "pause_sec": "0.24",
+        "atempo": "1.02",
+        "subtitle_tag": r"\c&H0099D334&\fscx108\fscy108",
+        "subtitle_name": "classic_casual_mint",
+        "preferred_world": "sapphire_3d",
+        "accent_key": "emerald",
+        "animator_theme": "cyber_cyan",
+        "reveal_power": 0.96,
+        "motion_profile": "flow_slide",
+        "preferred_layouts": ("architecture_flow", "bento_apple_keynote", "excalidraw_sketch_board"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.06,
+    },
+    "interview_prep": {
+        "label": "⚡ System Design Interview Prep (Core Bottlenecks, Architecture Choices & Trade-offs)",
+        "directive": (
+            "SCRIPT TONE & VISUAL SYNC MANDATE: High-signal System Design Interview Prep. "
+            "Present the exact interviewer constraint, common naive pitfall, scaling bottlenecks, concrete architecture choice, and trade-offs."
+        ),
+        "elevenlabs": {"stability": 0.56, "similarity_boost": 0.82, "style": 0.20, "use_speaker_boost": True},
+        "edge_base": {"rate": "+5%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+7%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+5%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+3%", "pitch": "-1Hz"},
+        "pause_sec": "0.22",
+        "atempo": "1.03",
+        "subtitle_tag": r"\c&H0024BFFF&\fscx112\fscy112",
+        "subtitle_name": "classic_interview_amber",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "amber",
+        "animator_theme": "indigo_cyan",
+        "reveal_power": 0.93,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("hero_hook", "split_comparison", "architecture_flow"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.09,
+    },
 }
 
 
@@ -271,8 +597,8 @@ def resolve_effective_tone(
     """Resolves a requested/scene tone strictly into one concrete 2026 tone profile key."""
     req = str(tone or "").strip().lower()
     st = str(scene_tone or "").strip().lower()
-    if req == DEFAULT_TONE_KEY or not req:
-        if st in TONE_PROFILES and st != DEFAULT_TONE_KEY:
+    if req in (DEFAULT_TONE_KEY, "auto_dynamic") or not req:
+        if st in TONE_PROFILES and st not in (DEFAULT_TONE_KEY, "auto_dynamic"):
             return st
         r = str(role or "").lower().strip()
         if r == "hook":
@@ -291,7 +617,7 @@ def resolve_effective_tone(
         return cycle[idx % len(cycle)]
     if req in TONE_PROFILES:
         return req
-    if st in TONE_PROFILES and st != DEFAULT_TONE_KEY:
+    if st in TONE_PROFILES and st not in (DEFAULT_TONE_KEY, "auto_dynamic"):
         return st
     return DEFAULT_CONCRETE_TONE
 
