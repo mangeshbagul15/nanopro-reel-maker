@@ -539,8 +539,8 @@ def _apply_surgical_scene_repair(
     sc["visual_data"] = vd
     itype = str(defect.get("issue_type") or "layout_mismatch")
 
-    # Preserve isolated Studio V2 / V5 / V7 architectures intact
-    if str(sc.get("visual_type") or "").startswith(("v2_", "v5_", "v7_")):
+    # Preserve isolated Studio V2 / V3 / V4 architectures intact
+    if str(sc.get("visual_type") or "").startswith(("v2_", "v3_", "v4_", "v5_", "v7_")):
         return sc, f"S{scene_idx+1}: Kept isolated Studio architecture intact"
 
     # 1. Text overflow / edge clip -> compact labels & disable intrusive action overlays cleanly

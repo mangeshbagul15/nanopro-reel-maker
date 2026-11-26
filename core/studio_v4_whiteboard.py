@@ -1,10 +1,10 @@
 """
-Studio V7 — Blueprint Whiteboard Studio Renderer (ByteByteGo / Excalidraw Style).
-Renders crisp hand-drawn marker diagrams on a dark engineering blueprint grid via Playwright Chromium:
-  - Engineering dark blueprint grid background (minor + major lines + crosshairs)
-  - Hand-drawn sketchy marker SVG primitives (double-pass wobble strokes + soft marker wash)
-  - Progressive draw-on arrows (`stroke-dashoffset`) + traveling marker data dots
-  - Tilted sticky callout bubbles / post-it annotations anchored cleanly around nodes
+Studio V4 — Blueprint Whiteboard Studio Renderer (ByteByteGo / Excalidraw Style).
+Renders crisp, ultra-readable hand-drawn marker diagrams on a dark blueprint grid via Playwright Chromium:
+  - Aspect-ratio calibrated viewBox (960x1320 for 9:16 portrait -> large sharp nodes & text!)
+  - Engineering dark blueprint grid (minor 28px + major 140px grid lines)
+  - Double-pass Excalidraw-style marker strokes with exact boundary-clipped curved arrows
+  - Traveling glowing packet markers along edges + opaque high-contrast sticky callout cards
 """
 
 from __future__ import annotations
@@ -33,10 +33,10 @@ def _tone_whiteboard_style(tone: str, role: str, scene_tone: Optional[str]) -> D
     t_key = prof.get("key", "whiteboard_analogy")
     accent = prof.get("accent_key", "cyan")
     if t_key in ("fireship_octane", "youth_friend_turbo", "cage_match_vs"):
-        return {"draw_speed": 1.35, "wobble": 2.1, "tone_accent": accent}
+        return {"draw_speed": 1.35, "wobble": 2.4, "tone_accent": accent}
     if t_key in ("war_story_postmortem", "dramatic_performance"):
-        return {"draw_speed": 1.0, "wobble": 2.8, "tone_accent": "rose"}
-    return {"draw_speed": 1.1, "wobble": 2.3, "tone_accent": accent}
+        return {"draw_speed": 1.05, "wobble": 3.0, "tone_accent": "rose"}
+    return {"draw_speed": 1.15, "wobble": 2.5, "tone_accent": accent}
 
 
 def _build_whiteboard_html(
@@ -68,10 +68,15 @@ def _build_whiteboard_html(
 
     is_wide = width > height
     sc = min(width, height) / 1080.0
-    pad_x = int((44 if not is_wide else 90) * sc)
-    hl_px = int((56 if not is_wide else 42) * sc)
+    pad_x = int((40 if not is_wide else 88) * sc)
+    hl_px = int((58 if not is_wide else 42) * sc)
+
+    # Calibrate virtual SVG coordinate space to stage proportions so shapes & text fill tall reels
+    vb_w, vb_h = (1320, 680) if is_wide else ((1000, 900) if width == height else (920, 1260))
 
     wb_state = {
+        "vb_w": vb_w,
+        "vb_h": vb_h,
         "nodes": nodes,
         "edges": edges,
         "stickies": stickies,
@@ -88,88 +93,87 @@ def _build_whiteboard_html(
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   html, body {{
     width: {width}px; height: {height}px; overflow: hidden;
-    background: radial-gradient(circle at 50% 20%, #102446 0%, #081226 56%, #040914 100%);
+    background: radial-gradient(circle at 50% 18%, #10254A 0%, #081226 56%, #040914 100%);
     color: #F8FAFC;
-    font-family: "Segoe Print", "Comic Sans MS", "Nirmala UI", "Segoe UI", system-ui, sans-serif;
+    font-family: "Nirmala UI", "Segoe UI", "Noto Sans Devanagari", system-ui, sans-serif;
   }}
   .bp-grid {{
     position: absolute; inset: 0;
     background-image:
-      linear-gradient(rgba(56,189,248,0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(56,189,248,0.08) 1px, transparent 1px),
-      linear-gradient(rgba(56,189,248,0.18) 1.4px, transparent 1.4px),
-      linear-gradient(90deg, rgba(56,189,248,0.18) 1.4px, transparent 1.4px);
+      linear-gradient(rgba(56,189,248,0.09) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.09) 1px, transparent 1px),
+      linear-gradient(rgba(56,189,248,0.20) 1.5px, transparent 1.5px),
+      linear-gradient(90deg, rgba(56,189,248,0.20) 1.5px, transparent 1.5px);
     background-size: 28px 28px, 28px 28px, 140px 140px, 140px 140px;
   }}
   .root {{
     position: relative; width: 100%; height: 100%; z-index: 2;
     display: flex; flex-direction: column;
-    padding: {int(36*sc)}px {pad_x}px {int(46*sc)}px;
+    padding: {int(34*sc)}px {pad_x}px {int(42*sc)}px;
     gap: {int(14*sc)}px;
   }}
-  .top-row {{ display: flex; align-items: center; justify-content: space-between; font-family: "Nirmala UI", "Segoe UI", system-ui, sans-serif; }}
+  .top-row {{ display: flex; align-items: center; justify-content: space-between; }}
   .wm-pill {{
-    padding: {int(7*sc)}px {int(18*sc)}px; border-radius: 999px;
-    background: rgba(15,23,42,0.86); border: 1.5px solid rgba(148,163,184,0.32);
-    font-size: {int(22*sc)}px; font-weight: 800; color: #F8FAFC;
+    padding: {int(8*sc)}px {int(20*sc)}px; border-radius: 999px;
+    background: rgba(15,23,42,0.92); border: 1.8px solid rgba(148,163,184,0.36);
+    font-size: {int(23*sc)}px; font-weight: 800; color: #FFFFFF;
   }}
   .wm-pill .at {{ color: #FB923C; }}
   .hud-pill {{
     display: inline-flex; align-items: center; gap: 8px;
-    padding: {int(7*sc)}px {int(18*sc)}px; border-radius: 999px;
-    background: rgba(9,20,42,0.85); border: 1.6px dashed {accent_hex}AA;
-    color: {accent_hex}; font-size: {int(19*sc)}px; font-weight: 800; letter-spacing: 2px;
+    padding: {int(8*sc)}px {int(20*sc)}px; border-radius: 999px;
+    background: rgba(9,20,42,0.92); border: 2px dashed {accent_hex};
+    color: {accent_hex}; font-size: {int(20*sc)}px; font-weight: 900; letter-spacing: 2px;
   }}
   .headline {{
-    text-align: center; line-height: 1.15;
-    font-family: "Nirmala UI", "Segoe UI", "Noto Sans Devanagari", system-ui, sans-serif;
-    font-size: {hl_px}px; font-weight: 900; margin: {int(4*sc)}px 0;
+    text-align: center; line-height: 1.14; color: #FFFFFF;
+    font-size: {hl_px}px; font-weight: 900; margin: {int(2*sc)}px 0;
+    text-shadow: 0 6px 24px rgba(0,0,0,0.65);
   }}
   .headline .acc {{
     color: {accent_hex}; display: inline-block; position: relative;
-    padding-bottom: {int(6*sc)}px;
-    border-bottom: 4px dashed {accent_hex}AA;
+    padding-bottom: {int(5*sc)}px;
+    border-bottom: 4px dashed {accent_hex};
   }}
 
   /* Whiteboard Sketch Stage */
   .board-stage {{
     flex: 1; position: relative; border-radius: {int(24*sc)}px;
-    border: 2px dashed rgba(56,189,248,0.34);
-    background: rgba(6, 15, 34, 0.56);
-    box-shadow: inset 0 0 60px rgba(8,20,48,0.72), 0 22px 60px rgba(0,0,0,0.55);
+    border: 2.2px dashed rgba(56,189,248,0.42);
+    background: rgba(6, 14, 32, 0.58);
+    box-shadow: inset 0 0 60px rgba(8,20,48,0.75), 0 22px 60px rgba(0,0,0,0.55);
     overflow: hidden;
   }}
   .bp-corner {{
     position: absolute; font-family: "Cascadia Code", monospace;
-    font-size: {int(15*sc)}px; color: rgba(56,189,248,0.45); letter-spacing: 1.5px;
+    font-size: {int(16*sc)}px; color: rgba(125,211,252,0.55); letter-spacing: 1.5px; font-weight: 700;
   }}
   svg#wbSvg {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
 
-  /* Sticky Callout Bubbles */
+  /* High-Contrast Sticky Callout Bubbles */
   .sticky-note {{
-    position: absolute; z-index: 8; max-width: {int(285*sc)}px;
-    padding: {int(14*sc)}px {int(18*sc)}px; border-radius: 14px;
-    background: rgba(254, 240, 138, 0.14); border: 2.2px solid #FACC15;
-    box-shadow: 0 12px 28px rgba(0,0,0,0.48);
-    backdrop-filter: blur(6px);
+    position: absolute; z-index: 8; max-width: {int(420*sc)}px; min-width: {int(260*sc)}px;
+    padding: {int(18*sc)}px {int(22*sc)}px; border-radius: 16px;
+    background: rgba(11, 20, 40, 0.96); border: 2.8px solid #FACC15;
+    box-shadow: 0 18px 42px rgba(0,0,0,0.72), 0 0 26px rgba(250,204,21,0.18);
   }}
   .sticky-tape {{
-    width: {int(54*sc)}px; height: {int(11*sc)}px; border-radius: 4px;
-    background: rgba(250,204,21,0.55); margin: -{int(20*sc)}px auto {int(6*sc)}px;
+    width: {int(64*sc)}px; height: {int(12*sc)}px; border-radius: 5px;
+    margin: -{int(25*sc)}px auto {int(10*sc)}px;
   }}
   .sticky-title {{
-    font-family: "Nirmala UI", "Segoe UI", system-ui, sans-serif;
-    font-size: {int(17*sc)}px; font-weight: 900; letter-spacing: 1px; margin-bottom: 4px;
+    font-size: {int(20*sc)}px; font-weight: 900; letter-spacing: 1.4px; margin-bottom: 6px;
   }}
   .sticky-txt {{
-    font-size: {int(21*sc)}px; font-weight: 700; color: #F8FAFC; line-height: 1.28;
+    font-size: {int(26*sc)}px; font-weight: 800; color: #FFFFFF; line-height: 1.32;
   }}
 
   .footer-pill {{
-    align-self: center; font-family: "Nirmala UI", "Segoe UI", system-ui, sans-serif;
-    padding: {int(10*sc)}px {int(28*sc)}px; border-radius: 14px;
-    background: rgba(56,189,248,0.12); border: 2px dashed {accent_hex};
-    color: #F8FAFC; font-size: {int(22*sc)}px; font-weight: 800; text-align: center;
+    align-self: center;
+    padding: {int(12*sc)}px {int(32*sc)}px; border-radius: 14px;
+    background: rgba(15,23,42,0.95); border: 2.2px dashed {accent_hex};
+    color: #FFFFFF; font-size: {int(24*sc)}px; font-weight: 900; text-align: center;
+    box-shadow: 0 0 26px {accent_hex}2E;
   }}
 </style>
 </head>
@@ -183,9 +187,9 @@ def _build_whiteboard_html(
     <div class="headline">{h_white} <span class="acc">{h_accent}</span></div>
 
     <div class="board-stage" id="boardStage">
-      <div class="bp-corner" style="top:12px;left:16px">GRID 28px // REV-7</div>
-      <div class="bp-corner" style="bottom:12px;right:16px">BLUEPRINT STUDIO V7</div>
-      <svg id="wbSvg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="bp-corner" style="top:14px;left:18px">GRID 28px // REV-4</div>
+      <div class="bp-corner" style="bottom:14px;right:18px">BLUEPRINT STUDIO V4</div>
+      <svg id="wbSvg" viewBox="0 0 {vb_w} {vb_h}" preserveAspectRatio="xMidYMid meet"></svg>
       <div id="stickyLayer"></div>
     </div>
 
@@ -194,6 +198,8 @@ def _build_whiteboard_html(
 
   <script>
     const STATE = {json.dumps(wb_state, ensure_ascii=False)};
+    const VBW = STATE.vb_w || 920;
+    const VBH = STATE.vb_h || 1260;
     const PAL = {{
       cyan: '#38BDF8', emerald: '#34D399', amber: '#FBBF24',
       rose: '#F43F5E', purple: '#C084FC', blue: '#60A5FA', white: '#F8FAFC'
@@ -202,6 +208,11 @@ def _build_whiteboard_html(
     const stickyLayer = document.getElementById('stickyLayer');
     const NS = 'http://www.w3.org/2000/svg';
 
+    function mapX(x) {{ return (Number(x || 500) / 1000.0) * VBW; }}
+    function mapY(y) {{ return (Number(y || 500) / 1000.0) * VBH; }}
+    function mapW(w) {{ return Math.max(220, (Number(w || 240) / 1000.0) * VBW * 1.08); }}
+    function mapH(h) {{ return Math.max(118, (Number(h || 120) / 1000.0) * VBH * 0.92); }}
+
     function prng(seed) {{
       let s = (seed * 9301 + 49297) % 233280;
       return () => {{ s = (s * 9301 + 49297) % 233280; return (s / 233280) - 0.5; }};
@@ -209,14 +220,14 @@ def _build_whiteboard_html(
 
     function sketchLinePath(x1, y1, x2, y2, seed, wob) {{
       const r = prng(seed);
-      const mx = (x1 + x2) / 2 + r() * wob * 3;
-      const my = (y1 + y2) / 2 + r() * wob * 3;
+      const mx = (x1 + x2) / 2 + r() * wob * 2.6;
+      const my = (y1 + y2) / 2 + r() * wob * 2.6;
       return `M ${{x1.toFixed(1)}} ${{y1.toFixed(1)}} Q ${{mx.toFixed(1)}} ${{my.toFixed(1)}} ${{x2.toFixed(1)}} ${{y2.toFixed(1)}}`;
     }}
 
     function sketchRectPaths(x, y, w, h, seed, wob) {{
       const r = prng(seed);
-      const j = () => r() * wob * 2.2;
+      const j = () => r() * wob * 2.0;
       const d1 = [
         sketchLinePath(x + j(), y + j(), x + w + j(), y + j(), seed + 1, wob),
         sketchLinePath(x + w + j(), y + j(), x + w + j(), y + h + j(), seed + 2, wob),
@@ -224,12 +235,30 @@ def _build_whiteboard_html(
         sketchLinePath(x + j(), y + h + j(), x + j(), y + j(), seed + 4, wob),
       ].join(' ');
       const d2 = [
-        sketchLinePath(x + 2 + j(), y - 1 + j(), x + w - 1 + j(), y + 2 + j(), seed + 11, wob * 0.8),
-        sketchLinePath(x + w + 1 + j(), y + 2 + j(), x + w - 2 + j(), y + h + j(), seed + 12, wob * 0.8),
-        sketchLinePath(x + w + j(), y + h + 2 + j(), x + 2 + j(), y + h - 1 + j(), seed + 13, wob * 0.8),
-        sketchLinePath(x - 1 + j(), y + h + j(), x + 1 + j(), y + 1 + j(), seed + 14, wob * 0.8),
+        sketchLinePath(x + 2 + j(), y - 1 + j(), x + w - 1 + j(), y + 2 + j(), seed + 11, wob * 0.75),
+        sketchLinePath(x + w + 1 + j(), y + 2 + j(), x + w - 2 + j(), y + h + j(), seed + 12, wob * 0.75),
+        sketchLinePath(x + w + j(), y + h + 2 + j(), x + 2 + j(), y + h - 1 + j(), seed + 13, wob * 0.75),
+        sketchLinePath(x - 1 + j(), y + h + j(), x + 1 + j(), y + 1 + j(), seed + 14, wob * 0.75),
       ].join(' ');
       return [d1, d2];
+    }}
+
+    // Exact boundary intersection from node center (cx, cy) toward (tx, ty)
+    function boundaryPoint(node, tx, ty, pad = 10) {{
+      const dx = tx - node.cx;
+      const dy = ty - node.cy;
+      if (Math.abs(dx) < 1e-4 && Math.abs(dy) < 1e-4) return [node.cx, node.cy];
+      const hw = node.w * 0.5 + pad;
+      const hh = node.h * 0.5 + pad;
+      let t;
+      if (String(node.data.kind || '').toLowerCase() === 'diamond') {{
+        t = 1.0 / (Math.abs(dx) / hw + Math.abs(dy) / hh);
+      }} else {{
+        const tx_b = Math.abs(dx) > 1e-4 ? hw / Math.abs(dx) : 1e9;
+        const ty_b = Math.abs(dy) > 1e-4 ? hh / Math.abs(dy) : 1e9;
+        t = Math.min(tx_b, ty_b);
+      }}
+      return [node.cx + dx * t, node.cy + dy * t];
     }}
 
     function makeEl(tag, attrs) {{
@@ -240,63 +269,66 @@ def _build_whiteboard_html(
 
     const animatedPaths = [];
     const revealGroups = [];
+    const edgePackets = [];
+    const labelGroups = [];
 
-    // 1. Zones (hand-drawn dashed bounding areas)
+    // 1. Zones
     (STATE.zones || []).forEach((z, idx) => {{
       const col = PAL[z.color] || '#38BDF8';
-      const x = Number(z.x || 80), y = Number(z.y || 80), w = Number(z.w || 380), h = Number(z.h || 260);
-      const dp = Number(z.dp !== undefined ? z.dp : 0.04 + idx * 0.12);
+      const x = mapX(z.x || 120), y = mapY(z.y || 140);
+      const w = (Number(z.w || 420) / 1000.0) * VBW;
+      const h = (Number(z.h || 420) / 1000.0) * VBH;
+      const dp = Number(z.dp !== undefined ? z.dp : 0.03 + idx * 0.10);
       const g = makeEl('g', {{ opacity: 0 }});
-      const rect = makeEl('rect', {{
-        x, y, width: w, height: h, rx: 18,
-        fill: col + '10', stroke: col, 'stroke-width': 2.5, 'stroke-dasharray': '12 9'
-      }});
+      g.appendChild(makeEl('rect', {{
+        x, y, width: w, height: h, rx: 22,
+        fill: col + '14', stroke: col, 'stroke-width': 2.8, 'stroke-dasharray': '14 10'
+      }}));
       const lbl = makeEl('text', {{
-        x: x + 16, y: y + 28, fill: col, 'font-size': 20, 'font-weight': '900',
+        x: x + 20, y: y + 34, fill: col, 'font-size': 22, 'font-weight': '900',
         'font-family': 'Cascadia Code, monospace'
       }});
       lbl.textContent = String(z.label || 'ZONE').toUpperCase();
-      g.appendChild(rect);
       g.appendChild(lbl);
       svg.appendChild(g);
       revealGroups.push({{ el: g, dp }});
     }});
 
-    // 2. Build node lookup + draw hand-drawn edges
+    // 2. Node lookup mapped cleanly into portrait/landscape viewBox
     const nodeMap = {{}};
     (STATE.nodes || []).forEach((n, idx) => {{
       nodeMap[String(n.id || idx)] = {{
-        cx: Number(n.x || 500),
-        cy: Number(n.y || 500),
-        w: Number(n.w || 235),
-        h: Number(n.h || 112),
+        cx: mapX(n.x),
+        cy: mapY(n.y),
+        w: mapW(n.w),
+        h: mapH(n.h),
         data: n,
-        dp: Number(n.dp !== undefined ? n.dp : 0.06 + idx * 0.11),
+        dp: Number(n.dp !== undefined ? n.dp : 0.05 + idx * 0.10),
       }};
     }});
 
+    // 3. Hand-drawn boundary-clipped curved edges + labels + traveling dots
     (STATE.edges || []).forEach((e, idx) => {{
       const a = nodeMap[String(e.from)], b = nodeMap[String(e.to)];
       if (!a || !b) return;
       const col = PAL[e.color] || '#38BDF8';
-      const dp = Number(e.dp !== undefined ? e.dp : 0.22 + idx * 0.10);
-      const dx = b.cx - a.cx, dy = b.cy - a.cy;
+      const dp = Number(e.dp !== undefined ? e.dp : 0.16 + idx * 0.10);
+      const [x1, y1] = boundaryPoint(a, b.cx, b.cy, 8);
+      const [x2, y2] = boundaryPoint(b, a.cx, a.cy, 12);
+      const dx = x2 - x1, dy = y2 - y1;
       const dist = Math.hypot(dx, dy) || 1;
       const ux = dx / dist, uy = dy / dist;
-      const x1 = a.cx + ux * (a.w * 0.48);
-      const y1 = a.cy + uy * (a.h * 0.48);
-      const x2 = b.cx - ux * (b.w * 0.52);
-      const y2 = b.cy - uy * (b.h * 0.52);
-      const mx = (x1 + x2) * 0.5 - uy * 28;
-      const my = (y1 + y2) * 0.5 + ux * 28;
+      const bend = dist > 180 ? 28 : 16;
+      const mx = (x1 + x2) * 0.5 - uy * bend;
+      const my = (y1 + y2) * 0.5 + ux * bend;
       const d = `M ${{x1.toFixed(1)}} ${{y1.toFixed(1)}} Q ${{mx.toFixed(1)}} ${{my.toFixed(1)}} ${{x2.toFixed(1)}} ${{y2.toFixed(1)}}`;
 
       const pEl = makeEl('path', {{
-        d, fill: 'none', stroke: col, 'stroke-width': 4.5, 'stroke-linecap': 'round'
+        d, fill: 'none', stroke: col, 'stroke-width': 5.0, 'stroke-linecap': 'round'
       }});
-      if (e.dashed) pEl.setAttribute('stroke-dasharray', '12 9');
+      if (e.dashed) pEl.setAttribute('stroke-dasharray', '14 10');
       svg.appendChild(pEl);
-      const len = pEl.getTotalLength ? pEl.getTotalLength() : 240;
+      const len = pEl.getTotalLength ? pEl.getTotalLength() : 260;
       if (!e.dashed) {{
         pEl.style.strokeDasharray = String(len);
         pEl.style.strokeDashoffset = String(len);
@@ -308,36 +340,43 @@ def _build_whiteboard_html(
 
       // Sketchy Arrowhead
       const ang = Math.atan2(y2 - my, x2 - mx);
-      const ah = 18;
+      const ah = 20;
       const ax1 = x2 - ah * Math.cos(ang - 0.45), ay1 = y2 - ah * Math.sin(ang - 0.45);
       const ax2 = x2 - ah * Math.cos(ang + 0.45), ay2 = y2 - ah * Math.sin(ang + 0.45);
       const head = makeEl('path', {{
         d: `M ${{ax1.toFixed(1)}} ${{ay1.toFixed(1)}} L ${{x2.toFixed(1)}} ${{y2.toFixed(1)}} L ${{ax2.toFixed(1)}} ${{ay2.toFixed(1)}}`,
-        fill: 'none', stroke: col, 'stroke-width': 4.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+        fill: 'none', stroke: col, 'stroke-width': 4.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
       }});
       svg.appendChild(head);
-      revealGroups.push({{ el: head, dp: dp + 0.08 }});
+      revealGroups.push({{ el: head, dp: dp + 0.06 }});
+
+      // Traveling glowing marker packet along edge
+      const pkt = makeEl('circle', {{ r: 7, fill: col, stroke: '#FFFFFF', 'stroke-width': 2, opacity: 0 }});
+      svg.appendChild(pkt);
+      edgePackets.push({{ el: pkt, x1, y1, mx, my, x2, y2, dp: dp + 0.06 }});
 
       if (e.label) {{
         const tg = makeEl('g', {{ opacity: 0 }});
-        const tw = Math.max(96, String(e.label).length * 12 + 24);
-        const pill = makeEl('rect', {{
-          x: mx - tw / 2, y: my - 18, width: tw, height: 34, rx: 10,
-          fill: '#0A152C', stroke: col, 'stroke-width': 2
-        }});
+        const lblTxt = String(e.label);
+        const tw = Math.max(108, lblTxt.length * 14 + 28);
+        // Curve midpoint at t=0.5 on quadratic bezier
+        const lx = 0.25 * x1 + 0.5 * mx + 0.25 * x2;
+        const ly = 0.25 * y1 + 0.5 * my + 0.25 * y2;
+        tg.appendChild(makeEl('rect', {{
+          x: lx - tw / 2, y: ly - 20, width: tw, height: 40, rx: 12,
+          fill: '#081226', stroke: col, 'stroke-width': 2.5
+        }}));
         const txt = makeEl('text', {{
-          x: mx, y: my + 5, 'text-anchor': 'middle', fill: col,
-          'font-size': 18, 'font-weight': '800', 'font-family': 'Cascadia Code, monospace'
+          x: lx, y: ly + 7, 'text-anchor': 'middle', fill: '#FFFFFF',
+          'font-size': 21, 'font-weight': '900', 'font-family': 'Cascadia Code, monospace'
         }});
-        txt.textContent = String(e.label);
-        tg.appendChild(pill);
+        txt.textContent = lblTxt;
         tg.appendChild(txt);
-        svg.appendChild(tg);
-        revealGroups.push({{ el: tg, dp: dp + 0.06 }});
+        labelGroups.push({{ el: tg, dp: dp + 0.04 }});
       }}
     }});
 
-    // 3. Draw hand-drawn whiteboard nodes
+    // 4. Hand-drawn high-contrast diagram nodes
     Object.values(nodeMap).forEach((nd, idx) => {{
       const n = nd.data;
       const col = PAL[n.color] || '#38BDF8';
@@ -345,51 +384,58 @@ def _build_whiteboard_html(
       const x = nd.cx - nd.w * 0.5, y = nd.cy - nd.h * 0.5, w = nd.w, h = nd.h;
       const g = makeEl('g', {{ opacity: 0 }});
 
-      // Marker wash background
       if (kind === 'cylinder') {{
-        const body = makeEl('path', {{
-          d: `M ${{x}} ${{y + 18}} v ${{h - 36}} c 0 22 ${{w}} 22 ${{w}} 0 v -${{h - 36}} z`,
-          fill: col + '1F', stroke: col, 'stroke-width': 3.8
-        }});
-        const top = makeEl('ellipse', {{
-          cx: nd.cx, cy: y + 18, rx: w * 0.5, ry: 18,
-          fill: '#0D1B35', stroke: col, 'stroke-width': 3.8
-        }});
-        const ring = makeEl('path', {{
-          d: `M ${{x}} ${{y + 42}} c 0 18 ${{w}} 18 ${{w}} 0`,
-          fill: 'none', stroke: col + '88', 'stroke-width': 2.2, 'stroke-dasharray': '7 6'
-        }});
-        g.appendChild(body);
-        g.appendChild(top);
-        g.appendChild(ring);
+        g.appendChild(makeEl('path', {{
+          d: `M ${{x}} ${{y + 22}} v ${{h - 44}} c 0 24 ${{w}} 24 ${{w}} 0 v -${{h - 44}} z`,
+          fill: '#0C1A36', stroke: col, 'stroke-width': 4.4
+        }}));
+        g.appendChild(makeEl('path', {{
+          d: `M ${{x}} ${{y + 22}} v ${{h - 44}} c 0 24 ${{w}} 24 ${{w}} 0 v -${{h - 44}} z`,
+          fill: col + '24', stroke: 'none'
+        }}));
+        g.appendChild(makeEl('ellipse', {{
+          cx: nd.cx, cy: y + 22, rx: w * 0.5, ry: 22,
+          fill: '#112447', stroke: col, 'stroke-width': 4.4
+        }}));
+        g.appendChild(makeEl('path', {{
+          d: `M ${{x}} ${{y + 50}} c 0 20 ${{w}} 20 ${{w}} 0`,
+          fill: 'none', stroke: col + '99', 'stroke-width': 2.5, 'stroke-dasharray': '8 6'
+        }}));
       }} else if (kind === 'diamond') {{
-        const pts = `${{nd.cx}},${{y}} ${{x + w}},${{nd.cy}} ${{nd.cx}},${{y + h}} ${{x}},${{nd.cy}}`;
+        const dw = w * 1.02, dh = h * 1.22;
+        const pts = `${{nd.cx}},${{nd.cy - dh * 0.5}} ${{nd.cx + dw * 0.5}},${{nd.cy}} ${{nd.cx}},${{nd.cy + dh * 0.5}} ${{nd.cx - dw * 0.5}},${{nd.cy}}`;
         g.appendChild(makeEl('polygon', {{
-          points: pts, fill: col + '1F', stroke: col, 'stroke-width': 3.8, 'stroke-linejoin': 'round'
+          points: pts, fill: '#0C1A36', stroke: col, 'stroke-width': 4.5, 'stroke-linejoin': 'round'
+        }}));
+        g.appendChild(makeEl('polygon', {{
+          points: pts, fill: col + '26', stroke: 'none'
         }}));
       }} else {{
         g.appendChild(makeEl('rect', {{
-          x, y, width: w, height: h, rx: kind === 'queue' ? 28 : 16,
-          fill: col + '1A'
+          x, y, width: w, height: h, rx: kind === 'queue' ? 32 : 18,
+          fill: '#0C1A36'
         }}));
-        const [d1, d2] = sketchRectPaths(x, y, w, h, (idx + 1) * 37, STATE.wobble || 2.2);
-        const p1 = makeEl('path', {{ d: d1, fill: 'none', stroke: col, 'stroke-width': 3.8, 'stroke-linecap': 'round' }});
-        const p2 = makeEl('path', {{ d: d2, fill: 'none', stroke: col + '99', 'stroke-width': 2.1, 'stroke-linecap': 'round' }});
-        g.appendChild(p1);
-        g.appendChild(p2);
+        g.appendChild(makeEl('rect', {{
+          x, y, width: w, height: h, rx: kind === 'queue' ? 32 : 18,
+          fill: col + '24'
+        }}));
+        const [d1, d2] = sketchRectPaths(x, y, w, h, (idx + 1) * 37, STATE.wobble || 2.4);
+        g.appendChild(makeEl('path', {{ d: d1, fill: 'none', stroke: col, 'stroke-width': 4.5, 'stroke-linecap': 'round' }}));
+        g.appendChild(makeEl('path', {{ d: d2, fill: 'none', stroke: col + 'AA', 'stroke-width': 2.3, 'stroke-linecap': 'round' }}));
       }}
 
       const lbl = makeEl('text', {{
-        x: nd.cx, y: nd.cy - (n.sublabel ? 4 : -7), 'text-anchor': 'middle',
-        fill: '#F8FAFC', 'font-size': 25, 'font-weight': '900'
+        x: nd.cx, y: nd.cy - (n.sublabel ? 8 : -10), 'text-anchor': 'middle',
+        fill: '#FFFFFF', 'font-size': 31, 'font-weight': '900',
+        'font-family': 'Nirmala UI, Segoe UI, sans-serif'
       }});
       lbl.textContent = String(n.label || 'Node');
       g.appendChild(lbl);
 
       if (n.sublabel) {{
         const sub = makeEl('text', {{
-          x: nd.cx, y: nd.cy + 26, 'text-anchor': 'middle',
-          fill: col, 'font-size': 18, 'font-weight': '800', 'font-family': 'Cascadia Code, monospace'
+          x: nd.cx, y: nd.cy + 28, 'text-anchor': 'middle',
+          fill: col, 'font-size': 22, 'font-weight': '800', 'font-family': 'Cascadia Code, monospace'
         }});
         sub.textContent = String(n.sublabel);
         g.appendChild(sub);
@@ -399,22 +445,28 @@ def _build_whiteboard_html(
       revealGroups.push({{ el: g, dp: nd.dp }});
     }});
 
-    // 4. Sticky Callout Bubbles
+    // Append edge label pills on top of nodes so labels are never occluded
+    labelGroups.forEach(lg => {{
+      svg.appendChild(lg.el);
+      revealGroups.push(lg);
+    }});
+
+    // 5. High-Contrast Sticky Callout Bubbles
     const stickyEls = [];
     (STATE.stickies || []).forEach((st, idx) => {{
       const col = PAL[st.color] || '#FBBF24';
-      const xp = Math.max(4, Math.min(72, Number(st.x_pct !== undefined ? st.x_pct : (idx % 2 === 0 ? 6 : 64))));
-      const yp = Math.max(4, Math.min(78, Number(st.y_pct !== undefined ? st.y_pct : (10 + idx * 36))));
-      const rot = idx % 2 === 0 ? -2.2 : 2.0;
-      const dp = Number(st.dp !== undefined ? st.dp : 0.28 + idx * 0.20);
+      const xp = Math.max(4, Math.min(54, Number(st.x_pct !== undefined ? st.x_pct : (idx % 2 === 0 ? 6 : 48))));
+      const yp = Math.max(4, Math.min(78, Number(st.y_pct !== undefined ? st.y_pct : (72 - idx * 24))));
+      const rot = idx % 2 === 0 ? -1.4 : 1.4;
+      const dp = Number(st.dp !== undefined ? st.dp : 0.24 + idx * 0.16);
       const card = document.createElement('div');
       card.className = 'sticky-note';
       card.style.left = xp + '%';
       card.style.top = yp + '%';
       card.style.borderColor = col;
-      card.style.background = col + '22';
-      card.style.transform = `rotate(${{rot}}deg) scale(0.92)`;
-      card.innerHTML = `<div class="sticky-tape" style="background:${{col}}99"></div>` +
+      card.style.boxShadow = `0 18px 42px rgba(0,0,0,0.72), 0 0 26px ${{col}}33`;
+      card.style.transform = `rotate(${{rot}}deg) scale(0.94)`;
+      card.innerHTML = `<div class="sticky-tape" style="background:${{col}}CC"></div>` +
         `<div class="sticky-title" style="color:${{col}}">${{String(st.title || 'NOTE').replace(/</g,'&lt;')}}</div>` +
         `<div class="sticky-txt">${{String(st.text || '').replace(/</g,'&lt;')}}</div>`;
       stickyLayer.appendChild(card);
@@ -424,28 +476,39 @@ def _build_whiteboard_html(
     window.__setStudioProgress = function(wp, lp) {{
       const p = Math.max(0, Math.min(1, Number(wp) || 0));
       const t = Math.max(0, Math.min(1, Number(lp !== undefined ? lp : p) || 0));
-      const spd = Number(STATE.draw_speed || 1.1);
+      const spd = Number(STATE.draw_speed || 1.15);
 
       revealGroups.forEach(item => {{
-        const f = Math.max(0, Math.min(1, (p - item.dp + 0.06) / 0.12));
+        const f = Math.max(0, Math.min(1, (p - item.dp + 0.08) / 0.12));
         item.el.setAttribute('opacity', f.toFixed(3));
         item.el.style.opacity = f.toFixed(3);
       }});
 
       animatedPaths.forEach(ap => {{
-        const local = Math.max(0, Math.min(1, ((t - ap.dp + 0.05) * spd) / 0.22));
+        const local = Math.max(0, Math.min(1, ((t - ap.dp + 0.06) * spd) / 0.22));
         ap.el.style.strokeDashoffset = (ap.len * (1 - local)).toFixed(1);
       }});
 
+      edgePackets.forEach(pk => {{
+        if (t < pk.dp) {{ pk.el.setAttribute('opacity', '0'); return; }}
+        const u = ((t - pk.dp) * 1.9) % 1.0;
+        const imu = 1 - u;
+        const bx = imu * imu * pk.x1 + 2 * imu * u * pk.mx + u * u * pk.x2;
+        const by = imu * imu * pk.y1 + 2 * imu * u * pk.my + u * u * pk.y2;
+        pk.el.setAttribute('cx', bx.toFixed(1));
+        pk.el.setAttribute('cy', by.toFixed(1));
+        pk.el.setAttribute('opacity', '0.95');
+      }});
+
       stickyEls.forEach(s => {{
-        const f = Math.max(0, Math.min(1, (p - s.dp + 0.06) / 0.12));
+        const f = Math.max(0, Math.min(1, (p - s.dp + 0.08) / 0.12));
         s.el.style.opacity = f.toFixed(3);
-        s.el.style.transform = `rotate(${{s.rot}}deg) scale(${{(0.88 + 0.12 * f).toFixed(3)}}) translateY(${{(12 * (1 - f)).toFixed(1)}}px)`;
+        s.el.style.transform = `rotate(${{s.rot}}deg) scale(${{(0.92 + 0.08 * f).toFixed(3)}}) translateY(${{(10 * (1 - f)).toFixed(1)}}px)`;
       }});
 
       const fp = document.getElementById('footerPill');
       if (fp) {{
-        const ff = Math.max(0, Math.min(1, (p - 0.70) / 0.15));
+        const ff = Math.max(0, Math.min(1, (p - 0.58) / 0.14));
         fp.style.opacity = ff.toFixed(3);
       }}
     }};
@@ -455,14 +518,14 @@ def _build_whiteboard_html(
 </html>"""
 
 
-def render_v7_whiteboard_scene_frames(
+def render_v4_whiteboard_scene_frames(
     scene: Dict[str, Any],
     scene_idx: int,
     format_ratio: str = "9:16",
     scene_words: Optional[List[Dict[str, Any]]] = None,
     tone: str = "auto_2026_director",
 ) -> Path:
-    """Renders all FPS frames for a Studio V7 Blueprint Whiteboard Studio scene."""
+    """Renders all FPS frames for a Studio V4 Blueprint Whiteboard Studio scene."""
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
     w, h = spec["width"], spec["height"]
     duration = max(1.2, float(scene.get("duration", 4.5)))

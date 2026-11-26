@@ -23,11 +23,11 @@ from core.tone_engine import get_tone_profile
 
 STUDIO_V2_MODE_OPTIONS = [
     ("classic_nanopro", "🧠 Classic NanoPro Studio (All 1,221 Engines + 24 Specialist Modes — Untouched)"),
-    ("v2_auto", "⚡ Studio Auto-Director (Picks Best: Vector / Isometric / V5 Live IDE / V7 Whiteboard)"),
+    ("v2_auto", "⚡ Studio V2 Auto-Director (Smart Picks: Vector / Isometric / V3 Live IDE / V4 Whiteboard)"),
     ("v2_vector_storyboard", "📐 Studio V2 — Clean Vector Storyboard (GyanaHut Style · Progressive SVG + Paired Analogy)"),
     ("v2_spatial_isometric", "🌐 Studio V2 — Spatial Isometric World (@thetechypenguin Style · 2.5D Map + Camera Fly + Top HUD)"),
-    ("v5_live_ide", "🖥️ Studio V5 — Live IDE & SQL/Python Simulator (Code Highlight · Click Ripple · Callout · Output Drawer)"),
-    ("v7_blueprint_whiteboard", "✏️ Studio V7 — Blueprint Whiteboard Studio (ByteByteGo / Excalidraw · Dark Grid · Marker Diagrams · Sticky Bubbles)"),
+    ("v3_live_ide", "🖥️ Studio V3 — Live IDE & SQL/Python Simulator (Code Highlight · Click Ripple · Callout · Live Output Drawer)"),
+    ("v4_blueprint_whiteboard", "✏️ Studio V4 — Blueprint Whiteboard Studio (ByteByteGo / Excalidraw · Dark Grid · Marker Diagrams · Sticky Bubbles)"),
 ]
 
 
@@ -36,6 +36,8 @@ def is_studio_v2_mode(mode_key: str) -> bool:
         "v2_auto",
         "v2_vector_storyboard",
         "v2_spatial_isometric",
+        "v3_live_ide",
+        "v4_blueprint_whiteboard",
         "v5_live_ide",
         "v7_blueprint_whiteboard",
     )
@@ -48,9 +50,9 @@ def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto"
         return "vector_storyboard"
     if mk == "v2_spatial_isometric":
         return "spatial_isometric"
-    if mk == "v5_live_ide":
+    if mk in ("v3_live_ide", "v5_live_ide"):
         return "live_ide"
-    if mk == "v7_blueprint_whiteboard":
+    if mk in ("v4_blueprint_whiteboard", "v7_blueprint_whiteboard"):
         return "blueprint_whiteboard"
 
     low = f" {str(topic or '').lower()} "
@@ -279,8 +281,8 @@ def _normalize_v2_scenes(
         _engine_labels = {
             "vector_storyboard": ("v2_vector_storyboard", "Studio V2 (Vector Storyboard)"),
             "spatial_isometric": ("v2_spatial_isometric", "Studio V2 (Spatial Isometric World)"),
-            "live_ide": ("v5_live_ide", "Studio V5 (Live IDE & SQL/Python Simulator)"),
-            "blueprint_whiteboard": ("v7_blueprint_whiteboard", "Studio V7 (Blueprint Whiteboard Studio)"),
+            "live_ide": ("v3_live_ide", "Studio V3 (Live IDE & SQL/Python Simulator)"),
+            "blueprint_whiteboard": ("v4_blueprint_whiteboard", "Studio V4 (Blueprint Whiteboard Studio)"),
         }
         v_type_out, r_eng_out = _engine_labels.get(sub_engine, (f"v2_{sub_engine}", f"Studio ({sub_engine})"))
 
@@ -1293,16 +1295,16 @@ def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_st
                 "headline_accent": "Backend Crashes!",
                 "accent_color": "rose",
                 "diagram_nodes": [
-                    {"id": "cli", "kind": "box", "label": "100k Users", "sublabel": "Traffic Spike", "x": 220, "y": 240, "w": 240, "h": 115, "color": "amber", "dp": 0.05},
-                    {"id": "api", "kind": "box", "label": "Single API", "sublabel": "Overloaded!", "x": 520, "y": 460, "w": 240, "h": 115, "color": "rose", "dp": 0.20},
-                    {"id": "db", "kind": "cylinder", "label": "Primary DB", "sublabel": "CPU 100% ✗", "x": 790, "y": 690, "w": 230, "h": 125, "color": "rose", "dp": 0.35},
+                    {"id": "cli", "kind": "box", "label": "100k Users", "sublabel": "Traffic Spike", "x": 220, "y": 210, "w": 240, "h": 115, "color": "amber", "dp": 0.05},
+                    {"id": "api", "kind": "box", "label": "Single API", "sublabel": "Overloaded!", "x": 500, "y": 405, "w": 240, "h": 115, "color": "rose", "dp": 0.20},
+                    {"id": "db", "kind": "cylinder", "label": "Primary DB", "sublabel": "CPU 100% ✗", "x": 770, "y": 600, "w": 235, "h": 125, "color": "rose", "dp": 0.35},
                 ],
                 "diagram_edges": [
                     {"from": "cli", "to": "api", "label": "flood", "color": "rose", "dp": 0.15},
                     {"from": "api", "to": "db", "label": "locks", "color": "rose", "dp": 0.30},
                 ],
                 "sticky_notes": [
-                    {"title": "⚠️ NAIVE FLUSH", "text": "No queue or protection = 502 outage!", "color": "rose", "x_pct": 8, "y_pct": 68, "dp": 0.50},
+                    {"title": "⚠️ NAIVE FLUSH", "text": "No queue or guard = instant 502 outage!", "color": "rose", "x_pct": 6, "y_pct": 72, "dp": 0.30},
                 ],
             },
         },
@@ -1315,12 +1317,12 @@ def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_st
                 "headline_white": "Clean Edge",
                 "headline_accent": "Architecture.",
                 "accent_color": "cyan",
-                "blueprint_zones": [{"label": "EDGE PROTECTION ZONE", "x": 335, "y": 170, "w": 410, "h": 480, "color": "cyan"}],
+                "blueprint_zones": [{"label": "EDGE PROTECTION ZONE", "x": 335, "y": 140, "w": 360, "h": 410, "color": "cyan"}],
                 "diagram_nodes": [
-                    {"id": "u", "kind": "box", "label": "Clients", "sublabel": "Mobile / Web", "x": 175, "y": 380, "w": 200, "h": 108, "color": "white", "dp": 0.05},
-                    {"id": "gw", "kind": "diamond", "label": "Gateway", "sublabel": "Auth + Limit", "x": 510, "y": 380, "w": 230, "h": 140, "color": "cyan", "dp": 0.18},
-                    {"id": "rd", "kind": "cylinder", "label": "Redis State", "sublabel": "O(1) Counter", "x": 510, "y": 730, "w": 235, "h": 115, "color": "amber", "dp": 0.34},
-                    {"id": "svc", "kind": "box", "label": "Core Service", "sublabel": "Protected", "x": 830, "y": 380, "w": 210, "h": 110, "color": "emerald", "dp": 0.48},
+                    {"id": "u", "kind": "box", "label": "Clients", "sublabel": "Mobile / Web", "x": 145, "y": 325, "w": 185, "h": 110, "color": "white", "dp": 0.05},
+                    {"id": "gw", "kind": "diamond", "label": "Gateway", "sublabel": "Auth + Limit", "x": 500, "y": 325, "w": 210, "h": 140, "color": "cyan", "dp": 0.18},
+                    {"id": "rd", "kind": "cylinder", "label": "Redis State", "sublabel": "O(1) Counter", "x": 500, "y": 640, "w": 235, "h": 118, "color": "amber", "dp": 0.34},
+                    {"id": "svc", "kind": "box", "label": "Core Service", "sublabel": "Protected", "x": 855, "y": 325, "w": 195, "h": 112, "color": "emerald", "dp": 0.48},
                 ],
                 "diagram_edges": [
                     {"from": "u", "to": "gw", "label": "HTTPS", "color": "cyan", "dp": 0.14},
@@ -1328,7 +1330,7 @@ def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_st
                     {"from": "gw", "to": "svc", "label": "allow ✓", "color": "emerald", "dp": 0.44},
                 ],
                 "sticky_notes": [
-                    {"title": "✏️ MARKER TIP", "text": "In-memory Redis keeps latency < 1ms", "color": "amber", "x_pct": 8, "y_pct": 66, "dp": 0.56},
+                    {"title": "✏️ MARKER TIP", "text": "In-memory Redis keeps latency < 1ms", "color": "amber", "x_pct": 6, "y_pct": 74, "dp": 0.48},
                 ],
             },
         },
@@ -1342,10 +1344,10 @@ def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_st
                 "headline_accent": "Traffic Burst.",
                 "accent_color": "emerald",
                 "diagram_nodes": [
-                    {"id": "svc", "kind": "box", "label": "API Tier", "sublabel": "Fast Ack 202", "x": 200, "y": 290, "w": 220, "h": 110, "color": "cyan", "dp": 0.06},
-                    {"id": "q", "kind": "queue", "label": "Event Queue", "sublabel": "Kafka / SQS", "x": 530, "y": 350, "w": 240, "h": 110, "color": "amber", "dp": 0.22},
-                    {"id": "w", "kind": "box", "label": "Workers", "sublabel": "Steady Rate", "x": 820, "y": 460, "w": 215, "h": 110, "color": "emerald", "dp": 0.38},
-                    {"id": "db", "kind": "cylinder", "label": "Storage DB", "sublabel": "Safe Writes", "x": 800, "y": 760, "w": 220, "h": 115, "color": "purple", "dp": 0.52},
+                    {"id": "svc", "kind": "box", "label": "API Tier", "sublabel": "Fast Ack 202", "x": 195, "y": 240, "w": 225, "h": 112, "color": "cyan", "dp": 0.06},
+                    {"id": "q", "kind": "queue", "label": "Event Queue", "sublabel": "Kafka / SQS", "x": 520, "y": 280, "w": 245, "h": 112, "color": "amber", "dp": 0.22},
+                    {"id": "w", "kind": "box", "label": "Workers", "sublabel": "Steady Rate", "x": 815, "y": 405, "w": 220, "h": 112, "color": "emerald", "dp": 0.38},
+                    {"id": "db", "kind": "cylinder", "label": "Storage DB", "sublabel": "Safe Writes", "x": 775, "y": 645, "w": 225, "h": 118, "color": "purple", "dp": 0.52},
                 ],
                 "diagram_edges": [
                     {"from": "svc", "to": "q", "label": "push", "color": "cyan", "dp": 0.16},
@@ -1353,7 +1355,7 @@ def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_st
                     {"from": "w", "to": "db", "label": "batch", "color": "emerald", "dp": 0.48},
                 ],
                 "sticky_notes": [
-                    {"title": "📌 WHY QUEUES WIN", "text": "Decouples peak burst from DB writes!", "color": "emerald", "x_pct": 8, "y_pct": 63, "dp": 0.58},
+                    {"title": "📌 WHY QUEUES WIN", "text": "Decouples peak burst from DB writes!", "color": "emerald", "x_pct": 6, "y_pct": 70, "dp": 0.46},
                 ],
             },
         },
@@ -1367,16 +1369,16 @@ def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_st
                 "headline_accent": "Scale Pattern.",
                 "accent_color": "amber",
                 "diagram_nodes": [
-                    {"id": "l1", "kind": "box", "label": "1. Edge Guard", "sublabel": "Gateway + Cache", "x": 230, "y": 250, "w": 245, "h": 115, "color": "cyan", "dp": 0.08},
-                    {"id": "l2", "kind": "queue", "label": "2. Buffer", "sublabel": "Async Queue", "x": 520, "y": 470, "w": 235, "h": 115, "color": "amber", "dp": 0.26},
-                    {"id": "l3", "kind": "cylinder", "label": "3. Durable DB", "sublabel": "Partitioned", "x": 790, "y": 690, "w": 235, "h": 120, "color": "emerald", "dp": 0.44},
+                    {"id": "l1", "kind": "box", "label": "1. Edge Guard", "sublabel": "Gateway + Cache", "x": 225, "y": 215, "w": 245, "h": 115, "color": "cyan", "dp": 0.08},
+                    {"id": "l2", "kind": "queue", "label": "2. Buffer", "sublabel": "Async Queue", "x": 515, "y": 405, "w": 235, "h": 115, "color": "amber", "dp": 0.26},
+                    {"id": "l3", "kind": "cylinder", "label": "3. Durable DB", "sublabel": "Partitioned", "x": 780, "y": 595, "w": 240, "h": 120, "color": "emerald", "dp": 0.44},
                 ],
                 "diagram_edges": [
                     {"from": "l1", "to": "l2", "label": "filter", "color": "cyan", "dp": 0.20},
                     {"from": "l2", "to": "l3", "label": "flush", "color": "emerald", "dp": 0.38},
                 ],
                 "sticky_notes": [
-                    {"title": "✅ INTERVIEW GOLD", "text": "Always draw Cache -> Queue -> DB!", "color": "amber", "x_pct": 30, "y_pct": 66, "dp": 0.56},
+                    {"title": "✅ INTERVIEW GOLD", "text": "Always draw Cache -> Queue -> DB!", "color": "amber", "x_pct": 6, "y_pct": 72, "dp": 0.48},
                 ],
                 "footer_pill": cta_note,
             },
@@ -1392,7 +1394,7 @@ def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_st
     }
 
 
-def _generate_v5_ide_llm(
+def _generate_v3_ide_llm(
     topic: str,
     tone: str,
     duration_mode: str,
@@ -1407,7 +1409,7 @@ def _generate_v5_ide_llm(
     sc_guide = _scene_count_guidance(duration_mode, "live_ide")
     cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this code tip!"
 
-    prompt = f"""You are Studio V5 Live IDE & SQL/Python Simulator Director.
+    prompt = f"""You are Studio V3 Live IDE & SQL/Python Simulator Director.
 Design ONE cohesive coding explainer reel JSON for topic: "{topic}"
 Audience: {audience_level} | Hook: {hook_style} | Final CTA: {cta_note}
 Target Scenes: {sc_guide}
@@ -1477,7 +1479,7 @@ Return STRICT JSON:
     }
 
 
-def _generate_v7_whiteboard_llm(
+def _generate_v4_whiteboard_llm(
     topic: str,
     tone: str,
     duration_mode: str,
@@ -1492,7 +1494,7 @@ def _generate_v7_whiteboard_llm(
     sc_guide = _scene_count_guidance(duration_mode, "blueprint_whiteboard")
     cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this blueprint!"
 
-    prompt = f"""You are Studio V7 Blueprint Whiteboard Director (ByteByteGo / Excalidraw dark blueprint grid style).
+    prompt = f"""You are Studio V4 Blueprint Whiteboard Director (ByteByteGo / Excalidraw dark blueprint grid style).
 Design ONE clean whiteboard diagram reel JSON for topic: "{topic}"
 Audience: {audience_level} | Hook: {hook_style} | Final CTA: {cta_note}
 Target Scenes: {sc_guide}
@@ -1567,7 +1569,7 @@ def generate_v2_timeline(
     cta_style: str = "save_share",
     cta_keyword: str = "",
 ) -> Dict[str, Any]:
-    """Entry point for Studio V2 / V5 / V7 Storyboard Directors (completely isolated from classic NanoPro)."""
+    """Entry point for Studio V2 / V3 / V4 Storyboard Directors (completely isolated from classic NanoPro)."""
     wm_clean = str(watermark or DEFAULT_WATERMARK).strip() or DEFAULT_WATERMARK
     sub = resolve_v2_sub_engine(topic, v2_mode, duration_mode=duration_mode)
     if sub == "spatial_isometric":
@@ -1578,14 +1580,14 @@ def generate_v2_timeline(
         if tl is None:
             tl = _fallback_spatial_isometric(topic, wm_clean, tone, cta_style, cta_keyword)
     elif sub == "live_ide":
-        tl = _generate_v5_ide_llm(
+        tl = _generate_v3_ide_llm(
             topic, tone, duration_mode, voice, wm_clean,
             audience_level, hook_style, cta_style, cta_keyword,
         )
         if tl is None:
             tl = _fallback_live_ide(topic, wm_clean, tone, cta_style, cta_keyword)
     elif sub == "blueprint_whiteboard":
-        tl = _generate_v7_whiteboard_llm(
+        tl = _generate_v4_whiteboard_llm(
             topic, tone, duration_mode, voice, wm_clean,
             audience_level, hook_style, cta_style, cta_keyword,
         )
