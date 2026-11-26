@@ -782,7 +782,8 @@ def render_pro_layout(
             col = world["cyan"] if is_user else world["emerald"]
             stage.draw_glass_card((bx0, y, bx1, y + 165), radius=24, accent_col=col, alpha_mul=g_b, active=(int(progress * len(msgs)) == i))
             if g_bdg > 0.02:
-                stage.draw_pill(bx0 + 82, y + 32, "YOU" if is_user else "AI STUDIO", (*col[:3], 42), col, border_col=col, font=_get_font(17, bold=True), alpha_mul=g_bdg)
+                pill_lbl = str(m.get("badge") or ("YOU" if is_user else "AI STUDIO"))[:16]
+                stage.draw_pill(bx0 + 96, y + 32, pill_lbl, (*col[:3], 42), col, border_col=col, font=_get_font(17, bold=True), alpha_mul=g_bdg)
             if g_t > 0.02:
                 _draw_wrapped(stage.draw, (bx0 + 26, y + 66), str(m.get("text") or ""), _get_font(23), _with_alpha(world["text"], g_t), (bx1 - bx0) - 52, max_lines=3)
             y += 188

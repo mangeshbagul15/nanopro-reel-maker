@@ -1663,7 +1663,7 @@ def _enforce_engine_style(
         v_data["title"] = title
         v_data["badge"] = badge
 
-        if current_vtype == "code_terminal":
+        if current_vtype in ("code_terminal", "terminal_studio", "code_diff_split", "api_request_response"):
             if not v_data.get("code_snippet") and not v_data.get("command"):
                 v_data["command"] = f"python -m engine --run {topic.lower().replace(' ', '_')[:16]}"
                 v_data["code_snippet"] = (
@@ -1674,7 +1674,7 @@ def _enforce_engine_style(
                     f"    return {{'status': 200, 'synced': True}}"
                 )
 
-        elif current_vtype == "sql_table":
+        elif current_vtype in ("sql_table", "sql_studio", "star_snowflake_schema"):
             if not v_data.get("code_snippet"):
                 tbl_name = topic.lower().replace(" ", "_")[:12]
                 v_data["code_snippet"] = f"SELECT emp_id, salary, DENSE_RANK() OVER (ORDER BY salary DESC) FROM {tbl_name};"
@@ -1698,7 +1698,7 @@ def _enforce_engine_style(
                     {"id": "target", "label": "Target Cluster", "sub": "Consistent Replicated Store", "color": "#34D399"}
                 ]
 
-        elif current_vtype == "split_comparison":
+        elif current_vtype in ("split_comparison", "iso_comparison"):
             if not v_data.get("left_points") or not v_data.get("right_points"):
                 v_data["left_label"] = v_data.get("left_label") or "LEGACY / UNOPTIMIZED"
                 v_data["left_points"] = v_data.get("left_points") or [
@@ -1715,7 +1715,7 @@ def _enforce_engine_style(
                     "Automated Multi-AZ Resilient Scale"
                 ]
 
-        elif current_vtype == "benchmark_chart":
+        elif current_vtype in ("benchmark_chart", "benchmark_3d", "latency_waterfall", "flamegraph_perf"):
             if not v_data.get("bars"):
                 v_data["winner_badge"] = v_data.get("winner_badge") or "15X SPEEDUP"
                 v_data["bars"] = [
@@ -1725,7 +1725,7 @@ def _enforce_engine_style(
                     {"label": f"{topic[:16]} Stream", "value": 24, "display": "24ms Lag (Winner)", "color": "#10B981", "is_winner": True}
                 ]
 
-        elif current_vtype == "data_structure_memory":
+        elif current_vtype in ("data_structure_memory", "write_ahead_log_wal", "memory_wal_checkpoint"):
             if not v_data.get("entries"):
                 v_data["entries"] = [
                     {"address": "0x00A1", "op": "COMMIT LSN 4920", "table": "orders", "status": "REPLICATED"},
@@ -1743,6 +1743,25 @@ def _enforce_engine_style(
                     {"name": "State Cache", "role": "Sub-millisecond", "color": "#FBBF24"},
                     {"name": "Database Cluster", "role": "ACID Store", "color": "#38BDF8"}
                 ]
+
+        elif current_vtype == "chat_thread_ai":
+            if not v_data.get("messages"):
+                dlg_src = sc.get("dialogue")
+                if isinstance(dlg_src, list) and dlg_src:
+                    v_data["messages"] = [
+                        {
+                            "role": "user" if str(d.get("speaker") or "").lower() == "female" else "ai",
+                            "badge": "CURIOUS Q" if str(d.get("speaker") or "").lower() == "female" else "MENTOR",
+                            "text": str(d.get("text") or "")[:140],
+                        }
+                        for d in dlg_src[:4] if isinstance(d, dict) and d.get("text")
+                    ]
+                else:
+                    cl_chat = _split_narration_clauses(sc.get("narration", ""), target_count=4)
+                    v_data["messages"] = [
+                        {"role": "ai" if c_i % 2 else "user", "text": c_t[:140]}
+                        for c_i, c_t in enumerate(cl_chat)
+                    ]
 
         elif current_vtype == "metric_gauge_hud":
             if not v_data.get("main_value"):
@@ -1977,6 +1996,15 @@ def _enforce_engine_style(
             sc["dialogue"] = clean_dlg
             sc["narration"] = " ".join(d["text"] for d in clean_dlg).strip()
             clauses = _split_narration_clauses(sc["narration"], target_count=5) or clauses
+            if current_vtype == "chat_thread_ai":
+                v_data["messages"] = [
+                    {
+                        "role": "user" if d["speaker"] == "female" else "ai",
+                        "badge": "CURIOUS Q" if d["speaker"] == "female" else "MENTOR",
+                        "text": d["text"][:140],
+                    }
+                    for d in clean_dlg[:4]
+                ]
 
         sc["visual_data"] = v_data
 

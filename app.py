@@ -277,41 +277,58 @@ with st.sidebar:
         format_func=lambda x: x[1]
     )
     
-    visual_engine = st.selectbox(
-        "Visual Engine & Style",
+    st.markdown("---")
+    st.markdown("### 🎨 Visual Engine & Style")
+    visual_engine_mode = st.radio(
+        "Engine Mode",
         [
-            ("omni_smart_director", "🧠 Omni Smart Director (All 25 Engines • Best-Per-Scene Auto-Router) [Recommended]"),
-            ("studio_300_domain", "🎨 Both Combined: 1,011 Domain/Grammar + 168 Option 1 WebGL/SVG"),
-            ("multi_topology_mix", "🌐 Multi-Topology Mix (46+ Dual-Plane System Topologies + Interactive FX Per Scene)"),
-            ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip/Quiz Bubbles & Word Sync)"),
-            ("data_streaming_pipelines", "🌊 Data & Event Streaming Topologies (Kafka, CDC Debezium, Flink, Lakehouse, Spark)"),
-            ("distributed_consensus_labs", "🛰️ Distributed Systems & Consensus (Raft, Quorum, Hash Rings, Circuit Breakers, Sagas)"),
-            ("ai_rag_agents_studio", "🤖 AI, LLM & RAG Pipelines (Hybrid Search, MCP Tools, KV Cache, Guardrails, Agents)"),
-            ("pure_zero_template", "♾️ Option 1: 168 Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
-            ("studio_domain_library", "📚 Option 2: 1,011 Studio/Domain & Composable Grammar Layouts"),
-            ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
-            ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 1,011 Layouts, 145 Shapes)"),
-            ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
-            ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
-            ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
-            ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
-            ("bytebytego_dsl", "📊 ByteByteGo Architecture & Cloud Topology (Pipelines / Microservices)"),
-            ("sql_deepdive", "🗄️ SQL Table, Query & Dataset Execution (Schemas / DENSE_RANK / Window Functions)"),
-            ("split_comparison", "⚖️ Architectural Split Comparison (Legacy vs Modern / Trade-offs)"),
-            ("benchmark_speed", "⚡ Performance Benchmark Bars & Latency (Throughput / Speedup 15x)"),
-            ("memory_internals", "🧩 Memory Buffer, CDC WAL & Partition Slots (Low-level Bytes / Offsets)"),
-            ("network_mesh", "🌐 Circular Hub & Spoke Event Mesh (Message Broker / Radar Nodes)"),
-            ("telemetry_hud", "⏱️ Speedometer & Live Telemetry HUD (99.999% SLA / CPU / Event Counters)"),
-            ("alert_troubleshoot", "🚨 Production Incident Alert & Post-Mortem (Radar Alert / Bottlenecks)"),
-            ("concept_keynote", "💡 Kinetic Concept Keynote (Punchy Principles & Bullet Cards)"),
-            ("custom_user_style", "✍️ Custom Visual Style... (Type your own custom visual aesthetic)")
+            "🧠 Auto Omni Smart Director (All Engines Unified) [Recommended]",
+            "🎛️ Pin Single Specialist Engine (24 Modes)",
         ],
-        format_func=lambda x: x[1],
-        key="visual_engine_select",
-        help="Default 'Omni Smart Director' automatically blends all specialist engines per scene inside ONE unified color theme (Hook, Streaming/Consensus/AI Topologies, SQL/Terminal Proof, Comparison, Benchmarks, Option 1 WebGL/SVG & Interactive Motion FX). Or pin any single specialist engine below."
+        index=0,
+        key="visual_engine_mode_radio",
+        help="Auto Omni blends Hook/Q&A, Streaming/Consensus/RAG Topologies, SQL/Terminal Proof, Benchmarks, WebGL/SVG & Interactive FX per scene inside 1 consistent color world. Or switch to Pin Single Specialist Engine to force one specific visual style.",
     )
-    if visual_engine[0] == "omni_smart_director":
-        st.caption("🧠 **All-in-One Smart Blend Active:** Har scene ke context aur spoken words ke mutabik best engine (Topology / SQL / Terminal / Comparison / WebGL / Interactive FX) auto-select hoga with locked Video Color Theme!")
+    if visual_engine_mode.startswith("🧠"):
+        visual_engine = ("omni_smart_director", "🧠 Omni Smart Director (All Engines Unified • Best-Per-Scene Auto-Router)")
+        st.info(
+            "**Auto-Active Pillars (1 Locked Color World):**\n"
+            "• **Hook/Q&A** · **Topologies** · **SQL/CLI** · **Trade-Offs & Benchmarks** · **Option 1 WebGL/SVG + FX**",
+            icon="🧠",
+        )
+    else:
+        visual_engine = st.selectbox(
+            "Specialist Visual Engine (24 Modes)",
+            [
+                ("studio_300_domain", "🎨 Both Combined: 1,011 Domain/Grammar + 168 Option 1 WebGL/SVG"),
+                ("multi_topology_mix", "🌐 Multi-Topology Mix (46+ Dual-Plane System Topologies + Interactive FX Per Scene)"),
+                ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip/Quiz Bubbles & Word Sync)"),
+                ("data_streaming_pipelines", "🌊 Data & Event Streaming Topologies (Kafka, CDC Debezium, Flink, Lakehouse, Spark)"),
+                ("distributed_consensus_labs", "🛰️ Distributed Systems & Consensus (Raft, Quorum, Hash Rings, Circuit Breakers, Sagas)"),
+                ("ai_rag_agents_studio", "🤖 AI, LLM & RAG Pipelines (Hybrid Search, MCP Tools, KV Cache, Guardrails, Agents)"),
+                ("pure_zero_template", "♾️ Option 1: 168 Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
+                ("studio_domain_library", "📚 Option 2: 1,011 Studio/Domain & Composable Grammar Layouts"),
+                ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
+                ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 1,011 Layouts, 145 Shapes)"),
+                ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
+                ("all_in_one_tech_canvas", "🔮 All-in-One Tech Canvas (DB Cylinders, Python, AWS, AI Robot, K8s, Pipeline & 2D Motion)"),
+                ("hybrid_modern", "🚀 Multi-Layer Hybrid Engine (Fireship + ByteByteGo + Terminal)"),
+                ("terminal_screencast", "💻 Real Terminal & Hacker CLI Screencast (Bash / Python / Shell / Logs)"),
+                ("bytebytego_dsl", "📊 ByteByteGo Architecture & Cloud Topology (Pipelines / Microservices)"),
+                ("sql_deepdive", "🗄️ SQL Table, Query & Dataset Execution (Schemas / DENSE_RANK / Window Functions)"),
+                ("split_comparison", "⚖️ Architectural Split Comparison (Legacy vs Modern / Trade-offs)"),
+                ("benchmark_speed", "⚡ Performance Benchmark Bars & Latency (Throughput / Speedup 15x)"),
+                ("memory_internals", "🧩 Memory Buffer, CDC WAL & Partition Slots (Low-level Bytes / Offsets)"),
+                ("network_mesh", "🌐 Circular Hub & Spoke Event Mesh (Message Broker / Radar Nodes)"),
+                ("telemetry_hud", "⏱️ Speedometer & Live Telemetry HUD (99.999% SLA / CPU / Event Counters)"),
+                ("alert_troubleshoot", "🚨 Production Incident Alert & Post-Mortem (Radar Alert / Bottlenecks)"),
+                ("concept_keynote", "💡 Kinetic Concept Keynote (Punchy Principles & Bullet Cards)"),
+                ("custom_user_style", "✍️ Custom Visual Style... (Type your own custom visual aesthetic)")
+            ],
+            format_func=lambda x: x[1],
+            key="visual_engine_select",
+            help="Force any single specialist visual engine across the entire video."
+        )
 
     manual_layout_choice = "auto"
     manual_world_choice = "auto"
@@ -746,6 +763,17 @@ with tab_create:
                     tone=chosen_tone
                 )
                 all_scene_frame_dirs.append(OUTPUT_DIR / f"scene_{i + 1:02d}_frames")
+
+            with st.expander("🎞️ Scene-by-Scene Visual Preview Strip (Rendered Keyframes)", expanded=True):
+                _prev_cols = st.columns(min(4, max(1, len(all_scene_frame_dirs))))
+                for _si, _sdir in enumerate(all_scene_frame_dirs):
+                    _sc_meta = aligned_scenes[_si] if _si < len(aligned_scenes) else {}
+                    _frames_s = sorted(list(_sdir.glob("frame_*.*"))) if _sdir.exists() else []
+                    if _frames_s:
+                        _mid_f = _frames_s[int(len(_frames_s) * 0.72)]
+                        with _prev_cols[_si % len(_prev_cols)]:
+                            _r_eng = _sc_meta.get("routed_engine") or _sc_meta.get("visual_type", "studio")
+                            st.image(str(_mid_f), caption=f"S{_si + 1}: {_r_eng}", use_container_width=True)
 
             # STEP 4: Video Stitching via Local Hardware / Cloud
             status_box.info(f"⚡ Assembling {aspect_ratio[0]} MP4 with karaoke captions & Lo-Fi audio...")
