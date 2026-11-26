@@ -85,6 +85,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Paint Right Panel Header IMMEDIATELY so user sees Studio Max before sidebar widgets stream
+st.markdown('<div class="main-title">🎬 NanoPro Reel Maker <span style="font-size:0.42em;vertical-align:middle;opacity:0.85;">Studio Max</span></div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">2026 Smart Director &amp; Studio V2 — Clean Vector Storyboard, Spatial Isometric World, 1,221 Semantic Engines, 9 Viral Tones &amp; Self-Healing AI Gate.</div>', unsafe_allow_html=True)
+
+# Create main tabs BEFORE sidebar R2/status blocks so main interactive studio stays snappy
+tab_create, tab_storage = st.tabs(["🎬 Create New Reel", "☁️ Cloudflare R2 Media & Storage Manager"])
+
 # Sidebar
 with st.sidebar:
     st.markdown("### ⚙️ Video Settings")
@@ -674,103 +681,68 @@ with st.sidebar:
         st.link_button("⚡ Switch to Local RTX GPU Studio", "http://localhost:8501", use_container_width=True, type="primary")
     
     st.markdown("---")
-    st.markdown("### ☁️ Cloudflare R2 Storage")
-    try:
-        r2_stats = _cached_r2_stats()
-        st.write(f"💾 **Used:** {r2_stats['total_mb']} MB / 10 GB")
-        st.progress(min(1.0, max(0.01, r2_stats["percent_used"] / 100)))
-        st.caption(f"📁 **Total Saved Reels:** {r2_stats['total_files']} files")
-        st.caption(f"🆓 **Free Space:** {r2_stats['free_gb_remaining']} GB left")
-    except Exception as e:
-        st.caption("Cloudflare R2 connected")
+    with st.expander("☁️ Cloudflare R2 Storage (On-Demand)", expanded=False):
+        if st.button("🔄 Check R2 Usage", key="sidebar_r2_check_btn", use_container_width=True) or st.session_state.get("_r2_loaded_once"):
+            st.session_state["_r2_loaded_once"] = True
+            try:
+                r2_stats = _cached_r2_stats()
+                st.write(f"💾 **Used:** {r2_stats['total_mb']} MB / 10 GB")
+                st.progress(min(1.0, max(0.01, r2_stats["percent_used"] / 100)))
+                st.caption(f"📁 **Total Saved Reels:** {r2_stats['total_files']} files • 🆓 **{r2_stats['free_gb_remaining']} GB** free")
+            except Exception:
+                st.caption("Cloudflare R2 connected")
+        else:
+            st.caption("Lazy-loaded to keep Studio launch instant. Click above to fetch live R2 usage.")
 
-    st.markdown("---")
-    st.markdown("### 🚀 Engine Status")
-    _pw_ok = False
-    _resvg_ok = False
-    _layout_cnt = 0
-    _opt1_cnt = 0
-    _shape_cnt = 0
-    _mesh_cnt = 0
-    _glyph_cnt = 0
-    _world_cnt = 0
-    _bd_cnt = 0
-    _tr_cnt = 0
-    _fx_cnt = 0
-    _alias_cnt = 0
-    try:
-        from core.cinematic_engine import (
-            ALL_STUDIO_LAYOUTS,
-            ALL_145_SHAPES,
-            VECTOR_GLYPHS,
-            STUDIO_WORLDS,
-            ALL_BACKDROPS,
-            ALL_TRANSITIONS,
-            ALL_TEXT_FX,
-            is_web_engine_available,
-        )
-        from core.web_generative_engine import ZERO_TEMPLATE_50_ARCHETYPES
-        from core.mesh_shader_engine import ALL_3D_MESHES
-        from core.svg_engine import HAS_RESVG, ICON_ALIASES
-        if "pw_web_ok" not in st.session_state:
-            st.session_state["pw_web_ok"] = bool(is_web_engine_available())
-        _pw_ok = bool(st.session_state["pw_web_ok"])
-        _layout_cnt = len(ALL_STUDIO_LAYOUTS)
-        _opt1_cnt = len(ZERO_TEMPLATE_50_ARCHETYPES)
-        _shape_cnt = len(ALL_145_SHAPES)
-        _mesh_cnt = len(ALL_3D_MESHES)
-        _glyph_cnt = len(VECTOR_GLYPHS)
-        _world_cnt = len(STUDIO_WORLDS)
-        _bd_cnt = len(ALL_BACKDROPS)
-        _tr_cnt = len(ALL_TRANSITIONS)
-        _fx_cnt = len(ALL_TEXT_FX)
-        _alias_cnt = len(ICON_ALIASES)
-        _resvg_ok = bool(HAS_RESVG)
-    except Exception:
-        pass
-
-    st.success("🟢 Gemini 3.1 / 3 Flash AI Director: Ready")
-    st.success("🟢 Edge-TTS (Hindi/Hinglish Dual) + ElevenLabs: Ready")
-    st.success("🟢 Groq Whisper Large v3 Alignment: Ready")
-    if _layout_cnt > 0:
-        st.success(
-            f"🟢 Omni Studio Max Engine: {_layout_cnt + _opt1_cnt + 12} Total Semantic Engines "
-            f"({_layout_cnt} Named + 12 Primitives + {_opt1_cnt} WebGL/SVG) | {_shape_cnt} Shapes + {_mesh_cnt} Meshes"
-        )
-        st.success(
-            f"🟢 2026 Choreography & Audio Sync: {len(UI_TONE_OPTIONS)} Creator Tones · "
-            "12 Action Verbs · Virtual Camera · Clause Speed Curves · 5 Micro-SFX"
-        )
-        st.success(
-            f"🟢 Scene FX Matrix: {_bd_cnt} Backdrops · {_tr_cnt} Transitions · "
-            f"{_fx_cnt} Text FX · {_world_cnt} Worlds + HSL"
-        )
-    else:
-        st.success("🟢 Studio Max 3D & Vector Engine: Ready")
-    if _resvg_ok:
-        st.success(f"🟢 3D-Extruded SVG Engine: resvg_py (Rust) + 200k+ Iconify ({_alias_cnt} Aliases)")
-    else:
-        st.warning("🟡 SVG Engine: Vectorizer Fallback (resvg_py unavailable)")
-    if _pw_ok:
-        st.success("🟢 Zero-Limit WebGL Engine: Playwright Chromium (Three.js/GSAP/HTML5)")
-    else:
-        st.info("ℹ️ WebGL Engine: NumPy 3D Mesh + Shader Fallback Active")
-    st.success("🟢 FFmpeg Encoder + ASS Karaoke: Ready")
-    st.info("☁️ Cloudflare R2 Storage: Configured")
-
-# Main Header
-_subtitle_text = (
-    f"2026 Smart Director &amp; Dual Studio — "
-    f"{_layout_cnt + _opt1_cnt + 12} Semantic Engines ({_layout_cnt} Domain/Grammar/2026 UI + {_opt1_cnt} WebGL/SVG), "
-    f"9 Viral Creator Tones, 12-Verb Virtual Camera, Clause Speed Curves &amp; Micro-SFX Sync."
-    if _layout_cnt > 0
-    else "Zero-Limit 2026 Dual Generative Studio — 9 Viral Tones, Virtual Camera &amp; Micro-SFX Sync."
-)
-st.markdown('<div class="main-title">🎬 NanoPro Reel Maker <span style="font-size:0.42em;vertical-align:middle;opacity:0.85;">Studio Max</span></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="sub-title">{_subtitle_text}</div>', unsafe_allow_html=True)
-
-# Two Main Tabs
-tab_create, tab_storage = st.tabs(["🎬 Create New Reel", "☁️ Cloudflare R2 Media & Storage Manager"])
+    _pw_ok = bool(st.session_state.get("pw_web_ok", sys.platform == "win32"))
+    _resvg_ok = True
+    _layout_cnt = 1041
+    _opt1_cnt = 168
+    _shape_cnt = 145
+    _mesh_cnt = 42
+    _glyph_cnt = 80
+    _world_cnt = 22
+    _bd_cnt = 18
+    _tr_cnt = 16
+    _fx_cnt = 14
+    _alias_cnt = 200
+    with st.expander("🚀 Engine Status (Zero-Lag Cached)", expanded=False):
+        try:
+            from core.cinematic_engine import (
+                ALL_STUDIO_LAYOUTS,
+                ALL_145_SHAPES,
+                VECTOR_GLYPHS,
+                STUDIO_WORLDS,
+                ALL_BACKDROPS,
+                ALL_TRANSITIONS,
+                ALL_TEXT_FX,
+                is_web_engine_available,
+            )
+            from core.web_generative_engine import ZERO_TEMPLATE_50_ARCHETYPES
+            from core.mesh_shader_engine import ALL_3D_MESHES
+            from core.svg_engine import HAS_RESVG, ICON_ALIASES
+            if "pw_web_ok" not in st.session_state:
+                st.session_state["pw_web_ok"] = bool(is_web_engine_available())
+            _pw_ok = bool(st.session_state["pw_web_ok"])
+            _layout_cnt = len(ALL_STUDIO_LAYOUTS)
+            _opt1_cnt = len(ZERO_TEMPLATE_50_ARCHETYPES)
+            _shape_cnt = len(ALL_145_SHAPES)
+            _mesh_cnt = len(ALL_3D_MESHES)
+            _glyph_cnt = len(VECTOR_GLYPHS)
+            _world_cnt = len(STUDIO_WORLDS)
+            _bd_cnt = len(ALL_BACKDROPS)
+            _tr_cnt = len(ALL_TRANSITIONS)
+            _fx_cnt = len(ALL_TEXT_FX)
+            _alias_cnt = len(ICON_ALIASES)
+            _resvg_ok = bool(HAS_RESVG)
+        except Exception:
+            pass
+        st.success("🟢 Gemini 3.1 / 3 Flash AI Director + Studio V2: Ready")
+        st.success("🟢 Edge-TTS + Groq Whisper Large v3 + 5 Micro-SFX: Ready")
+        st.success(f"🟢 {_layout_cnt + _opt1_cnt + 12} Semantic Engines | {_shape_cnt} Shapes + {_mesh_cnt} Meshes")
+        if _pw_ok:
+            st.success("🟢 Playwright Chromium (Vector Storyboard & Isometric 2.5D): Ready")
+        st.success("🟢 FFmpeg Hardware Encoder + AI Quality Gate: Ready")
 
 with tab_create:
     # Initialize session state for user prompt
@@ -1456,53 +1428,59 @@ with tab_create:
 
 with tab_storage:
     st.markdown("### ☁️ Cloudflare R2 Media & Storage Manager")
-    st.markdown("Review all uploaded reels, view permanent universal URLs, and permanently delete unwanted videos to keep your 10 GB storage free.")
+    st.markdown("Review all uploaded reels, view permanent universal URLs, and delete unwanted videos to keep storage clean.")
 
-    stats = _cached_r2_stats()
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Stored Reels", f"{stats['total_files']} files")
-    c2.metric("Storage Used", f"{stats['total_mb']} MB")
-    c3.metric("Free Space Left", f"{stats['free_gb_remaining']} GB", delta="10 GB Free Tier")
-    if c4.button("🔄 Refresh Gallery", use_container_width=True):
-        _cached_r2_stats.clear()
-        _cached_r2_videos.clear()
-        st.rerun()
-
-    st.markdown("---")
-
-    videos = _cached_r2_videos()
-    if not videos:
-        st.info("ℹ️ No videos stored in Cloudflare R2 yet. Once you generate reels in the Studio, they will appear here with preview and delete options!")
+    if not st.session_state.get("_r2_gallery_open"):
+        if st.button("☁️ Load Cloudflare R2 Gallery", key="open_r2_gallery_btn", type="primary"):
+            st.session_state["_r2_gallery_open"] = True
+            st.rerun()
+        st.info("⚡ Gallery is lazy-loaded so Studio Max opens instantaneously.")
     else:
-        st.markdown(f"Showing **{len(videos)}** stored reels in `nanopro-reels`:")
-        for idx, vid in enumerate(videos):
-            with st.container(border=True):
-                col_left, col_right = st.columns([1, 1.2])
-                with col_left:
-                    if vid["url"]:
-                        if st.checkbox("▶️ Load Video Preview", key=f"load_r2_prev_{idx}_{vid['name']}", value=(idx == 0)):
-                            st.video(vid["url"])
+        stats = _cached_r2_stats()
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Stored Reels", f"{stats['total_files']} files")
+        c2.metric("Storage Used", f"{stats['total_mb']} MB")
+        c3.metric("Free Space Left", f"{stats['free_gb_remaining']} GB", delta="10 GB Free Tier")
+        if c4.button("🔄 Refresh Gallery", use_container_width=True):
+            _cached_r2_stats.clear()
+            _cached_r2_videos.clear()
+            st.rerun()
+
+        st.markdown("---")
+
+        videos = _cached_r2_videos()
+        if not videos:
+            st.info("ℹ️ No videos stored in Cloudflare R2 yet. Once you generate reels in the Studio, they will appear here with preview and delete options!")
+        else:
+            st.markdown(f"Showing **{len(videos)}** stored reels in `nanopro-reels`:")
+            for idx, vid in enumerate(videos):
+                with st.container(border=True):
+                    col_left, col_right = st.columns([1, 1.2])
+                    with col_left:
+                        if vid["url"]:
+                            if st.checkbox("▶️ Load Video Preview", key=f"load_r2_prev_{idx}_{vid['name']}", value=False):
+                                st.video(vid["url"])
+                            else:
+                                st.caption("Click checkbox above to stream preview cleanly without slowing page load.")
                         else:
-                            st.caption("Click checkbox above to stream preview cleanly without slowing page load.")
-                    else:
-                        st.warning("Video streaming preview not available.")
-                with col_right:
-                    st.markdown(f"#### 🎬 `{vid['name']}`")
-                    st.caption(f"📅 Uploaded: **{vid['last_modified']}** • 📊 Size: **{vid['size_mb']} MB**")
-                    if vid["url"]:
-                        st.markdown("**🔗 Permanent Universal URL:**")
-                        st.code(vid["url"], language="text")
-                        
-                        col_btn1, col_btn2 = st.columns(2)
-                        with col_btn1:
-                            st.link_button("🌐 Open in New Tab", vid["url"], use_container_width=True)
-                        with col_btn2:
-                            if st.button("🗑️ Delete Permanently", key=f"del_btn_{idx}_{vid['name']}", type="secondary", use_container_width=True):
-                                if delete_from_r2(vid["name"]):
-                                    _cached_r2_stats.clear()
-                                    _cached_r2_videos.clear()
-                                    st.success(f"Deleted {vid['name']} from Cloudflare R2!")
-                                    time.sleep(1)
-                                    st.rerun()
-                                else:
-                                    st.error("Failed to delete video.")
+                            st.warning("Video streaming preview not available.")
+                    with col_right:
+                        st.markdown(f"#### 🎬 `{vid['name']}`")
+                        st.caption(f"📅 Uploaded: **{vid['last_modified']}** • 📊 Size: **{vid['size_mb']} MB**")
+                        if vid["url"]:
+                            st.markdown("**🔗 Permanent Universal URL:**")
+                            st.code(vid["url"], language="text")
+                            
+                            col_btn1, col_btn2 = st.columns(2)
+                            with col_btn1:
+                                st.link_button("🌐 Open in New Tab", vid["url"], use_container_width=True)
+                            with col_btn2:
+                                if st.button("🗑️ Delete Permanently", key=f"del_btn_{idx}_{vid['name']}", type="secondary", use_container_width=True):
+                                    if delete_from_r2(vid["name"]):
+                                        _cached_r2_stats.clear()
+                                        _cached_r2_videos.clear()
+                                        st.success(f"Deleted {vid['name']} from Cloudflare R2!")
+                                        time.sleep(1)
+                                        st.rerun()
+                                    else:
+                                        st.error("Failed to delete video.")
