@@ -241,11 +241,14 @@ with st.sidebar:
     visual_engine = st.selectbox(
         "Visual Engine & Style",
         [
-            ("studio_300_domain", "🎨 Both Combined: 820+ Domain Layouts + 158 Grammar + 156 Option 1 WebGL/SVG [Recommended]"),
-            ("multi_topology_mix", "🌐 Multi-Topology Mix (Multiple System Topologies + Interactive FX Across Every Scene)"),
-            ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip Bubbles & Word Sync)"),
-            ("pure_zero_template", "♾️ Option 1: 156+ Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
-            ("studio_domain_library", "📚 Option 2: 820+ Domain Layout Library + 158 Composable Grammar Presets"),
+            ("studio_300_domain", "🎨 Both Combined: 850+ Domain Layouts + 158 Grammar + 168 Option 1 WebGL/SVG [Recommended]"),
+            ("multi_topology_mix", "🌐 Multi-Topology Mix (46+ Dual-Plane System Topologies + Interactive FX Per Scene)"),
+            ("interactive_storyboard", "✨ Interactive Motion Max (Cursor Glide, Ripples, Thought/Tip/Quiz Bubbles & Word Sync)"),
+            ("data_streaming_pipelines", "🌊 Data & Event Streaming Topologies (Kafka, CDC Debezium, Flink, Lakehouse, Spark)"),
+            ("distributed_consensus_labs", "🛰️ Distributed Systems & Consensus (Raft, Quorum, Hash Rings, Circuit Breakers, Sagas)"),
+            ("ai_rag_agents_studio", "🤖 AI, LLM & RAG Pipelines (Hybrid Search, MCP Tools, KV Cache, Guardrails, Agents)"),
+            ("pure_zero_template", "♾️ Option 1: 168+ Zero-Template AI WebGL / SVG / Spatial Code Scenes (∞)"),
+            ("studio_domain_library", "📚 Option 2: 850+ Domain Layout Library + 158 Composable Grammar Presets"),
             ("dual_generative", "⚡ Dual Generative Studio (Playwright WebGL/Three.js + Cloud 3D Mesh/Shader)"),
             ("cinematic_studio", "🎬 Cinematic 2.5D/3D Studio Max (Contrast-Locked Worlds, 820+ Layouts, 145 Shapes)"),
             ("auto_dynamic", "⚡ Dynamic / Auto (Unique Layout/Transition/World History Every Click + Voice Sync)"),
@@ -273,7 +276,7 @@ with st.sidebar:
     manual_backdrop_choice = "auto"
     manual_transition_choice = "auto"
     manual_text_fx_choice = "auto"
-    if visual_engine[0] in ("studio_300_domain", "multi_topology_mix", "interactive_storyboard", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio"):
+    if visual_engine[0] in ("studio_300_domain", "multi_topology_mix", "interactive_storyboard", "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio", "pure_zero_template", "studio_domain_library", "dual_generative", "cinematic_studio"):
         with st.expander("🎛️ Manual Studio Overrides (Layout / Theme / FX)", expanded=False):
             from core.cinematic_engine import (
                 ALL_BACKDROPS,

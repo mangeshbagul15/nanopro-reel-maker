@@ -1312,6 +1312,7 @@ def _enforce_engine_style(
     is_diverse_engine = engine_style in (
         "studio_domain_library", "pure_zero_template", "studio_300_domain",
         "multi_topology_mix", "interactive_storyboard",
+        "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio",
         "dual_generative", "cinematic_studio", "auto_dynamic", "hybrid_modern",
     )
 
@@ -1320,6 +1321,7 @@ def _enforce_engine_style(
     _STUDIO_SET = (
         "studio_300_domain", "pure_zero_template", "studio_domain_library",
         "multi_topology_mix", "interactive_storyboard",
+        "data_streaming_pipelines", "distributed_consensus_labs", "ai_rag_agents_studio",
         "cinematic_studio", "dual_generative", "auto_dynamic", "hybrid_modern",
     )
     if engine_style in _STUDIO_SET:
@@ -1426,12 +1428,46 @@ def _enforce_engine_style(
             "cdc_debezium_flow", "zero_trust_proxy", "iso_event_backbone", "saga_orchestration",
             "k8s_pod_scheduling", "consistent_hashing_ring", "spatial_microservice_grid", "svg_pipeline_choreography",
             "rag_chunk_overlap_pipe", "circuit_breaker_states", "raft_leader_election", "circular_hub_mesh",
+            "topo_ingress_mesh_wal", "topo_dual_plane_control_data", "topo_cdn_edge_origin_shield",
+            "topo_cqrs_read_write_split", "topo_saga_choreo_compensate", "topo_rag_hybrid_rerank",
+            "topo_k8s_hpa_metrics_mesh", "topo_zero_trust_spiffe_mtls", "topo_kafka_isr_quorum_dlq",
+            "topo_redis_cluster_sentinel", "topo_multi_region_active_active", "topo_sharded_vitess_vtgate",
+            "topo_ebpf_xdp_kernel_bypass", "topo_grpc_envoy_circuit_mesh", "topo_flink_cep_iceberg_lake",
+            "topo_payment_idempotent_ledger", "topo_agent_mcp_tool_sandbox", "topo_gpu_tensor_pipeline_ring",
+            "topo_webrtc_sfu_turn_relay", "topo_graphql_federation_subgraphs", "topo_oauth_pkce_jwks_rotator",
+            "topo_vault_dynamic_creds_k8s", "topo_otel_trace_span_collector", "topo_chaos_mesh_blast_radius",
+            "topo_clickhouse_mergetree_s3", "topo_wasm_isolate_edge_kv", "topo_blue_green_canary_alb",
+            "topo_outbox_debezium_snowflake", "topo_blockchain_l2_rollup_da", "topo_ros2_lidar_slam_planner",
         )
+        _THEME_ENGINE_POOLS = {
+            "data_streaming_pipelines": (
+                "cdc_debezium_flow", "medallion_lakehouse", "topo_flink_cep_iceberg_lake", "topo_outbox_debezium_snowflake",
+                "topo_kafka_isr_quorum_dlq", "topo_clickhouse_mergetree_s3", "etl_elt_pipeline", "write_ahead_log_wal",
+                "grammar:flow:5", "grammar:swimlane:4", "all_in_one_tech_canvas", "memory_wal_checkpoint",
+            ),
+            "distributed_consensus_labs": (
+                "raft_leader_election", "consistent_hashing_ring", "circuit_breaker_states", "topo_multi_region_active_active",
+                "topo_sharded_vitess_vtgate", "topo_saga_choreo_compensate", "topo_redis_cluster_sentinel",
+                "topo_chaos_mesh_blast_radius", "iso_consensus_quorum", "grammar:ring:6", "sequence_diagram", "state_machine",
+            ),
+            "ai_rag_agents_studio": (
+                "rag_chunk_overlap_pipe", "topo_rag_hybrid_rerank", "topo_agent_mcp_tool_sandbox", "topo_gpu_tensor_pipeline_ring",
+                "mcp_client_host_server", "agent_react_tool_loop", "transformer_self_attn", "hnsw_vector_graph",
+                "llm_guardrails_safety", "chat_thread_ai", "mesh_3d_stage", "neural_net_layers",
+            ),
+        }
         if engine_style == "multi_topology_mix":
             fresh_topos = [t for t in _SYSTEM_TOPOLOGY_POOL if t not in recent_vtypes and t not in used_vtypes] or [t for t in _SYSTEM_TOPOLOGY_POOL if t not in used_vtypes] or list(_SYSTEM_TOPOLOGY_POOL)
-            chosen_topo = fresh_topos[(run_num * 5 + idx * 3) % len(fresh_topos)]
+            chosen_topo = fresh_topos[(run_num * 7 + idx * 5) % len(fresh_topos)]
             current_vtype = chosen_topo
             sc["visual_type"] = chosen_topo
+            _mirror_items_for_domain_layout(v_data, sc, str(v_data.get("title") or topic[:40]))
+        elif engine_style in _THEME_ENGINE_POOLS:
+            t_pool = _THEME_ENGINE_POOLS[engine_style]
+            fresh_tp = [t for t in t_pool if t not in recent_vtypes and t not in used_vtypes] or [t for t in t_pool if t not in used_vtypes] or list(t_pool)
+            chosen_tp = fresh_tp[(run_num * 5 + idx * 3) % len(fresh_tp)]
+            current_vtype = chosen_tp
+            sc["visual_type"] = chosen_tp
             _mirror_items_for_domain_layout(v_data, sc, str(v_data.get("title") or topic[:40]))
         elif is_diverse_engine and engine_style != "pure_zero_template":
             fam_keys_all = ("hook", "flow", "hub", "tiers", "compare", "metrics", "code", "summary")

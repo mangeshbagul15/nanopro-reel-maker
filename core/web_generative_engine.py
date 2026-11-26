@@ -87,7 +87,8 @@ ZERO_TEMPLATE_50_ARCHETYPES: Tuple[str, ...] = (
     "web_vllm_paged_kv", "web_speculative_decode", "web_moe_gating_panel", "web_double_entry_ledger",
     "web_idempotency_vault", "web_load_shedding_queue", "web_hedged_request_p99", "web_slo_burn_meter",
     "web_zero_downtime_ddl", "web_shadow_traffic_diff",
-    # 52 Animated Crisp Vector Blueprints (`svg_scene`)
+    "web_dual_topology", "web_control_data_plane", "web_geo_active_active", "web_multi_shard_mesh",
+    # 56 Animated Crisp Vector Blueprints (`svg_scene`)
     "svg_circuit_bus", "svg_concentric_shields", "svg_dag_lineage", "svg_sequence_lanes",
     "svg_btree_split", "svg_raft_heartbeat", "svg_shard_hash_ring", "svg_tls_handshake_arcs",
     "svg_medallion_funnel", "svg_cache_hierarchy", "svg_lock_contention", "svg_vector_embeddings",
@@ -102,6 +103,7 @@ ZERO_TEMPLATE_50_ARCHETYPES: Tuple[str, ...] = (
     "svg_browser_paint_pipe", "svg_canary_traffic_split", "svg_argocd_gitops_sync", "svg_vault_envelope_kms",
     "svg_double_ledger_arrows", "svg_card_auth_clearing", "svg_zk_snark_circuit", "svg_kalman_sensor_loop",
     "svg_pid_control_curve", "svg_a_star_path_grid",
+    "svg_dual_plane_bus", "svg_control_data_mesh", "svg_mesh_topologies", "svg_saga_topology",
     # 50 Freeform 3D-Camera Spatial Glass Compositions (`spatial_canvas`)
     "spatial_isometric_stack", "spatial_floating_cards", "spatial_depth_carousel", "spatial_constellation_map",
     "spatial_layered_slices", "spatial_split_hologram", "spatial_radar_sweep", "spatial_code_glass_pane",
@@ -116,9 +118,16 @@ ZERO_TEMPLATE_50_ARCHETYPES: Tuple[str, ...] = (
     "spatial_mobile_sync_vault", "spatial_compose_recompose", "spatial_edge_iot_gateway", "spatial_ros2_dds_bus",
     "spatial_slam_pose_graph", "spatial_sim2real_physics", "spatial_finops_autoscaler", "spatial_dora_velocity_hud",
     "spatial_chaos_blast_zone", "spatial_adr_decision_wall",
+    "spatial_dual_topology", "spatial_control_data_grid", "spatial_global_mesh_3d", "spatial_event_backbone_3d",
 )
 
 _OPTION1_ARCH_FAMILY: Dict[str, str] = {
+    "web_dual_topology": "dual_topology", "web_control_data_plane": "dual_topology",
+    "web_geo_active_active": "dual_topology", "web_multi_shard_mesh": "dual_topology",
+    "svg_dual_plane_bus": "dual_topology", "svg_control_data_mesh": "dual_topology",
+    "svg_mesh_topologies": "dual_topology", "svg_saga_topology": "dual_topology",
+    "spatial_dual_topology": "dual_topology", "spatial_control_data_grid": "dual_topology",
+    "spatial_global_mesh_3d": "dual_topology", "spatial_event_backbone_3d": "dual_topology",
     "web_pipeline_3d": "pipeline_3d", "web_hub_mesh": "hub_mesh", "web_bento_layers": "bento_layers",
     "web_orbit_nodes": "orbit_nodes", "web_memory_wal": "memory_wal", "web_benchmark_race": "benchmark",
     "web_split_vs": "split_vs", "web_telemetry_hud": "telemetry", "web_terminal_sql": "terminal_sql",
@@ -751,6 +760,32 @@ function renderArchetype(){{
       el.style.cssText=`border-color:${{col}};transform:perspective(900px) rotateX(6deg) translateX(${{(i%2===0?-10:10)}}px);`;
       el.innerHTML=`<div style="display:flex;align-items:center;gap:18px;"><div class="pill-num" style="background:${{col}}">L${{i+1}}</div><div><div class="ctitle">${{c.title}}</div>${{c.sub?`<div class="csub">${{c.sub}}</div>`:''}}</div></div>`;
       mount.appendChild(el); animNodes.push(el);
+    }});
+  }} else if(arch==='dual_topology'){{
+    const half=Math.max(2, Math.ceil(P.cards.length/2));
+    const pa=P.cards.slice(0,half), pb=P.cards.slice(half);
+    const boxA=document.createElement('div'); boxA.className='gcard'; boxA.style.cssText=`border-color:${{PAL.cyan}};padding:18px;`;
+    boxA.innerHTML=`<div style="font-size:17px;font-weight:900;color:${{PAL.cyan}};margin-bottom:12px;">▲ CONTROL / INGRESS PLANE</div><div id="plAGrid" style="display:grid;grid-template-columns:repeat(${{Math.min(3,pa.length)}},1fr);gap:12px;"></div>`;
+    mount.appendChild(boxA);
+    const gA=boxA.querySelector('#plAGrid');
+    pa.forEach((c,i)=>{{
+      const col=ACCENTS[i%ACCENTS.length];
+      const el=document.createElement('div'); el.className='gcard'; el.style.cssText=`padding:14px;border-color:${{col}};`;
+      el.innerHTML=`<div class="pill-num" style="min-width:34px;height:34px;font-size:16px;background:${{col}};margin-bottom:8px;">A${{i+1}}</div><div class="ctitle" style="font-size:20px;">${{c.title}}</div>${{c.sub?`<div class="csub" style="font-size:15px;">${{c.sub}}</div>`:''}}`;
+      gA.appendChild(el); animNodes.push(el);
+    }});
+    const br=document.createElement('div'); br.style.cssText='display:flex;justify-content:center;align-items:center;height:36px;';
+    br.innerHTML=`<svg viewBox="0 0 320 36" width="320" height="36"><line x1="160" y1="0" x2="160" y2="36" stroke="${{PAL.emerald}}" stroke-width="4" stroke-dasharray="6 4"/></svg>`;
+    mount.appendChild(br);
+    const boxB=document.createElement('div'); boxB.className='gcard'; boxB.style.cssText=`border-color:${{PAL.purple}};padding:18px;`;
+    boxB.innerHTML=`<div style="font-size:17px;font-weight:900;color:${{PAL.purple}};margin-bottom:12px;">▼ EXECUTION / STORAGE PLANE</div><div id="plBGrid" style="display:grid;grid-template-columns:repeat(${{Math.min(3,Math.max(2,pb.length))}},1fr);gap:12px;"></div>`;
+    mount.appendChild(boxB);
+    const gB=boxB.querySelector('#plBGrid');
+    (pb.length?pb:[{{title:'Replica Pool',sub:'Async Durable'}}]).forEach((c,j)=>{{
+      const col=ACCENTS[(j+2)%ACCENTS.length];
+      const el=document.createElement('div'); el.className='gcard'; el.style.cssText=`padding:14px;border-color:${{col}};`;
+      el.innerHTML=`<div class="pill-num" style="min-width:34px;height:34px;font-size:16px;background:${{col}};margin-bottom:8px;">B${{j+1}}</div><div class="ctitle" style="font-size:20px;">${{c.title}}</div>${{c.sub?`<div class="csub" style="font-size:15px;">${{c.sub}}</div>`:''}}`;
+      gB.appendChild(el); animNodes.push(el);
     }});
   }} else {{
     // Interactive Glowing Bezier Pipeline / Bento Stages (Default Zero-Template Multi-Card Flow)

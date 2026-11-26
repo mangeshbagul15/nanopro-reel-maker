@@ -532,9 +532,12 @@ def _clean_tts_text(text: str, preserve_pauses: bool = False) -> str:
     return cleaned
 
 
-def _split_pause_beats(text: str, max_beats: int = 4) -> List[str]:
-    """Splits narration along explicit pause cues ('...' or '[pause]') for natural breathing cadence."""
+def _split_pause_beats(text: str, max_beats: int = 6) -> List[str]:
+    """Splits narration along explicit pause cues ('...' or '[pause]') and punchy rhetorical micro-cues ('Wait.', 'Relax.', 'Samjha?')."""
     normalized = re.sub(r'\[pause\]', ' ... ', text, flags=re.IGNORECASE)
+    # Insert subtle breathing pause breaks after punchy rhetorical cue hooks when followed by another clause
+    cue_split_re = r'(?<=\b(?:Relax|Chill|Easy|Sorted|Clear|Simple|Wait|Look|Listen|Twist|Catch|Boom|Done|Think|Why|How|Samjha))\s*([.?!])\s+(?=[A-Za-z0-9])'
+    normalized = re.sub(cue_split_re, r'\1 ... ', normalized, flags=re.IGNORECASE)
     raw_parts = [p.strip() for p in re.split(r'\s*\.{3,}\s*', normalized) if p and any(ch.isalnum() for ch in p)]
     if len(raw_parts) <= 1:
         return [re.sub(r'\s+', ' ', normalized).strip()]

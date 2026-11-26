@@ -2540,23 +2540,148 @@ CORE_STUDIO_EXTRA_70: Dict[str, Tuple[str, Dict[str, Any]]] = {
     "svg_pipeline_choreography": ("svg_scene", {"badge": "EVENT MESH SVG", "nodes": [{"name": "Event Emitter", "sub": "Publishes Fact"}, {"name": "Topic Router", "sub": "Filters Subscribers"}, {"name": "Independent Sinks", "sub": "Audit • Billing • Search"}]}),
 }
 
+
+def _render_multi_topology_dual(stage: StudioStage, data: Dict[str, Any], progress: float, world: Dict[str, Any]) -> None:
+    """Renders TWO stacked interconnected System Topologies (Control/Ingress Plane -> Execution/Storage Plane) in one 9:16 frame."""
+    plane_a_lbl = str(data.get("plane_a_label") or "INGRESS & CONTROL PLANE").strip().upper()
+    plane_b_lbl = str(data.get("plane_b_label") or "EXECUTION & STORAGE CLUSTER").strip().upper()
+    bridge_lbl = str(data.get("bridge_label") or "Async Mesh Bridge").strip()
+
+    plane_a = list(data.get("plane_a") or [])[:3]
+    plane_b = list(data.get("plane_b") or [])[:3]
+    if not plane_a or not plane_b:
+        raw_all = list(data.get("nodes") or data.get("items") or data.get("steps") or _harvest_generic_items(data))
+        plane_a = plane_a or (raw_all[:3] if len(raw_all) >= 3 else [{"name": "Anycast Edge", "sub": "TLS + Auth", "shape": "cdn_edge"}, {"name": "API Gateway", "sub": "Rate Limit", "shape": "router"}, {"name": "Control Router", "sub": "Policy Mesh", "shape": "load_balancer"}])
+        plane_b = plane_b or (raw_all[3:6] if len(raw_all) >= 6 else [{"name": "Stream Broker", "sub": "Partition Log", "shape": "kafka_broker"}, {"name": "Compute Pool", "sub": "Stateless Pods", "shape": "k8s_pod_mesh"}, {"name": "Replica Vault", "sub": "WAL Storage", "shape": "database_cluster"}])
+
+    n_a, n_b = len(plane_a), len(plane_b)
+    tot = max(2, n_a + n_b)
+    g0 = _ease_out_cubic(_clamp01(progress / 0.16))
+
+    # Plane A Upper Container Box
+    stage.draw.rounded_rectangle((66, STAGE_Y0 + 10, 1014, STAGE_Y0 + 445), radius=24, outline=_with_alpha((*world["cyan"][:3], 130), g0), width=2)
+    stage.draw_pill(250, STAGE_Y0 + 36, plane_a_lbl[:28], (*world["cyan"][:3], 36), world["cyan"], border_col=world["cyan"], font=_get_font(17, bold=True), alpha_mul=g0, pad_x=16, pad_y=6)
+
+    cw_a = (STAGE_W - 36 - max(0, n_a - 1) * 18) // max(1, n_a)
+    centers_a: List[Tuple[int, int]] = []
+    for i, it in enumerate(plane_a):
+        if isinstance(it, str):
+            it = {"name": it}
+        g_raw = _spring_gate(progress, i, tot, 0.22)
+        if g_raw <= 0.02:
+            centers_a.append((STAGE_X0 + 18 + i * (cw_a + 18) + cw_a // 2, STAGE_Y0 + 255))
+            continue
+        gb, gico, gtit, gsub, glnk = _sub_gate(g_raw, "box"), _sub_gate(g_raw, "badge"), _sub_gate(g_raw, "title"), _sub_gate(g_raw, "sub"), _sub_gate(g_raw, "link")
+        col = resolve_world_color(world, it.get("color"), _ACCENT_CYCLE[i % len(_ACCENT_CYCLE)])
+        x0 = STAGE_X0 + 18 + i * (cw_a + 18)
+        y0, y1 = STAGE_Y0 + 78, STAGE_Y0 + 418
+        is_act = (int(max(0.0, min(0.999, progress)) * tot) == i and progress > 0.03)
+        stage.draw_glass_card((x0, y0, x0 + cw_a, y1), radius=18, accent_col=col, alpha_mul=gb, active=is_act, layered=is_act)
+        if gico > 0.02:
+            _draw_node_visual(stage, x0 + cw_a // 2, y0 + 70, 38, 17, 26, col, gico, shape=it.get("shape", "router"), active=is_act, progress=progress)
+        if gtit > 0.02:
+            _draw_wrapped_text(stage.draw, (x0 + 14, y0 + 136), str(it.get("name") or it.get("title") or "")[:28], _get_font(22, bold=True), _with_alpha(world["text"], gtit), cw_a - 28, align="center", max_lines=2)
+        if it.get("sub") and gsub > 0.02:
+            _draw_wrapped_text(stage.draw, (x0 + 14, y0 + 216), str(it["sub"])[:44], _get_font(17), _with_alpha(world["muted"], gsub), cw_a - 28, align="center", max_lines=2)
+        cx_i = x0 + cw_a // 2
+        centers_a.append((cx_i, y1))
+        if i + 1 < n_a and glnk > 0.02:
+            nx0 = STAGE_X0 + 18 + (i + 1) * (cw_a + 18)
+            _draw_bezier_comet(stage, (x0 + cw_a + 2, y0 + 150), (nx0 - 2, y0 + 150), col, reveal=glnk, progress=progress, phase=i * 0.25, label=str(it.get("edge") or ""), world=world)
+
+    # Cross-Plane Bridge Arrow connecting Topology A -> Topology B
+    g_br = _spring_gate(progress, max(1, n_a - 1), tot, 0.24)
+    g_br_lnk = _sub_gate(g_br, "link")
+    if g_br_lnk > 0.02:
+        _draw_bezier_comet(stage, (540, STAGE_Y0 + 448), (540, STAGE_Y0 + 536), world["emerald"], reveal=g_br_lnk, progress=progress, label=bridge_lbl[:24], world=world)
+
+    # Plane B Lower Container Box
+    g_b0 = _ease_out_cubic(_clamp01((progress - 0.30) / 0.22))
+    if g_b0 > 0.02:
+        stage.draw.rounded_rectangle((66, STAGE_Y0 + 540, 1014, STAGE_Y1 - 90), radius=24, outline=_with_alpha((*world["purple"][:3], 130), g_b0), width=2)
+        stage.draw_pill(275, STAGE_Y0 + 566, plane_b_lbl[:30], (*world["purple"][:3], 36), world["purple"], border_col=world["purple"], font=_get_font(17, bold=True), alpha_mul=g_b0, pad_x=16, pad_y=6)
+
+    cw_b = (STAGE_W - 36 - max(0, n_b - 1) * 18) // max(1, n_b)
+    for j, it in enumerate(plane_b):
+        if isinstance(it, str):
+            it = {"name": it}
+        g_raw = _spring_gate(progress, n_a + j, tot, 0.22)
+        if g_raw <= 0.02:
+            continue
+        gb, gico, gtit, gsub, glnk = _sub_gate(g_raw, "box"), _sub_gate(g_raw, "badge"), _sub_gate(g_raw, "title"), _sub_gate(g_raw, "sub"), _sub_gate(g_raw, "link")
+        col = resolve_world_color(world, it.get("color"), _ACCENT_CYCLE[(n_a + j) % len(_ACCENT_CYCLE)])
+        x0 = STAGE_X0 + 18 + j * (cw_b + 18)
+        y0, y1 = STAGE_Y0 + 606, STAGE_Y1 - 114
+        is_act = (int(max(0.0, min(0.999, progress)) * tot) == (n_a + j) and progress > 0.03)
+        stage.draw_glass_card((x0, y0, x0 + cw_b, y1), radius=18, accent_col=col, alpha_mul=gb, active=is_act, layered=is_act)
+        if gico > 0.02:
+            _draw_node_visual(stage, x0 + cw_b // 2, y0 + 78, 40, 18, 28, col, gico, shape=it.get("shape", "database_cluster"), active=is_act, progress=progress)
+        if gtit > 0.02:
+            _draw_wrapped_text(stage.draw, (x0 + 14, y0 + 148), str(it.get("name") or it.get("title") or "")[:28], _get_font(22, bold=True), _with_alpha(world["text"], gtit), cw_b - 28, align="center", max_lines=2)
+        if it.get("sub") and gsub > 0.02:
+            _draw_wrapped_text(stage.draw, (x0 + 14, y0 + 230), str(it["sub"])[:44], _get_font(17), _with_alpha(world["muted"], gsub), cw_b - 28, align="center", max_lines=2)
+        if j + 1 < n_b and glnk > 0.02:
+            nx0 = STAGE_X0 + 18 + (j + 1) * (cw_b + 18)
+            _draw_bezier_comet(stage, (x0 + cw_b + 2, y0 + 165), (nx0 - 2, y0 + 165), col, reveal=glnk, progress=progress, phase=(n_a + j) * 0.25, label=str(it.get("edge") or ""), world=world)
+
+    gf = _footer_gate(progress)
+    ft_txt = str(data.get("footer") or data.get("summary") or f"{plane_a_lbl[:22]} -> {plane_b_lbl[:22]}").strip()
+    if gf > 0.03 and ft_txt:
+        stage.draw_glass_card((76, STAGE_Y1 - 76, 1004, STAGE_Y1 - 14), radius=18, accent_col=world["emerald"], alpha_mul=gf, active=True)
+        _draw_wrapped_text(stage.draw, (108, STAGE_Y1 - 58), ft_txt[:62], _get_font(22, bold=True), _with_alpha(world["emerald"], gf), 864, align="center", max_lines=1)
+
+
+MULTI_TOPOLOGY_30_PRESETS: Dict[str, Tuple[str, Dict[str, Any]]] = {
+    "topo_ingress_mesh_wal": ("multi_topology_dual", {"badge": "DUAL PLANE", "plane_a_label": "INGRESS MESH", "plane_b_label": "DURABLE WAL STORE", "bridge_label": "Async Batch"}),
+    "topo_dual_plane_control_data": ("multi_topology_dual", {"badge": "CONTROL + DATA", "plane_a_label": "CONTROL PLANE", "plane_b_label": "DATA PLANE", "bridge_label": "xDS Config Push"}),
+    "topo_cdn_edge_origin_shield": ("multi_topology_dual", {"badge": "CDN SHIELD", "plane_a_label": "ANYCAST EDGE POP", "plane_b_label": "ORIGIN SHIELD POOL", "bridge_label": "Coalesced Fill"}),
+    "topo_cqrs_read_write_split": ("multi_topology_dual", {"badge": "CQRS TOPOLOGY", "plane_a_label": "WRITE COMMANDS", "plane_b_label": "READ PROJECTIONS", "bridge_label": "CDC Event Bus"}),
+    "topo_saga_choreo_compensate": ("multi_topology_dual", {"badge": "SAGA ENGINE", "plane_a_label": "FORWARD TX CHAIN", "plane_b_label": "COMPENSATE ROLLBACK", "bridge_label": "Failure Trigger"}),
+    "topo_rag_hybrid_rerank": ("multi_topology_dual", {"badge": "HYBRID RAG", "plane_a_label": "BM25 + DENSE SEARCH", "plane_b_label": "RRF + LLM GROUND", "bridge_label": "Top-K Context"}),
+    "topo_k8s_hpa_metrics_mesh": ("multi_topology_dual", {"badge": "K8S AUTOSCALE", "plane_a_label": "PROMETHEUS METRICS", "plane_b_label": "POD WORKER FLEET", "bridge_label": "HPA Scale Out"}),
+    "topo_zero_trust_spiffe_mtls": ("multi_topology_dual", {"badge": "ZERO TRUST", "plane_a_label": "IDENTITY ATTEST", "plane_b_label": "MTLS ENVOY MESH", "bridge_label": "Short-Lived Cert"}),
+    "topo_kafka_isr_quorum_dlq": ("multi_topology_dual", {"badge": "KAFKA QUORUM", "plane_a_label": "PARTITION PRODUCERS", "plane_b_label": "ISR REPLICAS + DLQ", "bridge_label": "Zero-Copy WAL"}),
+    "topo_redis_cluster_sentinel": ("multi_topology_dual", {"badge": "REDIS CLUSTER", "plane_a_label": "HASH SLOT ROUTING", "plane_b_label": "SENTINEL FAILOVER", "bridge_label": "Sub-ms Replica"}),
+    "topo_multi_region_active_active": ("multi_topology_dual", {"badge": "ACTIVE-ACTIVE", "plane_a_label": "GLOBAL DNS GEO", "plane_b_label": "CROSS-REGION CRDT", "bridge_label": "Conflict Merge"}),
+    "topo_sharded_vitess_vtgate": ("multi_topology_dual", {"badge": "VTGATE SHARDS", "plane_a_label": "VTGATE SQL ROUTER", "plane_b_label": "KEYSPACE SHARDS", "bridge_label": "Parallel Plan"}),
+    "topo_ebpf_xdp_kernel_bypass": ("multi_topology_dual", {"badge": "EBPF XDP", "plane_a_label": "NIC RING XDP HOOK", "plane_b_label": "USERSPACE WORKER", "bridge_label": "Zero-Copy AF_XDP"}),
+    "topo_grpc_envoy_circuit_mesh": ("multi_topology_dual", {"badge": "ENVOY MESH", "plane_a_label": "GRPC HTTP/2 MUX", "plane_b_label": "BREAKER + HEDGING", "bridge_label": "EWMA Load Pick"}),
+    "topo_flink_cep_iceberg_lake": ("multi_topology_dual", {"badge": "LAKEHOUSE", "plane_a_label": "FLINK WATERMARK", "plane_b_label": "ICEBERG SNAPSHOTS", "bridge_label": "ACID Commit"}),
+    "topo_payment_idempotent_ledger": ("multi_topology_dual", {"badge": "LEDGER MESH", "plane_a_label": "IDEMPOTENCY GATE", "plane_b_label": "DOUBLE-ENTRY VAULT", "bridge_label": "Serializable Tx"}),
+    "topo_agent_mcp_tool_sandbox": ("multi_topology_dual", {"badge": "MCP AGENTS", "plane_a_label": "PLANNER LLM HOST", "plane_b_label": "ISOLATED TOOL PODS", "bridge_label": "Typed JSON-RPC"}),
+    "topo_gpu_tensor_pipeline_ring": ("multi_topology_dual", {"badge": "ALLREDUCE RING", "plane_a_label": "KV PREFILL CLUSTER", "plane_b_label": "DECODE NVLINK RING", "bridge_label": "Tensor AllReduce"}),
+    "topo_webrtc_sfu_turn_relay": ("multi_topology_dual", {"badge": "REALTIME SFU", "plane_a_label": "SIGNALING + ICE", "plane_b_label": "MEDIA SFU ROUTERS", "bridge_label": "SRTP Simulcast"}),
+    "topo_graphql_federation_subgraphs": ("multi_topology_dual", {"badge": "SUPERGRAPH", "plane_a_label": "FEDERATION ROUTER", "plane_b_label": "DOMAIN SUBGRAPHS", "bridge_label": "Query Plan DAG"}),
+    "topo_oauth_pkce_jwks_rotator": ("multi_topology_dual", {"badge": "AUTH TOPOLOGY", "plane_a_label": "PKCE EDGE EXCHANGE", "plane_b_label": "JWKS KEY ROTATOR", "bridge_label": "RS256 Verify"}),
+    "topo_vault_dynamic_creds_k8s": ("multi_topology_dual", {"badge": "SECRET LEASE", "plane_a_label": "K8S SERVICE AUTH", "plane_b_label": "DYNAMIC DB CREDS", "bridge_label": "15m Auto Revoke"}),
+    "topo_otel_trace_span_collector": ("multi_topology_dual", {"badge": "OTEL PIPELINE", "plane_a_label": "SDK SPAN EMITTERS", "plane_b_label": "TAIL SAMPLER SINK", "bridge_label": "OTLP gRPC"}),
+    "topo_chaos_mesh_blast_radius": ("multi_topology_dual", {"badge": "CHAOS GUARD", "plane_a_label": "FAULT INJECTOR", "plane_b_label": "BULKHEAD ISOLATION", "bridge_label": "SLO Guardrail"}),
+    "topo_clickhouse_mergetree_s3": ("multi_topology_dual", {"badge": "OLAP ENGINE", "plane_a_label": "VECTOR PART WRITER", "plane_b_label": "S3 TIERED MERGE", "bridge_label": "Background Merge"}),
+    "topo_wasm_isolate_edge_kv": ("multi_topology_dual", {"badge": "EDGE ISOLATES", "plane_a_label": "V8 WASM ISOLATE", "plane_b_label": "LOCAL EDGE KV", "bridge_label": "0ms Cold Start"}),
+    "topo_blue_green_canary_alb": ("multi_topology_dual", {"badge": "CANARY SHIFT", "plane_a_label": "WEIGHTED ALB EDGE", "plane_b_label": "BLUE / GREEN POOLS", "bridge_label": "Zero-Drop Drain"}),
+    "topo_outbox_debezium_snowflake": ("multi_topology_dual", {"badge": "OUTBOX CDC", "plane_a_label": "APP + OUTBOX TABLE", "plane_b_label": "DEBEZIUM -> WAREHOUSE", "bridge_label": "WAL Tail Stream"}),
+    "topo_blockchain_l2_rollup_da": ("multi_topology_dual", {"badge": "ZK ROLLUP", "plane_a_label": "L2 SEQUENCER BATCH", "plane_b_label": "L1 VERIFIER + DA", "bridge_label": "Validity Proof"}),
+    "topo_ros2_lidar_slam_planner": ("multi_topology_dual", {"badge": "ROBOTICS DDS", "plane_a_label": "SENSOR FUSION BUS", "plane_b_label": "MPC TRAJ PLANNER", "bridge_label": "100Hz Control"}),
+}
+
 CORE_STUDIO_100_LAYOUTS: Tuple[str, ...] = (
     "custom_scene", "iso_architecture", "node_graph", "iso_comparison", "terminal_studio", "kinetic_statement",
-    "spatial_canvas", "svg_scene",
+    "spatial_canvas", "svg_scene", "multi_topology_dual",
     "layer_stack_3d", "matrix_2x2", "pyramid_hierarchy", "sql_studio", "benchmark_3d",
     "radial_gauge", "memory_lanes", "roadmap_wave", "checklist_scorecard", "incident_radar",
     "sequence_diagram", "er_schema", "state_machine", "git_branch_tree", "flamegraph_perf",
     "queue_workers", "load_balancer_fanout", "cache_hit_miss", "code_diff_split", "api_request_response",
     "venn_overlap", "funnel_metrics", "stat_grid_2x2", "latency_waterfall", "tree_hierarchy",
-) + tuple(k.lower() for k in CORE_STUDIO_EXTRA_70.keys())
+) + tuple(k.lower() for k in CORE_STUDIO_EXTRA_70.keys()) + tuple(k.lower() for k in MULTI_TOPOLOGY_30_PRESETS.keys())
 
 _CORE_STUDIO_PRESETS_LC: Dict[str, Tuple[str, Dict[str, Any]]] = {
-    k.lower(): v for k, v in CORE_STUDIO_EXTRA_70.items()
+    **{k.lower(): v for k, v in CORE_STUDIO_EXTRA_70.items()},
+    **{k.lower(): v for k, v in MULTI_TOPOLOGY_30_PRESETS.items()},
 }
 
 
 # =========================================================================
-# UNIFIED 620+ STUDIO LAYOUT DISPATCHER (Core 103 + Pro 104 + IT 105 + Domain 360 + Grammar 56)
+# UNIFIED 1010+ STUDIO LAYOUT DISPATCHER (Core 184 + Pro 154 + IT 155 + Domain 360 + Grammar 158)
 # =========================================================================
 ALL_STUDIO_LAYOUTS: Tuple[str, ...] = (
     CORE_STUDIO_100_LAYOUTS + EXTRA_32_LAYOUTS + IT_SDLC_35_LAYOUTS + DOMAIN_220_LAYOUTS + GRAMMAR_50_PRESETS
@@ -2601,6 +2726,8 @@ def dispatch_studio_layout(
         pass
     elif render_domain_220_or_grammar(stage, l, d, progress, world, _PRO_HELPERS):
         pass
+    elif l in ("multi_topology_dual", "dual_topology", "topology_dual") or l.startswith("topo_"):
+        _render_multi_topology_dual(stage, d, progress, world)
     elif l == "concept_cards" and (d.get("bullets") or not d.get("blocks")):
         _render_concept_cards(stage, d, progress, world)
     elif l in ("hero_hook", "question_hook", "hook_card", "interview_hook", "hero"):

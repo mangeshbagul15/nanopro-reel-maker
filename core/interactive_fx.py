@@ -84,18 +84,19 @@ def detect_spoken_fx_cue(words_window: str) -> Tuple[str, str]:
     low = re.sub(r"[^a-z0-9\s%x-]", " ", str(words_window or "").lower())
     toks = set(low.split())
     if re.search(r"\b\d+\s*(x|%|ms|k|m)\b", low) or "farak" in toks or "vs" in toks:
-        return "delta", "DELTA"
+        m = re.search(r"\b(\d+\s*(?:x|%|ms|k|m))\b", low)
+        return "delta", (f"DELTA {m.group(1).upper()}" if m else "DELTA SHIFT")
     if toks & _WARN_CUES:
         for w in ("Twist", "Catch", "Wait", "Bottleneck", "Trap"):
             if w.lower() in toks:
-                return "warn", f"! {w}"
-        return "warn", "! Watch Out"
+                return "warn", f"! {w.upper()}"
+        return "warn", "! WATCH OUT"
     if toks & _QUIZ_CUES:
         for w in ("Samjha?", "Think...", "Why?", "How?", "Guess?"):
             base = w.rstrip("?.").lower()
             if base in toks:
-                return "quiz", w
-        return "quiz", "? Quick Check"
+                return ("thought" if base in ("think", "socho", "guess") else "quiz"), w
+        return "quiz", "? QUICK CHECK"
     if toks & _DONE_CUES:
         return "status", "SORTED"
     if toks & _TIP_CUES:
@@ -103,6 +104,15 @@ def detect_spoken_fx_cue(words_window: str) -> Tuple[str, str]:
     if toks & _CALM_CUES:
         return "calm", "EASY FLOW"
     return "none", ""
+
+
+def _token_fuzzy_match(kw: str, wt: str) -> bool:
+    """Matches Whisper Hinglish/technical phonetic variants cleanly (e.g. 'cache'/'caching', 'latency'/'latancy')."""
+    if kw == wt or (len(kw) >= 4 and (kw in wt or wt in kw)):
+        return True
+    if len(kw) >= 5 and len(wt) >= 5 and kw[:4] == wt[:4]:
+        return True
+    return False
 
 
 def _extract_component_keywords(scene: Dict[str, Any]) -> List[Tuple[str, str]]:
@@ -184,7 +194,7 @@ def compute_voice_stage_timeline(
             search_limit = len(clean_words)
             for wi in range(cursor, search_limit):
                 wt = clean_words[wi][0]
-                if any((kw in wt or wt in kw) for kw in kw_pool if len(kw) >= 3):
+                if any(_token_fuzzy_match(kw, wt) for kw in kw_pool if len(kw) >= 3):
                     found_t = clean_words[wi][1]
                     cursor = min(len(clean_words) - 1, wi + 1)
                     break
@@ -351,6 +361,28 @@ def render_interactive_fx_overlay(
     pulse = 0.5 + 0.5 * math.sin(p * math.pi * 8.0)
     draw.ellipse((tx - 9, ty - 9, tx + 9, ty + 9), fill=_rgba(cyan, 0.28 + 0.25 * pulse), outline=_rgba(cyan, 0.85), width=2)
 
+    # 2b. Drag-and-Drop Dashed Connector Preview + Hover Preview Pill toward upcoming stage during cursor glide
+    if n_a > tgt_idx + 1 and 0.04 < p < 0.88:
+        nx, ny, _ = dedup[tgt_idx + 1]
+        steps_d = 8
+        for si in range(steps_d):
+            if si % 2 == 0:
+                f0, f1 = si / steps_d, (si + 0.7) / steps_d
+                sx0, sy0 = int(cx + (nx - cx) * f0), int(cy + (ny - cy) * f0)
+                sx1, sy1 = int(cx + (nx - cx) * f1), int(cy + (ny - cy) * f1)
+                draw.line((sx0, sy0, sx1, sy1), fill=_rgba(purple, 0.42), width=2)
+        draw.ellipse((nx - 7, ny - 7, nx + 7, ny + 7), outline=_rgba(purple, 0.65), width=2)
+        nxt_lbl = (fx_state.get("labels") or [])[min(len(fx_state.get("labels") or []) - 1, tgt_idx + 1)] if fx_state.get("labels") else ""
+        if nxt_lbl and ripple_t < 0.55:
+            f_hp = _fx_font(16, bold=True)
+            htxt = f"NEXT -> {nxt_lbl[:18]}"
+            hbb = f_hp.getbbox(htxt)
+            hw = (hbb[2] - hbb[0]) + 22
+            hx = max(60, min(stage_img.width - hw - 60, int(cx + 18)))
+            hy = max(390, int(cy + 34))
+            draw.rounded_rectangle((hx, hy, hx + hw, hy + 28), radius=10, fill=_rgba(card_alt, 0.85), outline=_rgba(purple, 0.72), width=1)
+            draw.text((hx + 10, hy + 5), htxt, font=f_hp, fill=_rgba(text_col, 0.90))
+
     # 3. Clean Bezier Vector Cursor Arrow at (cx, cy)
     if 0.02 < p < 0.96:
         c_pts = [
@@ -380,19 +412,38 @@ def render_interactive_fx_overlay(
         swipe_t = _ease_out_cubic(min(1.0, (p * 12.0) % 1.0 + 0.25))
         draw.line((kx0 + 14, ky1 - 5, int(kx0 + 14 + (kw_w - 28) * swipe_t), ky1 - 5), fill=_rgba(cyan, 0.95), width=3)
 
-    # 5. Contextual Thought / Warning / Pro-Tip / Quiz / Status / Delta Bubble near active card
+    # 5. Contextual Thought Cloud / Mini Quiz / Warning / Pro-Tip / Status+Sparkle Burst / Split Delta Bubble
     if fx_type != "none" and fx_label and 0.04 < p < 0.95:
         b_col = rose if fx_type == "warn" else (purple if fx_type in ("quiz", "thought") else (emerald if fx_type in ("status", "delta") else amber))
         f_bub = _fx_font(19, bold=True)
         bbb = f_bub.getbbox(fx_label)
-        bw = (bbb[2] - bbb[0]) + 32
+        bw = (bbb[2] - bbb[0]) + 36
         bx = max(84, min(stage_img.width - bw - 84, int(tx - bw // 2)))
-        by = max(385, int(ty - 82))
+        by = max(385, int(ty - 86))
         pop_a = _ease_out_back(min(1.0, ripple_t * 2.2)) * 0.95
-        draw.rounded_rectangle((bx, by, bx + bw, by + 36), radius=18, fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
-        # Bubble speech tail
-        tail_x = max(bx + 14, min(bx + bw - 14, int(tx)))
-        draw.polygon([(tail_x - 6, by + 35), (tail_x + 6, by + 35), (tail_x, by + 44)], fill=_rgba(b_col, pop_a))
-        draw.text((bx + 16, by + 7), fx_label, font=f_bub, fill=_rgba(b_col, pop_a))
+        if fx_type == "thought":
+            # Cloud scalloped thought bubble with trailing circles
+            draw.rounded_rectangle((bx, by, bx + bw, by + 38), radius=19, fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
+            draw.ellipse((bx + 6, by - 10, bx + 32, by + 16), fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
+            draw.ellipse((bx + bw - 34, by - 10, bx + bw - 8, by + 16), fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
+            draw.ellipse((int(tx) - 5, by + 40, int(tx) + 5, by + 50), fill=_rgba(b_col, pop_a))
+            draw.ellipse((int(tx) - 3, by + 54, int(tx) + 3, by + 60), fill=_rgba(b_col, pop_a))
+        else:
+            draw.rounded_rectangle((bx, by, bx + bw, by + 38), radius=19, fill=_rgba(card_alt, pop_a), outline=_rgba(b_col, pop_a), width=2)
+            tail_x = max(bx + 14, min(bx + bw - 14, int(tx)))
+            draw.polygon([(tail_x - 6, by + 37), (tail_x + 6, by + 37), (tail_x, by + 46)], fill=_rgba(b_col, pop_a))
+        draw.text((bx + 18, by + 8), fx_label, font=f_bub, fill=_rgba(b_col, pop_a))
+        if fx_type == "status" and ripple_t < 0.72:
+            # Radial Neon Vector Sparkle Burst (Emoji/Burst FX)
+            for bi in range(8):
+                ang = bi * (math.pi / 4.0)
+                r_in = int(26 + 26 * ripple_t)
+                r_out = int(38 + 38 * ripple_t)
+                sc_col = emerald if bi % 2 == 0 else cyan
+                draw.line(
+                    (int(tx + r_in * math.cos(ang)), int(ty + r_in * math.sin(ang)),
+                     int(tx + r_out * math.cos(ang)), int(ty + r_out * math.sin(ang))),
+                    fill=_rgba(sc_col, (1.0 - ripple_t) * 0.9), width=3,
+                )
 
     return Image.alpha_composite(stage_img.convert("RGBA"), overlay)
