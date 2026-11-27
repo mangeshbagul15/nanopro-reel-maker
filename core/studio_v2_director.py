@@ -19,6 +19,11 @@ import re
 from typing import Any, Dict, List, Optional
 
 from core.config import DEFAULT_WATERMARK, GEMINI_API_KEY, GROQ_API_KEY
+from core.studio_pro_engines import (
+    STUDIO_PRO_KEYS,
+    STUDIO_PRO_OPTIONS,
+    generate_studio_pro_timeline,
+)
 from core.tone_engine import (
     ensure_dual_dialogue_for_scene,
     get_tone_directive,
@@ -34,11 +39,12 @@ STUDIO_V2_MODE_OPTIONS = [
     ("v3_live_ide", "🖥️ Studio V3 — Live IDE & SQL/Python Simulator (Code Highlight · Click Ripple · Callout · Live Output Drawer)"),
     ("v4_blueprint_whiteboard", "✏️ Studio V4 — Blueprint Whiteboard Studio (ByteByteGo / Excalidraw · Dark Grid · Marker Diagrams · Sticky Bubbles)"),
     ("v5_datacenter_park", "🏢 Studio V5 — Enterprise Data Center & IT Park (Campus → Dept → Engineer Fly-In)"),
-]
+] + list(STUDIO_PRO_OPTIONS)
 
 
 def is_studio_v2_mode(mode_key: str) -> bool:
-    return str(mode_key or "").strip() in (
+    mk = str(mode_key or "").strip()
+    return mk in (
         "v2_auto",
         "v2_vector_storyboard",
         "v2_spatial_isometric",
@@ -47,12 +53,14 @@ def is_studio_v2_mode(mode_key: str) -> bool:
         "v5_datacenter_park",
         "v5_live_ide",
         "v7_blueprint_whiteboard",
-    )
+    ) or mk in STUDIO_PRO_KEYS
 
 
 def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto") -> str:
-    """Routes `v2_auto` cleanly between `vector_storyboard`, `spatial_isometric`, `live_ide`, `blueprint_whiteboard`, and `datacenter_park`."""
+    """Routes `v2_auto` cleanly between `vector_storyboard`, `spatial_isometric`, `live_ide`, `blueprint_whiteboard`, `datacenter_park`, and Studio V17–V28."""
     mk = str(mode_key or "v2_auto").strip()
+    if mk in STUDIO_PRO_KEYS:
+        return mk
     if mk == "v2_vector_storyboard":
         return "vector_storyboard"
     if mk == "v2_spatial_isometric":
@@ -1790,7 +1798,20 @@ def generate_v2_timeline(
     """Entry point for Studio V2 / V3 / V4 / V5 Storyboard Directors (isolated from classic NanoPro)."""
     wm_clean = str(watermark or DEFAULT_WATERMARK).strip() or DEFAULT_WATERMARK
     sub = resolve_v2_sub_engine(topic, v2_mode, duration_mode=duration_mode)
-    if sub == "datacenter_park":
+    if sub in STUDIO_PRO_KEYS:
+        tl = generate_studio_pro_timeline(
+            topic,
+            sub,
+            tone=tone,
+            duration_mode=duration_mode,
+            voice=voice,
+            watermark=wm_clean,
+            audience_level=audience_level,
+            hook_style=hook_style,
+            cta_style=cta_style,
+            cta_keyword=cta_keyword,
+        )
+    elif sub == "datacenter_park":
         tl = _generate_v5_datacenter_hybrid(
             topic, tone, duration_mode, voice, wm_clean,
             audience_level, hook_style, cta_style, cta_keyword,

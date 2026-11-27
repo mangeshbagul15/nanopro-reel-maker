@@ -23,7 +23,7 @@ _RELOAD_ORDER = [
     "core.director", "core.voice", "core.thumbnail_engine", "core.animator", "core.subtitles",
     "core.renderer", "core.quality_gate", "core.studio_v2_director",
     "core.studio_v2_vector", "core.studio_v2_isometric",
-    "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.studio_v5_datacenter", "core.uploader",
+    "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.studio_v5_datacenter", "core.studio_pro_engines", "core.uploader",
 ]
 _loaded_core = [m for m in _RELOAD_ORDER if m in sys.modules] + [
     k for k in list(sys.modules.keys()) if k.startswith("core.") and k not in _RELOAD_ORDER
@@ -66,6 +66,10 @@ from core.studio_v5_datacenter import (
     DC_TRAVEL_MODES,
     blend_datacenter_scene_transitions,
     render_v5_datacenter_scene_frames,
+)
+from core.studio_pro_engines import (
+    STUDIO_PRO_KEYS,
+    render_studio_pro_scene_frames,
 )
 from core.uploader import (
     upload_to_r2,
@@ -481,7 +485,8 @@ with st.sidebar:
             "• **Studio V2 — Spatial Isometric (`@thetechypenguin`):** Continuous 2.5D Architecture World + Camera Fly + Top HUD\n"
             "• **Studio V3 — Live IDE (`Python / SQL`):** Code highlight + mouse click ripple + callout bubble + live output drawer\n"
             "• **Studio V4 — Blueprint Whiteboard (`Excalidraw`):** Dark blueprint grid + hand-drawn marker diagrams + sticky bubbles\n"
-            "• **Studio V5 — Enterprise Data Center (`10 Depts · 25 Specialists`):** Fast 1-Scene Fly-In (`Camera / Drone / Fiber`) → Engineer Desk → Instant Topic Deep-Dive",
+            "• **Studio V5 — Enterprise Data Center (`10 Depts · 25 Specialists`):** Fast 1-Scene Fly-In (`Camera / Drone / Fiber`) → Engineer Desk → Instant Topic Deep-Dive\n"
+            "• **Studio V17–V28 — Specialized Pro Visual Studios:** SQL Joins (`V17`), ReAct/MCP Agents (`V18`), Storage/Parquet Pruning (`V19`), API/OAuth Inspector (`V21`), Decision Tree (`V23`), Editorial Cards (`V24`), Iceberg V4/Snowflake (`V25`), Multi-Agent Guardrails (`V26`), CDC/Contracts (`V27`), Semantic/Eval Hub (`V28`)",
             icon="✨",
         )
     else:
@@ -1191,7 +1196,7 @@ with tab_create:
                     if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1
                 ]
                 v_type = str(sc_obj.get("visual_type") or "")
-                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v3_live_ide", "v4_blueprint_whiteboard", "v5_datacenter_park", "v5_live_ide", "v7_blueprint_whiteboard"):
+                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v3_live_ide", "v4_blueprint_whiteboard", "v5_datacenter_park", "v5_live_ide", "v7_blueprint_whiteboard") or v_type in STUDIO_PRO_KEYS:
                     sc_obj.setdefault("visual_data", {})["watermark"] = channel_watermark
                 if v_type == "v2_vector_storyboard":
                     render_v2_vector_scene_frames(
@@ -1240,6 +1245,17 @@ with tab_create:
                     )
                 elif v_type == "v5_datacenter_park":
                     render_v5_datacenter_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
+                        format_ratio=aspect_ratio[0],
+                        scene_words=sc_words,
+                        tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
+                    )
+                elif v_type in STUDIO_PRO_KEYS:
+                    render_studio_pro_scene_frames(
                         sc_obj,
                         idx_i + 1,
                         format_ratio=aspect_ratio[0],
@@ -1591,6 +1607,8 @@ with tab_create:
                             st.markdown(f"- **Data Center Mode:** `{v_data.get('dc_mode')}` (`{v_data.get('travel_mode')}` travel) • **Department:** `{_dc_dept}` • **Specialist:** `{_dc_sp}`")
                         elif v_type in ("v2_vector_storyboard", "v2_spatial_isometric"):
                             st.markdown(f"- **Studio Mode:** `{v_data.get('widget_type') or v_data.get('scene_mode', 'world_cam')}`")
+                        elif v_type in STUDIO_PRO_KEYS:
+                            st.markdown(f"- **Pro Studio Engine:** `{sc.get('routed_engine') or v_type}` (`{v_type}`)")
                         elif v_type == "architecture_flow":
                             nodes = v_data.get("nodes", [])
                             node_labels = " ➔ ".join([
