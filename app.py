@@ -20,7 +20,7 @@ _RELOAD_ORDER = [
     "core.svg_engine", "core.mesh_shader_engine", "core.shapes_3d",
     "core.layouts_pro", "core.layouts_it_sdlc", "core.layouts_domain_220",
     "core.layouts_studio", "core.web_generative_engine", "core.cinematic_engine",
-    "core.director", "core.voice", "core.animator", "core.subtitles",
+    "core.director", "core.voice", "core.thumbnail_engine", "core.animator", "core.subtitles",
     "core.renderer", "core.quality_gate", "core.studio_v2_director",
     "core.studio_v2_vector", "core.studio_v2_isometric",
     "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.studio_v5_datacenter", "core.uploader",
@@ -53,7 +53,7 @@ from core.presets import load_creator_presets, save_custom_creator_preset
 from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline, is_dual_tone
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles, load_visual_history, reset_visual_history
 from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS, VOICE_CATALOG
-from core.animator import render_scene_frames, generate_thumbnail_9_16
+from core.animator import render_scene_frames, generate_thumbnail_9_16, generate_thumbnail_pack
 from core.subtitles import generate_ass_subtitles
 from core.renderer import render_final_reel
 from core.quality_gate import DEFAULT_QUALITY_MODE, QUALITY_MODES, run_quality_gate_and_self_heal
@@ -874,21 +874,22 @@ with tab_create:
     # Action Studio Controls Bar
     st.markdown("#### 🚀 Action Studio Controls:")
     col_act1, col_act2 = st.columns([1.3, 1])
-    col_act3, col_act4 = st.columns([1, 1])
+    col_act3, col_act4, col_act5 = st.columns([1, 1, 1])
 
     do_full_generate = col_act1.button("🎬 Generate Full Video Reel", type="primary", use_container_width=True)
     do_titles = col_act2.button("🏷️ Make Title for Video", type="secondary", use_container_width=True)
     do_thumbnail = col_act3.button("🖼️ Generate 9:16 Thumbnail", use_container_width=True)
-    do_meta = col_act4.button("📋 Generate Description & Hashtags", use_container_width=True)
+    do_thumb_pack = col_act4.button("✨ 4x High-Tech Thumb Pack", use_container_width=True, help="Generate 4 distinct dark 2026 high-tech thumbnails side-by-side in 1 click!")
+    do_meta = col_act5.button("📋 Generate Description & Hashtags", use_container_width=True)
 
-    # 1. STANDALONE 9:16 THUMBNAIL GENERATOR
+    # 1A. STANDALONE 9:16 THUMBNAIL GENERATOR (16 layouts x 12 dark themes x 8 grids)
     if do_thumbnail:
         if not user_prompt.strip():
             st.error("Please enter a technical topic prompt first.")
             st.stop()
         _th_var = int(st.session_state.get("thumb_gen_counter", 0))
         st.session_state["thumb_gen_counter"] = _th_var + 1
-        with st.spinner(f"Generating unique dark 9:16 thumbnail variation #{_th_var + 1} with watermark {channel_watermark}..."):
+        with st.spinner(f"Generating unique dark high-tech 9:16 thumbnail variation #{_th_var + 1} with watermark {channel_watermark}..."):
             try:
                 thumb_path = generate_thumbnail_9_16(
                     user_prompt.strip(),
@@ -897,7 +898,7 @@ with tab_create:
                     tone=chosen_tone,
                     variant_seed=_th_var,
                 )
-                st.success(f"🎉 Unique 9:16 Dark Thumbnail (Variation #{_th_var + 1}) ready! Click again anytime for another layout & angle.")
+                st.success(f"🎉 Unique 9:16 Dark High-Tech Thumbnail (#{_th_var + 1} of 16+ styles) ready! Click again anytime for a brand-new design.")
                 c_th1, c_th2 = st.columns([1, 1.2])
                 with c_th1:
                     st.image(str(thumb_path), caption="9:16 High-Conversion Thumbnail (Shorts / Reels Cover)", use_container_width=True)
@@ -917,6 +918,40 @@ with tab_create:
                         )
             except Exception as e:
                 st.error(f"❌ Error generating thumbnail: {e}")
+
+    # 1B. 4x HIGH-TECH DARK THUMBNAIL PACK GENERATOR
+    elif do_thumb_pack:
+        if not user_prompt.strip():
+            st.error("Please enter a technical topic prompt first.")
+            st.stop()
+        _pack_start = int(st.session_state.get("thumb_gen_counter", 0))
+        st.session_state["thumb_gen_counter"] = _pack_start + 4
+        with st.spinner(f"Rendering 4 distinct dark high-tech 9:16 thumbnails for {channel_watermark}..."):
+            try:
+                pack_items = generate_thumbnail_pack(
+                    user_prompt.strip(),
+                    count=4,
+                    start_seed=_pack_start,
+                    watermark=channel_watermark,
+                    visual_engine=visual_engine[0],
+                    tone=chosen_tone,
+                )
+                st.success(f"🎉 4 Unique Dark High-Tech Thumbnails ready! Click again for 4 completely new styles (#{_pack_start + 5}–#{_pack_start + 8}).")
+                p_cols = st.columns(4)
+                for pi, item in enumerate(pack_items):
+                    with p_cols[pi]:
+                        st.image(str(item["path"]), caption=f"#{item['seed'] + 1} · {item['angle_tag']}", use_container_width=True)
+                        with open(item["path"], "rb") as pf:
+                            st.download_button(
+                                label=f"⬇️ PNG #{item['seed'] + 1}",
+                                data=pf.read(),
+                                file_name=item["path"].name,
+                                mime="image/png",
+                                key=f"dl_pack_{item['seed']}",
+                                use_container_width=True,
+                            )
+            except Exception as e:
+                st.error(f"❌ Error generating thumbnail pack: {e}")
 
     # 2. STANDALONE VIRAL DESCRIPTION & HASHTAGS GENERATOR
     elif do_meta:
