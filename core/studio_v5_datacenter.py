@@ -257,24 +257,27 @@ def _compute_dc_camera(
     width: int,
     height: int,
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
-    """Computes fast start/end camera keyframes across the 1800x1800 campus."""
+    """Computes fast start/end camera keyframes with tight close-up onto the specific engineer's desk."""
     is_wide = width > height
     campus_zoom = 0.62 if is_wide else 0.48
-    dept_zoom = 1.25 if is_wide else 1.08
-    desk_zoom = 1.92 if is_wide else 1.72
+    dept_zoom = 1.55 if is_wide else 1.38
+    desk_zoom = 3.35 if is_wide else 3.05
+
+    # Focus right between the seated engineer and their dual glowing monitors
+    tgt_x = float(eng_x)
+    tgt_y = float(eng_y) - 10.0
 
     if dc_mode == "campus_to_desk":
-        # Fast 1-scene arrival: Macro Campus -> Straight onto Engineer Desk!
         start = {"cx": 900.0, "cy": 900.0, "zoom": campus_zoom}
-        end = {"cx": float(eng_x), "cy": float(eng_y), "zoom": desk_zoom}
+        end = {"cx": tgt_x, "cy": tgt_y, "zoom": desk_zoom}
     elif dc_mode == "campus_fly":
         start = {"cx": 900.0, "cy": 900.0, "zoom": campus_zoom}
         end = {"cx": float(dept["x"]), "cy": float(dept["y"]), "zoom": dept_zoom}
     elif dc_mode == "desk_focus":
         start = {"cx": float(dept["x"]), "cy": float(dept["y"]), "zoom": dept_zoom}
-        end = {"cx": float(eng_x), "cy": float(eng_y), "zoom": desk_zoom}
+        end = {"cx": tgt_x, "cy": tgt_y, "zoom": desk_zoom}
     else:  # campus_outro
-        start = {"cx": float(eng_x), "cy": float(eng_y), "zoom": round(desk_zoom * 0.85, 2)}
+        start = {"cx": tgt_x, "cy": tgt_y, "zoom": round(desk_zoom * 0.78, 2)}
         end = {"cx": 900.0, "cy": 890.0, "zoom": round(campus_zoom * 1.08, 2)}
     return start, end
 
@@ -610,13 +613,14 @@ def _build_datacenter_html(
       ctx.arc(hx, hy, Math.max(4, 7.5 * zoom), 0, Math.PI * 2);
       ctx.fillStyle = '#F8FAFC'; ctx.fill();
 
-      // Show crisp pill tags on all desks inside zoomed-in active department (like reference!)
+      // Show crisp pill tags on all desks inside zoomed-in active department (capped smoothly so extreme zoom stays razor sharp)
+      const badgeZoom = Math.min(1.65, zoom);
       if (isTarget && zoom >= 0.88) {{
-        const [lx, ly] = iso(wx, wy - 18, 56, camX, camY, zoom);
-        drawBadge(lx, ly, `• ${{sp.short}}`, '#061124F2', col.hi, zoom * 1.05);
+        const [lx, ly] = iso(wx, wy - 20, 54, camX, camY, zoom);
+        drawBadge(lx, ly, `• ${{sp.short}}`, '#061124F2', col.hi, badgeZoom);
       }} else if (isActiveDept && zoom >= 1.18) {{
-        const [lx, ly] = iso(wx, wy - 18, 52, camX, camY, zoom);
-        drawBadge(lx, ly, `• ${{sp.short}}`, '#091428DD', '#CBD5E1', zoom * 0.92);
+        const [lx, ly] = iso(wx, wy - 20, 50, camX, camY, zoom);
+        drawBadge(lx, ly, `• ${{sp.short}}`, '#091428DD', '#CBD5E1', badgeZoom * 0.88);
       }}
     }}
 
@@ -654,12 +658,18 @@ def _build_datacenter_html(
 
     function drawWorld(prog) {{
       ctx.clearRect(0, 0, W, H);
-      // Fast arrival: complete campus->desk travel within first 78% so final moments lock on the engineer desk
+      // Fast arrival: complete campus->desk travel within first 74%, then punch smoothly into the monitor portal
       const flyDone = STATE.dc_mode === 'campus_to_desk' ? 0.74 : 0.86;
       const ease = easeInOut(Math.min(1, prog / flyDone));
-      const camX = STATE.start_cam.cx + (STATE.end_cam.cx - STATE.start_cam.cx) * ease;
-      const camY = STATE.start_cam.cy + (STATE.end_cam.cy - STATE.start_cam.cy) * ease;
-      const zoom = STATE.start_cam.zoom + (STATE.end_cam.zoom - STATE.start_cam.zoom) * ease;
+      let camX = STATE.start_cam.cx + (STATE.end_cam.cx - STATE.start_cam.cx) * ease;
+      let camY = STATE.start_cam.cy + (STATE.end_cam.cy - STATE.start_cam.cy) * ease;
+      let zoom = STATE.start_cam.zoom + (STATE.end_cam.zoom - STATE.start_cam.zoom) * ease;
+
+      if (STATE.dc_mode === 'campus_to_desk' && prog > 0.76) {{
+        const pPush = easeInOut((prog - 0.76) / 0.24);
+        zoom *= (1.0 + 0.22 * pPush);
+        camY -= 8 * pPush;
+      }}
 
       // 1. Enterprise Campus Ground Grid (1800x1800)
       ctx.save();
@@ -748,7 +758,7 @@ def _build_datacenter_html(
         drawBadge(bx, by, `${{d.icon}} ${{d.name}} (${{engCnt}} Eng)`, isTgt ? '#061124F2' : '#0B162CCC', isTgt ? col.hi : '#CBD5E1', zoom);
       }});
 
-      // 6. Active Travel Entity (Drone Escort or Fiber Data Orb) during Campus Fly
+      // 6. Active Travel Entity (Drone Escort or Fiber Data Orb) + Monitor Portal Glow
       if (STATE.dc_mode === 'campus_fly' || STATE.dc_mode === 'campus_to_desk') {{
         const u = easeInOut(Math.min(1, prog / (STATE.dc_mode === 'campus_to_desk' ? 0.72 : 0.88)));
         const tgtCol = (PAL[STATE.target_dept.color] || PAL.cyan).hex;
@@ -766,6 +776,21 @@ def _build_datacenter_html(
           ctx.fillStyle = '#FFFFFF';
           ctx.beginPath(); ctx.arc(ox, oy, 11 * zoom, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = tgtCol; ctx.lineWidth = 4; ctx.stroke();
+          ctx.restore();
+        }}
+
+        // Smooth monitor portal glow right at end of campus_to_desk (0.80 -> 1.00)
+        if (STATE.dc_mode === 'campus_to_desk' && prog > 0.80) {{
+          const gp = easeInOut((prog - 0.80) / 0.20);
+          const [mx, my] = iso(STATE.eng_x, STATE.eng_y - 10, 26, camX, camY, zoom);
+          ctx.save();
+          const rad = Math.max(80, gp * Math.max(W, H) * 0.65);
+          const rg = ctx.createRadialGradient(mx, my, rad * 0.08, mx, my, rad);
+          rg.addColorStop(0, tgtCol + '66');
+          rg.addColorStop(0.55, '#091124CC');
+          rg.addColorStop(1, 'rgba(9,17,36,0.0)');
+          ctx.fillStyle = rg;
+          ctx.fillRect(0, 0, W, H);
           ctx.restore();
         }}
       }}
@@ -847,3 +872,69 @@ def render_v5_datacenter_scene_frames(
     for f in range(total_frames):
         img.save(out_dir / f"frame_{f:04d}.jpg", quality=90)
     return out_dir
+
+
+def blend_datacenter_scene_transitions(
+    aligned_scenes: List[Dict[str, Any]],
+    frame_dirs: List[Path],
+    transition_frames: int = 12,
+) -> None:
+    """
+    Smoothly zooms & cross-dissolves the opening frames of any scene entering from or exiting to
+    `v5_datacenter_park` so the transition from Engineer Desk -> Main Content Window feels seamless.
+    Preserves exact frame count per scene (zero audio/subtitle drift).
+    """
+    from PIL import Image
+
+    if len(aligned_scenes) < 2 or len(frame_dirs) != len(aligned_scenes):
+        return
+
+    for idx in range(len(aligned_scenes) - 1):
+        vt_a = str(aligned_scenes[idx].get("visual_type") or "")
+        vt_b = str(aligned_scenes[idx + 1].get("visual_type") or "")
+        if vt_a != "v5_datacenter_park" and vt_b != "v5_datacenter_park":
+            continue
+
+        dir_a, dir_b = frame_dirs[idx], frame_dirs[idx + 1]
+        if not dir_a.exists() or not dir_b.exists():
+            continue
+        frames_a = sorted(p for p in dir_a.iterdir() if p.name.startswith("frame_") and p.suffix.lower() in (".jpg", ".jpeg", ".png"))
+        frames_b = sorted(p for p in dir_b.iterdir() if p.name.startswith("frame_") and p.suffix.lower() in (".jpg", ".jpeg", ".png"))
+        if not frames_a or len(frames_b) < 4:
+            continue
+
+        n_blend = min(int(transition_frames), len(frames_b) // 2)
+        if n_blend < 3:
+            continue
+
+        try:
+            tail_im = Image.open(frames_a[-1]).convert("RGB")
+            w, h = tail_im.size
+            for k in range(n_blend):
+                t = (k + 1) / float(n_blend + 1)
+                ease = t * t * (3.0 - 2.0 * t)
+                fb_path = frames_b[k]
+                fg_im = Image.open(fb_path).convert("RGB")
+                if fg_im.size != (w, h):
+                    fg_im = fg_im.resize((w, h), Image.Resampling.BILINEAR)
+
+                # Zoom-up reveal for main content window emerging from engineer workstation
+                if vt_a == "v5_datacenter_park" and vt_b != "v5_datacenter_park":
+                    scale = 0.80 + 0.20 * ease
+                    sw, sh = max(16, int(round(w * scale))), max(16, int(round(h * scale)))
+                    scaled = fg_im.resize((sw, sh), Image.Resampling.BILINEAR)
+                    bg_zoom = tail_im.copy()
+                    # Subtle push-in on background desk frame too
+                    bg_s = 1.0 + 0.14 * ease
+                    bw, bh = int(round(w * bg_s)), int(round(h * bg_s))
+                    bg_crop = tail_im.resize((bw, bh), Image.Resampling.BILINEAR).crop(
+                        ((bw - w) // 2, (bh - h) // 2, (bw - w) // 2 + w, (bh - h) // 2 + h)
+                    )
+                    bg_zoom.paste(scaled, ((w - sw) // 2, (h - sh) // 2))
+                    out_im = Image.blend(bg_crop, bg_zoom, ease)
+                else:
+                    out_im = Image.blend(tail_im, fg_im, ease)
+
+                out_im.save(fb_path, quality=92)
+        except Exception:
+            continue

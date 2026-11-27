@@ -62,7 +62,11 @@ from core.studio_v2_vector import render_v2_vector_scene_frames
 from core.studio_v2_isometric import render_v2_isometric_scene_frames
 from core.studio_v3_ide import render_v3_ide_scene_frames
 from core.studio_v4_whiteboard import render_v4_whiteboard_scene_frames
-from core.studio_v5_datacenter import DC_TRAVEL_MODES, render_v5_datacenter_scene_frames
+from core.studio_v5_datacenter import (
+    DC_TRAVEL_MODES,
+    blend_datacenter_scene_transitions,
+    render_v5_datacenter_scene_frames,
+)
 from core.uploader import (
     upload_to_r2,
     list_r2_videos,
@@ -1163,6 +1167,9 @@ with tab_create:
                     fut.result()
                     done_cnt += 1
                     progress_bar.progress(45 + int(24 * done_cnt / max(1, total_sc)))
+
+            if any(str(s.get("visual_type") or "") == "v5_datacenter_park" for s in aligned_scenes):
+                blend_datacenter_scene_transitions(aligned_scenes, all_scene_frame_dirs, transition_frames=12)
 
             # STEP 3.5: Closed-Loop AI Quality Critic & Surgical Self-Repair Engine
             sfx_events = collect_sfx_timeline(aligned_scenes, word_timestamps=word_timestamps, tone=chosen_tone) if enable_micro_sfx else []
