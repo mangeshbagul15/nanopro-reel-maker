@@ -23,7 +23,7 @@ _RELOAD_ORDER = [
     "core.director", "core.voice", "core.thumbnail_engine", "core.animator", "core.subtitles",
     "core.renderer", "core.quality_gate", "core.studio_v2_director",
     "core.studio_v2_vector", "core.studio_v2_isometric",
-    "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.studio_v5_datacenter", "core.studio_pro_engines", "core.uploader",
+    "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.studio_v5_datacenter", "core.studio_v6_agent_loop", "core.studio_pro_engines", "core.uploader",
 ]
 _loaded_core = [m for m in _RELOAD_ORDER if m in sys.modules] + [
     k for k in list(sys.modules.keys()) if k.startswith("core.") and k not in _RELOAD_ORDER
@@ -67,6 +67,7 @@ from core.studio_v5_datacenter import (
     blend_datacenter_scene_transitions,
     render_v5_datacenter_scene_frames,
 )
+from core.studio_v6_agent_loop import render_v6_agent_loop_scene_frames
 from core.studio_pro_engines import (
     STUDIO_PRO_KEYS,
     render_studio_pro_scene_frames,
@@ -463,7 +464,7 @@ with st.sidebar:
         [k for k, _ in STUDIO_V2_MODE_OPTIONS],
         format_func=lambda k: _v2_arch_map.get(k, str(k)),
         key="studio_v2_arch_select",
-        help="Keep Classic NanoPro Studio untouched, OR pick Studio V2 (Vector / Isometric), Studio V3 (Live IDE Python/SQL), Studio V4 (Blueprint Whiteboard), or Studio V5 (Enterprise Data Center & IT Park).",
+        help="Keep Classic NanoPro Studio untouched, OR pick Studio V2 (Vector / Isometric), Studio V3 (Live IDE Python/SQL), Studio V4 (Blueprint Whiteboard), Studio V5 (Enterprise Data Center & IT Park), or Studio V6 (LLM vs AI Agent Cognitive Loop).",
     )
     st.session_state.setdefault("v2_clean_no_subs_chk", True)
     st.session_state.setdefault("dc_travel_mode_select", "auto")
@@ -1205,7 +1206,7 @@ with tab_create:
                     if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1
                 ]
                 v_type = str(sc_obj.get("visual_type") or "")
-                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v3_live_ide", "v4_blueprint_whiteboard", "v5_datacenter_park", "v5_live_ide", "v7_blueprint_whiteboard") or v_type in STUDIO_PRO_KEYS:
+                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v3_live_ide", "v4_blueprint_whiteboard", "v5_datacenter_park", "v5_live_ide", "v6_agent_loop", "v7_blueprint_whiteboard") or v_type in STUDIO_PRO_KEYS:
                     sc_obj.setdefault("visual_data", {})["watermark"] = channel_watermark
                 if v_type == "v2_vector_storyboard":
                     render_v2_vector_scene_frames(
@@ -1256,6 +1257,18 @@ with tab_create:
                     render_v5_datacenter_scene_frames(
                         sc_obj,
                         idx_i + 1,
+                        format_ratio=aspect_ratio[0],
+                        scene_words=sc_words,
+                        tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
+                    )
+                elif v_type == "v6_agent_loop":
+                    render_v6_agent_loop_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
+                        prev_scene=(aligned_scenes[idx_i - 1] if idx_i > 0 else None),
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
                         tone=chosen_tone,
@@ -1614,6 +1627,14 @@ with tab_create:
                             _dc_dept = (v_data.get("department") or {}).get("full", "") if isinstance(v_data.get("department"), dict) else ""
                             _dc_sp = (v_data.get("specialist") or {}).get("title", "") if isinstance(v_data.get("specialist"), dict) else ""
                             st.markdown(f"- **Data Center Mode:** `{v_data.get('dc_mode')}` (`{v_data.get('travel_mode')}` travel) • **Department:** `{_dc_dept}` • **Specialist:** `{_dc_sp}`")
+                        elif v_type == "v6_agent_loop":
+                            _left = v_data.get("left_lane") or {}
+                            _right = v_data.get("right_lane") or {}
+                            _lnodes = " ➔ ".join(str(n.get("label") if isinstance(n, dict) else n) for n in (_left.get("nodes") or []))
+                            _rnodes = " ➔ ".join(str(n.get("label") if isinstance(n, dict) else n) for n in (_right.get("nodes") or []))
+                            st.markdown(f"- **Cognitive Loop Mode:** `{v_data.get('scene_mode', 'agent_loop')}`")
+                            st.markdown(f"- **Simple LLM (Linear):** {_lnodes or 'Prompt ➔ LLM ➔ Answer'}")
+                            st.markdown(f"- **Autonomous Agent (Loop):** {_rnodes or 'Goal ➔ Reason ➔ Tool ➔ Observe ➔ Final'}")
                         elif v_type in ("v2_vector_storyboard", "v2_spatial_isometric"):
                             st.markdown(f"- **Studio Mode:** `{v_data.get('widget_type') or v_data.get('scene_mode', 'world_cam')}`")
                         elif v_type in STUDIO_PRO_KEYS:

@@ -38,6 +38,7 @@ STUDIO_V2_MODE_OPTIONS = [
     ("v3_live_ide", "🖥️ Studio V3 — Live IDE & SQL/Python Simulator (Code Highlight · Click Ripple · Callout · Live Output Drawer)"),
     ("v4_blueprint_whiteboard", "✏️ Studio V4 — Blueprint Whiteboard Studio (ByteByteGo / Excalidraw · Dark Grid · Marker Diagrams · Sticky Bubbles)"),
     ("v5_datacenter_park", "🏢 Studio V5 — Enterprise Data Center & IT Park (Campus → Dept → Engineer Fly-In)"),
+    ("v6_agent_loop", "🔄 Studio V6 — LLM vs AI Agent Loop (Failure → Reflection → Recovery · Live Memory & Cost Meter)"),
 ]
 
 
@@ -50,6 +51,7 @@ def is_studio_v2_mode(mode_key: str) -> bool:
         "v3_live_ide",
         "v4_blueprint_whiteboard",
         "v5_datacenter_park",
+        "v6_agent_loop",
         "v5_live_ide",
         "v7_blueprint_whiteboard",
     ) or mk in STUDIO_PRO_KEYS
@@ -70,6 +72,8 @@ def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto"
         return "blueprint_whiteboard"
     if mk == "v5_datacenter_park":
         return "datacenter_park"
+    if mk == "v6_agent_loop":
+        return "agent_loop"
 
     low = f" {str(topic or '').lower()} "
     dc_kw = (
@@ -96,6 +100,15 @@ def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto"
     )
     if any(k in low for k in wb_kw):
         return "blueprint_whiteboard"
+
+    agent_kw = (
+        "ai agent", "llm agent", "autonomous", "agent loop", "agentic", "react pattern",
+        "reasoning loop", "self-correct", "self-correcting", "reflection", "tool calling",
+        "tool-call", "function calling", "multi-step reasoning", "chain of thought",
+        "llm vs agent", "simple llm", "agent kaise", "agent kya",
+    )
+    if any(k in low for k in agent_kw):
+        return "agent_loop"
 
     iso_kw = (
         "blue-green", "blue green", "canary", "deployment", "devops", "ci/cd", "cicd",
@@ -174,6 +187,8 @@ def _scene_count_guidance(duration_mode: str, sub_engine: str) -> str:
         return "7 to 10 punchy coding scenes (Hook Bug -> Naive Query/Loop -> Live Run Traceback/Slow Plan -> Exact Line Fix -> Fast Execution Output -> Benchmark Proof -> CTA)"
     if sub_engine == "blueprint_whiteboard":
         return "7 to 11 clear whiteboard scenes (Hook Dilemma -> Naive Sketch Flaw -> Core Blueprint Architecture -> Data Flow & Edge Case -> Trade-Off Sticky Summary -> CTA)"
+    if sub_engine == "agent_loop":
+        return "6 to 10 cognitive-loop scenes (Hook Split -> Simple LLM dead-end -> Agent Goal/Plan -> Tool Call Failure -> Reflection/Retry -> Loop #2 Recovery Verified -> Verdict -> Poll CTA)"
     return "8 to 11 crisp storyboard scenes (Interview Hook -> Misconception Meter -> Problem Scenario -> Spaghetti vs Clean Hub -> Paired Real-World Analogy -> Takeaway -> Follow CTA)"
 
 
@@ -329,12 +344,34 @@ def _normalize_v2_scenes(
                 clean_st.append({"title": "KEY INSIGHT", "text": raw_st.strip()[:72], "color": "amber"})
             vd["sticky_notes"] = clean_st
             vd["blueprint_zones"] = []
+        elif sub_engine == "agent_loop":
+            sm = str(vd.get("scene_mode") or "agent_loop").strip()
+            if sm not in ("split_intro", "llm_only", "agent_loop", "verdict", "cta"):
+                sm = "agent_loop"
+            vd["scene_mode"] = sm
+            if not str(vd.get("caption") or "").strip():
+                vd["caption"] = nar[:120]
+            if sm == "split_intro" and not str(vd.get("question") or "").strip():
+                vd["question"] = f"Simple LLM vs AI Agent — {short_top} मध्ये फरक काय?"
+            if not isinstance(vd.get("left_lane"), dict):
+                vd["left_lane"] = {}
+            if not isinstance(vd.get("right_lane"), dict):
+                vd["right_lane"] = {}
+            if sm == "cta":
+                if not isinstance(vd.get("cta"), dict):
+                    vd["cta"] = {}
+                vd["cta"].setdefault("label_b", "STEP #1")
+                vd["cta"].setdefault("label_a", "STEP #2")
+                vd["cta"].setdefault("option_b", "➡️ Simple LLM")
+                vd["cta"].setdefault("option_a", "🔄 Autonomous Agent")
+                vd["cta"].setdefault("footer_note", "Save this for your next system design!")
 
         _engine_labels = {
             "vector_storyboard": ("v2_vector_storyboard", "Studio V2 (Vector Storyboard)"),
             "spatial_isometric": ("v2_spatial_isometric", "Studio V2 (Spatial Isometric World)"),
             "live_ide": ("v3_live_ide", "Studio V3 (Live IDE & SQL/Python Simulator)"),
             "blueprint_whiteboard": ("v4_blueprint_whiteboard", "Studio V4 (Blueprint Whiteboard Studio)"),
+            "agent_loop": ("v6_agent_loop", "Studio V6 (LLM vs AI Agent Loop)"),
         }
         v_type_out, r_eng_out = _engine_labels.get(sub_engine, (f"v2_{sub_engine}", f"Studio ({sub_engine})"))
 
@@ -1781,6 +1818,223 @@ def _generate_v5_datacenter_hybrid(
     return out_tl
 
 
+def _generate_v6_agent_loop_llm(
+    topic: str,
+    tone: str,
+    duration_mode: str,
+    voice: str,
+    watermark: str,
+    audience_level: str,
+    hook_style: str,
+    cta_style: str,
+    cta_keyword: str,
+) -> Optional[Dict[str, Any]]:
+    lang_instr = _language_rule(voice, topic, tone=tone)
+    sc_guide = _scene_count_guidance(duration_mode, "agent_loop")
+    cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this for your next system design!"
+
+    prompt = f"""You are a Studio V6 "Cognitive Loop" Technical Explainer Director (Simple LLM vs Autonomous Agent).
+Design ONE continuous 9:16 dark Snowflake-style storyboard JSON for topic: "{topic}"
+Audience: {audience_level} | Hook: {hook_style} | Final CTA: {cta_note}
+Target Scenes: {sc_guide}
+{lang_instr}
+
+PARADIGM (CRITICAL): Contrast a LEFT linear pipeline "Simple LLM" (Prompt -> LLM -> Answer, single pass, dead-end) against a RIGHT cyclic "Autonomous Agent" state loop (Goal -> Reason/Plan -> Tool Call -> Observe -> Final Output) with a curved feedback arc from Observe back to Reason/Plan.
+Show a visible FAILURE -> DIAGNOSIS -> SELF-CORRECTION beat: on Loop #1 the Tool Call fails (e.g. "429 Rate Limit"), the agent REFLECTS ("Missing filter -> Adjusting query"), then Loop #2 recovers to a verified Final Output.
+Do NOT use infrastructure nodes (no factory_cube / balancer_bar / server_cluster / cylinder_store). Keep it purely cognitive/execution loop.
+
+For EVERY scene's `visual_data` provide:
+- `scene_mode`: "split_intro" | "llm_only" | "agent_loop" | "verdict" | "cta"
+- `hud_pill`, `headline_white` (max 3 words), `headline_accent` (max 3 words), `accent_color` ("cyan"|"emerald"|"violet"|"amber")
+- `question` (only for split_intro, a short hook question), `caption` (one crisp narration line, <=120 chars)
+- `left_lane`: {{"title":"Simple LLM","sub":"Linear Pipeline","nodes":[{{"label":"Prompt","color":"cyan"}},{{"label":"LLM","color":"cyan"}},{{"label":"Answer","color":"slate"}}],"counter":"Calls: 1 · Memory: None · Loop: 0/0"}}
+- `right_lane`: {{"title":"Autonomous Agent","sub":"Cyclic State Loop","nodes":[{{"label":"Goal","color":"emerald"}},{{"label":"Reason / Plan","color":"violet"}},{{"label":"Tool Call","color":"amber"}},{{"label":"Observe","color":"cyan"}},{{"label":"Final Output","color":"emerald"}}],"tool":"SQL"|"Search"|"API","fail_reason":"429 Rate Limit","reflect_text":"Missing filter -> Adjusting query","recovery_note":"Retrying with fallback","memory_label":"Memory: 2 items · +140 tok","max_calls":3}}
+- `cta` (ONLY for the final "cta" scene): {{"label_b":"STEP #1","label_a":"STEP #2","option_b":"➡️ Simple LLM","option_a":"🔄 Autonomous Agent","footer_note":"{cta_note}"}}
+Node labels MUST stay 1-3 words. Put full sentences only in `question` / `caption` / narration.
+
+Scene arc: Scene 1 split_intro (hook question, balanced split) -> 1-2 llm_only scenes (linear dead-end) -> 1-3 agent_loop scenes (loop with failure + reflection + recovery) -> verdict (side-by-side payoff) -> final cta.
+
+Return STRICT JSON:
+{{ "scenes": [ {{ "scene_id": 1, "role": "hook|misconception|problem|solution|proof|cta", "sfx_cue": "punch_impact|pop_snap|alert_ping|success_chime|whoosh", "narration": "...", "visual_data": {{...}} }} ] }}"""
+
+    raw_text = ""
+    if GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            for m in ("gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-2.5-flash"):
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    cand = str(getattr(res, "text", "") or "").strip()
+                    if cand:
+                        raw_text = cand
+                        break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    if not raw_text and GROQ_API_KEY:
+        try:
+            from groq import Groq
+            gc = Groq(api_key=GROQ_API_KEY)
+            res = gc.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.4,
+                timeout=22,
+            )
+            raw_text = res.choices[0].message.content.strip() if res.choices else ""
+        except Exception:
+            pass
+
+    parsed = _extract_json_block(raw_text)
+    if not parsed or not isinstance(parsed.get("scenes"), list) or len(parsed["scenes"]) < 4:
+        return None
+    norm = _normalize_v2_scenes(parsed["scenes"], tone, watermark, "agent_loop", topic=topic)
+    if len(norm) < 4:
+        return None
+    return {
+        "topic": topic,
+        "v2_engine": "agent_loop",
+        "art_style": "v2_midnight_navy",
+        "header_brand": (watermark or DEFAULT_WATERMARK).strip(),
+        "scenes": norm,
+    }
+
+
+def _fallback_agent_loop(topic: str, watermark: str, tone: str, cta_style: str, cta_keyword: str) -> Dict[str, Any]:
+    """Deterministic 25s sample timeline (5 scenes) — never fails, doubles as the reference blueprint."""
+    clean_topic = (topic.strip() or "Simple LLM vs Autonomous Agent")[:54]
+    short = " ".join(clean_topic.split()[:5])
+    cta_note = f"Comment '{cta_keyword.strip().upper()}' 👇" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this for your next system design!"
+
+    left_lane = {
+        "title": "Simple LLM",
+        "sub": "Linear Pipeline",
+        "nodes": [
+            {"label": "Prompt", "color": "cyan"},
+            {"label": "LLM", "color": "cyan"},
+            {"label": "Answer", "color": "slate"},
+        ],
+        "counter": "Calls: 1 · Memory: None · Loop: 0/0",
+    }
+    right_lane = {
+        "title": "Autonomous Agent",
+        "sub": "Cyclic State Loop",
+        "nodes": [
+            {"label": "Goal", "color": "emerald"},
+            {"label": "Reason / Plan", "color": "violet"},
+            {"label": "Tool Call", "color": "amber"},
+            {"label": "Observe", "color": "cyan"},
+            {"label": "Final Output", "color": "emerald"},
+        ],
+        "tool": "SQL",
+        "fail_reason": "429 Rate Limit",
+        "reflect_text": "Missing filter → Adjusting query",
+        "recovery_note": "Retrying with fallback",
+        "memory_label": "Memory: 2 items · +140 tok",
+        "max_calls": 3,
+    }
+
+    scenes = [
+        {
+            "role": "hook",
+            "duration": 4.5,
+            "sfx_cue": "punch_impact",
+            "narration": f"Simple LLM आणि AI Agent — दोन्ही AI आहेत, पण {short} मध्ये फरक काय? चला सोप्या भाषेत समजून घेऊ.",
+            "visual_data": {
+                "scene_mode": "split_intro",
+                "hud_pill": "AI AGENT vs LLM",
+                "headline_white": "Simple LLM vs",
+                "headline_accent": "AI Agent?",
+                "accent_color": "cyan",
+                "question": "Simple LLM vs AI Agent — फरक काय?",
+                "caption": "दोन्ही AI आहेत, पण एक फक्त बोलतो, दुसरा काम करतो.",
+                "left_lane": left_lane,
+                "right_lane": right_lane,
+            },
+        },
+        {
+            "role": "misconception",
+            "duration": 5.0,
+            "sfx_cue": "pop_snap",
+            "narration": "Simple LLM एकच pass करतो: प्रश्न दिला, उत्तर मिळालं, संपलं. चूक झाली तरी तो थांबतो — पुन्हा प्रयत्न नाही.",
+            "visual_data": {
+                "scene_mode": "llm_only",
+                "hud_pill": "SIMPLE LLM",
+                "headline_white": "फक्त एकच",
+                "headline_accent": "Pass.",
+                "accent_color": "cyan",
+                "caption": "Prompt → LLM → Answer. बस. चूक झाली तरी dead-end.",
+                "left_lane": left_lane,
+                "right_lane": right_lane,
+            },
+        },
+        {
+            "role": "solution",
+            "duration": 9.0,
+            "sfx_cue": "alert_ping",
+            "narration": "AI Agent मात्र loop करतो: goal घेतो, plan करतो, tool call करतो, result observe करतो आणि चूक आढळली तर स्वतः दुरुस्त करून पुन्हा प्रयत्न करतो.",
+            "visual_data": {
+                "scene_mode": "agent_loop",
+                "hud_pill": "AUTONOMOUS AGENT",
+                "headline_white": "Loop करून",
+                "headline_accent": "Sudharta.",
+                "accent_color": "violet",
+                "caption": "Loop #1 fail → reflect → Loop #2 verified output.",
+                "left_lane": left_lane,
+                "right_lane": right_lane,
+            },
+        },
+        {
+            "role": "proof",
+            "duration": 4.0,
+            "sfx_cue": "success_chime",
+            "narration": "म्हणून फरक साफ आहे — Simple LLM फक्त बोलतो, पण Agent सुधारून काम पूर्ण करतो.",
+            "visual_data": {
+                "scene_mode": "verdict",
+                "hud_pill": "VERDICT",
+                "headline_white": "LLM बोलतो,",
+                "headline_accent": "Agent करतो.",
+                "accent_color": "emerald",
+                "caption": "LLM = Bolto · Agent = Karun Dakhavto & Sudharato.",
+                "left_lane": left_lane,
+                "right_lane": right_lane,
+            },
+        },
+        {
+            "role": "cta",
+            "duration": 2.5,
+            "sfx_cue": "whoosh",
+            "narration": f"तुमच्या project साठी काय निवडाल? {cta_note}",
+            "visual_data": {
+                "scene_mode": "cta",
+                "hud_pill": "YOUR CALL",
+                "headline_white": "तुम्ही काय",
+                "headline_accent": "निवडाल?",
+                "accent_color": "amber",
+                "caption": "तुमचा अनुभव comment मध्ये सांगा!",
+                "left_lane": left_lane,
+                "right_lane": right_lane,
+                "cta": {
+                    "label_b": "STEP #1",
+                    "label_a": "STEP #2",
+                    "option_b": "➡️ Simple LLM",
+                    "option_a": "🔄 Autonomous Agent",
+                    "footer_note": cta_note,
+                },
+            },
+        },
+    ]
+    return {
+        "topic": topic,
+        "v2_engine": "agent_loop",
+        "art_style": "v2_midnight_navy",
+        "header_brand": (watermark or DEFAULT_WATERMARK).strip(),
+        "scenes": _normalize_v2_scenes(scenes, tone, watermark, "agent_loop", topic=topic),
+    }
+
+
 def generate_v2_timeline(
     topic: str,
     v2_mode: str = "v2_auto",
@@ -1837,6 +2091,13 @@ def generate_v2_timeline(
         )
         if tl is None:
             tl = _fallback_blueprint_whiteboard(topic, wm_clean, tone, cta_style, cta_keyword)
+    elif sub == "agent_loop":
+        tl = _generate_v6_agent_loop_llm(
+            topic, tone, duration_mode, voice, wm_clean,
+            audience_level, hook_style, cta_style, cta_keyword,
+        )
+        if tl is None:
+            tl = _fallback_agent_loop(topic, wm_clean, tone, cta_style, cta_keyword)
     else:
         tl = _generate_v2_vector_llm(
             topic, tone, duration_mode, voice, wm_clean,
