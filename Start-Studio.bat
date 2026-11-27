@@ -1,6 +1,7 @@
 @echo off
 title NanoPro Reel Maker - RTX 3050 Studio
-cd /d "C:\Users\Mangesh\.gemini\antigravity\scratch\nanopro-reel-maker"
+rem Auto-detect: switch to the folder this .bat file lives in (no hardcoded path)
+cd /d "%~dp0"
 echo ================================================================
 echo   🎬 Starting NanoPro Reel Maker with NVIDIA RTX 3050 GPU...
 echo ================================================================

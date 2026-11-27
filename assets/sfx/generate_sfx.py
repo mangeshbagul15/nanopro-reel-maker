@@ -215,7 +215,8 @@ def generate_upbeat_electro_pulse(output_path: Path, duration_sec: float = 70.0)
 
 
 if __name__ == "__main__":
-    out_dir = Path(r"c:\Users\Mangesh\.gemini\antigravity\scratch\nanopro-reel-maker\assets\sfx")
+    # Auto-detect: write into this script's own folder (no hardcoded path)
+    out_dir = Path(__file__).resolve().parent
     out_dir.mkdir(parents=True, exist_ok=True)
     generate_whoosh(out_dir / "whoosh.wav")
     generate_pop_snap(out_dir / "pop_snap.wav")
