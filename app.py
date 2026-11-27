@@ -133,7 +133,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Paint Right Panel Header IMMEDIATELY so user sees Studio Max before sidebar widgets stream
-st.markdown('<div class="main-title">🎬 NanoPro Reel Maker <span style="font-size:0.42em;vertical-align:middle;opacity:0.85;">Studio Max</span></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;">'
+    '<div class="main-title">🎬 NanoPro Reel Maker <span style="font-size:0.42em;vertical-align:middle;opacity:0.85;">Studio Max</span></div>'
+    '<div style="display:inline-flex;align-items:center;gap:0.55rem;padding:0.42rem 0.9rem;border-radius:999px;background:rgba(30,41,59,0.92);border:1px solid rgba(56,189,248,0.45);box-shadow:0 4px 14px rgba(15,23,42,0.45);">'
+    '<span style="color:#F8FAFC;font-weight:700;font-size:0.95rem;">Mangesh Bagul</span>'
+    '<span style="color:#64748B;">•</span>'
+    '<span style="color:#38BDF8;font-weight:600;font-size:0.92rem;font-family:monospace;">@Code_With_Mangesh</span>'
+    '</div>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 st.markdown('<div class="sub-title">2026 Smart Director &amp; Studio V2–V5 — Clean Vector Storyboard, Spatial Isometric World, Live IDE (Python/SQL), Blueprint Whiteboard, Enterprise Data Center &amp; 1,221 Semantic Engines.</div>', unsafe_allow_html=True)
 
 # Create main tabs BEFORE sidebar R2/status blocks so main interactive studio stays snappy
