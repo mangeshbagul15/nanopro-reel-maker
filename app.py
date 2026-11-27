@@ -130,7 +130,7 @@ st.markdown("""
 
 # Paint Right Panel Header IMMEDIATELY so user sees Studio Max before sidebar widgets stream
 st.markdown('<div class="main-title">🎬 NanoPro Reel Maker <span style="font-size:0.42em;vertical-align:middle;opacity:0.85;">Studio Max</span></div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">2026 Smart Director &amp; Studio V2 — Clean Vector Storyboard, Spatial Isometric World, 1,221 Semantic Engines, 9 Viral Tones &amp; Self-Healing AI Gate.</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">2026 Smart Director &amp; Studio V2–V5 — Clean Vector Storyboard, Spatial Isometric World, Live IDE (Python/SQL), Blueprint Whiteboard, Enterprise Data Center &amp; 1,221 Semantic Engines.</div>', unsafe_allow_html=True)
 
 # Create main tabs BEFORE sidebar R2/status blocks so main interactive studio stays snappy
 tab_create, tab_storage = st.tabs(["🎬 Create New Reel", "☁️ Cloudflare R2 Media & Storage Manager"])
