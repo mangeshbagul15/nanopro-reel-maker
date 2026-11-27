@@ -20,6 +20,173 @@ def is_dual_tone(tone: Optional[str]) -> bool:
     return str(tone or "").strip().lower() in DUAL_TONE_KEYS
 
 
+def split_text_to_dual_dialogue(text: str, scene_idx: int = 0) -> List[Dict[str, str]]:
+    """
+    Splits plain scene narration into alternating `female` (curious builder) and `male`
+    (mentor/architect) dialogue turns so `dual:` voices ALWAYS alternate between 2 speakers
+    even when upstream scene generation or custom scripts omit explicit `dialogue` arrays.
+    """
+    raw = str(text or "").strip()
+    if not raw:
+        return []
+
+    # 1. Respect explicit speaker tags if present (e.g. "Female: ... Male: ..." or "Q: ... A: ...")
+    tagged = re.findall(
+        r"(?:^|\n)\s*(female|male|she|he|questioner|solver|mentor|dost|host|q|a)\s*:\s*([^\n]+)",
+        raw,
+        flags=re.IGNORECASE,
+    )
+    if len(tagged) >= 2:
+        turns: List[Dict[str, str]] = []
+        for spk_raw, seg in tagged:
+            s_low = spk_raw.strip().lower()
+            spk = "female" if s_low in ("female", "she", "questioner", "q", "curious") else "male"
+            clean_seg = seg.strip()
+            if clean_seg:
+                turns.append({"speaker": spk, "text": clean_seg})
+        if turns:
+            return turns
+
+    clean = re.sub(
+        r"^\s*(?:female|male|she|he|questioner|solver|mentor|dost|host)\s*:\s*",
+        "",
+        raw,
+        flags=re.IGNORECASE,
+    ).strip()
+    if not clean:
+        return []
+
+    # 2. Split on sentence boundaries cleanly (Latin ., !, ? and Devanagari purna viram ।)
+    parts = [p.strip() for p in re.split(r"(?<=[.!?।])\s+", clean) if p and p.strip()]
+    if len(parts) == 1 and len(clean) >= 34:
+        # Try mid-line conversational delimiters (`? `, `—`, `;`, newlines)
+        sub_parts = [p.strip() for p in re.split(r"(?<=\?)\s+|\s*(?:—|--|;|\n)\s*", clean) if p and p.strip()]
+        if len(sub_parts) >= 2:
+            parts = sub_parts
+
+    if len(parts) >= 2:
+        # Merge ultra-tiny trailing punctuation fragments into previous chunk
+        merged: List[str] = []
+        for p in parts:
+            if merged and len(p.split()) < 2 and len(p) < 10:
+                merged[-1] = f"{merged[-1]} {p}".strip()
+            else:
+                merged.append(p)
+        if len(merged) >= 2:
+            turns = []
+            for t_idx, seg in enumerate(merged):
+                if "?" in seg and not (turns and turns[-1]["speaker"] == "female"):
+                    spk = "female"
+                elif t_idx == 0:
+                    spk = "female"
+                else:
+                    spk = "male" if turns[-1]["speaker"] == "female" else "female"
+                turns.append({"speaker": spk, "text": seg})
+            return turns
+
+    # 3. Single short sentence: alternate voice across consecutive scenes
+    return [{"speaker": "female" if (scene_idx % 2 == 0) else "male", "text": clean}]
+
+
+def ensure_dual_dialogue_for_scene(
+    sc: Dict[str, Any],
+    title: str,
+    idx: int,
+    total_scenes: int,
+    voice: str = "",
+    tone: str = "",
+) -> None:
+    """
+    Normalizes `sc['dialogue']` into >=2 alternating `female` + `male` conversational turns
+    whenever dual dialogue mode is requested via tone OR a `dual:` voice persona.
+    """
+    is_dual_req = (
+        is_dual_tone(tone)
+        or is_dual_tone(sc.get("scene_tone"))
+        or str(voice or "").startswith("dual:")
+        or (isinstance(sc.get("dialogue"), list) and len(sc.get("dialogue") or []) >= 1)
+    )
+    if not is_dual_req:
+        return
+
+    if is_dual_tone(tone):
+        sc["scene_tone"] = DUAL_TONE_KEY if tone != "dual_dialogue_curious" else "dual_dialogue_curious"
+
+    raw_dlg = sc.get("dialogue")
+    clean_dlg: List[Dict[str, str]] = []
+    if isinstance(raw_dlg, list):
+        for item in raw_dlg:
+            if not isinstance(item, dict):
+                continue
+            spk_raw = str(item.get("speaker") or "male").strip().lower()
+            spk = "female" if spk_raw in ("female", "f", "she", "questioner", "curious", "girl", "student") else "male"
+            txt = re.sub(
+                r"^\s*(?:female|male|she|he|questioner|solver|mentor|dost|host)\s*:\s*",
+                "",
+                str(item.get("text") or "").strip(),
+                flags=re.IGNORECASE,
+            )
+            if txt:
+                clean_dlg.append({"speaker": spk, "text": txt})
+
+    if len(clean_dlg) < 2:
+        narr_clean = re.sub(
+            r"^\s*(?:female|male|she|he|questioner|solver|mentor)\s*:\s*",
+            "",
+            str(sc.get("narration") or "").strip(),
+            flags=re.IGNORECASE,
+        )
+        split_turns = split_text_to_dual_dialogue(narr_clean, scene_idx=idx)
+        has_both = (
+            len(split_turns) >= 2
+            and any(t["speaker"] == "female" for t in split_turns)
+            and any(t["speaker"] == "male" for t in split_turns)
+        )
+        if has_both:
+            clean_dlg = split_turns
+        else:
+            v_low = str(voice or "").lower()
+            short_t = " ".join(str(title or "this system").strip().split()[:6])
+            role_s = str(sc.get("role") or "").lower()
+            if "mr-in" in v_low or "marathi" in short_t.lower():
+                if role_s == "hook" or idx == 0:
+                    q_txt = f"{short_t} मधील मूळ problem नक्की काय आहे आणि हे scale वर कसं वागतं?"
+                    a_txt = narr_clean or f"{short_t} चं architecture आणि flow step-by-step समजून घेऊया."
+                elif role_s == "cta" or idx >= max(1, total_scenes - 1):
+                    q_txt = f"{short_t} साठी production मध्ये कोणता pattern निवडावा?"
+                    a_txt = narr_clean or "Throughput, consistency आणि cost नुसार योग्य pattern ठरवला जातो."
+                else:
+                    q_txt = f"या stage मध्ये {short_t} नक्की कसं काम करतं?"
+                    a_txt = narr_clean or f"{short_t} मधील ही layer latency कमी करून data safe ठेवते."
+            elif ("en-" in v_low and "|hi" not in v_low and "|hinglish" not in v_low) or (not any(k in v_low for k in ("hi-in", "mr-in", "|hi", "|hinglish"))):
+                if role_s == "hook" or idx == 0:
+                    q_txt = f"Wait — what actually breaks in {short_t} when traffic spikes?"
+                    a_txt = narr_clean or f"Let's trace the exact production flow behind {short_t} step by step."
+                elif role_s == "cta" or idx >= max(1, total_scenes - 1):
+                    q_txt = f"So which architecture should we ship in production for {short_t}?"
+                    a_txt = narr_clean or "Choose based on throughput, latency SLOs, and operational simplicity."
+                else:
+                    q_txt = f"How do the core components interact at this stage of {short_t}?"
+                    a_txt = narr_clean or f"This execution layer preserves consistency while keeping tail latency low."
+            else:
+                if role_s == "hook" or idx == 0:
+                    q_txt = f"{short_t} ka core problem kya hai aur yeh scale par kaise behave karta hai?"
+                    a_txt = narr_clean or f"{short_t} mein exact architecture aur data flow step-by-step dekhte hain."
+                elif role_s == "cta" or idx >= max(1, total_scenes - 1):
+                    q_txt = f"{short_t} mein production architecture finalize karte waqt kaunsa pattern choose karna chahiye?"
+                    a_txt = narr_clean or "Workload ke throughput, ACID guarantees aur cost trade-offs ke basis par pattern decide hota hai."
+                else:
+                    q_txt = f"{short_t} ke internal pipeline mein key components kaise interact karte hain?"
+                    a_txt = narr_clean or f"{short_t} ki execution layer state consistency aur latency maintain karti hai."
+            clean_dlg = [
+                {"speaker": "female", "text": q_txt},
+                {"speaker": "male", "text": a_txt},
+            ]
+
+    sc["dialogue"] = clean_dlg
+    sc["narration"] = " ".join(d["text"] for d in clean_dlg).strip()
+
+
 TONE_PROFILES: Dict[str, Dict[str, Any]] = {
     "auto_2026_director": {
         "label": "⚡ Dynamic 2026 AI Auto-Mix (2s Hook -> War Story -> Code -> Verdict) [Recommended]",

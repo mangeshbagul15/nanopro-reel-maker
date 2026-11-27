@@ -19,7 +19,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from core.config import DEFAULT_WATERMARK, GEMINI_API_KEY, GROQ_API_KEY
-from core.tone_engine import get_tone_profile
+from core.tone_engine import ensure_dual_dialogue_for_scene, get_tone_profile, is_dual_tone
 
 STUDIO_V2_MODE_OPTIONS = [
     ("classic_nanopro", "🧠 Classic NanoPro Studio (All 1,221 Engines + 24 Specialist Modes — Untouched)"),
@@ -115,23 +115,31 @@ def _extract_json_block(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _language_rule(voice: str, topic: str) -> str:
+def _language_rule(voice: str, topic: str, tone: str = "") -> str:
     v = str(voice or "").lower()
     if "mr-in" in v or "marathi" in topic.lower():
-        return (
+        base = (
             "Narration Language: Natural conversational Marathi + English technical terms mixed naturally "
             "(spoken Devanagari Marathi like 'तुम्ही', 'मग', 'समजा', and keep English tech terms in Latin e.g. 'MCP', 'Load Balancer', 'CI/CD'). "
             "On-screen HUD titles/labels: crisp concise Roman Hinglish/Marathi OR Devanagari + English tech keywords (max 4-6 words per heading)."
         )
-    if "hi-in" in v or "hindi" in topic.lower() or "hinglish" in topic.lower():
-        return (
-            "Narration Language: Natural conversational Hinglish (Devanagari Hindi grammar + English technical nouns cleanly spelled in Latin so Edge-TTS reads smoothly, e.g. 'interviewer', 'production', 'Blue-Green deployment', 'Redis'). "
+    elif "hi-in" in v or "|hinglish" in v or "|hi" in v or "hindi" in topic.lower() or "hinglish" in topic.lower():
+        base = (
+            "Narration Language: Natural conversational Hinglish (Devanagari Hindi grammar or crisp Roman Hinglish + English technical nouns cleanly spelled in Latin so Edge-TTS reads smoothly, e.g. 'interviewer', 'production', 'Blue-Green deployment', 'Redis'). "
             "On-screen HUD titles/labels: punchy short Hindi/Roman-Hinglish + English tech words (e.g. 'Build sirf ek baar.', 'हर बार अलग integration')."
         )
-    return (
-        "Narration Language: Crisp conversational Creator English (punchy short sentences, high retention, zero fluff). "
-        "On-screen HUD titles/labels: short 3-6 word impactful English headlines."
-    )
+    else:
+        base = (
+            "Narration Language: Crisp conversational Creator English (punchy short sentences, high retention, zero fluff). "
+            "On-screen HUD titles/labels: short 3-6 word impactful English headlines."
+        )
+    if v.startswith("dual:") or is_dual_tone(tone):
+        base += (
+            "\nDUAL VOICE DIALOGUE MANDATE: The user selected a 2-speaker Female + Male Dual Voice Pair! "
+            "For EVERY scene, include `\"dialogue\": [{\"speaker\": \"female\", \"text\": \"curious builder question/reaction\"}, {\"speaker\": \"male\", \"text\": \"mentor technical explanation\"}]` "
+            "(2 to 3 crisp alternating turns, zero `Female:`/`Male:` prefixes inside text) AND set `\"narration\"` to their clean space-joined transcript."
+        )
+    return base
 
 
 def _scene_count_guidance(duration_mode: str, sub_engine: str) -> str:
@@ -299,7 +307,7 @@ def _normalize_v2_scenes(
         }
         v_type_out, r_eng_out = _engine_labels.get(sub_engine, (f"v2_{sub_engine}", f"Studio ({sub_engine})"))
 
-        norm.append({
+        out_item = {
             "scene_id": i + 1,
             "role": role,
             "scene_tone": sc_tone,
@@ -315,7 +323,10 @@ def _normalize_v2_scenes(
             "actions": [],
             "_disable_actions_overlay": True,
             "_disable_camera_actions": True,
-        })
+        }
+        if isinstance(sc.get("dialogue"), list) and sc.get("dialogue"):
+            out_item["dialogue"] = sc["dialogue"]
+        norm.append(out_item)
     return norm
 
 
@@ -813,7 +824,7 @@ def _generate_v2_vector_llm(
     cta_style: str,
     cta_keyword: str,
 ) -> Optional[Dict[str, Any]]:
-    lang_instr = _language_rule(voice, topic)
+    lang_instr = _language_rule(voice, topic, tone=tone)
     sc_guide = _scene_count_guidance(duration_mode, "vector_storyboard")
     cta_instr = (
         f"Final CTA button label MUST trigger Comment Keyword '{cta_keyword.strip().upper()}'."
@@ -919,7 +930,7 @@ def _generate_v2_isometric_llm(
     cta_style: str,
     cta_keyword: str,
 ) -> Optional[Dict[str, Any]]:
-    lang_instr = _language_rule(voice, topic)
+    lang_instr = _language_rule(voice, topic, tone=tone)
     sc_guide = _scene_count_guidance(duration_mode, "spatial_isometric")
     cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Share with a developer!"
 
@@ -1418,7 +1429,7 @@ def _generate_v3_ide_llm(
     cta_style: str,
     cta_keyword: str,
 ) -> Optional[Dict[str, Any]]:
-    lang_instr = _language_rule(voice, topic)
+    lang_instr = _language_rule(voice, topic, tone=tone)
     sc_guide = _scene_count_guidance(duration_mode, "live_ide")
     cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this code tip!"
 
@@ -1503,7 +1514,7 @@ def _generate_v4_whiteboard_llm(
     cta_style: str,
     cta_keyword: str,
 ) -> Optional[Dict[str, Any]]:
-    lang_instr = _language_rule(voice, topic)
+    lang_instr = _language_rule(voice, topic, tone=tone)
     sc_guide = _scene_count_guidance(duration_mode, "blueprint_whiteboard")
     cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this blueprint!"
 
@@ -1794,10 +1805,16 @@ def generate_v2_timeline(
 
     # Propagate global metadata onto every scene cleanly so parallel scene rendering is self-contained
     ws = tl.get("world_spec")
-    tot = len(tl.get("scenes", []))
-    for idx, sc in enumerate(tl.get("scenes", [])):
+    scenes_out = tl.get("scenes", [])
+    tot = len(scenes_out)
+    want_dual = is_dual_tone(tone) or str(voice or "").startswith("dual:")
+    for idx, sc in enumerate(scenes_out):
+        if want_dual or is_dual_tone(sc.get("scene_tone")) or (isinstance(sc.get("dialogue"), list) and len(sc.get("dialogue") or []) >= 1):
+            ensure_dual_dialogue_for_scene(sc, topic, idx, tot, voice=voice, tone=tone)
         vd = sc.setdefault("visual_data", {})
         vd["watermark"] = wm_clean
+        if sc.get("visual_type") == "v5_datacenter_park" and sc.get("narration"):
+            vd["dialogue_text"] = str(sc["narration"])[:135]
         if vd.get("widget_type") == "follow_cta":
             vd["handle_title"] = wm_clean
         vd.setdefault("_scene_idx", idx)

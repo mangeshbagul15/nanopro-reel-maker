@@ -21,6 +21,7 @@ from core.tone_engine import (
     get_tone_profile,
     is_dual_tone,
     resolve_effective_tone,
+    split_text_to_dual_dialogue,
 )
 
 DEFAULT_VOICE = "en-US-ChristopherNeural"
@@ -774,21 +775,41 @@ def _synthesize_single_scene(
     tone: str = DEFAULT_CONCRETE_TONE,
     allow_elevenlabs: bool = True,
     dialogue: Optional[List[Dict[str, Any]]] = None,
+    scene_idx: int = 0,
 ) -> List[Dict[str, Any]]:
     """
     Synthesizes speech for a single scene (single voice OR dual-speaker Female/Male dialogue):
     - Only calls ElevenLabs API if allow_elevenlabs=True AND voice starts with 'elevenlabs:'.
-    - When `dialogue` turns are provided for `dual:` voices or `dual_creator_debate`, synthesizes
-      per-turn alternating Female Builder + Male Architect clips stitched cleanly with pauses.
+    - Whenever `voice` starts with `dual:` or `is_dual_tone(tone)` or `dialogue` has turns,
+      synthesizes alternating Female + Male Edge-TTS clips (splitting plain text cleanly
+      into alternating turns whenever explicit `dialogue` turns are absent).
     Returns `dialogue_spans` (empty list for single-speaker scenes).
     """
-    is_dual = (voice.startswith("dual:") or is_dual_tone(tone)) and isinstance(dialogue, list) and len(dialogue) >= 1
-    if is_dual:
-        fem_v, male_v = parse_dual_voice_pair(voice)
-        ok_dual, spans = asyncio.run(_synthesize_dual_dialogue_scene(dialogue, output_path, fem_voice=fem_v, male_voice=male_v))
-        if ok_dual and spans:
-            return spans
-        print("[Voice Dual] Falling back to single-voice Edge-TTS for scene...")
+    has_dialogue = isinstance(dialogue, list) and len(dialogue) >= 1
+    wants_dual = voice.startswith("dual:") or (has_dialogue and (is_dual_tone(tone) or len(dialogue) >= 2))
+    if is_dual_tone(tone) and not wants_dual:
+        wants_dual = True
+
+    if wants_dual:
+        eff_dialogue: List[Dict[str, Any]] = []
+        if has_dialogue:
+            eff_dialogue = [
+                d for d in dialogue
+                if isinstance(d, dict) and str(d.get("text") or "").strip()
+            ]
+        if not eff_dialogue and str(text or "").strip():
+            eff_dialogue = split_text_to_dual_dialogue(text, scene_idx=scene_idx)
+        elif len(eff_dialogue) == 1 and len(str(text or "").strip()) > len(str(eff_dialogue[0].get("text") or "")) + 15:
+            eff_dialogue = split_text_to_dual_dialogue(text, scene_idx=scene_idx)
+
+        if eff_dialogue:
+            fem_v, male_v = parse_dual_voice_pair(voice)
+            ok_dual, spans = asyncio.run(
+                _synthesize_dual_dialogue_scene(eff_dialogue, output_path, fem_voice=fem_v, male_voice=male_v)
+            )
+            if ok_dual and spans:
+                return spans
+            print("[Voice Dual] Falling back to alternating single Edge-TTS voice for scene...")
 
     is_elevenlabs = allow_elevenlabs and voice.startswith("elevenlabs:")
     
@@ -810,8 +831,9 @@ def _synthesize_single_scene(
 
     # Standard Edge-TTS path (never consumes ElevenLabs credits)
     if voice.startswith("dual:"):
-        _, male_v = parse_dual_voice_pair(voice)
-        clean_voice = _normalize_edge_speaker_id(male_v, "hi-IN-MadhurNeural")
+        fem_v, male_v = parse_dual_voice_pair(voice)
+        picked_v = fem_v if (scene_idx % 2 == 0) else male_v
+        clean_voice = _normalize_edge_speaker_id(picked_v, "hi-IN-MadhurNeural")
     else:
         clean_voice = voice.replace("edge:", "").split("|", 1)[0].strip()
     if clean_voice.startswith("elevenlabs:"):
@@ -865,6 +887,7 @@ def generate_voiceover(
         spans = _synthesize_single_scene(
             text, p, voice=voice, elevenlabs_model=elevenlabs_model,
             tone=sc_tone, allow_elevenlabs=allow_elevenlabs, dialogue=sc.get("dialogue"),
+            scene_idx=i,
         )
         _ensure_valid_audio(p)
         return i, (spans or [])

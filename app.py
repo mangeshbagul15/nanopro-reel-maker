@@ -366,6 +366,8 @@ with st.sidebar:
                 if use_custom_pair:
                     chosen_voice = f"dual:{fem_pick[0]}+{male_pick[0]}"
                     voice_label = f"🗣️ Dual: {fem_pick[1].split('—')[0].strip()} + {male_pick[1].split('—')[0].strip()}"
+            _fp = chosen_voice.split("dual:", 1)[1].split("+", 1) if str(chosen_voice).startswith("dual:") and "+" in str(chosen_voice) else ["hi-IN-SwaraNeural", "hi-IN-MadhurNeural"]
+            st.caption(f"🗣️ **Dual Dialogue Active:** Female (`{_fp[0].split('|')[0]}`) + Male (`{_fp[1].split('|')[0]}`) will alternate automatically across scenes.")
     
     st.session_state.setdefault("format_aspect_select", ("9:16", "📱 9:16 Vertical (Reels / Shorts / TikTok - 1080x1920)"))
     aspect_ratio = st.selectbox(

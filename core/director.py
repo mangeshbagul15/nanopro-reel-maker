@@ -6,6 +6,7 @@ from core.tone_engine import (
     DEFAULT_CONCRETE_TONE,
     DEFAULT_TONE_KEY,
     DUAL_TONE_KEY,
+    ensure_dual_dialogue_for_scene,
     is_dual_tone,
     TONE_PROFILES,
     get_tone_directive,
@@ -2107,47 +2108,9 @@ def _enforce_engine_style(
             v_data["footer"] = clauses[-1][:64]
 
         # Guarantee clean Dual-Voice Conversation turns (`dialogue`) whenever `dual_creator_debate` or a `dual:` voice is selected
-        if is_dual_tone(tone) or is_dual_tone(sc.get("scene_tone")) or (isinstance(sc.get("dialogue"), list) and len(sc.get("dialogue") or []) >= 1):
-            sc["scene_tone"] = DUAL_TONE_KEY if tone != "dual_dialogue_curious" else "dual_dialogue_curious"
-            raw_dlg = sc.get("dialogue")
-            clean_dlg: List[Dict[str, str]] = []
-            if isinstance(raw_dlg, list):
-                for item in raw_dlg:
-                    if not isinstance(item, dict):
-                        continue
-                    spk_raw = str(item.get("speaker") or "male").strip().lower()
-                    spk = "female" if spk_raw in ("female", "f", "she", "questioner", "curious", "girl", "student") else "male"
-                    txt = re.sub(
-                        r"^\s*(?:female|male|she|he|questioner|solver|mentor|dost|host)\s*:\s*",
-                        "",
-                        str(item.get("text") or "").strip(),
-                        flags=re.IGNORECASE,
-                    )
-                    if txt:
-                        clean_dlg.append({"speaker": spk, "text": txt})
-            if len(clean_dlg) < 2:
-                narr_clean = re.sub(
-                    r"^\s*(?:female|male|she|he|questioner|solver|mentor)\s*:\s*",
-                    "",
-                    str(sc.get("narration") or "").strip(),
-                    flags=re.IGNORECASE,
-                )
-                role_s = str(sc.get("role") or "").lower()
-                if role_s == "hook" or idx == 0:
-                    q_txt = f"{title[:38]} ka core problem kya hai aur yeh scale par kaise behave karta hai?"
-                    a_txt = narr_clean or f"{title[:34]} mein exact architecture aur data flow step-by-step dekhte hain."
-                elif role_s == "cta" or idx == len(scenes) - 1:
-                    q_txt = f"{title[:34]} mein production architecture finalize karte waqt kaunsa pattern choose karna chahiye?"
-                    a_txt = narr_clean or "Workload ke throughput, ACID guarantees aur cost trade-offs ke basis par pattern decide hota hai."
-                else:
-                    q_txt = f"{title[:36]} ke internal pipeline mein key components kaise interact karte hain?"
-                    a_txt = narr_clean or f"{title[:30]} ki execution layer state consistency aur latency maintain karti hai."
-                clean_dlg = [
-                    {"speaker": "female", "text": q_txt},
-                    {"speaker": "male", "text": a_txt},
-                ]
-            sc["dialogue"] = clean_dlg
-            sc["narration"] = " ".join(d["text"] for d in clean_dlg).strip()
+        if is_dual_tone(tone) or is_dual_tone(sc.get("scene_tone")) or str(voice).startswith("dual:") or (isinstance(sc.get("dialogue"), list) and len(sc.get("dialogue") or []) >= 1):
+            ensure_dual_dialogue_for_scene(sc, str(title), idx, len(scenes), voice=voice, tone=tone)
+            clean_dlg = sc.get("dialogue") or []
             clauses = _split_narration_clauses(sc["narration"], target_count=5) or clauses
             if current_vtype == "chat_thread_ai":
                 v_data["messages"] = [
