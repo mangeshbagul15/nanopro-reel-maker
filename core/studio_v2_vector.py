@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from core.config import DEFAULT_WATERMARK, FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS
+from core.tone_engine import compute_synced_visual_progress
 
 _ACCENT_HEX = {
     "cyan": "#22D3EE",
@@ -578,6 +579,7 @@ def render_v2_vector_scene_frames(
     scene_idx: int,
     format_ratio: str = "9:16",
     scene_words: Optional[List[Dict[str, Any]]] = None,
+    tone: str = "auto_2026_director",
 ) -> Path:
     """Renders all FPS frames for a Studio V2 Clean Vector Storyboard scene using Chromium."""
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
@@ -610,14 +612,7 @@ def render_v2_vector_scene_frames(
         for f in range(total_frames):
             lin_p = f / max(1, total_frames - 1)
             cur_t = sc_start + lin_p * duration
-            if words:
-                spoken = sum(1 for wd in words if float(wd.get("start", 0.0)) <= cur_t)
-                word_p = spoken / max(1, len(words))
-                eff_p = min(1.0, 0.72 * word_p + 0.28 * lin_p)
-            else:
-                eff_p = lin_p
-            if lin_p >= 0.92:
-                eff_p = 1.0
+            eff_p = compute_synced_visual_progress(lin_p, cur_t, words, tone=tone)
             page.evaluate(
                 "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.wp, args.lp); }",
                 {"wp": round(eff_p, 4), "lp": round(lin_p, 4)},

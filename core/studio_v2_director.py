@@ -19,7 +19,12 @@ import re
 from typing import Any, Dict, List, Optional
 
 from core.config import DEFAULT_WATERMARK, GEMINI_API_KEY, GROQ_API_KEY
-from core.tone_engine import ensure_dual_dialogue_for_scene, get_tone_profile, is_dual_tone
+from core.tone_engine import (
+    ensure_dual_dialogue_for_scene,
+    get_tone_directive,
+    get_tone_profile,
+    is_dual_tone,
+)
 
 STUDIO_V2_MODE_OPTIONS = [
     ("classic_nanopro", "🧠 Classic NanoPro Studio (All 1,221 Engines + 24 Specialist Modes — Untouched)"),
@@ -132,6 +137,12 @@ def _language_rule(voice: str, topic: str, tone: str = "") -> str:
         base = (
             "Narration Language: Crisp conversational Creator English (punchy short sentences, high retention, zero fluff). "
             "On-screen HUD titles/labels: short 3-6 word impactful English headlines."
+        )
+    if str(tone or "").startswith("indian_boy_"):
+        base += (
+            f"\n{get_tone_directive(tone)}\n"
+            "INDIAN HINDI STYLE MANDATE: Sound 100% like an authentic young Indian creator speaking Hindi/Hinglish (e.g. 'अरे रुको ज़रा...', 'सोचो...', 'सीधी सी बात है बॉस...'). "
+            "Insert crisp `...` breath pauses before key architecture steps, keep EVERY line tight with zero extra filler words, and close the final CTA scene with a memorable classic finisher that touches the heart!"
         )
     if v.startswith("dual:") or is_dual_tone(tone):
         base += (

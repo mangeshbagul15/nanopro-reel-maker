@@ -476,22 +476,21 @@ def _clean_tts_text(text: str, preserve_pauses: bool = False) -> str:
     return cleaned
 
 
-def _split_pause_beats(text: str, max_beats: int = 5) -> List[str]:
-    """Splits narration along pause cues ('...' / '[pause]'), rhetorical cues, or sentences for Hook-to-Climax clause speed curves."""
+def _split_pause_beats(text: str, max_beats: int = 3) -> List[str]:
+    """Splits narration along explicit pause cues ('...' / '[pause]'), Indian conversational cues, or sentences."""
     normalized = re.sub(r'\[pause\]', ' ... ', text, flags=re.IGNORECASE)
-    cue_split_re = r'\b(Relax|Wait|Look|Listen|Stop|Twist|Catch|Boom|Done|Think|Why|How|Samjha|Actually|Result)\s*([.?!])\s+(?=[A-Za-z0-9])'
+    cue_split_re = r'\b(Relax|Wait|Look|Listen|Stop|Twist|Catch|Boom|Done|Think|Why|How|Samjha|Samjhe|Ruko|Suno|Dekho|Socho|Bas|Actually|Result|रुको|सोचो|सुनो|देखो|समझे)\s*([.?!।]?)\s+'
     normalized = re.sub(cue_split_re, r'\1\2 ... ', normalized, flags=re.IGNORECASE)
     raw_parts = [p.strip() for p in re.split(r'\s*\.{3,}\s*', normalized) if p and any(ch.isalnum() for ch in p)]
-    if len(raw_parts) <= 1 and len(normalized) >= 72:
-        # Sentence/em-dash fallback split so Hook-to-Climax prosody curve works cleanly even without explicit ellipses
-        sent_parts = [p.strip() for p in re.split(r'(?<=[.!?])\s+|\s+[—-]{1,2}\s+', normalized) if p and any(ch.isalnum() for ch in p)]
+    if len(raw_parts) <= 1 and len(normalized) >= 56:
+        sent_parts = [p.strip() for p in re.split(r'(?<=[.!?।])\s+|\s+[—-]{1,2}\s+', normalized) if p and any(ch.isalnum() for ch in p)]
         if len(sent_parts) >= 2:
             raw_parts = sent_parts
     if len(raw_parts) <= 1:
         return [re.sub(r'\s+', ' ', normalized).strip()]
     if len(raw_parts) > max_beats:
         merged = raw_parts[:max_beats - 1]
-        merged.append(", ".join(raw_parts[max_beats - 1:]))
+        merged.append(" ".join(raw_parts[max_beats - 1:]))
         return merged
     return raw_parts
 
@@ -612,28 +611,103 @@ def _trim_tts_edge_silence(audio_path: Path, keep_start_sec: float = 0.03, keep_
 
 async def _synthesize_edge_tts_scene(text: str, output_path: Path, voice: str, tone: str = DEFAULT_CONCRETE_TONE) -> bool:
     """
-    Synthesizes speech using Microsoft Edge-TTS in ONE continuous pass per scene
-    (preventing mid-sentence choppiness or pitch-jump locks) and trims bloated trailing dead silence.
+    Synthesizes speech using Microsoft Edge-TTS:
+    - Honors natural pause cues (`...` / `[pause]` / Indian cadence beats) when `use_pause_cadence`
+      or explicit pauses are present, stitching beats with clean `pause_sec` gaps and an optional
+      `tail_hold_sec` comprehension breath so visuals never flash past too fast.
     """
     t_prof = get_tone_profile(tone)
     rate = str(t_prof["edge_base"]["rate"])
     pitch = str(t_prof["edge_base"]["pitch"])
+    use_pauses = bool(t_prof.get("use_pause_cadence")) or ("..." in str(text)) or ("[pause]" in str(text).lower())
+    gap_sec = max(0.16, min(0.42, float(t_prof.get("pause_sec") or 0.26)))
+    tail_hold = max(0.0, min(0.65, float(t_prof.get("tail_hold_sec") or 0.0)))
 
-    plain_text = _clean_tts_text(text, preserve_pauses=False)
-    if not plain_text:
+    beats = _split_pause_beats(str(text or ""), max_beats=3) if use_pauses else [str(text or "")]
+    clean_beats = [_clean_tts_text(b, preserve_pauses=False) for b in beats]
+    clean_beats = [b for b in clean_beats if b]
+    if not clean_beats:
         return False
 
-    for attempt in range(3):
-        try:
-            communicate = edge_tts.Communicate(plain_text, voice, rate=rate, pitch=pitch)
-            await communicate.save(str(output_path))
-            if output_path.exists() and output_path.stat().st_size > 1000:
-                _trim_tts_edge_silence(output_path, keep_start_sec=0.03, keep_tail_sec=0.14)
-                return True
-        except Exception as e:
-            print(f"[Voice] Edge-TTS attempt {attempt + 1} warning: {e}")
-            await asyncio.sleep(0.5)
+    if len(clean_beats) == 1:
+        plain_text = clean_beats[0]
+        for attempt in range(3):
+            try:
+                communicate = edge_tts.Communicate(plain_text, voice, rate=rate, pitch=pitch)
+                await communicate.save(str(output_path))
+                if output_path.exists() and output_path.stat().st_size > 1000:
+                    _trim_tts_edge_silence(output_path, keep_start_sec=0.03, keep_tail_sec=max(0.14, 0.14 + tail_hold))
+                    return True
+            except Exception as e:
+                print(f"[Voice] Edge-TTS attempt {attempt + 1} warning: {e}")
+                await asyncio.sleep(0.5)
+        return False
 
+    # Multi-beat natural Hindi/Creator cadence synthesis with crisp breath pauses + visual tail hold
+    seg_files: List[Path] = []
+    try:
+        async def _synth_beat(b_idx: int, b_txt: str):
+            sp = OUTPUT_DIR / f"edge_beat_{b_idx}_{uuid.uuid4().hex[:6]}.mp3"
+            b_rate, b_pitch = get_clause_prosody(tone, b_idx, len(clean_beats), b_txt)
+            for attempt in range(3):
+                try:
+                    comm = edge_tts.Communicate(b_txt, voice, rate=b_rate, pitch=b_pitch)
+                    await comm.save(str(sp))
+                    if sp.exists() and sp.stat().st_size > 600:
+                        _trim_tts_edge_silence(sp, keep_start_sec=0.03, keep_tail_sec=0.08)
+                        return True, sp
+                except Exception as e:
+                    print(f"[Voice] Edge-TTS beat {b_idx + 1} attempt {attempt + 1} warning: {e}")
+                    await asyncio.sleep(0.35)
+            return False, sp
+
+        results = await asyncio.gather(*(_synth_beat(bi, bt) for bi, bt in enumerate(clean_beats)))
+        for ok_b, sp in results:
+            if not ok_b:
+                return False
+            seg_files.append(sp)
+
+        cmd = [str(FFMPEG_EXE), "-y"]
+        for sp in seg_files:
+            cmd.extend(["-i", str(sp.resolve())])
+        max_sil = max(gap_sec, tail_hold, 0.25)
+        cmd.extend(["-f", "lavfi", "-t", f"{max_sil:.2f}", "-i", "anullsrc=r=44100:cl=stereo"])
+        sil_idx = len(seg_files)
+        parts, seq = [], []
+        for idx in range(len(seg_files)):
+            parts.append(f"[{idx}:a]aformat=sample_rates=44100:channel_layouts=stereo[b{idx}]")
+            seq.append(f"[b{idx}]")
+            if idx < len(seg_files) - 1:
+                parts.append(f"[{sil_idx}:a]atrim=0:{gap_sec:.2f}[g{idx}]")
+                seq.append(f"[g{idx}]")
+        if tail_hold >= 0.12:
+            parts.append(f"[{sil_idx}:a]atrim=0:{tail_hold:.2f}[tail]")
+            seq.append("[tail]")
+        filt = ";".join(parts) + ";" + "".join(seq) + f"concat=n={len(seq)}:v=0:a=1[outa]"
+        cmd.extend(["-filter_complex", filt, "-map", "[outa]", "-c:a", "libmp3lame", "-b:a", "192k", str(output_path.resolve())])
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
+        if res.returncode == 0 and output_path.exists() and output_path.stat().st_size > 1000:
+            return True
+    except Exception as e:
+        print(f"[Voice] Multi-beat Edge-TTS stitch notice: {e}")
+    finally:
+        for sp in seg_files:
+            try:
+                if sp.exists():
+                    sp.unlink()
+            except Exception:
+                pass
+
+    # Clean single-pass fallback if multi-beat failed
+    fallback_txt = " ".join(clean_beats)
+    try:
+        comm = edge_tts.Communicate(fallback_txt, voice, rate=rate, pitch=pitch)
+        await comm.save(str(output_path))
+        if output_path.exists() and output_path.stat().st_size > 1000:
+            _trim_tts_edge_silence(output_path, keep_start_sec=0.03, keep_tail_sec=0.14)
+            return True
+    except Exception:
+        pass
     return False
 
 def parse_dual_voice_pair(voice: str) -> Tuple[str, str]:

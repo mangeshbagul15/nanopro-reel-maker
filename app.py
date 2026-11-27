@@ -50,7 +50,7 @@ sys._nanopro_core_mtimes = _CORE_MTIMES
 
 from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
 from core.presets import load_creator_presets, save_custom_creator_preset
-from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline, is_dual_tone
+from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, INDIAN_BOY_STYLE_OPTIONS, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline, is_dual_tone
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles, load_visual_history, reset_visual_history
 from core.voice import generate_voiceover, DEFAULT_VOICE, get_elevenlabs_usage, ELEVENLABS_MODELS, VOICE_CATALOG
 from core.animator import render_scene_frames, generate_thumbnail_9_16, generate_thumbnail_pack
@@ -211,6 +211,7 @@ with st.sidebar:
         elif _ps.get("visual_mode") == "auto_omni":
             st.session_state["visual_engine_mode_radio"] = "🧠 Auto Omni Smart Director (All Engines Unified) [Recommended]"
         for _sk, _wk in (
+            ("indian_boy_vibe", "indian_boy_vibe_select"),
             ("bgm_style", "bgm_style_select"),
             ("bgm_volume_pct", "bgm_volume_slider"),
             ("caption_style", "caption_style_select"),
@@ -240,7 +241,18 @@ with st.sidebar:
     )
     chosen_tone = tone_option[0]
 
-    # Bidirectional Auto-Sync: Tone <-> Language <-> Dual Pair Voice Persona
+    st.session_state.setdefault("indian_boy_vibe_select", INDIAN_BOY_STYLE_OPTIONS[0])
+    indian_boy_choice = st.selectbox(
+        "🇮🇳👦 Indian Boy Vibe & Hindi Sync Pace",
+        INDIAN_BOY_STYLE_OPTIONS,
+        format_func=lambda x: x[1],
+        key="indian_boy_vibe_select",
+        help="Pick an authentic Indian Hindi boy personality (Cute/Sweet/Smart Chapal, Village Freshness, City Charm, Calm Classic, or Chai-Tapri Dual) with crisp breath pauses and steady concept visuals.",
+    )
+    if indian_boy_choice and indian_boy_choice[0] != "follow_tone":
+        chosen_tone = indian_boy_choice[0]
+
+    # Bidirectional Auto-Sync: Tone <-> Language <-> Voice Persona (Indian Boy Hindi / Dual Pair)
     _prev_tone = st.session_state.get("_prev_tone_option")
     _dual_by_lang = {
         "All": ("dual:hi-IN-SwaraNeural+hi-IN-MadhurNeural", "🗣️🇮🇳 Dual Hinglish: Swara (Curious Q) + Madhur (Mentor A) [Recommended Dual]"),
@@ -253,6 +265,13 @@ with st.sidebar:
         st.session_state["gender_filter_pills"] = "🗣️ Dual Pair"
         _cur_lf = st.session_state.get("lang_filter_pills") or "All"
         st.session_state["edge_voice_select"] = _dual_by_lang.get(_cur_lf, _dual_by_lang["All"])
+    elif str(chosen_tone).startswith("indian_boy_") and not str(_prev_tone or "").startswith("indian_boy_"):
+        st.session_state["voice_provider_radio"] = "Microsoft Edge-TTS (Free & Fast)"
+        if st.session_state.get("lang_filter_pills") not in ("All", "🇮🇳 Hindi"):
+            st.session_state["lang_filter_pills"] = "🇮🇳 Hindi"
+        if st.session_state.get("gender_filter_pills") in ("🗣️ Dual Pair", "👩 Female"):
+            st.session_state["gender_filter_pills"] = "All"
+        st.session_state["edge_voice_select"] = ("hi-IN-MadhurNeural", "🇮🇳 Madhur — Native Hindi / Hinglish Tech (Male)")
     elif is_dual_tone(_prev_tone) and not is_dual_tone(chosen_tone):
         if st.session_state.get("gender_filter_pills") == "🗣️ Dual Pair":
             st.session_state["gender_filter_pills"] = "All"
@@ -694,6 +713,7 @@ with st.sidebar:
         if st.button("💾 Save Creator Preset", key="save_preset_btn", use_container_width=True):
             _payload_settings = {
                 "tone_key": chosen_tone,
+                "indian_boy_vibe": indian_boy_choice,
                 "voice_provider": voice_provider,
                 "lang_filter": lang_filter or "All",
                 "gender_filter": gender_filter or "All",
@@ -1162,6 +1182,7 @@ with tab_create:
                         idx_i + 1,
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
+                        tone=chosen_tone,
                     )
                 elif v_type == "v2_spatial_isometric":
                     render_v2_isometric_scene_frames(

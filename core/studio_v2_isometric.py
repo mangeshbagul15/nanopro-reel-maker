@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from core.config import DEFAULT_WATERMARK, FORMAT_SPECS, OUTPUT_DIR, VIDEO_FPS
-from core.tone_engine import get_tone_profile
+from core.tone_engine import compute_synced_visual_progress, get_tone_profile
 
 _ACCENT_HEX = {
     "cyan": "#38BDF8",
@@ -625,14 +625,7 @@ def render_v2_isometric_scene_frames(
         for f in range(total_frames):
             lin_p = f / max(1, total_frames - 1)
             cur_t = sc_start + lin_p * duration
-            if words:
-                spoken = sum(1 for wd in words if float(wd.get("start", 0.0)) <= cur_t)
-                word_p = spoken / max(1, len(words))
-                word_blend = min(1.0, 0.72 * word_p + 0.28 * lin_p)
-            else:
-                word_blend = lin_p
-            if lin_p >= 0.94:
-                word_blend = 1.0
+            word_blend = compute_synced_visual_progress(lin_p, cur_t, words, tone=tone)
             page.evaluate(
                 "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.lp, args.wp); }",
                 {"lp": round(lin_p, 4), "wp": round(word_blend, 4)},

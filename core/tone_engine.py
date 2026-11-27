@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 DEFAULT_TONE_KEY = "auto_2026_director"
 DEFAULT_CONCRETE_TONE = "whiteboard_analogy"
 DUAL_TONE_KEY = "dual_creator_debate"
-DUAL_TONE_KEYS = (DUAL_TONE_KEY, "dual_dialogue_curious")
+DUAL_TONE_KEYS = (DUAL_TONE_KEY, "dual_dialogue_curious", "indian_boy_dual_chai")
 
 
 def is_dual_tone(tone: Optional[str]) -> bool:
@@ -426,6 +426,146 @@ TONE_PROFILES: Dict[str, Dict[str, Any]] = {
         "default_sfx": "pop_snap",
         "camera_zoom_bias": 1.08,
     },
+    "indian_boy_heartfelt": {
+        "label": "🇮🇳👦 Dil Se Indian Boy (Cute, Sweet, Smart & Chapal • Calm Mastery + Classic Finisher)",
+        "directive": (
+            "SCRIPT TONE (INDIAN HEARTFELT SMART BOY — CUTE, SWEET, CHARMING, CHAPAL & CLASSIC FINISHER):\n"
+            "Write in authentic spoken **Indian Hindi / Hinglish** (the natural sweet cadence of a young, charming Indian creator — e.g. 'अरे एक सेकंड रुको...', 'सोचो ज़रा...', 'सीधी सी बात है यार...', 'दिल खुश हो जाएगा देखकर!').\n"
+            "VIBE & PERSONALITY: Cute, sweet, slightly playful/romantic warmth, fresh village-meets-city confidence, calm deep tech knowledge, smart & nimble (*chapal*), ZERO extra filler words.\n"
+            "PACING & PAUSES: Start with a smiling curious hook, insert crisp `...` breath pauses before revealing the core mechanism so visuals are 100% easy to absorb, keep sentences punchy (10-14 words), and end the final scene with ONE unforgettable, heart-touching classic finisher line (`मन में घर कर जाने वाला closer`)."
+        ),
+        "elevenlabs": {"stability": 0.44, "similarity_boost": 0.85, "style": 0.44, "use_speaker_boost": True},
+        "edge_base": {"rate": "+4%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+6%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+3%", "pitch": "+1Hz"},
+        "verdict_curve": {"rate": "+1%", "pitch": "+0Hz"},
+        "pause_sec": "0.28",
+        "tail_hold_sec": 0.44,
+        "use_pause_cadence": True,
+        "visual_pace_lead": 1.15,
+        "atempo": "1.01",
+        "subtitle_tag": r"\c&H002BF6FF&\fscx112\fscy112",
+        "subtitle_name": "indian_boy_warm_cyan",
+        "preferred_world": "sapphire_3d",
+        "accent_key": "cyan",
+        "animator_theme": "cyber_cyan",
+        "reveal_power": 0.94,
+        "motion_profile": "flow_slide",
+        "preferred_layouts": ("excalidraw_sketch_board", "architecture_flow", "ide_split_workbench", "bento_apple_keynote"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.07,
+    },
+    "indian_boy_village_fresh": {
+        "label": "🌾🇮🇳 Gaon Se Tech Tak (Desi Village Boy Freshness, Sweet Smile & Classic Intuition)",
+        "directive": (
+            "SCRIPT TONE (FRESH INDIAN VILLAGE TECH BOY — SWEET INNOCENCE + SHARP GENIUS):\n"
+            "Speak in warm, fresh Indian Hindi/Hinglish rooted in relatable everyday desi analogies (chai tapri, gaon ka post-office, train ticket line, paani ki tanki) mapped accurately to real system internals.\n"
+            "VIBE: Happy, grounded, lovable, crisp `...` breath pauses between intuition and technical proof, ZERO unnecessary words, ending on a classic smiling closer that stays in the viewer's heart."
+        ),
+        "elevenlabs": {"stability": 0.46, "similarity_boost": 0.85, "style": 0.42, "use_speaker_boost": True},
+        "edge_base": {"rate": "+3%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+5%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+2%", "pitch": "+1Hz"},
+        "verdict_curve": {"rate": "+0%", "pitch": "+0Hz"},
+        "pause_sec": "0.30",
+        "tail_hold_sec": 0.46,
+        "use_pause_cadence": True,
+        "visual_pace_lead": 1.16,
+        "atempo": "1.00",
+        "subtitle_tag": r"\c&H0099D334&\fscx110\fscy110",
+        "subtitle_name": "indian_village_mint",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "emerald",
+        "animator_theme": "emerald_matrix",
+        "reveal_power": 0.95,
+        "motion_profile": "stack_snap",
+        "preferred_layouts": ("excalidraw_sketch_board", "iso_architecture", "medallion_lakehouse"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.06,
+    },
+    "indian_boy_city_charm": {
+        "label": "🏙️🇮🇳 Modern City Boy (Smart Chapal Hinglish, Fast Hook & Sweet Classic Closer)",
+        "directive": (
+            "SCRIPT TONE (MODERN INDIAN CITY TECH BOY — SMART, CHAPAL, ATTRACTIVE & CRISP):\n"
+            "Fast-minded modern Indian city boy vibe — lively Hinglish, cute magnetic wit, zero rambling ('सीधा point पे आते हैं...', 'बस 10 सेकंड में तस्वीर साफ!'), crisp `...` pauses on key numbers/architecture steps, ending with a razor-sharp classic finisher line."
+        ),
+        "elevenlabs": {"stability": 0.42, "similarity_boost": 0.84, "style": 0.44, "use_speaker_boost": True},
+        "edge_base": {"rate": "+6%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+8%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+5%", "pitch": "+1Hz"},
+        "verdict_curve": {"rate": "+2%", "pitch": "+0Hz"},
+        "pause_sec": "0.24",
+        "tail_hold_sec": 0.38,
+        "use_pause_cadence": True,
+        "visual_pace_lead": 1.12,
+        "atempo": "1.02",
+        "subtitle_tag": r"\c&H0024BFFF&\fscx112\fscy112",
+        "subtitle_name": "indian_city_amber",
+        "preferred_world": "obsidian_studio",
+        "accent_key": "amber",
+        "animator_theme": "gold_purple",
+        "reveal_power": 0.92,
+        "motion_profile": "pop_bounce",
+        "preferred_layouts": ("hero_hook", "ide_split_workbench", "bento_apple_keynote", "split_comparison"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.08,
+    },
+    "indian_boy_calm_classic": {
+        "label": "🎓🇮🇳 Calm Classic Tech Boy (Poised Indian Hindi, Crystal Visual Hold & Heartfelt Finisher)",
+        "directive": (
+            "SCRIPT TONE (CALM CLASSIC INDIAN TECH STORYTELLER — PURE PERFECTION):\n"
+            "Calm, poetic clarity in natural spoken Indian Hindi/Hinglish. Zero rush, zero extra words, clean `...` pauses after every key insight so diagrams breathe on screen, concluding with a timeless, memorable finisher."
+        ),
+        "elevenlabs": {"stability": 0.56, "similarity_boost": 0.86, "style": 0.30, "use_speaker_boost": True},
+        "edge_base": {"rate": "+2%", "pitch": "+0Hz"},
+        "hook_curve": {"rate": "+4%", "pitch": "+1Hz"},
+        "mid_curve": {"rate": "+2%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+0%", "pitch": "-1Hz"},
+        "pause_sec": "0.32",
+        "tail_hold_sec": 0.48,
+        "use_pause_cadence": True,
+        "visual_pace_lead": 1.18,
+        "atempo": "1.00",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx108\fscy108",
+        "subtitle_name": "indian_calm_cyan",
+        "preferred_world": "navy_studio",
+        "accent_key": "cyan",
+        "animator_theme": "indigo_cyan",
+        "reveal_power": 0.96,
+        "motion_profile": "flow_slide",
+        "preferred_layouts": ("architecture_flow", "excalidraw_sketch_board", "all_in_one_tech_canvas"),
+        "default_sfx": "whoosh",
+        "camera_zoom_bias": 1.06,
+    },
+    "indian_boy_dual_chai": {
+        "label": "☕🇮🇳 Chai-Tapri Tech Jodi (Dual Voice: Sweet Curious Q + Smart Indian Boy Mentor A)",
+        "directive": (
+            "DUAL VOICE INDIAN CHAI-TAPRI DIALOGUE (CUTE CURIOUS FRIEND + SMART CALM INDIAN BOY MENTOR):\n"
+            "- FEMALE (`\"speaker\": \"female\"`): Asks relatable, sharp curiosity questions with smiling Indian warmth.\n"
+            "- MALE (`\"speaker\": \"male\"`): Cute, calm, smart & chapal Indian boy explains cleanly in Hinglish with crisp `...` pauses, zero extra words, and a classic memorable finisher.\n"
+            "RULES: Populate `\"dialogue\"` (2-4 crisp turns `female` <-> `male`) AND concatenate cleanly into `\"narration\"`."
+        ),
+        "elevenlabs": {"stability": 0.44, "similarity_boost": 0.84, "style": 0.42, "use_speaker_boost": True},
+        "edge_base": {"rate": "+4%", "pitch": "+1Hz"},
+        "hook_curve": {"rate": "+6%", "pitch": "+2Hz"},
+        "mid_curve": {"rate": "+3%", "pitch": "+0Hz"},
+        "verdict_curve": {"rate": "+1%", "pitch": "+0Hz"},
+        "pause_sec": "0.26",
+        "tail_hold_sec": 0.42,
+        "use_pause_cadence": True,
+        "visual_pace_lead": 1.15,
+        "atempo": "1.01",
+        "subtitle_tag": r"\c&H00F8BD38&\fscx110\fscy110",
+        "subtitle_name": "indian_dual_chai",
+        "preferred_world": "sapphire_3d",
+        "accent_key": "cyan",
+        "animator_theme": "emerald_matrix",
+        "reveal_power": 0.95,
+        "motion_profile": "flow_slide",
+        "preferred_layouts": ("chat_thread_ai", "excalidraw_sketch_board", "mobile_app_mockup", "iso_comparison"),
+        "default_sfx": "pop_snap",
+        "camera_zoom_bias": 1.07,
+    },
     # ------------------------------------------------------------------
     # Classic Legacy Studio Tones (Restored Alongside 2026 Profiles)
     # ------------------------------------------------------------------
@@ -753,6 +893,41 @@ TONE_PROFILES: Dict[str, Dict[str, Any]] = {
 UI_TONE_OPTIONS: List[Tuple[str, str]] = [
     (k, v["label"]) for k, v in TONE_PROFILES.items()
 ]
+
+INDIAN_BOY_STYLE_OPTIONS: List[Tuple[str, str]] = [
+    ("follow_tone", "🎬 Auto (Follow Above Script Tone Setting)"),
+    ("indian_boy_heartfelt", "👦💖 Cute, Sweet & Smart Chapal Boy (Indian Hindi + Pauses + Manat Ghar Finisher)"),
+    ("indian_boy_village_fresh", "🌾😊 Village Boy Freshness (Desi Analogy, Happy Warmth & Calm Clarity)"),
+    ("indian_boy_city_charm", "🏙️⚡ Modern City Boy Charm (Fast Curious Hook, Romantic-Sweet Wit & Crisp Sync)"),
+    ("indian_boy_calm_classic", "🎓✨ Calm Classic Perfection Boy (Zero Extra Words, Extra Visual Hold & Poetic Closer)"),
+    ("indian_boy_dual_chai", "☕🗣️ Chai-Tapri Dual Jodi (Female Curious Q + Smart Indian Boy Mentor A)"),
+]
+
+
+def compute_synced_visual_progress(
+    lin_p: float,
+    cur_t: float,
+    words: Optional[List[Dict[str, Any]]],
+    tone: Optional[str] = None,
+) -> float:
+    """
+    Computes word-synced visual reveal progress with comfortable eye-read dwell time:
+    - Anchors animations to spoken `word_timestamps` (`word_p`) for tight audio-visual sync.
+    - Applies `visual_pace_lead` from the tone profile so diagrams complete cleanly slightly before
+      scene cut, preventing rapid visual flashes the viewer cannot read.
+    """
+    prof = get_tone_profile(tone)
+    lead = float(prof.get("visual_pace_lead", 1.0))
+    hold_cutoff = 0.84 if lead >= 1.10 else 0.93
+    if lin_p >= hold_cutoff:
+        return 1.0
+    if words:
+        spoken = sum(1 for wd in words if float(wd.get("start", 0.0)) <= cur_t)
+        word_p = spoken / max(1, len(words))
+        base_p = 0.72 * word_p + 0.28 * lin_p
+    else:
+        base_p = lin_p
+    return min(1.0, max(0.0, base_p * lead))
 
 
 def resolve_effective_tone(

@@ -530,14 +530,16 @@ def render_scene_frames(
     header_badge = visual_data.get("badge", "")
     header_title = visual_data.get("title", "")
     rev_pow = float(t_prof.get("reveal_power", 0.96))
+    pace_lead = float(t_prof.get("visual_pace_lead", 1.0))
+    hold_cutoff = 0.84 if pace_lead >= 1.10 else 0.93
 
     for f in range(total_frames):
         linear_p = f / max(1, total_frames - 1)
         raw_p = _compute_voice_synced_progress(f, total_frames, duration, scene, scene_words, anchors=anchors)
-        if linear_p >= 0.93:
+        if linear_p >= hold_cutoff:
             progress = 1.0
         else:
-            progress = min(1.0, pow(raw_p, rev_pow) * (1.06 if rev_pow < 0.95 else 1.02))
+            progress = min(1.0, pow(raw_p * pace_lead, rev_pow) * (1.06 if rev_pow < 0.95 else 1.02))
         frame = base_canvas.copy()
 
         if needs_aspect_fit:
