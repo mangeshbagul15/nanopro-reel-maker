@@ -31,10 +31,13 @@ if errorlevel 1 goto :pip_failed
 python -c "import streamlit" >nul 2>nul
 if errorlevel 1 goto :pip_failed
 
-rem --- 3) Free port 8501 if an old Studio is still running -----------
+rem --- 3) If a Studio is already running, just open the browser -----
 for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8501" ^| findstr "LISTENING"') do (
-    echo [i] Stopping a previous Studio still using port 8501 PID %%p ...
-    taskkill /f /pid %%p >nul 2>nul
+    echo [i] A Studio is already running on port 8501 (PID %%p).
+    echo     Opening http://localhost:8501 in your browser ...
+    start "" http://localhost:8501
+    timeout /t 3 >nul
+    exit /b 0
 )
 
 echo [2/3] Starting the Studio server on http://localhost:8501 ...
