@@ -23,7 +23,14 @@ if errorlevel 1 goto :no_python
 python -c "import sys" >nul 2>nul
 if errorlevel 1 goto :no_python
 
-rem --- 2) Install / update dependencies into THIS Python -------------
+rem --- 2) Pull the latest code from GitHub (never prompts) -----------
+if exist ".git" (
+    set "GIT_TERMINAL_PROMPT=0"
+    echo [i] Checking for updates (git pull)...
+    git pull --ff-only >nul 2>nul
+)
+
+rem --- 3) Install / update dependencies into THIS Python -------------
 echo [1/3] Installing / checking dependencies (the first run can take a few minutes)...
 python -m pip install --disable-pip-version-check -r requirements.txt
 if errorlevel 1 goto :pip_failed

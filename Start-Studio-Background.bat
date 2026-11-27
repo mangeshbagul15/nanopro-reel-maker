@@ -22,6 +22,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
+rem --- Pull the latest code from GitHub (never prompts, never hangs) -
+set "GIT_TERMINAL_PROMPT=0"
+if exist ".git" (
+    echo [%date% %time%] Pulling latest code... >> "%LOG%"
+    git pull --ff-only >> "%LOG%" 2>&1
+)
+
 rem --- Install dependencies only when streamlit is missing -----------
 python -c "import streamlit" >nul 2>nul
 if errorlevel 1 (
