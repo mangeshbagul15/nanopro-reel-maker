@@ -148,7 +148,7 @@ st.markdown(
     '</div>',
     unsafe_allow_html=True,
 )
-st.markdown('<div class="sub-title">2026 Smart Director &amp; Studio V2–V5 — Clean Vector Storyboard, Spatial Isometric World, Live IDE (Python/SQL), Blueprint Whiteboard, Enterprise Data Center &amp; 1,221 Semantic Engines.</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">2026 Smart Director &amp; Studio V2–V28 — Vector Storyboard, Isometric World, Live IDE, Blueprint Whiteboard, Data Center, SQL/Agent/API/Iceberg/CDC Pro Studios &amp; 1,221 Semantic Engines.</div>', unsafe_allow_html=True)
 
 # Create main tabs BEFORE sidebar R2/status blocks so main interactive studio stays snappy
 tab_create, tab_storage = st.tabs(["🎬 Create New Reel", "☁️ Cloudflare R2 Media & Storage Manager"])
@@ -931,7 +931,8 @@ with tab_create:
             st.stop()
         _th_var = int(st.session_state.get("thumb_gen_counter", 0))
         st.session_state["thumb_gen_counter"] = _th_var + 1
-        with st.spinner(f"Generating unique dark high-tech 9:16 thumbnail variation #{_th_var + 1} with watermark {channel_watermark}..."):
+        _th_display = _th_var + 1  # human-readable: 1-indexed current variant
+        with st.spinner(f"🖼️ Generating thumbnail style #{_th_display} of 16+ · watermark: {channel_watermark} ..."):
             try:
                 thumb_path = generate_thumbnail_9_16(
                     user_prompt.strip(),
@@ -940,7 +941,7 @@ with tab_create:
                     tone=chosen_tone,
                     variant_seed=_th_var,
                 )
-                st.success(f"🎉 Unique 9:16 Dark High-Tech Thumbnail (#{_th_var + 1} of 16+ styles) ready! Click again anytime for a brand-new design.")
+                st.success(f"🎉 Thumbnail style #{_th_display} ready! Each click generates a brand-new unique style. Next click → style #{_th_display + 1}.")
                 c_th1, c_th2 = st.columns([1, 1.2])
                 with c_th1:
                     st.image(str(thumb_path), caption="9:16 High-Conversion Thumbnail (Shorts / Reels Cover)", use_container_width=True)
@@ -968,7 +969,8 @@ with tab_create:
             st.stop()
         _pack_start = int(st.session_state.get("thumb_gen_counter", 0))
         st.session_state["thumb_gen_counter"] = _pack_start + 4
-        with st.spinner(f"Rendering 4 distinct dark high-tech 9:16 thumbnails for {channel_watermark}..."):
+        _pack_batch = _pack_start  # stable batch id for unique widget keys
+        with st.spinner(f"✨ Rendering 4 unique dark high-tech 9:16 thumbnails (batch #{_pack_start // 4 + 1}) for {channel_watermark}..."):
             try:
                 pack_items = generate_thumbnail_pack(
                     user_prompt.strip(),
@@ -978,7 +980,7 @@ with tab_create:
                     visual_engine=visual_engine[0],
                     tone=chosen_tone,
                 )
-                st.success(f"🎉 4 Unique Dark High-Tech Thumbnails ready! Click again for 4 completely new styles (#{_pack_start + 5}–#{_pack_start + 8}).")
+                st.success(f"🎉 4 Unique Dark High-Tech Thumbnails ready (#{_pack_start + 1}–#{_pack_start + 4})! Click again for 4 more completely new styles.")
                 p_cols = st.columns(4)
                 for pi, item in enumerate(pack_items):
                     with p_cols[pi]:
@@ -989,7 +991,7 @@ with tab_create:
                                 data=pf.read(),
                                 file_name=item["path"].name,
                                 mime="image/png",
-                                key=f"dl_pack_{item['seed']}",
+                                key=f"dl_pack_{_pack_batch}_{pi}",
                                 use_container_width=True,
                             )
             except Exception as e:
