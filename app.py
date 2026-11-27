@@ -77,6 +77,7 @@ from core.uploader import (
     delete_from_r2,
     get_r2_storage_stats
 )
+from core.auth import enforce_login
 
 
 @st.cache_data(ttl=60, show_spinner=False)
@@ -95,6 +96,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# 🔒 Google login gate — enforced on the Render deployment only
+enforce_login()
 
 # Custom CSS for Sleek Modern Look
 st.markdown("""
