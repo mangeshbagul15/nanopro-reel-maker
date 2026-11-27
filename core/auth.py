@@ -4,9 +4,11 @@ Uses Streamlit's built-in authentication (``st.login`` / ``st.logout`` /
 ``st.user``), which talks to Google's official OIDC endpoints. Only the
 accounts listed in ``ALLOWED_EMAILS`` are allowed to use the app.
 
-The gate is enabled on the Render deployment (Render sets the ``RENDER``
-environment variable automatically) or whenever ``NANOPRO_AUTH_ENABLED`` is
-set, so the Streamlit Community Cloud deployment keeps using its own login.
+The gate activates as soon as the ``[auth]`` credentials are present (on Render
+these are written to ``.streamlit/secrets.toml`` by ``start.sh`` from the
+``GOOGLE_CLIENT_ID`` / ``GOOGLE_CLIENT_SECRET`` environment variables), or when
+``NANOPRO_AUTH_ENABLED`` is set explicitly. While no credentials exist the app
+runs normally, so the Streamlit Community Cloud deployment is unaffected.
 """
 
 import os
@@ -28,13 +30,33 @@ def _auth_configured() -> bool:
         return False
 
 
+def _user_info() -> dict:
+    """Safe snapshot of ``st.user`` as a plain dict.
+
+    ``st.user`` raises ``AttributeError`` for missing claims, so we read the
+    underlying mapping instead of accessing attributes directly.
+    """
+    try:
+        return dict(st.user.to_dict())
+    except Exception:
+        try:
+            return dict(st.user)
+        except Exception:
+            return {}
+
+
 def auth_enabled() -> bool:
-    """Whether the Google login gate should be enforced."""
+    """Whether the Google login gate should be enforced.
+
+    Returns True only when the gate is actually usable: either the ``[auth]``
+    credentials are configured, or it was switched on explicitly. This keeps the
+    app fully functional while the Google credentials are still being set up.
+    """
+    if _auth_configured():
+        return True
     if os.getenv("NANOPRO_AUTH_ENABLED", "").strip().lower() in {"1", "true", "yes"}:
         return True
-    if os.getenv("RENDER"):
-        return True
-    return _auth_configured()
+    return False
 
 
 def enforce_login() -> None:
@@ -50,11 +72,12 @@ def enforce_login() -> None:
         )
         st.stop()
 
-    if not st.user.is_logged_in:
+    info = _user_info()
+    if not info.get("is_logged_in"):
         _render_sign_in()
         st.stop()
 
-    email = (getattr(st.user, "email", "") or "").strip().lower()
+    email = (info.get("email") or "").strip().lower()
     if email not in ALLOWED_EMAILS:
         _render_denied(email)
         st.stop()
