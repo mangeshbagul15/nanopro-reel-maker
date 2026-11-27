@@ -33,48 +33,57 @@ _ACCENT_HEX = {
     "blue": "#60A5FA",
 }
 
-# 8 Enterprise Departments laid out across a 1600x1600 virtual 2.5D Data Center & IT Park campus
+# 10 Enterprise Departments laid out across an 1800x1800 virtual 2.5D Data Center & IT Park campus
 DC_DEPARTMENTS: List[Dict[str, Any]] = [
-    {"id": "ad_iam", "name": "AD & IAM", "full": "AD & Identity (IAM)", "x": 320, "y": 320, "w": 360, "h": 270, "color": "cyan", "icon": "🔐"},
-    {"id": "infosec", "name": "INFOSEC (IS)", "full": "Information Security (IS)", "x": 800, "y": 290, "w": 390, "h": 270, "color": "rose", "icon": "🛡️"},
-    {"id": "audit_grc", "name": "AUDIT & GRC", "full": "Enterprise Audit & GRC", "x": 1280, "y": 320, "w": 360, "h": 270, "color": "emerald", "icon": "📋"},
-    {"id": "data_eng", "name": "DATA ENG", "full": "Data Engineering (AWS/Snowflake)", "x": 310, "y": 800, "w": 380, "h": 290, "color": "emerald", "icon": "❄️"},
-    {"id": "infra", "name": "INFRA & SAN", "full": "Infra, Hardware & Storage", "x": 1290, "y": 800, "w": 380, "h": 290, "color": "amber", "icon": "🖥️"},
-    {"id": "sql_dba", "name": "SQL & DBA", "full": "SQL Analytics & DBA", "x": 320, "y": 1280, "w": 360, "h": 270, "color": "blue", "icon": "🗄️"},
-    {"id": "mcs", "name": "MCS CLOUD", "full": "MCS (Managed Cloud Services)", "x": 800, "y": 1310, "w": 390, "h": 270, "color": "purple", "icon": "☁️"},
-    {"id": "app_py", "name": "APP & PYTHON", "full": "App Dev & Python Automation", "x": 1280, "y": 1280, "w": 360, "h": 270, "color": "cyan", "icon": "🐍"},
+    {"id": "ad_iam", "name": "AD, IAM & POLICY", "full": "AD, Identity & Security Policy", "x": 330, "y": 310, "w": 380, "h": 260, "color": "cyan", "icon": "🔐"},
+    {"id": "infosec", "name": "INFOSEC (IS)", "full": "Information Security (IS)", "x": 900, "y": 250, "w": 390, "h": 260, "color": "rose", "icon": "🛡️"},
+    {"id": "audit_grc", "name": "AUDIT & IT NEWS", "full": "Compliance Audit, Policy & IT News", "x": 1470, "y": 310, "w": 380, "h": 260, "color": "emerald", "icon": "📰"},
+    {"id": "data_eng", "name": "DATA ENG & DW", "full": "Data Eng, Snowflake & Data Warehouse", "x": 260, "y": 730, "w": 380, "h": 270, "color": "emerald", "icon": "❄️"},
+    {"id": "data_ds", "name": "ANALYST & DS", "full": "Data Analyst & Data Science Lab", "x": 260, "y": 1170, "w": 380, "h": 270, "color": "amber", "icon": "📊"},
+    {"id": "ai_agents", "name": "AI, LLM & AGENTS", "full": "AI Agents, LLMs & Tech Hacks Lab", "x": 1540, "y": 730, "w": 380, "h": 270, "color": "purple", "icon": "🤖"},
+    {"id": "infra", "name": "INFRA & STORAGE", "full": "Infra, Hardware & Data Storage", "x": 1540, "y": 1170, "w": 380, "h": 270, "color": "amber", "icon": "🖥️"},
+    {"id": "sql_dba", "name": "SQL & DATABASE", "full": "SQL Analytics & Database Engine", "x": 330, "y": 1530, "w": 380, "h": 260, "color": "blue", "icon": "🗄️"},
+    {"id": "mcs", "name": "AWS · AZURE · GCP", "full": "MCS Multi-Cloud (AWS / Azure / GCP)", "x": 900, "y": 1570, "w": 400, "h": 260, "color": "purple", "icon": "☁️"},
+    {"id": "app_py", "name": "DEV, API & PYTHON", "full": "Software Dev, APIs & Python", "x": 1470, "y": 1530, "w": 380, "h": 260, "color": "cyan", "icon": "🐍"},
 ]
 
-# 20 Specialist Engineers positioned inside their Departments + recommended hybrid handoff engine
+# 25 Specialist Engineers positioned inside their Departments + recommended hybrid handoff engine
 DC_SPECIALISTS: List[Dict[str, Any]] = [
-    # 1. AD & IAM (3)
-    {"id": "ad_gpo", "dept_id": "ad_iam", "title": "AD & Group Policy (GPO) Engineer", "short": "AD GPO Eng", "tools": "Active Directory · GPO · OU · Kerberos", "handoff": "blueprint_whiteboard", "dx": -90, "dy": -20, "keywords": ["active directory", "ad ", "group policy", "gpo", "ldap", "kerberos", "ou "]},
-    {"id": "aws_iam", "dept_id": "ad_iam", "title": "AWS IAM & STS Role Engineer", "short": "AWS IAM Eng", "tools": "IAM Policies · STS AssumeRole · SSO", "handoff": "blueprint_whiteboard", "dx": 10, "dy": 30, "keywords": ["iam", "sts", "assume role", "least privilege", "sso", "identity", "oauth", "jwt", "rbac"]},
-    {"id": "dms_pam", "dept_id": "ad_iam", "title": "DMS & PAM Privileged Access Engineer", "short": "DMS / PAM Eng", "tools": "PAM Vault · JIT Access · RBAC", "handoff": "blueprint_whiteboard", "dx": 95, "dy": -15, "keywords": ["pam", "privileged", "vault", "jit", "access control"]},
+    # 1. AD, IAM & POLICY (3)
+    {"id": "ad_gpo", "dept_id": "ad_iam", "title": "AD & Group Policy (GPO) Engineer", "short": "AD GPO Eng", "tools": "Active Directory · GPO · OU · Kerberos", "handoff": "blueprint_whiteboard", "dx": -95, "dy": -15, "keywords": ["active directory", "ad ", "group policy", "gpo", "ldap", "kerberos"]},
+    {"id": "aws_iam", "dept_id": "ad_iam", "title": "IAM Roles & Policy Engineer", "short": "IAM & Policy", "tools": "IAM Policies · STS AssumeRole · SSO · RBAC", "handoff": "blueprint_whiteboard", "dx": 5, "dy": 32, "keywords": ["iam", "sts", "assume role", "policy", "policies", "least privilege", "sso", "identity", "oauth", "jwt", "rbac"]},
+    {"id": "dms_pam", "dept_id": "ad_iam", "title": "Data Management & Access Governance Eng", "short": "Data Mgmt / PAM", "tools": "Data Management · Catalog · Lineage · Vault", "handoff": "blueprint_whiteboard", "dx": 100, "dy": -15, "keywords": ["data management", "data governance", "catalog", "lineage", "pam", "privileged", "vault"]},
     # 2. INFOSEC (IS) (3)
     {"id": "sec_fw", "dept_id": "infosec", "title": "Firewall & Port Opening Engineer", "short": "Firewall Eng", "tools": "Palo Alto · Security Groups · TCP 443/5432", "handoff": "blueprint_whiteboard", "dx": -100, "dy": -15, "keywords": ["firewall", "port opening", "port", "tcp", "security group", "nacl", "iptables", "dmz", "waf"]},
-    {"id": "sec_url", "dept_id": "infosec", "title": "URL Whitelisting & Web Proxy Engineer", "short": "URL Proxy Eng", "tools": "Zscaler Proxy · Allowlist · SSL Inspect", "handoff": "blueprint_whiteboard", "dx": 0, "dy": 32, "keywords": ["whitelist", "url", "proxy", "domain", "allowlist", "dns", "egress"]},
-    {"id": "sec_soc", "dept_id": "infosec", "title": "Security Audit & SOC Analyst", "short": "SOC / VAPT Eng", "tools": "SIEM · Splunk · VAPT · Threat Guard", "handoff": "blueprint_whiteboard", "dx": 105, "dy": -15, "keywords": ["security", "soc", "siem", "vapt", "vulnerability", "ddos", "breach", "is team"]},
-    # 3. AUDIT & GRC (2)
-    {"id": "audit_iso", "dept_id": "audit_grc", "title": "IT & Cloud Compliance Auditor", "short": "ISO/SOC2 Audit", "tools": "ISO 27001 · SOC2 · WORM Audit Trails", "handoff": "blueprint_whiteboard", "dx": -55, "dy": 0, "keywords": ["audit", "compliance", "soc2", "iso", "grc", "governance", "pci", "rbi"]},
-    {"id": "audit_chg", "dept_id": "audit_grc", "title": "Change & Access Governance Lead", "short": "Change Gov Lead", "tools": "CAB Approval · Access Review · Evidence", "handoff": "blueprint_whiteboard", "dx": 65, "dy": 15, "keywords": ["change management", "cab", "trail", "review"]},
-    # 4. DATA ENGINEERING (3)
-    {"id": "data_ingest", "dept_id": "data_eng", "title": "Data Ingestion & CDC Engineer", "short": "CDC Ingest Eng", "tools": "Oracle DMS · Debezium · Kafka · S3", "handoff": "spatial_isometric", "dx": -95, "dy": -20, "keywords": ["dms", "cdc", "debezium", "ingest", "ingestion", "kafka", "oracle", "parquet", "s3"]},
-    {"id": "data_migrate", "dept_id": "data_eng", "title": "Enterprise Data Migration Engineer", "short": "Migration Eng", "tools": "AWS DMS · Snowpipe · Validation", "handoff": "spatial_isometric", "dx": 0, "dy": 32, "keywords": ["migration", "migrate", "full load", "cutover"]},
-    {"id": "data_pipe", "dept_id": "data_eng", "title": "Snowflake & Medallion Pipeline Engineer", "short": "Snowflake Eng", "tools": "Airflow · Snowflake L0->L1->L2 · dbt", "handoff": "spatial_isometric", "dx": 95, "dy": -15, "keywords": ["snowflake", "airflow", "lambda", "l0", "l1", "l2", "medallion", "lakehouse", "etl", "elt", "pipeline", "data engineer", "spark"]},
-    # 5. INFRA & STORAGE (3)
-    {"id": "infra_srv", "dept_id": "infra", "title": "Server Hardware & Compute Engineer", "short": "Compute / K8s", "tools": "Bare Metal Racks · VMware ESXi · K8s", "handoff": "spatial_isometric", "dx": -95, "dy": -15, "keywords": ["hardware", "server", "rack", "compute", "kubernetes", "k8s", "docker", "vm ", "cpu", "blue-green", "deployment", "infra"]},
-    {"id": "infra_san", "dept_id": "infra", "title": "Enterprise Storage SAN/NAS Engineer", "short": "SAN/NAS Storage", "tools": "NVMe Pool · RAID · Fiber Channel · Backup", "handoff": "spatial_isometric", "dx": 0, "dy": 32, "keywords": ["storage", "san", "nas", "nvme", "raid", "disk", "backup", "dr ", "disaster"]},
-    {"id": "infra_net", "dept_id": "infra", "title": "Core Network & Load Balancer Engineer", "short": "Net & LB Eng", "tools": "BGP · L7 Load Balancer · VLAN · VPC", "handoff": "spatial_isometric", "dx": 95, "dy": -15, "keywords": ["network", "load balancer", "bgp", "vlan", "vpc", "routing", "cdn", "rate limit"]},
-    # 6. SQL & DBA (2)
-    {"id": "sql_arch", "dept_id": "sql_dba", "title": "SQL Query & Analytics Architect", "short": "SQL Query Arch", "tools": "JOIN · GROUP BY · DENSE_RANK · EXPLAIN", "handoff": "live_ide", "dx": -60, "dy": 5, "keywords": ["sql", "join", "group by", "dense_rank", "window", "cte", "query", "select ", "index"]},
-    {"id": "sql_dba_ops", "dept_id": "sql_dba", "title": "Production DBA & Replication Engineer", "short": "Prod DBA Eng", "tools": "Postgres / Oracle · WAL · Locks · Tuning", "handoff": "live_ide", "dx": 65, "dy": 15, "keywords": ["dba", "database", "deadlock", "vacuum", "replication", "sharding", "wal", "postgres"]},
-    # 7. MCS (Managed Cloud Services) (2)
-    {"id": "mcs_ops", "dept_id": "mcs", "title": "MCS Multi-Cloud Operations Engineer", "short": "MCS Cloud Ops", "tools": "AWS / Azure / GCP · Terraform · SLA", "handoff": "blueprint_whiteboard", "dx": -65, "dy": 5, "keywords": ["mcs", "managed cloud", "multi-cloud", "terraform", "provisioning", "cloud ops"]},
-    {"id": "mcs_finops", "dept_id": "mcs", "title": "MCS Auto-Scaling & Cloud FinOps Engineer", "short": "MCS FinOps", "tools": "Auto-Scale · Cloud Workloads · Cost Guard", "handoff": "blueprint_whiteboard", "dx": 65, "dy": 15, "keywords": ["finops", "autoscale", "cost", "vdi", "workspace"]},
-    # 8. APP DEV & PYTHON (2)
-    {"id": "py_auto", "dept_id": "app_py", "title": "Python Automation & ETL Engineer", "short": "Python Auto Eng", "tools": "Python 3.12 · FastAPI · Asyncio · N+1 Fix", "handoff": "live_ide", "dx": -60, "dy": 5, "keywords": ["python", "asyncio", "gil", "pandas", "pytorch", "n+1", "orm", "script", "automation", "debug"]},
-    {"id": "app_dev", "dept_id": "app_py", "title": "Full-Stack & Microservices Developer", "short": "App / API Dev", "tools": "Microservices · CI/CD · REST · Docker", "handoff": "live_ide", "dx": 65, "dy": 15, "keywords": ["developer", "application", "api", "microservice", "ci/cd", "cicd", "backend", "redis", "cache"]},
+    {"id": "sec_url", "dept_id": "infosec", "title": "URL Whitelisting & Proxy Engineer", "short": "URL Proxy Eng", "tools": "Zscaler Proxy · Allowlist · SSL Inspect", "handoff": "blueprint_whiteboard", "dx": 0, "dy": 32, "keywords": ["whitelist", "url", "proxy", "domain", "allowlist", "egress"]},
+    {"id": "sec_soc", "dept_id": "infosec", "title": "Cyber Security & SOC Analyst", "short": "CyberSec / SOC", "tools": "SIEM · VAPT · Zero Trust · Encryption", "handoff": "blueprint_whiteboard", "dx": 105, "dy": -15, "keywords": ["security", "cyber", "soc", "siem", "vapt", "vulnerability", "ddos", "breach", "is team", "zero trust"]},
+    # 3. AUDIT, POLICY & IT NEWS (2)
+    {"id": "audit_iso", "dept_id": "audit_grc", "title": "IT Audit & Compliance Policy Lead", "short": "Audit & Policy", "tools": "ISO 27001 · SOC2 · WORM Audit Trails", "handoff": "blueprint_whiteboard", "dx": -60, "dy": 0, "keywords": ["audit", "compliance", "soc2", "iso", "grc", "governance", "pci", "rbi"]},
+    {"id": "it_news", "dept_id": "audit_grc", "title": "IT News & Tech Radar Brief", "short": "IT News Desk", "tools": "Breaking Releases · Benchmarks · Cloud News", "handoff": "blueprint_whiteboard", "dx": 70, "dy": 15, "keywords": ["it news", "tech news", "release", "launch", "update", "announcement", "industry", "layoff", "funding"]},
+    # 4. DATA ENG & WAREHOUSE (3)
+    {"id": "data_ingest", "dept_id": "data_eng", "title": "Data Ingestion & CDC Engineer", "short": "CDC Ingest Eng", "tools": "Oracle DMS · Debezium · Kafka · S3 Parquet", "handoff": "spatial_isometric", "dx": -95, "dy": -18, "keywords": ["dms", "cdc", "debezium", "ingest", "ingestion", "kafka", "oracle", "parquet", "streaming"]},
+    {"id": "data_migrate", "dept_id": "data_eng", "title": "Data Warehouse & Migration Engineer", "short": "Data Warehouse", "tools": "Snowflake · Redshift · BigQuery · Migration", "handoff": "spatial_isometric", "dx": 0, "dy": 32, "keywords": ["data warehouse", "warehouse", "migration", "migrate", "full load", "cutover", "redshift", "bigquery"]},
+    {"id": "data_pipe", "dept_id": "data_eng", "title": "Snowflake & Medallion Data Engineer", "short": "Snowflake DE", "tools": "Airflow · Snowflake L0->L1->L2 · dbt · Spark", "handoff": "spatial_isometric", "dx": 95, "dy": -15, "keywords": ["snowflake", "airflow", "lambda", "l0", "l1", "l2", "medallion", "lakehouse", "etl", "elt", "pipeline", "data engineer", "spark"]},
+    # 5. DATA ANALYST & DATA SCIENCE (2)
+    {"id": "data_analyst", "dept_id": "data_ds", "title": "Data Analyst & BI Insights Engineer", "short": "Data Analyst", "tools": "SQL · PowerBI · Tableau · Funnel & Cohort KPI", "handoff": "live_ide", "dx": -65, "dy": 0, "keywords": ["data analyst", "analytics", "dashboard", "bi ", "powerbi", "tableau", "kpi", "cohort", "funnel", "reporting"]},
+    {"id": "data_scientist", "dept_id": "data_ds", "title": "Data Scientist & ML Modeling Lab", "short": "Data Science", "tools": "PyTorch · Scikit-Learn · Feature Store · Eval", "handoff": "live_ide", "dx": 68, "dy": 15, "keywords": ["data science", "data scientist", "machine learning", "ml ", "feature", "training", "regression", "xgboost", "pytorch", "statistics"]},
+    # 6. AI, LLM & TECH HACKS LAB (3)
+    {"id": "ai_agents", "dept_id": "ai_agents", "title": "AI Agents & MCP Systems Architect", "short": "AI Agents / MCP", "tools": "Multi-Agent DAG · MCP · Tool Calling · Memory", "handoff": "blueprint_whiteboard", "dx": -95, "dy": -18, "keywords": ["agent", "agents", "agentic", "mcp", "rag", "vector", "embedding", "langgraph"]},
+    {"id": "ai_llm", "dept_id": "ai_agents", "title": "LLM & Foundation Models Engineer", "short": "LLM Models Lab", "tools": "Gemini · GPT · Claude · Llama · KV Cache", "handoff": "blueprint_whiteboard", "dx": 5, "dy": 32, "keywords": ["llm", "gpt", "gemini", "claude", "llama", "transformer", "fine-tune", "quantization", "token", "ai model", "artificial intelligence", "ai "]},
+    {"id": "ai_hacks", "dept_id": "ai_agents", "title": "AI Tech Hacks, Tips & Tricks Creator", "short": "AI Tips & Hacks", "tools": "Prompt Tricks · Local AI · Speed Hacks · Tools", "handoff": "blueprint_whiteboard", "dx": 98, "dy": -15, "keywords": ["hack", "hacks", "tip", "tips", "trick", "tricks", "shortcut", "productivity", "prompt engineering"]},
+    # 7. INFRA & DATA STORAGE (3)
+    {"id": "infra_srv", "dept_id": "infra", "title": "Server Hardware & Infrastructure Eng", "short": "Infra / Compute", "tools": "Bare Metal Racks · Kubernetes · Docker · ESXi", "handoff": "spatial_isometric", "dx": -95, "dy": -15, "keywords": ["hardware", "server", "rack", "compute", "kubernetes", "k8s", "docker", "blue-green", "deployment", "infra", "infrastructure"]},
+    {"id": "infra_san", "dept_id": "infra", "title": "Enterprise Data Storage SAN/NAS Eng", "short": "Data Storage", "tools": "NVMe Pool · S3 Object · Block SAN · RAID · DR", "handoff": "spatial_isometric", "dx": 0, "dy": 32, "keywords": ["data storage", "storage", "san", "nas", "nvme", "raid", "disk", "backup", "dr ", "disaster", "object store", "iceberg"]},
+    {"id": "infra_net", "dept_id": "infra", "title": "Core Network & Load Balancer Engineer", "short": "Net & LB Eng", "tools": "BGP · L7 Load Balancer · VLAN · Rate Limit", "handoff": "spatial_isometric", "dx": 95, "dy": -15, "keywords": ["network", "load balancer", "bgp", "vlan", "vpc", "routing", "cdn", "rate limit"]},
+    # 8. SQL & DATABASE (2)
+    {"id": "sql_arch", "dept_id": "sql_dba", "title": "SQL Query & Window Functions Architect", "short": "SQL Query Arch", "tools": "JOIN · GROUP BY · DENSE_RANK · EXPLAIN", "handoff": "live_ide", "dx": -62, "dy": 5, "keywords": ["sql", "join", "group by", "dense_rank", "window", "cte", "query", "select ", "index"]},
+    {"id": "sql_dba_ops", "dept_id": "sql_dba", "title": "Production DBA & Replication Engineer", "short": "Prod DBA Eng", "tools": "Postgres / Oracle · WAL · Locks · Sharding", "handoff": "live_ide", "dx": 65, "dy": 15, "keywords": ["dba", "database", "deadlock", "vacuum", "replication", "sharding", "wal", "postgres"]},
+    # 9. MULTI-CLOUD MCS (AWS / AZURE / GCP) (2)
+    {"id": "mcs_ops", "dept_id": "mcs", "title": "AWS · Azure · GCP Cloud Architect", "short": "Multi-Cloud Ops", "tools": "AWS · Azure · GCP · Terraform · MCS", "handoff": "spatial_isometric", "dx": -65, "dy": 5, "keywords": ["aws", "azure", "gcp", "google cloud", "mcs", "managed cloud", "multi-cloud", "terraform", "s3 ", "ec2", "lambda"]},
+    {"id": "mcs_finops", "dept_id": "mcs", "title": "Cloud Auto-Scaling & FinOps Engineer", "short": "Cloud FinOps", "tools": "Autoscale · Cost Optimization · Serverless", "handoff": "blueprint_whiteboard", "dx": 68, "dy": 15, "keywords": ["finops", "autoscale", "cloud cost", "serverless", "cloud"]},
+    # 10. SOFTWARE DEV, API & PYTHON (2)
+    {"id": "py_auto", "dept_id": "app_py", "title": "Python & Automation Engineer", "short": "Python Eng", "tools": "Python 3.12 · Asyncio · GIL · FastAPI · N+1", "handoff": "live_ide", "dx": -62, "dy": 5, "keywords": ["python", "asyncio", "gil", "pandas", "n+1", "orm", "script", "automation", "debug"]},
+    {"id": "app_dev", "dept_id": "app_py", "title": "Software & API Systems Developer", "short": "Software / API", "tools": "REST · GraphQL · Microservices · CI/CD · Webhook", "handoff": "live_ide", "dx": 65, "dy": 15, "keywords": ["software", "developer", "development", "api", "rest", "graphql", "webhook", "microservice", "ci/cd", "cicd", "backend", "redis", "cache"]},
 ]
 
 
@@ -89,15 +98,15 @@ def match_datacenter_specialist(topic: str, preferred_travel: str = "auto") -> D
             best_score = score
             best_sp = sp
     if best_score <= 0:
-        best_sp = DC_SPECIALISTS[3]  # firewall/security or data default
+        best_sp = DC_SPECIALISTS[10]  # default: Snowflake / Data Engineer
 
     dept = next((d for d in DC_DEPARTMENTS if d["id"] == best_sp["dept_id"]), DC_DEPARTMENTS[0])
 
     travel = str(preferred_travel or "auto").lower().strip()
     if travel not in ("camera", "drone", "fiber"):
-        if dept["id"] in ("infosec", "audit_grc", "ad_iam"):
+        if dept["id"] in ("infosec", "audit_grc", "ad_iam", "ai_agents"):
             travel = "drone"
-        elif dept["id"] in ("data_eng", "infra", "sql_dba"):
+        elif dept["id"] in ("data_eng", "infra", "sql_dba", "data_ds"):
             travel = "fiber"
         else:
             travel = "camera"
@@ -119,21 +128,25 @@ def _compute_dc_camera(
     width: int,
     height: int,
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
-    """Computes smooth start/end camera keyframes across the 1600x1600 campus."""
+    """Computes fast start/end camera keyframes across the 1800x1800 campus."""
     is_wide = width > height
-    campus_zoom = 0.70 if is_wide else 0.56
+    campus_zoom = 0.62 if is_wide else 0.48
     dept_zoom = 1.25 if is_wide else 1.08
     desk_zoom = 1.92 if is_wide else 1.72
 
-    if dc_mode == "campus_fly":
-        start = {"cx": 800.0, "cy": 800.0, "zoom": campus_zoom}
+    if dc_mode == "campus_to_desk":
+        # Fast 1-scene arrival: Macro Campus -> Straight onto Engineer Desk!
+        start = {"cx": 900.0, "cy": 900.0, "zoom": campus_zoom}
+        end = {"cx": float(eng_x), "cy": float(eng_y), "zoom": desk_zoom}
+    elif dc_mode == "campus_fly":
+        start = {"cx": 900.0, "cy": 900.0, "zoom": campus_zoom}
         end = {"cx": float(dept["x"]), "cy": float(dept["y"]), "zoom": dept_zoom}
     elif dc_mode == "desk_focus":
         start = {"cx": float(dept["x"]), "cy": float(dept["y"]), "zoom": dept_zoom}
         end = {"cx": float(eng_x), "cy": float(eng_y), "zoom": desk_zoom}
     else:  # campus_outro
         start = {"cx": float(eng_x), "cy": float(eng_y), "zoom": round(desk_zoom * 0.85, 2)}
-        end = {"cx": 800.0, "cy": 790.0, "zoom": round(campus_zoom * 1.06, 2)}
+        end = {"cx": 900.0, "cy": 890.0, "zoom": round(campus_zoom * 1.08, 2)}
     return start, end
 
 
@@ -177,14 +190,15 @@ def _build_datacenter_html(
     hl_px = int((54 if not is_wide else 40) * sc)
 
     # Top HUD Card depends on scene mode
-    if dc_mode == "desk_focus":
+    if dc_mode in ("desk_focus", "campus_to_desk"):
         dlg_text = html.escape(str(vd.get("dialogue_text") or scene.get("narration") or ""))
         sp_title = html.escape(str(spec.get("title") or "Specialist Engineer"))
         sp_tools = html.escape(str(spec.get("tools") or ""))
         hud_card = f"""
-        <div class="hud-card reveal" data-p="0.06" style="border-top:4px solid {accent_hex}">
+        <div class="hud-card reveal" data-p="0.04" style="border-top:4px solid {accent_hex}">
           <div class="card-top-row">
             <span class="sp-badge" style="background:{accent_hex}28;border-color:{accent_hex};color:{accent_hex}">{html.escape(str(dept.get('icon','👨‍💻')))} {sp_title}</span>
+            <span class="dept-chip">{travel_lbl}</span>
           </div>
           <div class="dlg-quote">"{dlg_text}"</div>
           <div class="tools-line">🛠️ {sp_tools}</div>
@@ -208,7 +222,7 @@ def _build_datacenter_html(
         <div class="hud-card reveal" data-p="0.04" style="border-top:4px solid {accent_hex}">
           <div class="card-top-row">
             <span class="sp-badge" style="background:{accent_hex}28;border-color:{accent_hex};color:{accent_hex}">{travel_lbl}</span>
-            <span class="dept-chip">8 DEPTS · 20 SPECIALISTS</span>
+            <span class="dept-chip">10 DEPTS · 25 SPECIALISTS</span>
           </div>
           <div class="dlg-quote" style="font-size:{int(27*sc)}px">{sub_txt}</div>
         </div>"""
@@ -438,26 +452,28 @@ def _build_datacenter_html(
 
     function drawWorld(prog) {{
       ctx.clearRect(0, 0, W, H);
-      const ease = easeInOut(Math.min(1, prog / 0.86));
+      // Fast arrival: complete campus->desk travel within first 78% so final moments lock on the engineer desk
+      const flyDone = STATE.dc_mode === 'campus_to_desk' ? 0.74 : 0.86;
+      const ease = easeInOut(Math.min(1, prog / flyDone));
       const camX = STATE.start_cam.cx + (STATE.end_cam.cx - STATE.start_cam.cx) * ease;
       const camY = STATE.start_cam.cy + (STATE.end_cam.cy - STATE.start_cam.cy) * ease;
       const zoom = STATE.start_cam.zoom + (STATE.end_cam.zoom - STATE.start_cam.zoom) * ease;
 
-      // 1. Enterprise Campus Ground Grid
+      // 1. Enterprise Campus Ground Grid (1800x1800)
       ctx.save();
       ctx.strokeStyle = 'rgba(56,189,248,0.10)'; ctx.lineWidth = 1;
-      for (let g = 100; g <= 1500; g += 100) {{
-        const a = iso(g, 100, 0, camX, camY, zoom), b = iso(g, 1500, 0, camX, camY, zoom);
+      for (let g = 100; g <= 1700; g += 100) {{
+        const a = iso(g, 100, 0, camX, camY, zoom), b = iso(g, 1700, 0, camX, camY, zoom);
         ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
-        const c = iso(100, g, 0, camX, camY, zoom), d = iso(1500, g, 0, camX, camY, zoom);
+        const c = iso(100, g, 0, camX, camY, zoom), d = iso(1700, g, 0, camX, camY, zoom);
         ctx.beginPath(); ctx.moveTo(...c); ctx.lineTo(...d); ctx.stroke();
       }}
       ctx.restore();
 
-      // 2. Fiber Conduit Ring connecting Core Server Hall -> All 8 Departments
+      // 2. Fiber Conduit Ring connecting Core Server Hall (900,900) -> All 10 Departments
       STATE.departments.forEach(d => {{
         const col = PAL[d.color] || PAL.cyan;
-        const p0 = iso(800, 800, 3, camX, camY, zoom);
+        const p0 = iso(900, 900, 3, camX, camY, zoom);
         const p1 = iso(d.x, d.y, 3, camX, camY, zoom);
         ctx.save();
         ctx.strokeStyle = d.id === STATE.target_dept_id ? col.hex : 'rgba(56,189,248,0.22)';
@@ -470,13 +486,13 @@ def _build_datacenter_html(
       // 3. Central Core Server Rack Hall + 4 Corner Cooling Towers
       for (let rx = -1; rx <= 1; rx++) {{
         for (let ry = -1; ry <= 1; ry++) {{
-          drawPrism(800 + rx * 62, 800 + ry * 62, 36, 36, 72, PAL.blue, camX, camY, zoom, 0);
+          drawPrism(900 + rx * 62, 900 + ry * 62, 36, 36, 72, PAL.blue, camX, camY, zoom, 0);
         }}
       }}
-      const [hcx, hcy] = iso(800, 800, 96, camX, camY, zoom);
+      const [hcx, hcy] = iso(900, 900, 96, camX, camY, zoom);
       drawBadge(hcx, hcy, 'CORE SERVER HALL', '#091124DD', '#60A5FA', zoom);
 
-      [[140,140],[1460,140],[140,1460],[1460,1460]].forEach(([tx, ty]) => {{
+      [[120,120],[1680,120],[120,1680],[1680,1680]].forEach(([tx, ty]) => {{
         drawPrism(tx, ty, 78, 78, 86, {{ hi: '#475569', mid: '#334155', lo: '#1E293B' }}, camX, camY, zoom, 0);
       }});
 
@@ -522,17 +538,17 @@ def _build_datacenter_html(
       }}
 
       // 6. Active Travel Entity (Drone Escort or Fiber Data Orb) during Campus Fly
-      if (STATE.dc_mode === 'campus_fly') {{
-        const u = easeInOut(Math.min(1, prog / 0.88));
+      if (STATE.dc_mode === 'campus_fly' || STATE.dc_mode === 'campus_to_desk') {{
+        const u = easeInOut(Math.min(1, prog / (STATE.dc_mode === 'campus_to_desk' ? 0.72 : 0.88)));
         const tgtCol = (PAL[STATE.target_dept.color] || PAL.cyan).hex;
         if (STATE.travel_mode === 'drone') {{
-          const drX = 800 + (STATE.eng_x - 800) * u;
-          const drY = 800 + (STATE.eng_y - 800) * u;
+          const drX = 900 + (STATE.eng_x - 900) * u;
+          const drY = 900 + (STATE.eng_y - 900) * u;
           const drZ = 140 + Math.sin(u * Math.PI) * 90;
           drawDrone(drX, drY, drZ, camX, camY, zoom, prog, tgtCol);
         }} else if (STATE.travel_mode === 'fiber') {{
-          const fx = 800 + (STATE.eng_x - 800) * u;
-          const fy = 800 + (STATE.eng_y - 800) * u;
+          const fx = 900 + (STATE.eng_x - 900) * u;
+          const fy = 900 + (STATE.eng_y - 900) * u;
           const [ox, oy] = iso(fx, fy, 8, camX, camY, zoom);
           ctx.save();
           ctx.shadowColor = tgtCol; ctx.shadowBlur = 24;

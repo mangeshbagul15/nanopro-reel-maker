@@ -427,7 +427,7 @@ with st.sidebar:
             "• **Studio V2 — Spatial Isometric (`@thetechypenguin`):** Continuous 2.5D Architecture World + Camera Fly + Top HUD\n"
             "• **Studio V3 — Live IDE (`Python / SQL`):** Code highlight + mouse click ripple + callout bubble + live output drawer\n"
             "• **Studio V4 — Blueprint Whiteboard (`Excalidraw`):** Dark blueprint grid + hand-drawn marker diagrams + sticky bubbles\n"
-            "• **Studio V5 — Enterprise Data Center (`8 Depts · 20 Specialists`):** Campus Fly-In (`Camera / Drone / Fiber`) → Engineer Desk → Hybrid Deep-Dive",
+            "• **Studio V5 — Enterprise Data Center (`10 Depts · 25 Specialists`):** Fast 1-Scene Fly-In (`Camera / Drone / Fiber`) → Engineer Desk → Instant Topic Deep-Dive",
             icon="✨",
         )
     else:

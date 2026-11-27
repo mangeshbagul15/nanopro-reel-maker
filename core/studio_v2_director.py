@@ -63,7 +63,7 @@ def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto"
     dc_kw = (
         "data center", "datacenter", "it park", "port opening", "url whitelist",
         "group policy", "gpo", "active directory", "mcs", "managed cloud",
-        "is team", "infra team", "audit team",
+        "is team", "infra team", "audit team", "it news", "ai hack",
     )
     if any(k in low for k in dc_kw):
         return "datacenter_park"
@@ -1582,22 +1582,28 @@ def _build_dc_narration(
     t_low = str(topic or "").lower()
     short_top = " ".join(str(topic or "").strip().split()[:6])
     if "mr-in" in v or "marathi" in t_low:
+        if kind == "fast_intro":
+            return f"Data Center मधल्या {dept_name} मधल्या {spec_title} कडे बघा — {short_top} थेट ३ सेकंदात सुरू करूया!"
         if kind == "campus":
             return f"चला आज आपल्या Enterprise Data Center मध्ये जाऊया आणि थेट {dept_name} department मध्ये entry करूया."
         if kind == "desk":
             return f"इथे आपल्या {spec_title} यांच्या workstation वर बघूया की {short_top} हे काम प्रत्यक्षात कसं चालतं!"
-        return f"अशा प्रकारे {dept_name} मधील {spec_title} पूर्ण Data Center सुरक्षित आणि fast ठेवतात — {cta_note}"
+        return f"अशा प्रकारे {dept_name} मधील {spec_title} काम करतात — {cta_note}"
     if "hi-in" in v or "hindi" in t_low or "hinglish" in t_low:
+        if kind == "fast_intro":
+            return f"Data Center के {dept_name} में {spec_title} के desk पर चलते हैं — आइए {short_top} सीधे शुरू करते हैं!"
         if kind == "campus":
             return f"चलो आज Enterprise Data Center के अंदर चलकर सीधे {dept_name} department में fly करते हैं."
         if kind == "desk":
             return f"ये हैं हमारे {spec_title} — आइए समझते हैं इस desk पर {short_top} का काम असल में कैसे होता है!"
-        return f"इसी तरह {dept_name} के {spec_title} पूरा Data Center चलाते हैं — {cta_note}"
+        return f"इसी तरह {dept_name} के {spec_title} काम करते हैं — {cta_note}"
+    if kind == "fast_intro":
+        return f"Flying straight into our Data Center's {dept_name} desk ({spec_title}) — let's break down {short_top}!"
     if kind == "campus":
         return f"Welcome inside our Enterprise Data Center — let's fly straight into the {dept_name} department."
     if kind == "desk":
         return f"Meet our {spec_title} at their console — let's trace step by step how {short_top} works in production!"
-    return f"And that is how the {spec_title} in {dept_name} keeps the Data Center running — {cta_note}"
+    return f"And that is how the {spec_title} in {dept_name} runs production — {cta_note}"
 
 
 def _generate_v5_datacenter_hybrid(
@@ -1613,10 +1619,9 @@ def _generate_v5_datacenter_hybrid(
     dc_travel_mode: str = "auto",
 ) -> Dict[str, Any]:
     """
-    Option B Hybrid Cinema Hand-off for Studio V5 Data Center & IT Park:
-      Scene 1: Campus Fly-In (Camera / Drone / Fiber) -> Target Department
-      Scene 2: Specialist Engineer Workstation Focus + Intro Dialogue
-      Scenes 3..N-1: Best Studio Engine (V3 Live IDE / V4 Blueprint Whiteboard / V2 Spatial Isometric)
+    Fast Option B Hybrid Cinema Hand-off for Studio V5 Data Center & IT Park:
+      Scene 1: Fast 1-scene Campus -> Dept -> Engineer Desk arrival (`campus_to_desk`)
+      Scenes 2..N-1: Immediate Main Topic Deep-Dive (V3 Live IDE / V4 Blueprint Whiteboard / V2 Spatial Isometric)
       Scene N: Data Center Campus Zoom-Out + CTA
     """
     from core.studio_v5_datacenter import match_datacenter_specialist
@@ -1643,71 +1648,39 @@ def _generate_v5_datacenter_hybrid(
             inner_tl = _fallback_blueprint_whiteboard(topic, watermark, tone, cta_style, cta_keyword)
 
     inner_scenes = list(inner_tl.get("scenes") or [])
-    # Skip redundant hook & final CTA inside inner timeline when we have >= 4 inner scenes so flow stays tight
-    if len(inner_scenes) >= 4:
-        body_scenes = inner_scenes[1:-1]
-    elif len(inner_scenes) >= 3:
-        body_scenes = inner_scenes[:-1]
+    # Skip only generic chat interview hooks (`hook_chat`) & trailing CTA; keep real problem hooks so content starts at Scene 2!
+    start_i = 1 if (inner_scenes and (inner_scenes[0].get("visual_data") or {}).get("scene_mode") == "hook_chat") else 0
+    if len(inner_scenes) - start_i >= 3:
+        body_scenes = inner_scenes[start_i:-1]
     else:
-        body_scenes = inner_scenes
+        body_scenes = inner_scenes[start_i:]
 
-    dlg_txt = _build_dc_narration("desk", dept["full"], spec["title"], topic, voice, cta_note=cta_note)
+    fast_txt = _build_dc_narration("fast_intro", dept["full"], spec["title"], topic, voice, cta_note=cta_note)
 
-    sc_campus = {
+    sc_intro = {
         "scene_id": 1,
         "role": "hook",
         "scene_tone": get_tone_profile(tone, role="hook", idx=0).get("key") or "auto_2026_director",
         "sfx_cue": "whoosh",
-        "narration": _build_dc_narration("campus", dept["full"], spec["title"], topic, voice),
+        "narration": fast_txt,
         "visual_type": "v5_datacenter_park",
-        "routed_engine": f"Studio V5 Data Center ({travel.title()} Fly-In → {dept['name']})",
+        "routed_engine": f"Studio V5 Fast Fly-In ({travel.title()} → {spec['short']})",
         "art_style": "v2_midnight_navy",
         "backdrop": "v2_clean_canvas",
         "transition": "smooth_fade",
         "text_fx": "clean_hud",
         "visual_data": {
-            "dc_mode": "campus_fly",
+            "dc_mode": "campus_to_desk",
             "travel_mode": travel,
             "department": dept,
             "specialist": spec,
             "engineer_x": match["engineer_x"],
             "engineer_y": match["engineer_y"],
             "hud_pill": f"DATA CENTER · {dept['name']}",
-            "headline_white": "Inside",
-            "headline_accent": f"{dept['name']}.",
-            "accent_color": dept["color"],
-            "campus_sub": f"Flying to {dept['full']} → {spec['title']}",
-            "watermark": watermark,
-        },
-        "actions": [],
-        "_disable_actions_overlay": True,
-        "_disable_camera_actions": True,
-    }
-
-    sc_desk = {
-        "scene_id": 2,
-        "role": "scenario",
-        "scene_tone": get_tone_profile(tone, role="scenario", idx=1).get("key") or "whiteboard_analogy",
-        "sfx_cue": "pop_snap",
-        "narration": dlg_txt,
-        "visual_type": "v5_datacenter_park",
-        "routed_engine": f"Studio V5 Desk Focus ({spec['short']})",
-        "art_style": "v2_midnight_navy",
-        "backdrop": "v2_clean_canvas",
-        "transition": "smooth_fade",
-        "text_fx": "clean_hud",
-        "visual_data": {
-            "dc_mode": "desk_focus",
-            "travel_mode": travel,
-            "department": dept,
-            "specialist": spec,
-            "engineer_x": match["engineer_x"],
-            "engineer_y": match["engineer_y"],
-            "hud_pill": f"ENGINEER DESK · {dept['name']}",
             "headline_white": spec["short"],
-            "headline_accent": "In Action.",
+            "headline_accent": "Live Desk.",
             "accent_color": dept["color"],
-            "dialogue_text": dlg_txt[:150],
+            "dialogue_text": fast_txt[:135],
             "watermark": watermark,
         },
         "actions": [],
@@ -1718,7 +1691,7 @@ def _generate_v5_datacenter_hybrid(
     sc_outro = {
         "scene_id": 99,
         "role": "cta",
-        "scene_tone": get_tone_profile(tone, role="cta", idx=len(body_scenes) + 2).get("key") or "whiteboard_analogy",
+        "scene_tone": get_tone_profile(tone, role="cta", idx=len(body_scenes) + 1).get("key") or "whiteboard_analogy",
         "sfx_cue": "success_chime",
         "narration": _build_dc_narration("outro", dept["full"], spec["title"], topic, voice, cta_note=cta_note),
         "visual_type": "v5_datacenter_park",
@@ -1736,10 +1709,10 @@ def _generate_v5_datacenter_hybrid(
             "engineer_y": match["engineer_y"],
             "hud_pill": "IT PARK TOUR",
             "headline_white": "Complete",
-            "headline_accent": f"{dept['name']} Flow!",
+            "headline_accent": f"{dept['name']}!",
             "accent_color": dept["color"],
             "option_a": f"{dept['icon']} {dept['name']}",
-            "option_b": "🛡️ InfoSec / AD",
+            "option_b": "🤖 AI / Data / Cloud",
             "footer_note": cta_note,
             "watermark": watermark,
         },
@@ -1748,7 +1721,7 @@ def _generate_v5_datacenter_hybrid(
         "_disable_camera_actions": True,
     }
 
-    combined = [sc_campus, sc_desk] + body_scenes + [sc_outro]
+    combined = [sc_intro] + body_scenes + [sc_outro]
     for idx_c, sc in enumerate(combined, start=1):
         sc["scene_id"] = idx_c
 
