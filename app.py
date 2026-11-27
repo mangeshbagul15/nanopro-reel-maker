@@ -23,7 +23,7 @@ _RELOAD_ORDER = [
     "core.director", "core.voice", "core.animator", "core.subtitles",
     "core.renderer", "core.quality_gate", "core.studio_v2_director",
     "core.studio_v2_vector", "core.studio_v2_isometric",
-    "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.uploader",
+    "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.studio_v5_datacenter", "core.uploader",
 ]
 _loaded_core = [m for m in _RELOAD_ORDER if m in sys.modules] + [
     k for k in list(sys.modules.keys()) if k.startswith("core.") and k not in _RELOAD_ORDER
@@ -62,6 +62,7 @@ from core.studio_v2_vector import render_v2_vector_scene_frames
 from core.studio_v2_isometric import render_v2_isometric_scene_frames
 from core.studio_v3_ide import render_v3_ide_scene_frames
 from core.studio_v4_whiteboard import render_v4_whiteboard_scene_frames
+from core.studio_v5_datacenter import DC_TRAVEL_MODES, render_v5_datacenter_scene_frames
 from core.uploader import (
     upload_to_r2,
     list_r2_videos,
@@ -208,6 +209,7 @@ with st.sidebar:
             ("enable_micro_sfx", "enable_micro_sfx_chk"),
             ("quality_mode", "quality_gate_select"),
             ("studio_v2_mode", "studio_v2_arch_select"),
+            ("dc_travel_mode", "dc_travel_mode_select"),
         ):
             if _sk in _ps:
                 st.session_state[_wk] = _ps[_sk]
@@ -396,24 +398,36 @@ with st.sidebar:
         [k for k, _ in STUDIO_V2_MODE_OPTIONS],
         format_func=lambda k: _v2_arch_map.get(k, str(k)),
         key="studio_v2_arch_select",
-        help="Keep Classic NanoPro Studio untouched, OR pick Studio V2 (Vector / Isometric), Studio V3 (Live IDE Python/SQL), or Studio V4 (Blueprint Whiteboard).",
+        help="Keep Classic NanoPro Studio untouched, OR pick Studio V2 (Vector / Isometric), Studio V3 (Live IDE Python/SQL), Studio V4 (Blueprint Whiteboard), or Studio V5 (Enterprise Data Center & IT Park).",
     )
     st.session_state.setdefault("v2_clean_no_subs_chk", True)
+    st.session_state.setdefault("dc_travel_mode_select", "auto")
+    chosen_dc_travel = st.session_state.get("dc_travel_mode_select", "auto")
     v2_clean_no_subs = False
     if is_studio_v2_mode(chosen_studio_arch):
+        if chosen_studio_arch == "v5_datacenter_park":
+            _dc_t_map = dict(DC_TRAVEL_MODES)
+            chosen_dc_travel = st.selectbox(
+                "Data Center Fly-In Travel Mode",
+                [k for k, _ in DC_TRAVEL_MODES],
+                format_func=lambda k: _dc_t_map.get(k, str(k)),
+                key="dc_travel_mode_select",
+                help="Choose how the intro travels across the 2.5D Enterprise Data Center into the matched Department & Engineer workstation.",
+            )
         visual_engine = (chosen_studio_arch, _v2_arch_map.get(chosen_studio_arch, chosen_studio_arch))
         omni_color_flow = "🎨 Studio Isolated Clean Navy World"
         v2_clean_no_subs = st.checkbox(
             "🧼 Clean Diagram Mode (No Bottom Karaoke Captions — Like Reference Reels)",
             key="v2_clean_no_subs_chk",
-            help="Hides overlapping bottom subtitles so Studio V2/V3/V4 visuals stay 100% readable.",
+            help="Hides overlapping bottom subtitles so Studio V2/V3/V4/V5 visuals stay 100% readable.",
         )
         st.info(
             "**Isolated Studio Generation Active (Classic NanoPro Untouched):**\n"
             "• **Studio V2 — Vector Storyboard (`GyanaHut`):** 10-segment story bar + progressive SVG widgets + Paired Analogy\n"
             "• **Studio V2 — Spatial Isometric (`@thetechypenguin`):** Continuous 2.5D Architecture World + Camera Fly + Top HUD\n"
             "• **Studio V3 — Live IDE (`Python / SQL`):** Code highlight + mouse click ripple + callout bubble + live output drawer\n"
-            "• **Studio V4 — Blueprint Whiteboard (`Excalidraw`):** Dark blueprint grid + hand-drawn marker diagrams + sticky bubbles",
+            "• **Studio V4 — Blueprint Whiteboard (`Excalidraw`):** Dark blueprint grid + hand-drawn marker diagrams + sticky bubbles\n"
+            "• **Studio V5 — Enterprise Data Center (`8 Depts · 20 Specialists`):** Campus Fly-In (`Camera / Drone / Fiber`) → Engineer Desk → Hybrid Deep-Dive",
             icon="✨",
         )
     else:
@@ -683,6 +697,7 @@ with st.sidebar:
                 "enable_micro_sfx": enable_micro_sfx,
                 "quality_mode": chosen_quality_mode,
                 "studio_v2_mode": chosen_studio_arch,
+                "dc_travel_mode": chosen_dc_travel,
             }
             _saved_slug = save_custom_creator_preset(_new_preset_name, _payload_settings)
             st.session_state["creator_preset_select"] = _saved_slug
@@ -974,6 +989,7 @@ with tab_create:
                     hook_style=chosen_hook_style,
                     cta_style=chosen_cta_style,
                     cta_keyword=chosen_cta_keyword,
+                    dc_travel_mode=chosen_dc_travel,
                 )
             else:
                 timeline = generate_timeline(
@@ -1084,7 +1100,7 @@ with tab_create:
                     if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1
                 ]
                 v_type = str(sc_obj.get("visual_type") or "")
-                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v3_live_ide", "v4_blueprint_whiteboard", "v5_live_ide", "v7_blueprint_whiteboard"):
+                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v3_live_ide", "v4_blueprint_whiteboard", "v5_datacenter_park", "v5_live_ide", "v7_blueprint_whiteboard"):
                     sc_obj.setdefault("visual_data", {})["watermark"] = channel_watermark
                 if v_type == "v2_vector_storyboard":
                     render_v2_vector_scene_frames(
@@ -1112,6 +1128,14 @@ with tab_create:
                     )
                 elif v_type in ("v4_blueprint_whiteboard", "v7_blueprint_whiteboard"):
                     render_v4_whiteboard_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
+                        format_ratio=aspect_ratio[0],
+                        scene_words=sc_words,
+                        tone=chosen_tone,
+                    )
+                elif v_type == "v5_datacenter_park":
+                    render_v5_datacenter_scene_frames(
                         sc_obj,
                         idx_i + 1,
                         format_ratio=aspect_ratio[0],
@@ -1437,6 +1461,10 @@ with tab_create:
                             _stickies = [f"`{s.get('title')}`: {s.get('text')}" for s in (v_data.get("sticky_notes") or [])]
                             if _stickies:
                                 st.markdown(f"- **Sticky Bubbles:** {' · '.join(_stickies)}")
+                        elif v_type == "v5_datacenter_park":
+                            _dc_dept = (v_data.get("department") or {}).get("full", "")
+                            _dc_sp = (v_data.get("specialist") or {}).get("title", "")
+                            st.markdown(f"- **Data Center Mode:** `{v_data.get('dc_mode')}` (`{v_data.get('travel_mode')}` travel) • **Department:** `{_dc_dept}` • **Specialist:** `{_dc_sp}`")
                         elif v_type in ("v2_vector_storyboard", "v2_spatial_isometric"):
                             st.markdown(f"- **Studio Mode:** `{v_data.get('widget_type') or v_data.get('scene_mode', 'world_cam')}`")
                         elif v_type == "architecture_flow":

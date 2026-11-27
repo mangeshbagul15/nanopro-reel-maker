@@ -23,11 +23,12 @@ from core.tone_engine import get_tone_profile
 
 STUDIO_V2_MODE_OPTIONS = [
     ("classic_nanopro", "🧠 Classic NanoPro Studio (All 1,221 Engines + 24 Specialist Modes — Untouched)"),
-    ("v2_auto", "⚡ Studio V2 Auto-Director (Smart Picks: Vector / Isometric / V3 Live IDE / V4 Whiteboard)"),
+    ("v2_auto", "⚡ Studio V2 Auto-Director (Smart Picks: Vector / Isometric / V3 IDE / V4 Whiteboard / V5 Data Center)"),
     ("v2_vector_storyboard", "📐 Studio V2 — Clean Vector Storyboard (GyanaHut Style · Progressive SVG + Paired Analogy)"),
     ("v2_spatial_isometric", "🌐 Studio V2 — Spatial Isometric World (@thetechypenguin Style · 2.5D Map + Camera Fly + Top HUD)"),
     ("v3_live_ide", "🖥️ Studio V3 — Live IDE & SQL/Python Simulator (Code Highlight · Click Ripple · Callout · Live Output Drawer)"),
     ("v4_blueprint_whiteboard", "✏️ Studio V4 — Blueprint Whiteboard Studio (ByteByteGo / Excalidraw · Dark Grid · Marker Diagrams · Sticky Bubbles)"),
+    ("v5_datacenter_park", "🏢 Studio V5 — Enterprise Data Center & IT Park (Campus → Dept → Engineer Fly-In)"),
 ]
 
 
@@ -38,13 +39,14 @@ def is_studio_v2_mode(mode_key: str) -> bool:
         "v2_spatial_isometric",
         "v3_live_ide",
         "v4_blueprint_whiteboard",
+        "v5_datacenter_park",
         "v5_live_ide",
         "v7_blueprint_whiteboard",
     )
 
 
 def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto") -> str:
-    """Routes `v2_auto` cleanly between `vector_storyboard`, `spatial_isometric`, `live_ide`, and `blueprint_whiteboard`."""
+    """Routes `v2_auto` cleanly between `vector_storyboard`, `spatial_isometric`, `live_ide`, `blueprint_whiteboard`, and `datacenter_park`."""
     mk = str(mode_key or "v2_auto").strip()
     if mk == "v2_vector_storyboard":
         return "vector_storyboard"
@@ -54,6 +56,17 @@ def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto"
         return "live_ide"
     if mk in ("v4_blueprint_whiteboard", "v7_blueprint_whiteboard"):
         return "blueprint_whiteboard"
+    if mk == "v5_datacenter_park":
+        return "datacenter_park"
+
+    low = f" {str(topic or '').lower()} "
+    dc_kw = (
+        "data center", "datacenter", "it park", "port opening", "url whitelist",
+        "group policy", "gpo", "active directory", "mcs", "managed cloud",
+        "is team", "infra team", "audit team",
+    )
+    if any(k in low for k in dc_kw):
+        return "datacenter_park"
 
     low = f" {str(topic or '').lower()} "
     ide_kw = (
@@ -1557,6 +1570,200 @@ Return STRICT JSON:
     }
 
 
+def _build_dc_narration(
+    kind: str,
+    dept_name: str,
+    spec_title: str,
+    topic: str,
+    voice: str,
+    cta_note: str = "",
+) -> str:
+    v = str(voice or "").lower()
+    t_low = str(topic or "").lower()
+    short_top = " ".join(str(topic or "").strip().split()[:6])
+    if "mr-in" in v or "marathi" in t_low:
+        if kind == "campus":
+            return f"चला आज आपल्या Enterprise Data Center मध्ये जाऊया आणि थेट {dept_name} department मध्ये entry करूया."
+        if kind == "desk":
+            return f"इथे आपल्या {spec_title} यांच्या workstation वर बघूया की {short_top} हे काम प्रत्यक्षात कसं चालतं!"
+        return f"अशा प्रकारे {dept_name} मधील {spec_title} पूर्ण Data Center सुरक्षित आणि fast ठेवतात — {cta_note}"
+    if "hi-in" in v or "hindi" in t_low or "hinglish" in t_low:
+        if kind == "campus":
+            return f"चलो आज Enterprise Data Center के अंदर चलकर सीधे {dept_name} department में fly करते हैं."
+        if kind == "desk":
+            return f"ये हैं हमारे {spec_title} — आइए समझते हैं इस desk पर {short_top} का काम असल में कैसे होता है!"
+        return f"इसी तरह {dept_name} के {spec_title} पूरा Data Center चलाते हैं — {cta_note}"
+    if kind == "campus":
+        return f"Welcome inside our Enterprise Data Center — let's fly straight into the {dept_name} department."
+    if kind == "desk":
+        return f"Meet our {spec_title} at their console — let's trace step by step how {short_top} works in production!"
+    return f"And that is how the {spec_title} in {dept_name} keeps the Data Center running — {cta_note}"
+
+
+def _generate_v5_datacenter_hybrid(
+    topic: str,
+    tone: str,
+    duration_mode: str,
+    voice: str,
+    watermark: str,
+    audience_level: str,
+    hook_style: str,
+    cta_style: str,
+    cta_keyword: str,
+    dc_travel_mode: str = "auto",
+) -> Dict[str, Any]:
+    """
+    Option B Hybrid Cinema Hand-off for Studio V5 Data Center & IT Park:
+      Scene 1: Campus Fly-In (Camera / Drone / Fiber) -> Target Department
+      Scene 2: Specialist Engineer Workstation Focus + Intro Dialogue
+      Scenes 3..N-1: Best Studio Engine (V3 Live IDE / V4 Blueprint Whiteboard / V2 Spatial Isometric)
+      Scene N: Data Center Campus Zoom-Out + CTA
+    """
+    from core.studio_v5_datacenter import match_datacenter_specialist
+
+    match = match_datacenter_specialist(topic, preferred_travel=dc_travel_mode)
+    dept = match["department"]
+    spec = match["specialist"]
+    travel = match["travel_mode"]
+    handoff = spec.get("handoff", "blueprint_whiteboard")
+    cta_note = f"Comment '{cta_keyword.strip().upper()}' 👇" if cta_style == "comment_keyword" and cta_keyword.strip() else "Comment next department!"
+
+    # Generate deep-dive body scenes using the matched specialist engine
+    if handoff == "live_ide":
+        inner_tl = _generate_v3_ide_llm(topic, tone, duration_mode, voice, watermark, audience_level, hook_style, cta_style, cta_keyword)
+        if inner_tl is None:
+            inner_tl = _fallback_live_ide(topic, watermark, tone, cta_style, cta_keyword)
+    elif handoff == "spatial_isometric":
+        inner_tl = _generate_v2_isometric_llm(topic, tone, duration_mode, voice, watermark, audience_level, hook_style, cta_style, cta_keyword)
+        if inner_tl is None:
+            inner_tl = _fallback_spatial_isometric(topic, watermark, tone, cta_style, cta_keyword)
+    else:
+        inner_tl = _generate_v4_whiteboard_llm(topic, tone, duration_mode, voice, watermark, audience_level, hook_style, cta_style, cta_keyword)
+        if inner_tl is None:
+            inner_tl = _fallback_blueprint_whiteboard(topic, watermark, tone, cta_style, cta_keyword)
+
+    inner_scenes = list(inner_tl.get("scenes") or [])
+    # Skip redundant hook & final CTA inside inner timeline when we have >= 4 inner scenes so flow stays tight
+    if len(inner_scenes) >= 4:
+        body_scenes = inner_scenes[1:-1]
+    elif len(inner_scenes) >= 3:
+        body_scenes = inner_scenes[:-1]
+    else:
+        body_scenes = inner_scenes
+
+    dlg_txt = _build_dc_narration("desk", dept["full"], spec["title"], topic, voice, cta_note=cta_note)
+
+    sc_campus = {
+        "scene_id": 1,
+        "role": "hook",
+        "scene_tone": get_tone_profile(tone, role="hook", idx=0).get("key") or "auto_2026_director",
+        "sfx_cue": "whoosh",
+        "narration": _build_dc_narration("campus", dept["full"], spec["title"], topic, voice),
+        "visual_type": "v5_datacenter_park",
+        "routed_engine": f"Studio V5 Data Center ({travel.title()} Fly-In → {dept['name']})",
+        "art_style": "v2_midnight_navy",
+        "backdrop": "v2_clean_canvas",
+        "transition": "smooth_fade",
+        "text_fx": "clean_hud",
+        "visual_data": {
+            "dc_mode": "campus_fly",
+            "travel_mode": travel,
+            "department": dept,
+            "specialist": spec,
+            "engineer_x": match["engineer_x"],
+            "engineer_y": match["engineer_y"],
+            "hud_pill": f"DATA CENTER · {dept['name']}",
+            "headline_white": "Inside",
+            "headline_accent": f"{dept['name']}.",
+            "accent_color": dept["color"],
+            "campus_sub": f"Flying to {dept['full']} → {spec['title']}",
+            "watermark": watermark,
+        },
+        "actions": [],
+        "_disable_actions_overlay": True,
+        "_disable_camera_actions": True,
+    }
+
+    sc_desk = {
+        "scene_id": 2,
+        "role": "scenario",
+        "scene_tone": get_tone_profile(tone, role="scenario", idx=1).get("key") or "whiteboard_analogy",
+        "sfx_cue": "pop_snap",
+        "narration": dlg_txt,
+        "visual_type": "v5_datacenter_park",
+        "routed_engine": f"Studio V5 Desk Focus ({spec['short']})",
+        "art_style": "v2_midnight_navy",
+        "backdrop": "v2_clean_canvas",
+        "transition": "smooth_fade",
+        "text_fx": "clean_hud",
+        "visual_data": {
+            "dc_mode": "desk_focus",
+            "travel_mode": travel,
+            "department": dept,
+            "specialist": spec,
+            "engineer_x": match["engineer_x"],
+            "engineer_y": match["engineer_y"],
+            "hud_pill": f"ENGINEER DESK · {dept['name']}",
+            "headline_white": spec["short"],
+            "headline_accent": "In Action.",
+            "accent_color": dept["color"],
+            "dialogue_text": dlg_txt[:150],
+            "watermark": watermark,
+        },
+        "actions": [],
+        "_disable_actions_overlay": True,
+        "_disable_camera_actions": True,
+    }
+
+    sc_outro = {
+        "scene_id": 99,
+        "role": "cta",
+        "scene_tone": get_tone_profile(tone, role="cta", idx=len(body_scenes) + 2).get("key") or "whiteboard_analogy",
+        "sfx_cue": "success_chime",
+        "narration": _build_dc_narration("outro", dept["full"], spec["title"], topic, voice, cta_note=cta_note),
+        "visual_type": "v5_datacenter_park",
+        "routed_engine": "Studio V5 Data Center Zoom-Out",
+        "art_style": "v2_midnight_navy",
+        "backdrop": "v2_clean_canvas",
+        "transition": "smooth_fade",
+        "text_fx": "clean_hud",
+        "visual_data": {
+            "dc_mode": "campus_outro",
+            "travel_mode": travel,
+            "department": dept,
+            "specialist": spec,
+            "engineer_x": match["engineer_x"],
+            "engineer_y": match["engineer_y"],
+            "hud_pill": "IT PARK TOUR",
+            "headline_white": "Complete",
+            "headline_accent": f"{dept['name']} Flow!",
+            "accent_color": dept["color"],
+            "option_a": f"{dept['icon']} {dept['name']}",
+            "option_b": "🛡️ InfoSec / AD",
+            "footer_note": cta_note,
+            "watermark": watermark,
+        },
+        "actions": [],
+        "_disable_actions_overlay": True,
+        "_disable_camera_actions": True,
+    }
+
+    combined = [sc_campus, sc_desk] + body_scenes + [sc_outro]
+    for idx_c, sc in enumerate(combined, start=1):
+        sc["scene_id"] = idx_c
+
+    out_tl: Dict[str, Any] = {
+        "topic": topic,
+        "v2_engine": "datacenter_park",
+        "art_style": "v2_midnight_navy",
+        "header_brand": watermark,
+        "scenes": combined,
+    }
+    if inner_tl.get("world_spec"):
+        out_tl["world_spec"] = inner_tl["world_spec"]
+    return out_tl
+
+
 def generate_v2_timeline(
     topic: str,
     v2_mode: str = "v2_auto",
@@ -1568,11 +1775,18 @@ def generate_v2_timeline(
     hook_style: str = "auto",
     cta_style: str = "save_share",
     cta_keyword: str = "",
+    dc_travel_mode: str = "auto",
 ) -> Dict[str, Any]:
-    """Entry point for Studio V2 / V3 / V4 Storyboard Directors (completely isolated from classic NanoPro)."""
+    """Entry point for Studio V2 / V3 / V4 / V5 Storyboard Directors (isolated from classic NanoPro)."""
     wm_clean = str(watermark or DEFAULT_WATERMARK).strip() or DEFAULT_WATERMARK
     sub = resolve_v2_sub_engine(topic, v2_mode, duration_mode=duration_mode)
-    if sub == "spatial_isometric":
+    if sub == "datacenter_park":
+        tl = _generate_v5_datacenter_hybrid(
+            topic, tone, duration_mode, voice, wm_clean,
+            audience_level, hook_style, cta_style, cta_keyword,
+            dc_travel_mode=dc_travel_mode,
+        )
+    elif sub == "spatial_isometric":
         tl = _generate_v2_isometric_llm(
             topic, tone, duration_mode, voice, wm_clean,
             audience_level, hook_style, cta_style, cta_keyword,
