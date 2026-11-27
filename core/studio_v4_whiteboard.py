@@ -62,25 +62,24 @@ def _build_whiteboard_html(
 
     nodes = list(vd.get("diagram_nodes") or [])[:7]
     edges = list(vd.get("diagram_edges") or [])[:8]
-    stickies = list(vd.get("sticky_notes") or [])[:4]
-    zones = list(vd.get("blueprint_zones") or [])[:3]
+    stickies = list(vd.get("sticky_notes") or [])[:2]
     footer_note = html.escape(str(vd.get("footer_pill") or ""))
 
     is_wide = width > height
     sc = min(width, height) / 1080.0
     pad_x = int((40 if not is_wide else 88) * sc)
-    hl_px = int((58 if not is_wide else 42) * sc)
+    hl_px = int((56 if not is_wide else 42) * sc)
 
     # Calibrate virtual SVG coordinate space to stage proportions so shapes & text fill tall reels
-    vb_w, vb_h = (1320, 680) if is_wide else ((1000, 900) if width == height else (920, 1260))
+    vb_w, vb_h = (1320, 680) if is_wide else ((1000, 900) if width == height else (960, 1280))
 
     wb_state = {
         "vb_w": vb_w,
         "vb_h": vb_h,
+        "has_sticky": len(stickies) > 0,
         "nodes": nodes,
         "edges": edges,
         "stickies": stickies,
-        "zones": zones,
         "wobble": wb_style["wobble"],
         "draw_speed": wb_style["draw_speed"],
     }
@@ -150,22 +149,28 @@ def _build_whiteboard_html(
   }}
   svg#wbSvg {{ position: absolute; inset: 0; width: 100%; height: 100%; }}
 
-  /* High-Contrast Sticky Callout Bubbles */
+  /* Aligned Bottom Sticky Callout Dock (never collides with diagram nodes) */
+  #stickyLayer {{
+    position: absolute; left: {int(24*sc)}px; right: {int(24*sc)}px; bottom: {int(22*sc)}px;
+    z-index: 8; display: flex; align-items: stretch; justify-content: center; gap: {int(16*sc)}px;
+    pointer-events: none;
+  }}
   .sticky-note {{
-    position: absolute; z-index: 8; max-width: {int(420*sc)}px; min-width: {int(260*sc)}px;
-    padding: {int(18*sc)}px {int(22*sc)}px; border-radius: 16px;
-    background: rgba(11, 20, 40, 0.96); border: 2.8px solid #FACC15;
-    box-shadow: 0 18px 42px rgba(0,0,0,0.72), 0 0 26px rgba(250,204,21,0.18);
+    flex: 1; max-width: {int(720*sc)}px; min-width: {int(240*sc)}px;
+    padding: {int(16*sc)}px {int(24*sc)}px; border-radius: 16px;
+    background: rgba(11, 20, 40, 0.96); border: 2.5px solid #FACC15;
+    box-shadow: 0 16px 38px rgba(0,0,0,0.72), 0 0 22px rgba(250,204,21,0.16);
+    text-align: center;
   }}
   .sticky-tape {{
-    width: {int(64*sc)}px; height: {int(12*sc)}px; border-radius: 5px;
-    margin: -{int(25*sc)}px auto {int(10*sc)}px;
+    width: {int(64*sc)}px; height: {int(10*sc)}px; border-radius: 5px;
+    margin: -{int(22*sc)}px auto {int(10*sc)}px;
   }}
   .sticky-title {{
-    font-size: {int(20*sc)}px; font-weight: 900; letter-spacing: 1.4px; margin-bottom: 6px;
+    font-size: {int(19*sc)}px; font-weight: 900; letter-spacing: 1.4px; margin-bottom: 5px;
   }}
   .sticky-txt {{
-    font-size: {int(26*sc)}px; font-weight: 800; color: #FFFFFF; line-height: 1.32;
+    font-size: {int(25*sc)}px; font-weight: 800; color: #FFFFFF; line-height: 1.32;
   }}
 
   .footer-pill {{
@@ -188,7 +193,6 @@ def _build_whiteboard_html(
 
     <div class="board-stage" id="boardStage">
       <div class="bp-corner" style="top:14px;left:18px">GRID 28px // REV-4</div>
-      <div class="bp-corner" style="bottom:14px;right:18px">BLUEPRINT STUDIO V4</div>
       <svg id="wbSvg" viewBox="0 0 {vb_w} {vb_h}" preserveAspectRatio="xMidYMid meet"></svg>
       <div id="stickyLayer"></div>
     </div>
@@ -272,42 +276,134 @@ def _build_whiteboard_html(
     const edgePackets = [];
     const labelGroups = [];
 
-    // 1. Zones
-    (STATE.zones || []).forEach((z, idx) => {{
-      const col = PAL[z.color] || '#38BDF8';
-      const x = mapX(z.x || 120), y = mapY(z.y || 140);
-      const w = (Number(z.w || 420) / 1000.0) * VBW;
-      const h = (Number(z.h || 420) / 1000.0) * VBH;
-      const dp = Number(z.dp !== undefined ? z.dp : 0.03 + idx * 0.10);
-      const g = makeEl('g', {{ opacity: 0 }});
-      g.appendChild(makeEl('rect', {{
-        x, y, width: w, height: h, rx: 22,
-        fill: col + '14', stroke: col, 'stroke-width': 2.8, 'stroke-dasharray': '14 10'
-      }}));
-      const lbl = makeEl('text', {{
-        x: x + 20, y: y + 34, fill: col, 'font-size': 22, 'font-weight': '900',
-        'font-family': 'Cascadia Code, monospace'
-      }});
-      lbl.textContent = String(z.label || 'ZONE').toUpperCase();
-      g.appendChild(lbl);
-      svg.appendChild(g);
-      revealGroups.push({{ el: g, dp }});
-    }});
+    // Canvas text measurer so every SVG box & edge pill auto-fits wrapped text with zero overflow
+    const _mCanvas = document.createElement('canvas');
+    const _mCtx = _mCanvas.getContext('2d');
+    function measureTextPx(txt, fontSpec) {{
+      _mCtx.font = fontSpec;
+      return _mCtx.measureText(String(txt || '')).width;
+    }}
+    function wrapTextLines(rawText, maxLineW, fontSpec, maxLines = 2) {{
+      const words = String(rawText || '').trim().split(/\s+/).filter(Boolean);
+      if (!words.length) return [''];
+      const lines = [];
+      let cur = words[0];
+      for (let i = 1; i < words.length; i++) {{
+        const cand = cur + ' ' + words[i];
+        if (measureTextPx(cand, fontSpec) <= maxLineW) {{
+          cur = cand;
+        }} else {{
+          lines.push(cur);
+          cur = words[i];
+          if (lines.length >= maxLines - 1) {{
+            const rest = [cur, ...words.slice(i + 1)].join(' ');
+            // Fit remaining text cleanly inside maxLineW if needed
+            let trimmed = rest;
+            while (trimmed.length > 6 && measureTextPx(trimmed, fontSpec) > maxLineW) {{
+              trimmed = trimmed.slice(0, -4) + '...';
+            }}
+            lines.push(trimmed);
+            return lines.slice(0, maxLines);
+          }}
+        }}
+      }}
+      lines.push(cur);
+      return lines.slice(0, maxLines);
+    }}
 
-    // 2. Node lookup mapped cleanly into portrait/landscape viewBox
-    const nodeMap = {{}};
-    (STATE.nodes || []).forEach((n, idx) => {{
-      nodeMap[String(n.id || idx)] = {{
+    // 1. Build measured, wrapped node geometry (zero text overflow outside boxes/cylinders/diamonds)
+    const rawNodes = STATE.nodes || [];
+    const isPortrait = VBW < VBH;
+    const stickyReserve = STATE.has_sticky ? (isPortrait ? 235 : 150) : 54;
+    const usableTop = 64;
+    const usableBot = VBH - stickyReserve;
+    const maxNodeTextW = isPortrait ? 310 : 250;
+    const nodeEntries = rawNodes.map((n, idx) => {{
+      const kind = String(n.kind || 'box').toLowerCase();
+      const lblFont = '900 28px "Nirmala UI", "Segoe UI", sans-serif';
+      const subFont = '800 20px "Cascadia Code", monospace';
+      const lblLines = wrapTextLines(n.label || 'Node', maxNodeTextW, lblFont, 2);
+      const subLines = n.sublabel ? wrapTextLines(n.sublabel, maxNodeTextW, subFont, 2) : [];
+      const lblMaxW = Math.max(...lblLines.map(l => measureTextPx(l, lblFont)), 90);
+      const subMaxW = subLines.length ? Math.max(...subLines.map(l => measureTextPx(l, subFont)), 60) : 0;
+      const contentW = Math.max(lblMaxW, subMaxW);
+      const contentH = lblLines.length * 34 + (subLines.length ? 10 + subLines.length * 26 : 0);
+
+      let boxW = Math.max(245, Math.min(isPortrait ? 430 : 340, contentW + 64));
+      let boxH = Math.max(118, contentH + (kind === 'cylinder' ? 76 : 50));
+      if (kind === 'diamond') {{
+        // Diamond inner safe zone requires wider/taller vertices so text stays cleanly inside diagonals
+        boxW = Math.max(boxW + 76, contentW * 1.48 + 68);
+        boxH = Math.max(boxH + 46, contentH * 1.55 + 56);
+      }}
+      return {{
         cx: mapX(n.x),
         cy: mapY(n.y),
-        w: mapW(n.w),
-        h: mapH(n.h),
+        w: Math.round(boxW),
+        h: Math.round(boxH),
+        lblLines,
+        subLines,
         data: n,
         dp: Number(n.dp !== undefined ? n.dp : 0.05 + idx * 0.10),
       }};
     }});
 
-    // 3. Hand-drawn boundary-clipped curved edges + labels + traveling dots
+    // 2. Smart Portrait Re-flow & AABB Collision Solver (keeps generous space for arrows & edge pills)
+    if (isPortrait && nodeEntries.length >= 2 && nodeEntries.length <= 4) {{
+      const ys = nodeEntries.map(nd => nd.cy);
+      const ySpan = Math.max(...ys) - Math.min(...ys);
+      // If nodes are bunched horizontally in a narrow horizontal band, spread cleanly across portrait height
+      if (ySpan < 190) {{
+        const usableH = usableBot - usableTop;
+        nodeEntries.forEach((nd, i) => {{
+          const frac = (i + 0.5) / nodeEntries.length;
+          nd.cy = usableTop + frac * usableH;
+          if (nodeEntries.length === 2) {{
+            nd.cx = VBW * (i === 0 ? 0.36 : 0.64);
+          }} else {{
+            nd.cx = VBW * (i % 2 === 0 ? 0.32 : 0.68);
+          }}
+        }});
+      }}
+    }}
+
+    for (let iter = 0; iter < 24; iter++) {{
+      for (let i = 0; i < nodeEntries.length; i++) {{
+        for (let j = i + 1; j < nodeEntries.length; j++) {{
+          const a = nodeEntries[i], b = nodeEntries[j];
+          const minDx = (a.w + b.w) * 0.5 + 96;
+          const minDy = (a.h + b.h) * 0.5 + 108;
+          const dx = b.cx - a.cx;
+          const dy = b.cy - a.cy;
+          if (Math.abs(dx) < minDx && Math.abs(dy) < minDy) {{
+            const penX = minDx - Math.abs(dx);
+            const penY = minDy - Math.abs(dy);
+            if (penY <= penX || isPortrait) {{
+              const s = (dy >= 0 ? 1 : -1) || 1;
+              a.cy -= s * penY * 0.45;
+              b.cy += s * penY * 0.45;
+            }} else {{
+              const s = (dx >= 0 ? 1 : -1) || 1;
+              a.cx -= s * penX * 0.45;
+              b.cx += s * penX * 0.45;
+            }}
+          }}
+        }}
+      }}
+      nodeEntries.forEach(nd => {{
+        const padX = nd.w * 0.5 + 34;
+        const padY = nd.h * 0.5 + 24;
+        nd.cx = Math.max(padX, Math.min(VBW - padX, nd.cx));
+        nd.cy = Math.max(usableTop + padY, Math.min(usableBot - padY, nd.cy));
+      }});
+    }}
+
+    const nodeMap = {{}};
+    nodeEntries.forEach((nd, idx) => {{
+      nodeMap[String(nd.data.id || idx)] = nd;
+    }});
+
+    // 3. Hand-drawn boundary-clipped curved edges + measured edge pills (never collide with boxes)
     (STATE.edges || []).forEach((e, idx) => {{
       const a = nodeMap[String(e.from)], b = nodeMap[String(e.to)];
       if (!a || !b) return;
@@ -318,7 +414,7 @@ def _build_whiteboard_html(
       const dx = x2 - x1, dy = y2 - y1;
       const dist = Math.hypot(dx, dy) || 1;
       const ux = dx / dist, uy = dy / dist;
-      const bend = dist > 180 ? 28 : 16;
+      const bend = dist < 160 ? 58 : (dist > 220 ? 32 : 40);
       const mx = (x1 + x2) * 0.5 - uy * bend;
       const my = (y1 + y2) * 0.5 + ux * bend;
       const d = `M ${{x1.toFixed(1)}} ${{y1.toFixed(1)}} Q ${{mx.toFixed(1)}} ${{my.toFixed(1)}} ${{x2.toFixed(1)}} ${{y2.toFixed(1)}}`;
@@ -338,7 +434,6 @@ def _build_whiteboard_html(
         revealGroups.push({{ el: pEl, dp }});
       }}
 
-      // Sketchy Arrowhead
       const ang = Math.atan2(y2 - my, x2 - mx);
       const ah = 20;
       const ax1 = x2 - ah * Math.cos(ang - 0.45), ay1 = y2 - ah * Math.sin(ang - 0.45);
@@ -350,25 +445,29 @@ def _build_whiteboard_html(
       svg.appendChild(head);
       revealGroups.push({{ el: head, dp: dp + 0.06 }});
 
-      // Traveling glowing marker packet along edge
       const pkt = makeEl('circle', {{ r: 7, fill: col, stroke: '#FFFFFF', 'stroke-width': 2, opacity: 0 }});
       svg.appendChild(pkt);
       edgePackets.push({{ el: pkt, x1, y1, mx, my, x2, y2, dp: dp + 0.06 }});
 
       if (e.label) {{
         const tg = makeEl('g', {{ opacity: 0 }});
-        const lblTxt = String(e.label);
-        const tw = Math.max(108, lblTxt.length * 14 + 28);
-        // Curve midpoint at t=0.5 on quadratic bezier
-        const lx = 0.25 * x1 + 0.5 * mx + 0.25 * x2;
-        const ly = 0.25 * y1 + 0.5 * my + 0.25 * y2;
+        let lblTxt = String(e.label).trim();
+        const eFont = '900 20px "Cascadia Code", monospace';
+        while (lblTxt.length > 8 && measureTextPx(lblTxt, eFont) > 220) {{
+          lblTxt = lblTxt.slice(0, -4) + '...';
+        }}
+        const tw = Math.max(104, measureTextPx(lblTxt, eFont) + 34);
+        let lx = 0.25 * x1 + 0.5 * mx + 0.25 * x2;
+        let ly = 0.25 * y1 + 0.5 * my + 0.25 * y2;
+        lx = Math.max(tw * 0.5 + 16, Math.min(VBW - tw * 0.5 - 16, lx));
+        ly = Math.max(usableTop + 24, Math.min(usableBot - 24, ly));
         tg.appendChild(makeEl('rect', {{
           x: lx - tw / 2, y: ly - 20, width: tw, height: 40, rx: 12,
-          fill: '#081226', stroke: col, 'stroke-width': 2.5
+          fill: '#071124', stroke: col, 'stroke-width': 2.4
         }}));
         const txt = makeEl('text', {{
           x: lx, y: ly + 7, 'text-anchor': 'middle', fill: '#FFFFFF',
-          'font-size': 21, 'font-weight': '900', 'font-family': 'Cascadia Code, monospace'
+          'font-size': 20, 'font-weight': '900', 'font-family': 'Cascadia Code, monospace'
         }});
         txt.textContent = lblTxt;
         tg.appendChild(txt);
@@ -376,7 +475,7 @@ def _build_whiteboard_html(
       }}
     }});
 
-    // 4. Hand-drawn high-contrast diagram nodes
+    // 4. Hand-drawn high-contrast diagram nodes with wrapped multi-line labels inside exact bounds
     Object.values(nodeMap).forEach((nd, idx) => {{
       const n = nd.data;
       const col = PAL[n.color] || '#38BDF8';
@@ -398,12 +497,11 @@ def _build_whiteboard_html(
           fill: '#112447', stroke: col, 'stroke-width': 4.4
         }}));
         g.appendChild(makeEl('path', {{
-          d: `M ${{x}} ${{y + 50}} c 0 20 ${{w}} 20 ${{w}} 0`,
-          fill: 'none', stroke: col + '99', 'stroke-width': 2.5, 'stroke-dasharray': '8 6'
+          d: `M ${{x}} ${{y + 36}} c 0 16 ${{w}} 16 ${{w}} 0`,
+          fill: 'none', stroke: col + '66', 'stroke-width': 2.0, 'stroke-dasharray': '8 6'
         }}));
       }} else if (kind === 'diamond') {{
-        const dw = w * 1.02, dh = h * 1.22;
-        const pts = `${{nd.cx}},${{nd.cy - dh * 0.5}} ${{nd.cx + dw * 0.5}},${{nd.cy}} ${{nd.cx}},${{nd.cy + dh * 0.5}} ${{nd.cx - dw * 0.5}},${{nd.cy}}`;
+        const pts = `${{nd.cx}},${{nd.cy - h * 0.5}} ${{nd.cx + w * 0.5}},${{nd.cy}} ${{nd.cx}},${{nd.cy + h * 0.5}} ${{nd.cx - w * 0.5}},${{nd.cy}}`;
         g.appendChild(makeEl('polygon', {{
           points: pts, fill: '#0C1A36', stroke: col, 'stroke-width': 4.5, 'stroke-linejoin': 'round'
         }}));
@@ -424,21 +522,34 @@ def _build_whiteboard_html(
         g.appendChild(makeEl('path', {{ d: d2, fill: 'none', stroke: col + 'AA', 'stroke-width': 2.3, 'stroke-linecap': 'round' }}));
       }}
 
-      const lbl = makeEl('text', {{
-        x: nd.cx, y: nd.cy - (n.sublabel ? 8 : -10), 'text-anchor': 'middle',
-        fill: '#FFFFFF', 'font-size': 31, 'font-weight': '900',
-        'font-family': 'Nirmala UI, Segoe UI, sans-serif'
-      }});
-      lbl.textContent = String(n.label || 'Node');
-      g.appendChild(lbl);
+      const lblCount = nd.lblLines.length;
+      const subCount = nd.subLines.length;
+      const totalBlockH = lblCount * 34 + (subCount ? 8 + subCount * 26 : 0);
+      const yOffset = kind === 'cylinder' ? 18 : 0;
+      let curY = nd.cy + yOffset - totalBlockH * 0.5 + 24;
 
-      if (n.sublabel) {{
-        const sub = makeEl('text', {{
-          x: nd.cx, y: nd.cy + 28, 'text-anchor': 'middle',
-          fill: col, 'font-size': 22, 'font-weight': '800', 'font-family': 'Cascadia Code, monospace'
+      nd.lblLines.forEach(line => {{
+        const lbl = makeEl('text', {{
+          x: nd.cx, y: curY, 'text-anchor': 'middle',
+          fill: '#FFFFFF', 'font-size': 28, 'font-weight': '900',
+          'font-family': 'Nirmala UI, Segoe UI, sans-serif'
         }});
-        sub.textContent = String(n.sublabel);
-        g.appendChild(sub);
+        lbl.textContent = line;
+        g.appendChild(lbl);
+        curY += 34;
+      }});
+
+      if (subCount) {{
+        curY += 4;
+        nd.subLines.forEach(line => {{
+          const sub = makeEl('text', {{
+            x: nd.cx, y: curY, 'text-anchor': 'middle',
+            fill: col, 'font-size': 20, 'font-weight': '800', 'font-family': 'Cascadia Code, monospace'
+          }});
+          sub.textContent = line;
+          g.appendChild(sub);
+          curY += 26;
+        }});
       }}
 
       svg.appendChild(g);
@@ -451,20 +562,16 @@ def _build_whiteboard_html(
       revealGroups.push(lg);
     }});
 
-    // 5. High-Contrast Sticky Callout Bubbles
+    // 5. Aligned High-Contrast Sticky Callout Bubbles inside bottom dock
     const stickyEls = [];
     (STATE.stickies || []).forEach((st, idx) => {{
       const col = PAL[st.color] || '#FBBF24';
-      const xp = Math.max(4, Math.min(54, Number(st.x_pct !== undefined ? st.x_pct : (idx % 2 === 0 ? 6 : 48))));
-      const yp = Math.max(4, Math.min(78, Number(st.y_pct !== undefined ? st.y_pct : (72 - idx * 24))));
-      const rot = idx % 2 === 0 ? -1.4 : 1.4;
+      const rot = (STATE.stickies || []).length === 1 ? 0 : (idx % 2 === 0 ? -0.8 : 0.8);
       const dp = Number(st.dp !== undefined ? st.dp : 0.24 + idx * 0.16);
       const card = document.createElement('div');
       card.className = 'sticky-note';
-      card.style.left = xp + '%';
-      card.style.top = yp + '%';
       card.style.borderColor = col;
-      card.style.boxShadow = `0 18px 42px rgba(0,0,0,0.72), 0 0 26px ${{col}}33`;
+      card.style.boxShadow = `0 16px 38px rgba(0,0,0,0.72), 0 0 22px ${{col}}2E`;
       card.style.transform = `rotate(${{rot}}deg) scale(0.94)`;
       card.innerHTML = `<div class="sticky-tape" style="background:${{col}}CC"></div>` +
         `<div class="sticky-title" style="color:${{col}}">${{String(st.title || 'NOTE').replace(/</g,'&lt;')}}</div>` +

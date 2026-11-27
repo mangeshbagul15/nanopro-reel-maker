@@ -309,6 +309,7 @@ def _normalize_v2_scenes(
                 vd["diagram_edges"] = [{"from": "n1", "to": "n2", "label": "flow", "color": "amber"}]
             vd.setdefault("diagram_edges", [])
             vd.setdefault("sticky_notes", [])
+            vd["blueprint_zones"] = []
 
         _engine_labels = {
             "vector_storyboard": ("v2_vector_storyboard", "Studio V2 (Vector Storyboard)"),
@@ -1352,7 +1353,6 @@ def _fallback_blueprint_whiteboard(topic: str, watermark: str, tone: str, cta_st
                 "headline_white": "Clean Edge",
                 "headline_accent": "Architecture.",
                 "accent_color": "cyan",
-                "blueprint_zones": [{"label": "EDGE PROTECTION ZONE", "x": 335, "y": 140, "w": 360, "h": 410, "color": "cyan"}],
                 "diagram_nodes": [
                     {"id": "u", "kind": "box", "label": "Clients", "sublabel": "Mobile / Web", "x": 145, "y": 325, "w": 185, "h": 110, "color": "white", "dp": 0.05},
                     {"id": "gw", "kind": "diamond", "label": "Gateway", "sublabel": "Auth + Limit", "x": 500, "y": 325, "w": 210, "h": 140, "color": "cyan", "dp": 0.18},
@@ -1535,13 +1535,12 @@ Audience: {audience_level} | Hook: {hook_style} | Final CTA: {cta_note}
 Target Scenes: {sc_guide}
 {lang_instr}
 
-Each scene draws hand-drawn marker shapes on a 1000x1000 virtual blueprint canvas (nodes spaced >=260 units apart inside x:150..850, y:160..840 so ZERO shapes overlap!) plus sticky callout bubbles.
+Each scene draws hand-drawn marker shapes on a 1000x1000 virtual blueprint canvas (place nodes inside x:200..800, y:140..660 spaced >=280 units apart so ZERO shapes or labels collide; keep sticky_notes inside the bottom dock!).
 For EVERY scene's `visual_data`, provide:
 - `hud_pill`, `headline_white` (max 3 words), `headline_accent` (max 3 words), `accent_color` ("cyan"|"emerald"|"amber"|"rose"|"purple")
-- `blueprint_zones`: optional [{{"label":"ZONE NAME","x":120,"y":180,"w":420,"h":400,"color":"cyan"}}]
-- `diagram_nodes`: 2 to 5 nodes: {{"id":"n1","kind":"box"|"cylinder"|"diamond"|"queue","label":"short name","sublabel":"detail","x":220,"y":420,"w":220,"h":110,"color":"cyan"|"emerald"|"amber"|"rose"|"purple","dp":0.06..0.5}}
-- `diagram_edges`: 1 to 5 arrows: {{"from":"n1","to":"n2","label":"short tag","color":"cyan"|"amber"|"emerald"|"rose","dashed":false,"dp":0.16..0.6}}
-- `sticky_notes`: 1 to 2 sticky callout bubbles placed away from main nodes: {{"title":"📌 KEY RULE","text":"short 5-8 word insight","color":"amber"|"emerald"|"rose","x_pct":8..62,"y_pct":12..72,"dp":0.45..0.7}}
+- `diagram_nodes`: 2 to 4 clean nodes: {{"id":"n1","kind":"box"|"cylinder"|"diamond"|"queue","label":"short name (max 18 chars)","sublabel":"concise detail (max 22 chars)","x":240,"y":240,"w":240,"h":115,"color":"cyan"|"emerald"|"amber"|"rose"|"purple","dp":0.06..0.5}}
+- `diagram_edges`: 1 to 4 arrows: {{"from":"n1","to":"n2","label":"short tag (max 14 chars)","color":"cyan"|"amber"|"emerald"|"rose","dashed":false,"dp":0.16..0.6}}
+- `sticky_notes`: 1 concise sticky callout bubble: {{"title":"📌 KEY RULE","text":"short 5-8 word insight","color":"amber"|"emerald"|"rose","dp":0.45..0.7}} (Do NOT emit `blueprint_zones` wrapper boxes!)
 - Optional `footer_pill` on the CTA scene.
 
 Return STRICT JSON:
