@@ -21,7 +21,6 @@ from typing import Any, Dict, List, Optional
 from core.config import DEFAULT_WATERMARK, GEMINI_API_KEY, GROQ_API_KEY
 from core.studio_pro_engines import (
     STUDIO_PRO_KEYS,
-    STUDIO_PRO_OPTIONS,
     generate_studio_pro_timeline,
 )
 from core.tone_engine import (
@@ -39,7 +38,7 @@ STUDIO_V2_MODE_OPTIONS = [
     ("v3_live_ide", "🖥️ Studio V3 — Live IDE & SQL/Python Simulator (Code Highlight · Click Ripple · Callout · Live Output Drawer)"),
     ("v4_blueprint_whiteboard", "✏️ Studio V4 — Blueprint Whiteboard Studio (ByteByteGo / Excalidraw · Dark Grid · Marker Diagrams · Sticky Bubbles)"),
     ("v5_datacenter_park", "🏢 Studio V5 — Enterprise Data Center & IT Park (Campus → Dept → Engineer Fly-In)"),
-] + list(STUDIO_PRO_OPTIONS)
+]
 
 
 def is_studio_v2_mode(mode_key: str) -> bool:

@@ -152,7 +152,7 @@ st.markdown(
     '</div>',
     unsafe_allow_html=True,
 )
-st.markdown('<div class="sub-title">2026 Smart Director &amp; Studio V2–V28 — Vector Storyboard, Isometric World, Live IDE, Blueprint Whiteboard, Data Center, SQL/Agent/API/Iceberg/CDC Pro Studios &amp; 1,221 Semantic Engines.</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">2026 Smart Director &amp; Studio V2–V5 — Vector Storyboard, Isometric World, Live IDE, Blueprint Whiteboard, Data Center &amp; 1,221 Semantic Engines.</div>', unsafe_allow_html=True)
 
 # Create main tabs BEFORE sidebar R2/status blocks so main interactive studio stays snappy
 tab_create, tab_storage = st.tabs(["🎬 Create New Reel", "☁️ Cloudflare R2 Media & Storage Manager"])
@@ -454,6 +454,9 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 🎨 Visual Engine & Style")
     st.session_state.setdefault("studio_v2_arch_select", "classic_nanopro")
+    _valid_arch_keys = {k for k, _ in STUDIO_V2_MODE_OPTIONS}
+    if st.session_state.get("studio_v2_arch_select") not in _valid_arch_keys:
+        st.session_state["studio_v2_arch_select"] = "classic_nanopro"
     _v2_arch_map = dict(STUDIO_V2_MODE_OPTIONS)
     chosen_studio_arch = st.selectbox(
         "Studio Generation Architecture",
@@ -489,8 +492,7 @@ with st.sidebar:
             "• **Studio V2 — Spatial Isometric (`@thetechypenguin`):** Continuous 2.5D Architecture World + Camera Fly + Top HUD\n"
             "• **Studio V3 — Live IDE (`Python / SQL`):** Code highlight + mouse click ripple + callout bubble + live output drawer\n"
             "• **Studio V4 — Blueprint Whiteboard (`Excalidraw`):** Dark blueprint grid + hand-drawn marker diagrams + sticky bubbles\n"
-            "• **Studio V5 — Enterprise Data Center (`10 Depts · 25 Specialists`):** Fast 1-Scene Fly-In (`Camera / Drone / Fiber`) → Engineer Desk → Instant Topic Deep-Dive\n"
-            "• **Studio V17–V28 — Specialized Pro Visual Studios:** SQL Joins (`V17`), ReAct/MCP Agents (`V18`), Storage/Parquet Pruning (`V19`), API/OAuth Inspector (`V21`), Decision Tree (`V23`), Editorial Cards (`V24`), Iceberg V4/Snowflake (`V25`), Multi-Agent Guardrails (`V26`), CDC/Contracts (`V27`), Semantic/Eval Hub (`V28`)",
+            "• **Studio V5 — Enterprise Data Center (`10 Depts · 25 Specialists`):** Fast 1-Scene Fly-In (`Camera / Drone / Fiber`) → Engineer Desk → Instant Topic Deep-Dive",
             icon="✨",
         )
     else:
