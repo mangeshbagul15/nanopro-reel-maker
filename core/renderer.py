@@ -5,32 +5,40 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from core.config import FFMPEG_EXE, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS, OUTPUT_DIR, SFX_DIR
 
-_CACHED_ENCODER_ARGS: Optional[List[str]] = None
+_CACHED_ENCODER_MAP: Dict[str, List[str]] = {}
 
-def _get_encoder_args() -> List[str]:
+def _get_encoder_args(export_spec: Optional[Dict[str, Any]] = None) -> List[str]:
     """
-    Dynamically tests and selects the best available hardware or software encoder.
-    Tests candidate encoders with a 0.1s dummy test to ensure driver compatibility.
+    Dynamically tests and selects the best available hardware or software encoder
+    calibrated to `export_spec` (High Profile NVENC / libx264 CRF / MediaFoundation).
     """
-    global _CACHED_ENCODER_ARGS
-    if _CACHED_ENCODER_ARGS is not None:
-        return _CACHED_ENCODER_ARGS
+    spec = dict(export_spec or {})
+    cq = str(spec.get("nvenc_cq") or "16")
+    bv = str(spec.get("nvenc_bv") or "12M")
+    crf = str(spec.get("x264_crf") or "16")
+    cache_key = f"{cq}|{bv}|{crf}"
+    if cache_key in _CACHED_ENCODER_MAP:
+        return _CACHED_ENCODER_MAP[cache_key]
+
+    bv_num = int("".join(ch for ch in bv if ch.isdigit()) or "12")
+    max_bv = f"{max(10, int(bv_num * 1.4))}M"
+    buf_bv = f"{max(16, int(bv_num * 2))}M"
 
     candidates = [
-        # Candidate 1: NVIDIA NVENC Hardware Acceleration (Prioritized on RTX 3050 / GPU systems)
+        # Candidate 1: NVIDIA NVENC High Profile (Prioritized on Local RTX 3050 GPU)
         (
-            ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "18", "-b:v", "8M", "-pix_fmt", "yuv420p"],
-            "NVIDIA NVENC Hardware"
+            ["-c:v", "h264_nvenc", "-profile:v", "high", "-preset", "p5", "-cq", cq, "-b:v", bv, "-maxrate", max_bv, "-bufsize", buf_bv, "-pix_fmt", "yuv420p"],
+            f"NVIDIA NVENC High Profile ({bv} / CQ {cq})"
         ),
-        # Candidate 2: Windows Media Foundation Hardware Acceleration
+        # Candidate 2: libx264 High Profile CPU (Razor-sharp text/gradients for Cloud & PNG/4K)
         (
-            ["-c:v", "h264_mf", "-b:v", "8M", "-pix_fmt", "yuv420p"],
-            "Windows Media Foundation Hardware (MF 8Mbps High Bitrate)"
+            ["-c:v", "libx264", "-profile:v", "high", "-preset", "fast", "-crf", crf, "-pix_fmt", "yuv420p"],
+            f"libx264 High Profile (CRF {crf})"
         ),
-        # Candidate 3: High-Fidelity libx264 CPU fallback
+        # Candidate 3: Windows Media Foundation Hardware Acceleration
         (
-            ["-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p"],
-            "libx264 High-Fidelity CPU (CRF 18)"
+            ["-c:v", "h264_mf", "-b:v", bv, "-pix_fmt", "yuv420p"],
+            f"Windows Media Foundation Hardware ({bv})"
         ),
     ]
 
@@ -38,20 +46,20 @@ def _get_encoder_args() -> List[str]:
         try:
             test_cmd = [
                 str(FFMPEG_EXE), "-y",
-                "-f", "lavfi", "-i", "color=c=black:s=64x64:d=0.1",
+                "-f", "lavfi", "-i", "color=c=black:s=128x128:d=0.1",
                 *args,
                 "-f", "null", "-"
             ]
             res = subprocess.run(test_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
             if res.returncode == 0:
                 print(f"[Renderer] Active Video Encoder: {name}")
-                _CACHED_ENCODER_ARGS = args
-                return _CACHED_ENCODER_ARGS
+                _CACHED_ENCODER_MAP[cache_key] = args
+                return _CACHED_ENCODER_MAP[cache_key]
         except Exception:
             continue
 
-    _CACHED_ENCODER_ARGS = ["-c:v", "libx264", "-preset", "faster", "-crf", "22", "-pix_fmt", "yuv420p"]
-    return _CACHED_ENCODER_ARGS
+    _CACHED_ENCODER_MAP[cache_key] = ["-c:v", "libx264", "-profile:v", "high", "-preset", "faster", "-crf", "18", "-pix_fmt", "yuv420p"]
+    return _CACHED_ENCODER_MAP[cache_key]
 
 BGM_TRACK_MAP = {
     "none": None,
@@ -69,11 +77,14 @@ def render_final_reel(
     sfx_events: Optional[List[Dict[str, Any]]] = None,
     bgm_style: str = "lofi_cyber",
     bgm_volume: float = 0.18,
+    fps: int = VIDEO_FPS,
+    export_spec: Optional[Dict[str, Any]] = None,
 ) -> Path:
     """
     Assembles all scene image frames, audio, micro-SFX cues, selected BGM track/volume,
     and karaoke subtitles into a polished MP4 video using high-speed FFmpeg encoding.
     """
+    eff_fps = max(15, int((export_spec or {}).get("fps") or fps or VIDEO_FPS))
     timestamp = int(time.time())
     if not output_filename:
         output_filename = f"reel_{timestamp}.mp4"
@@ -89,7 +100,7 @@ def render_final_reel(
             for frame in sc_frames:
                 safe_path = str(frame.resolve()).replace("\\", "/")
                 f.write(f"file '{safe_path}'\n")
-                f.write(f"duration {1.0 / VIDEO_FPS:.6f}\n")
+                f.write(f"duration {1.0 / eff_fps:.6f}\n")
         # Hold last frame to cleanly cover audio without premature cutoff
         if frames:
             last_frame_path = str(frames[-1].resolve()).replace("\\", "/")
@@ -104,7 +115,7 @@ def render_final_reel(
     has_subs = subtitles_path is not None and subtitles_path.exists()
     safe_subs_path = str(subtitles_path.resolve()).replace("\\", "/").replace(":", "\\:") if has_subs else ""
 
-    encoder_args = _get_encoder_args()
+    encoder_args = _get_encoder_args(export_spec)
 
     # Build High-Speed Single-Pass FFmpeg Command
     inputs = [
@@ -167,7 +178,7 @@ def render_final_reel(
         cmd.extend(["-filter_complex", ";".join(filter_parts)])
     cmd.extend(["-map", video_map, "-map", audio_map])
     cmd.extend(encoder_args)
-    cmd.extend(["-r", str(VIDEO_FPS), "-c:a", "aac", "-b:a", "192k", "-shortest", str(final_output_path.resolve())])
+    cmd.extend(["-r", str(eff_fps), "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", str(final_output_path.resolve())])
 
     try:
         _run_ffmpeg(cmd)

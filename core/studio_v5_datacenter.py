@@ -812,12 +812,15 @@ def render_v5_datacenter_scene_frames(
     format_ratio: str = "9:16",
     scene_words: Optional[List[Dict[str, Any]]] = None,
     tone: str = "auto_2026_director",
+    fps: int = VIDEO_FPS,
+    res_scale: float = 1.0,
+    frame_ext: str = "jpg",
 ) -> Path:
     """Renders 2.5D Enterprise Data Center & IT Park Campus / Engineer Focus frames via Chromium."""
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
     w, h = spec["width"], spec["height"]
     duration = max(1.4, float(scene.get("duration", 4.5)))
-    total_frames = max(18, int(round(duration * VIDEO_FPS)))
+    total_frames = max(18, int(round(duration * max(15, int(fps or VIDEO_FPS)))))
     out_dir = OUTPUT_DIR / f"scene_{scene_idx:02d}_frames"
     out_dir.mkdir(parents=True, exist_ok=True)
     for old in out_dir.glob("frame_*.*"):
@@ -827,32 +830,11 @@ def render_v5_datacenter_scene_frames(
             pass
 
     html_doc = _build_datacenter_html(scene, w, h, tone=tone)
-    from core.web_generative_engine import detect_web_engine
-    pw_ok, exe_path = detect_web_engine()
-    if pw_ok:
-        from playwright.sync_api import sync_playwright
-        p = sync_playwright().start()
-        kwargs: Dict[str, Any] = {"headless": True, "args": ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-vsync"]}
-        if exe_path:
-            kwargs["executable_path"] = exe_path
-        browser = p.chromium.launch(**kwargs)
-        page = browser.new_page(viewport={"width": w, "height": h}, device_scale_factor=1)
-        page.set_content(html_doc, wait_until="domcontentloaded", timeout=12000)
-
-        sc_start = float(scene.get("start_time", 0.0))
-        words = list(scene_words or [])
-        for f in range(total_frames):
-            lin_p = f / max(1, total_frames - 1)
-            cur_t = sc_start + lin_p * duration
-            word_blend = compute_synced_visual_progress(lin_p, cur_t, words, tone=tone)
-            page.evaluate(
-                "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.wp, args.lp); }",
-                {"wp": round(word_blend, 4), "lp": round(lin_p, 4)},
-            )
-            page.screenshot(path=str(out_dir / f"frame_{f:04d}.jpg"), type="jpeg", quality=90)
-
-        browser.close()
-        p.stop()
+    from core.web_generative_engine import capture_studio_playwright_frames
+    if capture_studio_playwright_frames(
+        html_doc, out_dir, w, h, duration, scene, scene_words,
+        tone=tone, fps=fps, res_scale=res_scale, frame_ext=frame_ext, arg_order="wp_lp",
+    ):
         return out_dir
 
     # Graceful headless Pillow fallback
@@ -928,6 +910,9 @@ def blend_datacenter_scene_transitions(
                 else:
                     out_im = Image.blend(tail_im, fg_im, ease)
 
-                out_im.save(fb_path, quality=92)
+                if fb_path.suffix.lower() == ".png":
+                    out_im.save(fb_path, "PNG")
+                else:
+                    out_im.save(fb_path, quality=92)
         except Exception:
             continue

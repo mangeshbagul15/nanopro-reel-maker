@@ -48,7 +48,7 @@ for _m in list(sys.modules.keys()):
 sys._nanopro_app_mtime = _APP_MTIME
 sys._nanopro_core_mtimes = _CORE_MTIMES
 
-from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK
+from core.config import OUTPUT_DIR, VIDEO_FPS, FORMAT_SPECS, DEFAULT_WATERMARK, EXPORT_QUALITY_OPTIONS, resolve_export_quality
 from core.presets import load_creator_presets, save_custom_creator_preset
 from core.tone_engine import DEFAULT_TONE_KEY, DUAL_TONE_KEY, INDIAN_BOY_STYLE_OPTIONS, TONE_PROFILES, UI_TONE_OPTIONS, collect_sfx_timeline, is_dual_tone
 from core.director import generate_timeline, generate_viral_meta, generate_video_titles, load_visual_history, reset_visual_history
@@ -212,6 +212,7 @@ with st.sidebar:
             st.session_state["visual_engine_mode_radio"] = "🧠 Auto Omni Smart Director (All Engines Unified) [Recommended]"
         for _sk, _wk in (
             ("indian_boy_vibe", "indian_boy_vibe_select"),
+            ("export_quality", "export_quality_select"),
             ("bgm_style", "bgm_style_select"),
             ("bgm_volume_pct", "bgm_volume_slider"),
             ("caption_style", "caption_style_select"),
@@ -409,6 +410,24 @@ with st.sidebar:
         format_func=lambda x: x[1],
         key="format_aspect_select",
     )
+
+    is_local_machine = (sys.platform == "win32")
+    st.session_state.setdefault("export_quality_select", "auto_hardware")
+    _exp_map = dict(EXPORT_QUALITY_OPTIONS)
+    chosen_export_key = st.selectbox(
+        "🎞️ Export Quality & Resolution / FPS",
+        [k for k, _ in EXPORT_QUALITY_OPTIONS],
+        format_func=lambda k: _exp_map.get(k, str(k)),
+        key="export_quality_select",
+        help="Auto mode renders 4K UHD (2160×3840) @ 60 FPS with PNG High Profile on Local RTX 3050 GPU, and 1080p @ 60 FPS on Online Cloud Studio.",
+    )
+    active_export = resolve_export_quality(chosen_export_key, is_local=is_local_machine)
+    export_fps = int(active_export.get("fps") or VIDEO_FPS)
+    export_scale = float(active_export.get("res_scale") or 1.0)
+    export_ext = str(active_export.get("frame_ext") or "jpg")
+    _base_fmt = FORMAT_SPECS[aspect_ratio[0]]
+    export_w = int(round(_base_fmt["width"] * export_scale))
+    export_h = int(round(_base_fmt["height"] * export_scale))
 
     st.session_state.setdefault("duration_depth_select", ("auto", "⚡ Dynamic / Auto (AI Decides Length & Scenes • No Limit) [Recommended]"))
     duration_option = st.selectbox(
@@ -719,6 +738,7 @@ with st.sidebar:
                 "gender_filter": gender_filter or "All",
                 "edge_voice_id": chosen_voice if not str(chosen_voice).startswith("elevenlabs:") else "",
                 "aspect_ratio": aspect_ratio[0],
+                "export_quality": chosen_export_key,
                 "duration_mode": duration_option[0],
                 "visual_mode": "auto_omni" if visual_engine[0] == "omni_smart_director" else "pin_specialist",
                 "bgm_style": chosen_bgm_style,
@@ -755,7 +775,7 @@ with st.sidebar:
     _eng_disp = "omni_smart_director" if visual_engine[0] == "omni_smart_director" else visual_engine[1].split("(")[0].strip()[:24]
     st.caption(
         f"🔗 **Active Sync:** `{chosen_tone}` • `{voice_label.split('—')[0].split('(')[0].strip()[:18]}` • "
-        f"`{aspect_ratio[0]}` • `{chosen_bgm_style}` (`{bgm_volume_pct if chosen_bgm_style != 'none' else 0}%`) • "
+        f"`{aspect_ratio[0]}` (`{export_w}×{export_h} @ {export_fps}fps`) • `{chosen_bgm_style}` (`{bgm_volume_pct if chosen_bgm_style != 'none' else 0}%`) • "
         f"`{chosen_caption_style}` ({chosen_platform_zone}) • `{chosen_audience}` • `qg:{chosen_quality_mode}` • `{_eng_disp}`"
         + (f" • Override `{manual_layout_choice}`" if manual_layout_choice != "auto" else "")
     )
@@ -763,16 +783,13 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### ⚡ Compute & Studio Switcher")
     
-    # Automatic Environment Detection (Windows = Local RTX 3050, Linux = Streamlit Cloud)
-    is_local_machine = (sys.platform == "win32")
-    
     if is_local_machine:
         st.success("🟢 Active: **Local RTX 3050 Studio**")
-        st.caption("💻 Hardware: NVIDIA RTX 3050 NVENC • 16GB RAM • Blazing Fast")
+        st.caption(f"💻 Hardware: NVIDIA RTX 3050 NVENC • 16GB RAM • Auto Export: **{export_w}×{export_h} @ {export_fps} FPS ({export_ext.upper()})**")
         st.link_button("🌐 Switch to Online Cloud Studio", "https://nanopro-reel-maker.streamlit.app", use_container_width=True, type="secondary")
     else:
         st.info("☁️ Active: **Online Cloud Studio**")
-        st.caption("Running in Cloud. Switch to your laptop's GPU for maximum speed.")
+        st.caption(f"Running in Cloud • Auto Export: **{export_w}×{export_h} @ {export_fps} FPS ({export_ext.upper()})**. Switch to your laptop's GPU for 4K.")
         st.link_button("⚡ Switch to Local RTX GPU Studio", "http://localhost:8501", use_container_width=True, type="primary")
     
     st.markdown("---")
@@ -1183,6 +1200,9 @@ with tab_create:
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
                         tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
                     )
                 elif v_type == "v2_spatial_isometric":
                     render_v2_isometric_scene_frames(
@@ -1192,6 +1212,9 @@ with tab_create:
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
                         tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
                     )
                 elif v_type in ("v3_live_ide", "v5_live_ide"):
                     render_v3_ide_scene_frames(
@@ -1200,6 +1223,9 @@ with tab_create:
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
                         tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
                     )
                 elif v_type in ("v4_blueprint_whiteboard", "v7_blueprint_whiteboard"):
                     render_v4_whiteboard_scene_frames(
@@ -1208,6 +1234,9 @@ with tab_create:
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
                         tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
                     )
                 elif v_type == "v5_datacenter_park":
                     render_v5_datacenter_scene_frames(
@@ -1216,6 +1245,9 @@ with tab_create:
                         format_ratio=aspect_ratio[0],
                         scene_words=sc_words,
                         tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
                     )
                 else:
                     render_scene_frames(
@@ -1228,6 +1260,9 @@ with tab_create:
                         scene_words=sc_words,
                         custom_style_prompt=custom_style_prompt,
                         tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
                     )
                 return idx_i + 1
 
@@ -1240,7 +1275,7 @@ with tab_create:
                     progress_bar.progress(45 + int(24 * done_cnt / max(1, total_sc)))
 
             if any(str(s.get("visual_type") or "") == "v5_datacenter_park" for s in aligned_scenes):
-                blend_datacenter_scene_transitions(aligned_scenes, all_scene_frame_dirs, transition_frames=12)
+                blend_datacenter_scene_transitions(aligned_scenes, all_scene_frame_dirs, transition_frames=max(12, int(round(0.40 * export_fps))))
 
             # STEP 3.5: Closed-Loop AI Quality Critic & Surgical Self-Repair Engine
             sfx_events = collect_sfx_timeline(aligned_scenes, word_timestamps=word_timestamps, tone=chosen_tone) if enable_micro_sfx else []
@@ -1320,6 +1355,8 @@ with tab_create:
                     sfx_events=sfx_events,
                     bgm_style=chosen_bgm_style,
                     bgm_volume=(bgm_volume_pct / 100.0) if chosen_bgm_style != "none" else 0.0,
+                    fps=export_fps,
+                    export_spec=active_export,
                 )
                 status_box.info("🖼️ Finalizing 9:16 thumbnail & viral metadata...")
                 progress_bar.progress(92)
@@ -1491,9 +1528,9 @@ with tab_create:
 
                     3. **🎨 Step 3 — Studio Max 3D & Dual Generative Visual Rendering:**
                        - **Rendering Engine:** {"Zero-Limit Dual Engine (Playwright WebGL/Three.js + NumPy 3D Mesh + Rust resvg_py SVG)" if _pw_ok else "Studio Max Hybrid 3D Engine (NumPy 3D Mesh/Shader + Rust resvg_py 3D SVG + Pillow)"} (`{visual_engine[0]}`)
-                       - **Resolution & Frame Rate:** {FORMAT_SPECS[aspect_ratio[0]]['width']}x{FORMAT_SPECS[aspect_ratio[0]]['height']} ({aspect_ratio[0]}) @ {VIDEO_FPS} FPS (Razor-sharp, 0% blur)
+                       - **Resolution & Frame Rate:** {export_w}x{export_h} ({aspect_ratio[0]}) @ {export_fps} FPS ({export_ext.upper()} High Profile)
                        - **Dynamic Story Elements:** {"AI Autonomous Visual Mix -> " + ", ".join(s.get("visual_type", "") for s in aligned_scenes) if visual_engine[0] == "auto_dynamic" else "Visuals strictly enforced to match `" + visual_engine[0] + "`"}
-                       - **Total Frames Generated:** `{round(total_duration * VIDEO_FPS)}` frames rendered frame-by-frame.
+                       - **Total Frames Generated:** `{round(total_duration * export_fps)}` frames rendered frame-by-frame.
 
                     3.5. **🧠 Step 3.5 — Closed-Loop AI Quality Critic & Surgical Self-Repair:**
                        - **Gate Mode & Critic:** `{qg_report.get('mode', chosen_quality_mode)}` (`{qg_report.get('critic_model', 'none')}`)

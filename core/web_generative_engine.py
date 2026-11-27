@@ -1026,6 +1026,75 @@ window.__setStudioProgress=window.__setStudioProgress||function(p,curTime,energy
 </script></body></html>"""
 
 
+def capture_studio_playwright_frames(
+    html_doc: str,
+    out_dir: Path,
+    w: int,
+    h: int,
+    duration: float,
+    scene: Dict[str, Any],
+    scene_words: Optional[List[Dict[str, Any]]],
+    tone: str = "auto_2026_director",
+    fps: int = VIDEO_FPS,
+    res_scale: float = 1.0,
+    frame_ext: str = "jpg",
+    arg_order: str = "wp_lp",
+) -> bool:
+    """
+    Shared deterministic Chromium frame-capture loop for Studio V2–V5 renderers.
+    Uses `device_scale_factor=res_scale` so 4K (`2.0`) captures true vector retina frames at `fps` (30 or 60).
+    """
+    pw_ok, exe_path = detect_web_engine()
+    if not pw_ok:
+        return False
+
+    from core.tone_engine import compute_synced_visual_progress
+    from playwright.sync_api import sync_playwright
+
+    eff_fps = max(15, int(fps or VIDEO_FPS))
+    eff_scale = max(1.0, float(res_scale or 1.0))
+    ext = "png" if str(frame_ext or "jpg").lower() == "png" else "jpg"
+    total_frames = max(18, int(round(duration * eff_fps)))
+
+    p = sync_playwright().start()
+    try:
+        kwargs: Dict[str, Any] = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu-vsync"],
+        }
+        if exe_path:
+            kwargs["executable_path"] = exe_path
+        browser = p.chromium.launch(**kwargs)
+        page = browser.new_page(viewport={"width": w, "height": h}, device_scale_factor=eff_scale)
+        page.set_content(html_doc, wait_until="domcontentloaded", timeout=15000)
+
+        sc_start = float(scene.get("start_time", 0.0))
+        words = list(scene_words or [])
+        for f in range(total_frames):
+            lin_p = f / max(1, total_frames - 1)
+            cur_t = sc_start + lin_p * duration
+            word_blend = compute_synced_visual_progress(lin_p, cur_t, words, tone=tone)
+            if arg_order == "lp_wp":
+                page.evaluate(
+                    "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.lp, args.wp); }",
+                    {"lp": round(lin_p, 4), "wp": round(word_blend, 4)},
+                )
+            else:
+                page.evaluate(
+                    "(args) => { if (window.__setStudioProgress) window.__setStudioProgress(args.wp, args.lp); }",
+                    {"wp": round(word_blend, 4), "lp": round(lin_p, 4)},
+                )
+            out_file = out_dir / f"frame_{f:04d}.{ext}"
+            if ext == "png":
+                page.screenshot(path=str(out_file), type="png")
+            else:
+                page.screenshot(path=str(out_file), type="jpeg", quality=96)
+        browser.close()
+        return True
+    finally:
+        p.stop()
+
+
 def render_web_generative_frames(
     scene: Dict[str, Any],
     scene_idx: int,
@@ -1034,17 +1103,23 @@ def render_web_generative_frames(
     watermark: str = DEFAULT_WATERMARK,
     scene_words: List[Dict[str, Any]] = None,
     tone: str = "auto_2026_director",
+    fps: int = VIDEO_FPS,
+    res_scale: float = 1.0,
+    frame_ext: str = "jpg",
 ) -> Optional[List[Path]]:
     """
-    Renders true HTML5 / CSS3 / Canvas 3D / SVG motion graphics deterministically at 30fps via Playwright + Chromium.
+    Renders true HTML5 / CSS3 / Canvas 3D / SVG motion graphics deterministically at 30/60fps via Playwright + Chromium.
     Includes automatic JS-error fallback -> Topic-Adaptive Multi-Archetype 3D HTML5 Synthesizer, plus unified Studio HUD!
     """
     ok, exe_path = detect_web_engine()
     if not ok:
         return None
 
+    eff_fps = max(15, int(fps or VIDEO_FPS))
+    eff_scale = max(1.0, float(res_scale or 1.0))
+    ext = "png" if str(frame_ext or "jpg").lower() == "png" else "jpg"
     duration = max(1.5, float(scene.get("duration", 5.0)))
-    total_frames = max(15, round(duration * VIDEO_FPS))
+    total_frames = max(15, round(duration * eff_fps))
     spec = FORMAT_SPECS.get(format_ratio, FORMAT_SPECS["9:16"])
     canvas_w = spec.get("width", VIDEO_WIDTH)
     canvas_h = spec.get("height", VIDEO_HEIGHT)
@@ -1086,7 +1161,7 @@ def render_web_generative_frames(
         if exe_path:
             kwargs["executable_path"] = exe_path
         browser = p.chromium.launch(**kwargs)
-        page = browser.new_page(viewport={"width": canvas_w, "height": canvas_h}, device_scale_factor=1)
+        page = browser.new_page(viewport={"width": canvas_w, "height": canvas_h}, device_scale_factor=eff_scale)
         page_errors: List[str] = []
         page.on("pageerror", lambda exc: page_errors.append(str(exc)))
         page.set_content(html_doc, wait_until="domcontentloaded", timeout=10000)
@@ -1137,8 +1212,11 @@ def render_web_generative_frames(
                     "act": fx_st["active_idx"],
                 },
             )
-            fpath = scene_frames_dir / f"frame_{f:04d}.jpg"
-            page.screenshot(path=str(fpath), type="jpeg", quality=88)
+            fpath = scene_frames_dir / f"frame_{f:04d}.{ext}"
+            if ext == "png":
+                page.screenshot(path=str(fpath), type="png")
+            else:
+                page.screenshot(path=str(fpath), type="jpeg", quality=96)
             frame_paths.append(fpath)
 
         browser.close()

@@ -434,14 +434,20 @@ def render_scene_frames(
     watermark: str = DEFAULT_WATERMARK,
     scene_words: List[Dict[str, Any]] = None,
     custom_style_prompt: str = "",
-    tone: str = "auto_2026_director"
+    tone: str = "auto_2026_director",
+    fps: int = VIDEO_FPS,
+    res_scale: float = 1.0,
+    frame_ext: str = "jpg",
 ) -> List[Path]:
     """
     Renders high-octane 2D frames across 12+ rich motion-graphics visual engines,
     adapting layout, texture, pacing, and accents to BOTH Visual Engine & Script Tone.
     """
+    eff_fps = max(15, int(fps or VIDEO_FPS))
+    eff_scale = max(1.0, float(res_scale or 1.0))
+    ext = "png" if str(frame_ext or "jpg").lower() == "png" else "jpg"
     duration = max(1.5, float(scene.get("duration", 5.0)))
-    total_frames = max(15, round(duration * VIDEO_FPS))
+    total_frames = max(15, round(duration * eff_fps))
 
     _STUDIO_MODES = (
         "omni_smart_director", "studio_300_domain", "multi_topology_mix", "interactive_storyboard",
@@ -456,6 +462,7 @@ def render_scene_frames(
             web_res = render_web_generative_frames(
                 scene=scene, scene_idx=scene_idx, total_scenes=total_scenes,
                 format_ratio=format_ratio, watermark=watermark, scene_words=scene_words, tone=tone,
+                fps=eff_fps, res_scale=eff_scale, frame_ext=ext,
             )
             if web_res:
                 return web_res
@@ -468,6 +475,9 @@ def render_scene_frames(
             watermark=watermark,
             scene_words=scene_words,
             tone=tone,
+            fps=eff_fps,
+            res_scale=eff_scale,
+            frame_ext=ext,
         )
 
     scene_frames_dir = OUTPUT_DIR / f"scene_{scene_idx:02d}_frames"
@@ -573,8 +583,14 @@ def render_scene_frames(
             _draw_watermark(draw, canvas_w, canvas_h, watermark)
             
         # Save lossless/high-fidelity crystal clear frame
-        frame_file = scene_frames_dir / f"frame_{f:04d}.jpg"
-        frame.convert("RGB").save(frame_file, "JPEG", quality=96, subsampling=0)
+        out_frame = frame.convert("RGB")
+        if eff_scale > 1.01:
+            out_frame = out_frame.resize((int(round(canvas_w * eff_scale)), int(round(canvas_h * eff_scale))), Image.Resampling.LANCZOS)
+        frame_file = scene_frames_dir / f"frame_{f:04d}.{ext}"
+        if ext == "png":
+            out_frame.save(frame_file, "PNG")
+        else:
+            out_frame.save(frame_file, "JPEG", quality=96, subsampling=0)
         frame_paths.append(frame_file)
         
     return frame_paths

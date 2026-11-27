@@ -274,6 +274,9 @@ def render_cinematic_scene_frames(
     watermark: str = DEFAULT_WATERMARK,
     scene_words: List[Dict[str, Any]] = None,
     tone: str = "auto_2026_director",
+    fps: int = VIDEO_FPS,
+    res_scale: float = 1.0,
+    frame_ext: str = "jpg",
 ) -> List[Path]:
     """
     Studio Max Dual Generative Engine:
@@ -281,6 +284,9 @@ def render_cinematic_scene_frames(
     - Otherwise renders 46+ Worlds + Infinite HSL, 65+ Studio Layouts, 105 3D Shapes + 200k+ 3D-Extruded SVGs,
       124 Glyphs, 18 Procedural Backdrops/Shaders, 12 Transitions, 14 Text FX, and Keyframe Animated <svg> in pure Python.
     """
+    eff_fps = max(15, int(fps or VIDEO_FPS))
+    eff_scale = max(1.0, float(res_scale or 1.0))
+    ext = "png" if str(frame_ext or "jpg").lower() == "png" else "jpg"
     visual_type = str(scene.get("visual_type", "custom_scene")).lower().strip()
     visual_data = scene.get("visual_data", {}) or {}
 
@@ -290,12 +296,13 @@ def render_cinematic_scene_frames(
         web_frames = render_web_generative_frames(
             scene=sc_web, scene_idx=scene_idx, total_scenes=total_scenes,
             format_ratio=format_ratio, watermark=watermark, scene_words=scene_words, tone=tone,
+            fps=eff_fps, res_scale=eff_scale, frame_ext=ext,
         )
         if web_frames:
             return web_frames
 
     duration = max(1.5, float(scene.get("duration", 5.0)))
-    total_frames = max(15, round(duration * VIDEO_FPS))
+    total_frames = max(15, round(duration * eff_fps))
 
     scene_frames_dir = OUTPUT_DIR / f"scene_{scene_idx:02d}_frames"
     if scene_frames_dir.exists():
@@ -468,8 +475,14 @@ def render_cinematic_scene_frames(
             chrome.ellipse((bx + 14, by + 15, bx + 22, by + 23), fill=accent)
             chrome.text((bx + 30, by + 6), wt, fill=world["text"], font=wm_font)
 
-        frame_file = scene_frames_dir / f"frame_{f:04d}.jpg"
-        final_img.convert("RGB").save(frame_file, "JPEG", quality=90)
+        out_frame = final_img.convert("RGB")
+        if eff_scale > 1.01:
+            out_frame = out_frame.resize((int(round(canvas_w * eff_scale)), int(round(canvas_h * eff_scale))), Image.Resampling.LANCZOS)
+        frame_file = scene_frames_dir / f"frame_{f:04d}.{ext}"
+        if ext == "png":
+            out_frame.save(frame_file, "PNG")
+        else:
+            out_frame.save(frame_file, "JPEG", quality=92)
         frame_paths.append(frame_file)
 
     return frame_paths
