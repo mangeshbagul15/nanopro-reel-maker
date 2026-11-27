@@ -2638,18 +2638,11 @@ _THUMB_DARK_THEMES: List[Dict[str, Any]] = [
 
 
 def _draw_dark_thumb_backdrop(bg: Image.Image, theme: Dict[str, Any]) -> None:
-    """Draws subtle dark-only engineering grid/dot/circuit patterns (strictly dark background)."""
+    """Draws crisp subtle dark-only engineering patterns (strictly dark background, zero bright wash)."""
     w, h = bg.size
     dr = ImageDraw.Draw(bg, "RGBA")
     gr = theme["grid"]
-    pri = theme["pri"]
     st = theme.get("bg_style", "square_grid")
-
-    # Subtle top-center dark radial glow (low opacity so background stays strictly dark)
-    for step in range(6, 0, -1):
-        rad = step * 115
-        al = int(16 - step * 2)
-        dr.ellipse((w // 2 - rad, 240 - rad // 2, w // 2 + rad, 240 + rad), fill=(*pri, max(2, al)))
 
     if st == "dot_matrix":
         for gy in range(32, h, 44):
@@ -2657,24 +2650,24 @@ def _draw_dark_thumb_backdrop(bg: Image.Image, theme: Dict[str, Any]) -> None:
                 dr.ellipse((gx - 2, gy - 2, gx + 2, gy + 2), fill=(*gr, 115))
     elif st == "diagonal_blueprint":
         for offset in range(-h, w + h, 88):
-            dr.line((offset, 0, offset + h, h), fill=(*gr, 68), width=1)
+            dr.line((offset, 0, offset + h, h), fill=(*gr, 72), width=1)
         for gy in range(0, h, 132):
-            dr.line((0, gy, w, gy), fill=(*gr, 52), width=1)
+            dr.line((0, gy, w, gy), fill=(*gr, 56), width=1)
     elif st == "isometric_mesh":
         for offset in range(-h, w + h, 108):
-            dr.line((offset, 0, offset + int(h * 0.65), h), fill=(*gr, 64), width=1)
-            dr.line((offset, 0, offset - int(h * 0.65), h), fill=(*gr, 64), width=1)
+            dr.line((offset, 0, offset + int(h * 0.65), h), fill=(*gr, 66), width=1)
+            dr.line((offset, 0, offset - int(h * 0.65), h), fill=(*gr, 66), width=1)
     elif st == "concentric_radar":
         cx, cy = w // 2, 980
         for r in range(140, 980, 130):
-            dr.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(*gr, 75), width=2)
-        dr.line((0, cy, w, cy), fill=(*gr, 50), width=1)
-        dr.line((cx, 0, cx, h), fill=(*gr, 50), width=1)
+            dr.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(*gr, 78), width=2)
+        dr.line((0, cy, w, cy), fill=(*gr, 52), width=1)
+        dr.line((cx, 0, cx, h), fill=(*gr, 52), width=1)
     else:  # square_grid
         for gy in range(0, h, 64):
-            dr.line((0, gy, w, gy), fill=(*gr, 72), width=1)
+            dr.line((0, gy, w, gy), fill=(*gr, 74), width=1)
         for gx in range(0, w, 64):
-            dr.line((gx, 0, gx, h), fill=(*gr, 72), width=1)
+            dr.line((gx, 0, gx, h), fill=(*gr, 74), width=1)
 
 
 def _build_thumb_variant_spec(topic: str, variant_idx: int, matched_icons: List[str], timeline: Any = None) -> Dict[str, Any]:
@@ -2692,7 +2685,7 @@ def _build_thumb_variant_spec(topic: str, variant_idx: int, matched_icons: List[
 
     angles = [
         ("architecture", "PRO ARCHITECTURE", f"How {short_top} Actually Scales"),
-        ("myth_fix", "STOP THIS MISTAKE", f"{short_top}: Wrong vs Production Way"),
+        ("myth_vs_fix", "STOP THIS MISTAKE", f"{short_top}: Wrong vs Production Way"),
         ("live_code", "UNDER THE HOOD", f"{short_top} Live Execution & Fix"),
         ("blueprint", "WHITEBOARD BLUEPRINT", f"Draw {short_top} in 60 Seconds"),
         ("iso_layers", "LAYERED INTERNALS", f"Inside {short_top}: 3 Core Layers"),
@@ -2933,11 +2926,12 @@ def generate_thumbnail_9_16(
     category_label, matched_icons = _infer_thumb_category_and_icons(clean_topic, timeline=timeline)
     spec = _build_thumb_variant_spec(clean_topic, v_idx, matched_icons, timeline=timeline)
 
-    # 1. Top Creator Chrome (Category/Angle + Watermark)
+    # 1. Top Creator Chrome (Category/Angle + Watermark) — keep accent_col=None so background stays pure dark
     cat_font = _cin_font(22, bold=True)
     cat_txt = f"{category_label} · {spec['angle_tag']}" if len(category_label) < 16 else spec["angle_tag"]
     cat_w = min(620, int(stage.draw.textlength(cat_txt, font=cat_font)) + 64)
-    stage.draw_glass_card((56, 52, 56 + cat_w, 104), radius=26, accent_col=c_pri, active=False, elev=6)
+    stage.draw_glass_card((56, 52, 56 + cat_w, 104), radius=26, accent_col=None, active=False, elev=6)
+    stage.draw.rounded_rectangle((56, 52, 56 + cat_w, 104), radius=26, outline=(*c_pri, 145), width=2)
     stage.draw.ellipse((76, 72, 88, 84), fill=c_pri)
     stage.draw.text((98, 65), cat_txt, fill=thumb_world["text"], font=cat_font)
 
@@ -2978,12 +2972,14 @@ def generate_thumbnail_9_16(
     sub_font = _cin_font(27, bold=True)
     sub_w = min(950, int(stage.draw.textlength(sub_hook, font=sub_font)) + 64)
     sx0 = (canvas_w - sub_w) // 2
-    stage.draw_glass_card((sx0, sub_y, sx0 + sub_w, sub_y + 62), radius=31, accent_col=c_pri, active=False, elev=8)
+    stage.draw_glass_card((sx0, sub_y, sx0 + sub_w, sub_y + 62), radius=31, accent_col=None, active=False, elev=8)
+    stage.draw.rounded_rectangle((sx0, sub_y, sx0 + sub_w, sub_y + 62), radius=31, outline=(*c_pri, 145), width=2)
     _cin_wrap(stage.draw, (sx0 + 24, sub_y + 15), sub_hook, sub_font, (226, 232, 240), sub_w - 48, align="center", max_lines=1)
 
     # 3. Framed Centerpiece Visual Showcase Card (x=56..1024, y=542..1492)
     box_x0, box_y0, box_x1, box_y1 = 56, 542, 1024, 1492
-    stage.draw_glass_card((box_x0, box_y0, box_x1, box_y1), radius=34, accent_col=c_pri, active=False, elev=14, layered=False)
+    stage.draw_glass_card((box_x0, box_y0, box_x1, box_y1), radius=34, accent_col=None, active=False, elev=14, layered=False)
+    stage.draw.rounded_rectangle((box_x0, box_y0, box_x1, box_y1), radius=34, outline=(*c_pri, 110), width=2)
     for di in range(3):
         dx = box_x0 + 34 + di * 22
         stage.draw.ellipse((dx, box_y0 + 22, dx + 12, box_y0 + 34), fill=c_pri if di == 0 else (71, 85, 105, 190))
@@ -3032,14 +3028,16 @@ def generate_thumbnail_9_16(
             _cin_wrap(stage.draw, (mx0 + 20, 650), m_txt, m_fnt, c_pri, mw - 40, align="center", max_lines=1)
 
             draw_procedural_3d_mesh(stage, 540, 865, 92, "torus_3d", c_pri, progress=0.72, active=False, alpha_mul=0.55, secondary_color=c_soft_tint)
-            # Two side-by-side comparison columns
-            stage.draw_glass_card((92, 955, 524, 1435), radius=24, accent_col=(244, 63, 94), active=False, elev=10)
+            # Two side-by-side comparison columns (pure dark fill + crisp accent rim)
+            stage.draw_glass_card((92, 955, 524, 1435), radius=24, accent_col=None, active=False, elev=10)
+            stage.draw.rounded_rectangle((92, 955, 524, 1435), radius=24, outline=(244, 63, 94, 195), width=2)
             stage.draw.text((126, 982), spec["bad_title"], fill=(253, 164, 175), font=_cin_font(28, bold=True))
             stage.draw.line((122, 1030, 494, 1030), fill=(244, 63, 94, 120), width=2)
             for bi, bp in enumerate(spec["bad_points"][:3]):
                 _cin_wrap(stage.draw, (124, 1054 + bi * 112), f"✗ {bp}", _cin_font(24, bold=True), (248, 250, 252), 370, max_lines=3)
 
-            stage.draw_glass_card((556, 955, 988, 1435), radius=24, accent_col=(52, 211, 153), active=False, elev=10)
+            stage.draw_glass_card((556, 955, 988, 1435), radius=24, accent_col=None, active=False, elev=10)
+            stage.draw.rounded_rectangle((556, 955, 988, 1435), radius=24, outline=(52, 211, 153, 195), width=2)
             stage.draw.text((590, 982), spec["good_title"], fill=(110, 231, 183), font=_cin_font(28, bold=True))
             stage.draw.line((586, 1030, 958, 1030), fill=(52, 211, 153, 120), width=2)
             for gi, gp in enumerate(spec["good_points"][:3]):
@@ -3066,7 +3064,8 @@ def generate_thumbnail_9_16(
             stage.draw.text((160, 1126), f"↳ LINE 0{c_focus} INSIGHT", fill=(251, 191, 36), font=_cin_font(20, bold=True))
             _cin_wrap(stage.draw, (160, 1162), spec["code_note"], _cin_font(26, bold=True), (248, 250, 252), 760, max_lines=1)
 
-            stage.draw_glass_card((94, 1265, 986, 1445), radius=20, accent_col=(52, 211, 153), active=False, elev=8)
+            stage.draw_glass_card((94, 1265, 986, 1445), radius=20, accent_col=None, active=False, elev=8)
+            stage.draw.rounded_rectangle((94, 1265, 986, 1445), radius=20, outline=(52, 211, 153, 190), width=2)
             stage.draw.text((126, 1290), "OUTPUT TRACE", fill=(148, 163, 184), font=_cin_font(21, bold=True, mono=True))
             stage.draw.text((126, 1340), f"✓ {spec['metric_big']}  —  Verified Production Run", fill=(110, 231, 183), font=_cin_font(28, bold=True))
 
@@ -3097,7 +3096,8 @@ def generate_thumbnail_9_16(
             for li, (n_title, n_sub) in enumerate(spec["pipe_nodes"][:3]):
                 ly = 890 + li * 175
                 lc = layer_colors[li % 3]
-                stage.draw_glass_card((120, ly, 960, ly + 138), radius=24, accent_col=lc, active=False, elev=10)
+                stage.draw_glass_card((120, ly, 960, ly + 138), radius=24, accent_col=None, active=False, elev=10)
+                stage.draw.rounded_rectangle((120, ly, 960, ly + 138), radius=24, outline=(*lc, 175), width=2)
                 stage.draw.rounded_rectangle((148, ly + 28, 232, ly + 110), radius=16, fill=(*lc, 34), outline=(*lc, 200), width=2)
                 stage.draw.text((168, ly + 48), f"L{li+1}", fill=lc, font=_cin_font(32, bold=True, mono=True))
                 stage.draw.text((258, ly + 26), n_title, fill=(255, 255, 255), font=_cin_font(30, bold=True))
@@ -3107,7 +3107,8 @@ def generate_thumbnail_9_16(
 
         elif l_mode == "interview_hub":
             # FAANG Interview Bubble + Central Universal Hub radiating to 3 Nodes
-            stage.draw_glass_card((100, 636, 980, 815), radius=22, accent_col=c_pri, active=False, elev=10)
+            stage.draw_glass_card((100, 636, 980, 815), radius=22, accent_col=None, active=False, elev=10)
+            stage.draw.rounded_rectangle((100, 636, 980, 815), radius=22, outline=(*c_pri, 185), width=2)
             stage.draw.text((134, 658), "INTERVIEWER QUESTION", fill=c_pri, font=_cin_font(21, bold=True))
             _cin_wrap(stage.draw, (134, 700), spec["interview_q"], _cin_font(28, bold=True), (255, 255, 255), 810, max_lines=2)
 
@@ -3119,7 +3120,8 @@ def generate_thumbnail_9_16(
             _cin_wrap(stage.draw, (hub_x - 135, hub_y - 26), spec["hub_center"], _cin_font(40, bold=True), (8, 13, 27), 270, align="center", max_lines=1)
 
             for (tx, ty), (n_title, n_sub) in zip(targets_xy, spec["pipe_nodes"][:3]):
-                stage.draw_glass_card((tx - 135, ty - 70, tx + 135, ty + 115), radius=20, accent_col=c_pri, active=False, elev=8)
+                stage.draw_glass_card((tx - 135, ty - 70, tx + 135, ty + 115), radius=20, accent_col=None, active=False, elev=8)
+                stage.draw.rounded_rectangle((tx - 135, ty - 70, tx + 135, ty + 115), radius=20, outline=(*c_pri, 165), width=2)
                 _cin_wrap(stage.draw, (tx - 120, ty - 40), n_title, _cin_font(22, bold=True), (255, 255, 255), 240, align="center", max_lines=2)
                 _cin_wrap(stage.draw, (tx - 120, ty + 28), n_sub, _cin_font(19, bold=False), c_pri, 240, align="center", max_lines=2)
 
@@ -3128,7 +3130,8 @@ def generate_thumbnail_9_16(
             icon_positions = [(250, 755), (540, 755), (830, 755)]
             stage.draw.line((295, 755, 785, 755), fill=(*c_pri, 140), width=3)
             for ii, (ix, iy) in enumerate(icon_positions):
-                stage.draw_glass_card((ix - 82, iy - 82, ix + 82, iy + 82), radius=28, accent_col=c_pri, active=False, elev=10)
+                stage.draw_glass_card((ix - 82, iy - 82, ix + 82, iy + 82), radius=28, accent_col=None, active=False, elev=10)
+                stage.draw.rounded_rectangle((ix - 82, iy - 82, ix + 82, iy + 82), radius=28, outline=(*c_pri, 160), width=2)
                 ext_icon = fetch_3d_extruded_svg(matched_icons[ii], size_px=92, tint_hex=c_hex, depth=10, tint_rgb=c_pri)
                 if ext_icon is not None:
                     stage.fg.alpha_composite(ext_icon, (ix - ext_icon.width // 2, iy - ext_icon.height // 2))
@@ -3137,7 +3140,8 @@ def generate_thumbnail_9_16(
 
             card_y = 940
             for num_s, (p_title, p_desc) in zip(("01", "02", "03"), spec["pipe_nodes"][:3]):
-                stage.draw_glass_card((box_x0 + 38, card_y, box_x1 - 38, card_y + 150), radius=22, accent_col=c_pri, active=False, elev=8)
+                stage.draw_glass_card((box_x0 + 38, card_y, box_x1 - 38, card_y + 150), radius=22, accent_col=None, active=False, elev=8)
+                stage.draw.rounded_rectangle((box_x0 + 38, card_y, box_x1 - 38, card_y + 150), radius=22, outline=(*c_pri, 130), width=2)
                 stage.draw.rounded_rectangle((box_x0 + 58, card_y + 34, box_x0 + 132, card_y + 108), radius=18, fill=(*c_pri, 28), outline=(*c_pri, 180), width=2)
                 stage.draw.text((box_x0 + 76, card_y + 52), num_s, fill=c_pri, font=_cin_font(32, bold=True, mono=True))
                 stage.draw.text((box_x0 + 158, card_y + 30), p_title, fill=c_pri, font=_cin_font(24, bold=True))
@@ -3145,7 +3149,8 @@ def generate_thumbnail_9_16(
                 card_y += 170
 
     # 4. Bottom Safe-Zone Value Strip & Crisp Accent CTA (y=1532..1722)
-    stage.draw_glass_card((56, 1532, 1024, 1722), radius=30, accent_col=c_pri, active=False, elev=12)
+    stage.draw_glass_card((56, 1532, 1024, 1722), radius=30, accent_col=None, active=False, elev=12)
+    stage.draw.rounded_rectangle((56, 1532, 1024, 1722), radius=30, outline=(*c_pri, 115), width=2)
     chip_cat = "AI Engineering" if category_label.upper() in ("AI", "AI ENGINEERING") else category_label.title()
     chips = [
         chip_cat,
