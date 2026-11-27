@@ -58,7 +58,7 @@ DC_SPECIALISTS: List[Dict[str, Any]] = [
     {"id": "sec_url", "dept_id": "infosec", "title": "URL Whitelisting & Proxy Engineer", "short": "URL Proxy Eng", "tools": "Zscaler Proxy · Allowlist · SSL Inspect", "handoff": "blueprint_whiteboard", "dx": 0, "dy": 32, "keywords": ["whitelist", "url", "proxy", "domain", "allowlist", "egress"]},
     {"id": "sec_soc", "dept_id": "infosec", "title": "Cyber Security & SOC Analyst", "short": "CyberSec / SOC", "tools": "SIEM · VAPT · Zero Trust · Encryption", "handoff": "blueprint_whiteboard", "dx": 105, "dy": -15, "keywords": ["security", "cyber", "soc", "siem", "vapt", "vulnerability", "ddos", "breach", "is team", "zero trust"]},
     # 3. AUDIT, POLICY & IT NEWS (2)
-    {"id": "audit_iso", "dept_id": "audit_grc", "title": "IT Audit & Compliance Policy Lead", "short": "Audit & Policy", "tools": "ISO 27001 · SOC2 · WORM Audit Trails", "handoff": "blueprint_whiteboard", "dx": -60, "dy": 0, "keywords": ["audit", "compliance", "soc2", "iso", "grc", "governance", "pci", "rbi"]},
+    {"id": "audit_iso", "dept_id": "audit_grc", "title": "IT Audit & Compliance Policy Lead", "short": "Audit & Policy", "tools": "ISO 27001 · SOC2 · WORM Audit Trails", "handoff": "blueprint_whiteboard", "dx": -60, "dy": 0, "keywords": ["audit", "compliance", "soc2", "iso 27001", "iso27001", "grc", "governance", "pci", "rbi"]},
     {"id": "it_news", "dept_id": "audit_grc", "title": "IT News & Tech Radar Brief", "short": "IT News Desk", "tools": "Breaking Releases · Benchmarks · Cloud News", "handoff": "blueprint_whiteboard", "dx": 70, "dy": 15, "keywords": ["it news", "tech news", "release", "launch", "update", "announcement", "industry", "layoff", "funding"]},
     # 4. DATA ENG & WAREHOUSE (3)
     {"id": "data_ingest", "dept_id": "data_eng", "title": "Data Ingestion & CDC Engineer", "short": "CDC Ingest Eng", "tools": "Oracle DMS · Debezium · Kafka · S3 Parquet", "handoff": "spatial_isometric", "dx": -95, "dy": -18, "keywords": ["dms", "cdc", "debezium", "ingest", "ingestion", "kafka", "oracle", "parquet", "streaming"]},
@@ -87,24 +87,150 @@ DC_SPECIALISTS: List[Dict[str, Any]] = [
 ]
 
 
-def match_datacenter_specialist(topic: str, preferred_travel: str = "auto") -> Dict[str, Any]:
-    """Deterministically matches a prompt topic to the best Department, Specialist Engineer, and Travel Mode."""
+def _synthesize_custom_specialist(topic: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Dynamically creates a custom Department Pod + Specialist Engineer (+ peer desks)
+    whenever a brand-new niche topic/scenario does not match existing built-in desks.
+    """
+    import re
+    from core.config import GEMINI_API_KEY, GROQ_API_KEY
+
+    clean = re.sub(r"[^A-Za-z0-9_+/\- ]", " ", str(topic or "")).strip()
+    words = [w for w in clean.split() if w.lower() not in (
+        "how", "what", "why", "explain", "works", "work", "with", "using", "into",
+        "from", "for", "and", "the", "this", "that", "system", "architecture", "video",
+    )]
+    domain_lbl = (" ".join(words[:2]) if words else "Custom Tech").strip()[:16]
+    spec_short = (f"{words[0][:11]} Eng" if words else "Tech Specialist")[:16]
+    spec_title = f"{domain_lbl} Specialist Engineer"
+    tools_str = " · ".join(words[:3]) if len(words) >= 2 else f"{domain_lbl} · Production · Telemetry"
+    dept_color = "cyan"
+    dept_icon = "⚡"
+    handoff = "blueprint_whiteboard"
+    if any(k in clean.lower() for k in ("code", "python", "sql", "script", "api", "query", "sdk", "solidity")):
+        handoff = "live_ide"
+        dept_color = "emerald"
+    elif any(k in clean.lower() for k in ("cluster", "node", "pipeline", "mesh", "kafka", "erp", "switch", "bank")):
+        handoff = "spatial_isometric"
+        dept_color = "amber"
+
+    prompt = f"""Topic/Scenario: "{topic}"
+This topic did not match a fixed Data Center desk. Design ONE new custom Enterprise IT Park Department Pod + Specialist Engineer.
+Return STRICT JSON ONLY:
+{{"dept_name":"SHORT UPPERCASE <=16 chars","dept_full":"Full Department Name","dept_icon":"1 emoji","dept_color":"cyan|emerald|amber|rose|purple|blue","spec_title":"Exact Engineer Role Title","spec_short":"Short Pill <=15 chars","peer_a":"Peer Role 1 <=15 chars","peer_b":"Peer Role 2 <=15 chars","tools":"Tool1 · Tool2 · Tool3","handoff":"live_ide|blueprint_whiteboard|spatial_isometric"}}"""
+
+    parsed = None
+    if GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            res = client.models.generate_content(model="gemini-3.5-flash-lite", contents=prompt)
+            m = re.search(r"\{[\s\S]*\}", str(getattr(res, "text", "") or ""))
+            if m:
+                parsed = json.loads(m.group(0))
+        except Exception:
+            parsed = None
+    if not parsed and GROQ_API_KEY:
+        try:
+            from groq import Groq
+            gc = Groq(api_key=GROQ_API_KEY)
+            res = gc.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                timeout=8,
+            )
+            m = re.search(r"\{[\s\S]*\}", (res.choices[0].message.content if res.choices else ""))
+            if m:
+                parsed = json.loads(m.group(0))
+        except Exception:
+            parsed = None
+
+    if isinstance(parsed, dict) and parsed.get("dept_name") and parsed.get("spec_short"):
+        d_name = str(parsed["dept_name"])[:18].upper()
+        d_full = str(parsed.get("dept_full") or d_name)[:36]
+        dept_icon = str(parsed.get("dept_icon") or "⚡")[:4]
+        dc_cand = str(parsed.get("dept_color") or dept_color).lower()
+        dept_color = dc_cand if dc_cand in _ACCENT_HEX else "cyan"
+        spec_title = str(parsed.get("spec_title") or spec_title)[:42]
+        spec_short = str(parsed["spec_short"])[:17]
+        peer_a = str(parsed.get("peer_a") or f"{domain_lbl[:9]} Ops")[:17]
+        peer_b = str(parsed.get("peer_b") or f"{domain_lbl[:9]} QA")[:17]
+        tools_str = str(parsed.get("tools") or tools_str)[:54]
+        ho = str(parsed.get("handoff") or handoff)
+        handoff = ho if ho in ("live_ide", "blueprint_whiteboard", "spatial_isometric") else handoff
+    else:
+        d_name = f"{domain_lbl.upper()[:14]} HUB"
+        d_full = f"{domain_lbl} Engineering Hub"
+        peer_a = f"{domain_lbl[:9]} Ops"
+        peer_b = f"{domain_lbl[:9]} Audit"
+
+    custom_dept = {
+        "id": "custom_dynamic",
+        "name": d_name,
+        "full": d_full,
+        "x": 900,
+        "y": 560,
+        "w": 390,
+        "h": 265,
+        "color": dept_color,
+        "icon": dept_icon,
+        "is_custom": True,
+    }
+    target_sp = {
+        "id": "custom_spec_main",
+        "dept_id": "custom_dynamic",
+        "title": spec_title,
+        "short": spec_short,
+        "tools": tools_str,
+        "handoff": handoff,
+        "dx": 0,
+        "dy": 22,
+        "keywords": [],
+    }
+    peer_specs = [
+        {"id": "custom_spec_a", "dept_id": "custom_dynamic", "title": peer_a, "short": peer_a, "tools": tools_str, "handoff": handoff, "dx": -105, "dy": -16, "keywords": []},
+        target_sp,
+        {"id": "custom_spec_b", "dept_id": "custom_dynamic", "title": peer_b, "short": peer_b, "tools": tools_str, "handoff": handoff, "dx": 105, "dy": -16, "keywords": []},
+    ]
+    return custom_dept, peer_specs, target_sp
+
+
+def match_datacenter_specialist(topic: str, preferred_travel: str = "auto", allow_custom: bool = True) -> Dict[str, Any]:
+    """
+    Matches a prompt topic to the best Department & Specialist Engineer.
+    If no built-in role matches strongly (`best_score < 2`), dynamically synthesizes a custom
+    Department Pod & Specialist Engineer right on the Data Center campus!
+    """
+    import re
     low = f" {str(topic or '').lower()} "
-    best_sp = DC_SPECIALISTS[8]  # default: data_ingest
+    best_sp = DC_SPECIALISTS[8]
     best_score = -1
     for sp in DC_SPECIALISTS:
-        score = sum(3 if len(k.strip()) >= 5 else 2 for k in sp["keywords"] if k in low)
+        score = 0
+        for kw in sp["keywords"]:
+            kw_s = kw.strip()
+            if kw_s and re.search(rf"(?<![a-z0-9]){re.escape(kw_s)}(?![a-z0-9])", low):
+                score += (3 if len(kw_s) >= 5 else 2)
         if score > best_score:
             best_score = score
             best_sp = sp
-    if best_score <= 0:
-        best_sp = DC_SPECIALISTS[10]  # default: Snowflake / Data Engineer
 
-    dept = next((d for d in DC_DEPARTMENTS if d["id"] == best_sp["dept_id"]), DC_DEPARTMENTS[0])
+    eff_depts = [dict(d) for d in DC_DEPARTMENTS]
+    eff_specs = [dict(s) for s in DC_SPECIALISTS]
+
+    if best_score < 2 and allow_custom:
+        c_dept, c_peers, c_target = _synthesize_custom_specialist(topic)
+        eff_depts.append(c_dept)
+        eff_specs.extend(c_peers)
+        dept = c_dept
+        best_sp = c_target
+    else:
+        dept = next((d for d in eff_depts if d["id"] == best_sp["dept_id"]), eff_depts[0])
 
     travel = str(preferred_travel or "auto").lower().strip()
     if travel not in ("camera", "drone", "fiber"):
-        if dept["id"] in ("infosec", "audit_grc", "ad_iam", "ai_agents"):
+        if dept["id"] in ("infosec", "audit_grc", "ad_iam", "ai_agents", "custom_dynamic"):
             travel = "drone"
         elif dept["id"] in ("data_eng", "infra", "sql_dba", "data_ds"):
             travel = "fiber"
@@ -117,6 +243,9 @@ def match_datacenter_specialist(topic: str, preferred_travel: str = "auto") -> D
         "travel_mode": travel,
         "engineer_x": dept["x"] + best_sp["dx"],
         "engineer_y": dept["y"] + best_sp["dy"],
+        "departments": eff_depts,
+        "specialists": eff_specs,
+        "is_custom": bool(dept.get("is_custom")),
     }
 
 
@@ -227,6 +356,13 @@ def _build_datacenter_html(
           <div class="dlg-quote" style="font-size:{int(27*sc)}px">{sub_txt}</div>
         </div>"""
 
+    eff_depts = list(vd.get("departments") or DC_DEPARTMENTS)
+    eff_specs = list(vd.get("specialists") or DC_SPECIALISTS)
+    if not any(d.get("id") == dept.get("id") for d in eff_depts):
+        eff_depts.append(dept)
+    if not any(s.get("id") == spec.get("id") for s in eff_specs):
+        eff_specs.append(spec)
+
     state_json = json.dumps({
         "dc_mode": dc_mode,
         "travel_mode": travel_mode,
@@ -237,8 +373,8 @@ def _build_datacenter_html(
         "eng_y": eng_y,
         "start_cam": start_cam,
         "end_cam": end_cam,
-        "departments": DC_DEPARTMENTS,
-        "specialists": DC_SPECIALISTS,
+        "departments": eff_depts,
+        "specialists": eff_specs,
     }, ensure_ascii=False)
 
     return f"""<!DOCTYPE html>
@@ -382,39 +518,105 @@ def _build_datacenter_html(
       ctx.restore();
     }}
 
+    function drawGlassPartition(d, col, camX, camY, zoom) {{
+      const isTgt = d.id === STATE.target_dept_id;
+      const x0 = d.x - d.w * 0.48, x1 = d.x + d.w * 0.48;
+      const yb = d.y - d.h * 0.48;
+      const p0 = iso(x0, yb, 0, camX, camY, zoom);
+      const p1 = iso(x1, yb, 0, camX, camY, zoom);
+      const t1 = iso(x1, yb, 95, camX, camY, zoom);
+      const t0 = iso(x0, yb, 95, camX, camY, zoom);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(...p0); ctx.lineTo(...p1); ctx.lineTo(...t1); ctx.lineTo(...t0); ctx.closePath();
+      ctx.fillStyle = isTgt ? col.hex + '16' : 'rgba(56,189,248,0.06)';
+      ctx.fill();
+      ctx.strokeStyle = isTgt ? col.hi + 'CC' : col.hex + '44';
+      ctx.lineWidth = isTgt ? 2.2 : 1.1;
+      ctx.stroke();
+      ctx.restore();
+    }}
+
+    function drawServerRack(wx, wy, col, camX, camY, zoom, prog, seed) {{
+      // Tall dark obsidian server rack with glowing horizontal LED status bars (like reference!)
+      const darkCol = {{ hi: '#0B1324', mid: '#050914', lo: '#02040A' }};
+      drawPrism(wx, wy, 30, 28, 92, darkCol, camX, camY, zoom, 0);
+      const hw = 15, hh = 14;
+      // Glowing cyan wireframe rim
+      const t00 = iso(wx - hw, wy - hh, 92, camX, camY, zoom);
+      const t10 = iso(wx + hw, wy - hh, 92, camX, camY, zoom);
+      const t11 = iso(wx + hw, wy + hh, 92, camX, camY, zoom);
+      const t01 = iso(wx - hw, wy + hh, 92, camX, camY, zoom);
+      const b01 = iso(wx - hw, wy + hh, 0, camX, camY, zoom);
+      const b11 = iso(wx + hw, wy + hh, 0, camX, camY, zoom);
+      ctx.save();
+      ctx.strokeStyle = col.hi + '99'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(...t00); ctx.lineTo(...t10); ctx.lineTo(...t11); ctx.lineTo(...t01); ctx.closePath();
+      ctx.moveTo(...t01); ctx.lineTo(...b01); ctx.lineTo(...b11); ctx.lineTo(...t11);
+      ctx.stroke();
+
+      // 6 horizontal illuminated blade LED strips on front face
+      for (let slot = 0; slot < 6; slot++) {{
+        const zs = 14 + slot * 12;
+        const lA = iso(wx - 10, wy + hh + 0.5, zs, camX, camY, zoom);
+        const lB = iso(wx + 10, wy + hh + 0.5, zs, camX, camY, zoom);
+        const blink = (Math.sin(prog * 18 + seed + slot * 1.4) > -0.65);
+        ctx.strokeStyle = blink ? col.hi : col.mid;
+        ctx.lineWidth = Math.max(1.8, 3.0 * zoom);
+        ctx.beginPath(); ctx.moveTo(...lA); ctx.lineTo(...lB); ctx.stroke();
+      }}
+      ctx.restore();
+    }}
+
     function drawEngineerDesk(sp, dept, isTarget, camX, camY, zoom, prog) {{
       const wx = dept.x + sp.dx;
       const wy = dept.y + sp.dy;
       const col = PAL[dept.color] || PAL.cyan;
+      const isActiveDept = dept.id === STATE.target_dept_id;
 
-      // Desk slab
-      drawPrism(wx, wy, 58, 34, 16, {{ hi: '#334155', mid: '#1E293B', lo: '#0F172A' }}, camX, camY, zoom, 0);
-      // Dual glowing monitors
-      drawPrism(wx - 12, wy - 10, 18, 6, 16, col, camX, camY, zoom, 16);
-      drawPrism(wx + 12, wy - 10, 18, 6, 16, col, camX, camY, zoom, 16);
-      // Engineer torso + head with subtle typing bounce
-      const bob = Math.sin(prog * Math.PI * 10 + wx) * 1.6;
-      drawPrism(wx, wy + 12, 18, 16, 22 + bob, {{ hi: col.hi, mid: '#1D4ED8', lo: '#1E3A8A' }}, camX, camY, zoom, 4);
-      const [hx, hy] = iso(wx, wy + 12, 34 + bob, camX, camY, zoom);
+      // Circular glowing floor pedestal ring under chair
+      const [rx, ry] = iso(wx, wy + 12, 1, camX, camY, zoom);
+      ctx.save();
+      const pulse = isTarget ? (1 + 0.18 * Math.sin(prog * Math.PI * 8)) : 1.0;
+      ctx.strokeStyle = isTarget ? col.hi : col.hex + '77';
+      ctx.lineWidth = isTarget ? 3.2 : 1.8;
       ctx.beginPath();
-      ctx.arc(hx, hy, Math.max(4, 7 * zoom), 0, Math.PI * 2);
-      ctx.fillStyle = '#FDE68A'; ctx.fill();
+      ctx.ellipse(rx, ry, 25 * zoom * pulse, 14 * zoom * pulse, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
 
-      if (isTarget) {{
-        // Pulsing floor beacon ring around target engineer
-        const pulse = 1 + 0.22 * Math.sin(prog * Math.PI * 6);
-        const [bx, by] = iso(wx, wy, 2, camX, camY, zoom);
-        ctx.save();
-        ctx.strokeStyle = col.hex; ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.ellipse(bx, by, 44 * zoom * pulse, 24 * zoom * pulse, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
+      // Sleek dark glass desk slab with bright wireframe rim
+      drawPrism(wx, wy, 64, 36, 15, {{ hi: '#172542', mid: '#0C162B', lo: '#060B18' }}, camX, camY, zoom, 8);
+      const dTop0 = iso(wx - 32, wy - 18, 23, camX, camY, zoom);
+      const dTop1 = iso(wx + 32, wy - 18, 23, camX, camY, zoom);
+      const dTop2 = iso(wx + 32, wy + 18, 23, camX, camY, zoom);
+      const dTop3 = iso(wx - 32, wy + 18, 23, camX, camY, zoom);
+      ctx.save();
+      ctx.strokeStyle = isActiveDept ? col.hi : col.hex + '88'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(...dTop0); ctx.lineTo(...dTop1); ctx.lineTo(...dTop2); ctx.lineTo(...dTop3); ctx.closePath(); ctx.stroke();
+      ctx.restore();
 
-        if (zoom >= 0.88) {{
-          const [lx, ly] = iso(wx, wy, 64, camX, camY, zoom);
-          drawBadge(lx, ly, `👨‍💻 ${{sp.short}}`, '#091124EE', col.hi, zoom * 1.1);
-        }}
+      // Dual angled glowing monitors with illuminated screen face
+      drawPrism(wx - 14, wy - 10, 22, 5, 18, {{ hi: col.hi, mid: '#0B162C', lo: col.mid }}, camX, camY, zoom, 23);
+      drawPrism(wx + 14, wy - 10, 22, 5, 18, {{ hi: col.hi, mid: '#0B162C', lo: col.mid }}, camX, camY, zoom, 23);
+
+      // Seated engineer torso + white head sphere + dark office chair back
+      const bob = Math.sin(prog * Math.PI * 10 + wx) * 1.4;
+      drawPrism(wx, wy + 12, 18, 15, 22 + bob, {{ hi: col.hi, mid: col.hex, lo: col.lo }}, camX, camY, zoom, 8);
+      drawPrism(wx, wy + 22, 16, 6, 26, {{ hi: '#334155', mid: '#1E293B', lo: '#0F172A' }}, camX, camY, zoom, 6);
+      const [hx, hy] = iso(wx, wy + 12, 36 + bob, camX, camY, zoom);
+      ctx.beginPath();
+      ctx.arc(hx, hy, Math.max(4, 7.5 * zoom), 0, Math.PI * 2);
+      ctx.fillStyle = '#F8FAFC'; ctx.fill();
+
+      // Show crisp pill tags on all desks inside zoomed-in active department (like reference!)
+      if (isTarget && zoom >= 0.88) {{
+        const [lx, ly] = iso(wx, wy - 18, 56, camX, camY, zoom);
+        drawBadge(lx, ly, `• ${{sp.short}}`, '#061124F2', col.hi, zoom * 1.05);
+      }} else if (isActiveDept && zoom >= 1.18) {{
+        const [lx, ly] = iso(wx, wy - 18, 52, camX, camY, zoom);
+        drawBadge(lx, ly, `• ${{sp.short}}`, '#091428DD', '#CBD5E1', zoom * 0.92);
       }}
     }}
 
@@ -496,8 +698,8 @@ def _build_datacenter_html(
         drawPrism(tx, ty, 78, 78, 86, {{ hi: '#475569', mid: '#334155', lo: '#1E293B' }}, camX, camY, zoom, 0);
       }});
 
-      // 4. Department Glass Floor Pads + Banners
-      STATE.departments.forEach(d => {{
+      // 4. Department Floor Pads + Translucent Glass Back Walls + Server Racks
+      STATE.departments.forEach((d, dIdx) => {{
         const col = PAL[d.color] || PAL.cyan;
         const isTgt = d.id === STATE.target_dept_id;
         const p0 = iso(d.x - d.w*0.5, d.y - d.h*0.5, 0, camX, camY, zoom);
@@ -506,18 +708,27 @@ def _build_datacenter_html(
         const p3 = iso(d.x - d.w*0.5, d.y + d.h*0.5, 0, camX, camY, zoom);
         ctx.save();
         ctx.beginPath(); ctx.moveTo(...p0); ctx.lineTo(...p1); ctx.lineTo(...p2); ctx.lineTo(...p3); ctx.closePath();
-        ctx.fillStyle = isTgt ? col.hex + '28' : 'rgba(15,23,42,0.55)';
+        ctx.fillStyle = isTgt ? col.hex + '22' : 'rgba(11,20,40,0.62)';
         ctx.fill();
-        ctx.strokeStyle = isTgt ? col.hex : col.hex + '66';
-        ctx.lineWidth = isTgt ? 3.2 : 1.5;
+        ctx.strokeStyle = isTgt ? col.hi : col.hex + '55';
+        ctx.lineWidth = isTgt ? 2.8 : 1.4;
         ctx.stroke();
         ctx.restore();
+
+        // Back glass wall + 3 glowing dark server racks behind desks
+        drawGlassPartition(d, col, camX, camY, zoom);
+        if (isTgt || zoom < 1.15) {{
+          [-108, 0, 108].forEach((rxOff, rIdx) => {{
+            drawServerRack(d.x + rxOff, d.y - d.h * 0.32, col, camX, camY, zoom, prog, dIdx * 7 + rIdx);
+          }});
+        }}
       }});
 
-      // 5. Render all 20 Specialist Engineer Workstations sorted back-to-front
+      // 5. Render all Specialist Engineer Workstations sorted back-to-front
       const sortedSpecs = [...STATE.specialists].sort((a, b) => {{
         const da = STATE.departments.find(d => d.id === a.dept_id);
         const db = STATE.departments.find(d => d.id === b.dept_id);
+        if (!da || !db) return 0;
         return (da.x + a.dx + da.y + a.dy) - (db.x + b.dx + db.y + b.dy);
       }});
       sortedSpecs.forEach(sp => {{
@@ -527,15 +738,15 @@ def _build_datacenter_html(
         drawEngineerDesk(sp, dept, isTarget, camX, camY, zoom, prog);
       }});
 
-      // Department Sign Badges on campus view
-      if (zoom < 1.35) {{
-        STATE.departments.forEach(d => {{
-          const col = PAL[d.color] || PAL.cyan;
-          const isTgt = d.id === STATE.target_dept_id;
-          const [bx, by] = iso(d.x, d.y - d.h * 0.44, 42, camX, camY, zoom);
-          drawBadge(bx, by, `${{d.icon}} ${{d.name}}`, isTgt ? '#091124F2' : '#0F172ACC', isTgt ? col.hi : '#CBD5E1', zoom);
-        }});
-      }}
+      // Department Sign Badges mounted cleanly on back glass wall (including engineer count like reference!)
+      STATE.departments.forEach(d => {{
+        const col = PAL[d.color] || PAL.cyan;
+        const isTgt = d.id === STATE.target_dept_id;
+        if (zoom >= 1.35 && !isTgt) return;
+        const engCnt = STATE.specialists.filter(s => s.dept_id === d.id).length;
+        const [bx, by] = iso(d.x, d.y - d.h * 0.46, 108, camX, camY, zoom);
+        drawBadge(bx, by, `${{d.icon}} ${{d.name}} (${{engCnt}} Eng)`, isTgt ? '#061124F2' : '#0B162CCC', isTgt ? col.hi : '#CBD5E1', zoom);
+      }});
 
       // 6. Active Travel Entity (Drone Escort or Fiber Data Orb) during Campus Fly
       if (STATE.dc_mode === 'campus_fly' || STATE.dc_mode === 'campus_to_desk') {{
