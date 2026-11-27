@@ -874,15 +874,18 @@ with tab_create:
         if not user_prompt.strip():
             st.error("Please enter a technical topic prompt first.")
             st.stop()
-        with st.spinner(f"Generating 9:16 high-impact thumbnail with watermark {channel_watermark}..."):
+        _th_var = int(st.session_state.get("thumb_gen_counter", 0))
+        st.session_state["thumb_gen_counter"] = _th_var + 1
+        with st.spinner(f"Generating unique dark 9:16 thumbnail variation #{_th_var + 1} with watermark {channel_watermark}..."):
             try:
                 thumb_path = generate_thumbnail_9_16(
                     user_prompt.strip(),
                     watermark=channel_watermark,
                     visual_engine=visual_engine[0],
                     tone=chosen_tone,
+                    variant_seed=_th_var,
                 )
-                st.success("🎉 9:16 Thumbnail generated successfully!")
+                st.success(f"🎉 Unique 9:16 Dark Thumbnail (Variation #{_th_var + 1}) ready! Click again anytime for another layout & angle.")
                 c_th1, c_th2 = st.columns([1, 1.2])
                 with c_th1:
                     st.image(str(thumb_path), caption="9:16 High-Conversion Thumbnail (Shorts / Reels Cover)", use_container_width=True)

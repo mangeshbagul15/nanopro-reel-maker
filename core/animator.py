@@ -2627,6 +2627,232 @@ def _fit_cover_headline(draw: ImageDraw.ImageDraw, text: str, max_w: int, font_f
     return fnt, lines[:3], 46
 
 
+_THUMB_DARK_THEMES: List[Dict[str, Any]] = [
+    {"name": "midnight_cyan", "bg": (8, 13, 27), "grid": (30, 48, 82), "pri": (56, 189, 248), "btn": (37, 99, 235), "soft": (125, 211, 252), "hex": "#38BDF8", "bg_style": "square_grid"},
+    {"name": "obsidian_emerald", "bg": (6, 17, 14), "grid": (20, 62, 48), "pri": (52, 211, 153), "btn": (5, 150, 105), "soft": (110, 231, 183), "hex": "#34D399", "bg_style": "dot_matrix"},
+    {"name": "crimson_outage", "bg": (17, 9, 14), "grid": (68, 26, 38), "pri": (244, 63, 94), "btn": (225, 29, 72), "soft": (253, 164, 175), "hex": "#F43F5E", "bg_style": "diagonal_blueprint"},
+    {"name": "carbon_amber", "bg": (11, 13, 21), "grid": (56, 46, 22), "pri": (251, 191, 36), "btn": (217, 119, 6), "soft": (253, 224, 71), "hex": "#FBBF24", "bg_style": "isometric_mesh"},
+    {"name": "velvet_purple", "bg": (11, 8, 22), "grid": (49, 32, 82), "pri": (168, 85, 247), "btn": (126, 34, 206), "soft": (216, 180, 254), "hex": "#A855F7", "bg_style": "concentric_radar"},
+    {"name": "cobalt_indigo", "bg": (6, 12, 26), "grid": (28, 44, 88), "pri": (96, 165, 250), "btn": (37, 99, 235), "soft": (147, 197, 253), "hex": "#60A5FA", "bg_style": "square_grid"},
+]
+
+
+def _draw_dark_thumb_backdrop(bg: Image.Image, theme: Dict[str, Any]) -> None:
+    """Draws subtle dark-only engineering grid/dot/circuit patterns (strictly dark background)."""
+    w, h = bg.size
+    dr = ImageDraw.Draw(bg, "RGBA")
+    gr = theme["grid"]
+    pri = theme["pri"]
+    st = theme.get("bg_style", "square_grid")
+
+    # Subtle top-center dark radial glow (low opacity so background stays strictly dark)
+    for step in range(6, 0, -1):
+        rad = step * 115
+        al = int(16 - step * 2)
+        dr.ellipse((w // 2 - rad, 240 - rad // 2, w // 2 + rad, 240 + rad), fill=(*pri, max(2, al)))
+
+    if st == "dot_matrix":
+        for gy in range(32, h, 44):
+            for gx in range(32, w, 44):
+                dr.ellipse((gx - 2, gy - 2, gx + 2, gy + 2), fill=(*gr, 115))
+    elif st == "diagonal_blueprint":
+        for offset in range(-h, w + h, 88):
+            dr.line((offset, 0, offset + h, h), fill=(*gr, 68), width=1)
+        for gy in range(0, h, 132):
+            dr.line((0, gy, w, gy), fill=(*gr, 52), width=1)
+    elif st == "isometric_mesh":
+        for offset in range(-h, w + h, 108):
+            dr.line((offset, 0, offset + int(h * 0.65), h), fill=(*gr, 64), width=1)
+            dr.line((offset, 0, offset - int(h * 0.65), h), fill=(*gr, 64), width=1)
+    elif st == "concentric_radar":
+        cx, cy = w // 2, 980
+        for r in range(140, 980, 130):
+            dr.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(*gr, 75), width=2)
+        dr.line((0, cy, w, cy), fill=(*gr, 50), width=1)
+        dr.line((cx, 0, cx, h), fill=(*gr, 50), width=1)
+    else:  # square_grid
+        for gy in range(0, h, 64):
+            dr.line((0, gy, w, gy), fill=(*gr, 72), width=1)
+        for gx in range(0, w, 64):
+            dr.line((gx, 0, gx, h), fill=(*gr, 72), width=1)
+
+
+def _build_thumb_variant_spec(topic: str, variant_idx: int, matched_icons: List[str], timeline: Any = None) -> Dict[str, Any]:
+    """
+    Produces fresh, topic-specific dark thumbnail copy + centerpiece data per click/variant.
+    Uses Gemini/Groq fast JSON when available, with rich deterministic topic-aware variations offline.
+    """
+    from core.config import GEMINI_API_KEY, GROQ_API_KEY
+    clean_topic = str(topic or "System Design Deep Dive").strip()
+    words = [w for w in re.sub(r"[^A-Za-z0-9_+/\- ]", " ", clean_topic).split() if w.lower() not in (
+        "explain", "how", "what", "why", "with", "using", "into", "from", "for", "and", "the",
+    )]
+    short_top = (" ".join(words[:4]) if words else clean_topic)[:32]
+    key_noun = (words[0] if words else "System")[:14]
+
+    angles = [
+        ("architecture", "PRO ARCHITECTURE", f"How {short_top} Actually Scales"),
+        ("myth_fix", "STOP THIS MISTAKE", f"{short_top}: Wrong vs Production Way"),
+        ("live_code", "UNDER THE HOOD", f"{short_top} Live Execution & Fix"),
+        ("blueprint", "WHITEBOARD BLUEPRINT", f"Draw {short_top} in 60 Seconds"),
+        ("iso_layers", "LAYERED INTERNALS", f"Inside {short_top}: 3 Core Layers"),
+        ("interview_hub", "FAANG INTERVIEW TRAP", f"Cracking {short_top} Live"),
+    ]
+    layout_mode, angle_tag, default_hl = angles[variant_idx % len(angles)]
+
+    # Topic-aware offline defaults across all 6 layouts
+    low = clean_topic.lower()
+    is_sql = any(k in low for k in ("sql", "join", "dense_rank", "window", "query", "select", "index", "postgres"))
+    is_py = any(k in low for k in ("python", "asyncio", "gil", "pandas", "pytorch", "loop", "orm", "n+1"))
+    is_data = any(k in low for k in ("dms", "cdc", "snowflake", "kafka", "s3", "airflow", "etl", "pipeline", "parquet", "warehouse"))
+    is_sec = any(k in low for k in ("security", "firewall", "port", "iam", "gpo", "whitelist", "oauth", "jwt"))
+
+    if is_sql:
+        code_lines = [
+            "SELECT u.id, COUNT(o.id) AS total",
+            "FROM users u INNER JOIN orders o",
+            "  ON o.user_id = u.id  -- Indexed!",
+            "GROUP BY u.id ORDER BY total DESC;",
+        ]
+        code_focus = 3
+        code_note = "B-Tree Index Seek: 1,840ms -> 1.2ms!"
+        code_metric = "1,500x FASTER"
+        pipe_nodes = [("RAW TABLES", "Orders + Users"), ("INDEXED JOIN", "B-Tree Seek"), ("WINDOW RANK", "DENSE_RANK()")]
+    elif is_py:
+        code_lines = [
+            "ids = [u.id for u in users]",
+            "orders = db.fetch_batch(ids)  # 1 query",
+            "for u in users:",
+            "    res.append(orders[u.id])  # O(1)",
+        ]
+        code_focus = 2
+        code_note = "Eliminates 1,000 N+1 DB roundtrips!"
+        code_metric = "940ms -> 8ms"
+        pipe_nodes = [("EVENT LOOP", "Async Tasks"), ("BATCH PREFETCH", "Zero N+1 Lock"), ("FAST PAYLOAD", "116x Speedup")]
+    elif is_sec:
+        code_lines = [
+            "ALLOW tcp:443 FROM app_subnet",
+            "DENY  tcp:5432 FROM 0.0.0.0/0",
+            "VERIFY mTLS + IAM Role STS Token",
+            "LOG   audit_trail -> SIEM Vault",
+        ]
+        code_focus = 2
+        code_note = "Least-privilege firewall + zero public DB!"
+        code_metric = "ZERO TRUST ✓"
+        pipe_nodes = [("EDGE PROXY", "URL Allowlist"), ("FIREWALL GATE", "TCP 443 Only"), ("IAM & AUDIT", "Least Privilege")]
+    elif is_data:
+        code_lines = [
+            "ORACLE_CDC -> AWS DMS (Parquet)",
+            "S3_RAW     -> Airflow -> L0_RAW",
+            "MERGE L1_HARMONIZED -> L2_CURATED",
+            "ALERT on lag > 5s (Zero Data Loss)",
+        ]
+        code_focus = 3
+        code_note = "Continuous CDC -> L0 -> L1 -> L2!"
+        code_metric = "SUB-SECOND CDC"
+        pipe_nodes = [("SOURCE CDC", "DMS / Stream"), ("CLOUD LAKE", "S3 Parquet"), ("WAREHOUSE", "L0 -> L1 -> L2")]
+    else:
+        code_lines = [
+            f"INGEST  {key_noun} -> Gateway Guard",
+            "BUFFER  Async Queue + Backpressure",
+            "PROCESS Idempotent Worker Pool",
+            "METRICS p99 < 12ms | 99.99% SLA",
+        ]
+        code_focus = 2
+        code_note = f"How production {key_noun} prevents crashes!"
+        code_metric = "99.99% SLA"
+        pipe_nodes = [(f"{key_noun.upper()} EDGE", "Validate & Route"), ("CORE ENGINE", "Scale & Process"), ("DURABLE STORE", "Zero Loss")]
+
+    spec: Dict[str, Any] = {
+        "layout_mode": layout_mode,
+        "angle_tag": angle_tag,
+        "headline": default_hl,
+        "sub_hook": code_note,
+        "metric_big": code_metric,
+        "pipe_nodes": pipe_nodes,
+        "bad_title": "NAIVE WAY ✗",
+        "bad_points": [f"Manual bottlenecks in {key_noun}", "High p99 latency & outages", "Unbounded locks under load"],
+        "good_title": "PRODUCTION FIX ✓",
+        "good_points": [pipe_nodes[1][1], code_note, f"Verified {code_metric}"],
+        "code_lines": code_lines,
+        "code_focus": code_focus,
+        "code_note": code_note,
+        "sticky_title": f"📌 {angle_tag}",
+        "sticky_text": code_note,
+        "interview_q": f'"How would you architect {short_top} for 10x traffic?"',
+        "hub_center": key_noun.upper()[:10],
+        "hub_targets": [p[0] for p in pipe_nodes],
+    }
+
+    # Optional quick LLM angle generation so repeated clicks get brand-new headlines & insights for this specific topic
+    prompt = f"""Generate ONE unique dark-theme 9:16 YouTube Shorts thumbnail concept # {variant_idx + 1} for topic: "{clean_topic}".
+Required Visual Angle: {layout_mode} ({angle_tag}). Make this variant feel completely different from other clicks!
+Return STRICT JSON ONLY:
+{{
+  "headline": "punchy 4-7 word high-CTR title",
+  "sub_hook": "short 5-8 word curiosity line",
+  "metric_big": "short badge e.g. 15x FASTER or ZERO LOSS",
+  "pipe_nodes": [["NODE 1","3 words"],["NODE 2","3 words"],["NODE 3","3 words"]],
+  "bad_points": ["mistake 1","mistake 2"],
+  "good_points": ["fix 1","fix 2"],
+  "code_lines": ["line 1","line 2","line 3","line 4"],
+  "sticky_text": "short sticky note insight <=44 chars",
+  "interview_q": "sharp question <=65 chars"
+}}"""
+
+    raw = ""
+    if GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            res = client.models.generate_content(model="gemini-3.5-flash-lite", contents=prompt)
+            raw = str(getattr(res, "text", "") or "").strip()
+        except Exception:
+            raw = ""
+    if not raw and GROQ_API_KEY:
+        try:
+            from groq import Groq
+            gc = Groq(api_key=GROQ_API_KEY)
+            res = gc.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=min(0.9, 0.45 + (variant_idx % 5) * 0.1),
+                timeout=7,
+            )
+            raw = res.choices[0].message.content.strip() if res.choices else ""
+        except Exception:
+            raw = ""
+
+    if raw:
+        m = re.search(r"\{[\s\S]*\}", raw)
+        if m:
+            try:
+                parsed = json.loads(m.group(0))
+                if isinstance(parsed, dict):
+                    if parsed.get("headline"):
+                        spec["headline"] = str(parsed["headline"])[:64]
+                    if parsed.get("sub_hook"):
+                        spec["sub_hook"] = str(parsed["sub_hook"])[:68]
+                    if parsed.get("metric_big"):
+                        spec["metric_big"] = str(parsed["metric_big"])[:18].upper()
+                    if isinstance(parsed.get("pipe_nodes"), list) and len(parsed["pipe_nodes"]) >= 3:
+                        spec["pipe_nodes"] = [(str(x[0])[:18], str(x[1])[:26]) for x in parsed["pipe_nodes"][:3] if isinstance(x, (list, tuple)) and len(x) >= 2] or spec["pipe_nodes"]
+                    if isinstance(parsed.get("bad_points"), list) and parsed["bad_points"]:
+                        spec["bad_points"] = [str(x)[:36] for x in parsed["bad_points"][:3]]
+                    if isinstance(parsed.get("good_points"), list) and parsed["good_points"]:
+                        spec["good_points"] = [str(x)[:36] for x in parsed["good_points"][:3]]
+                    if isinstance(parsed.get("code_lines"), list) and len(parsed["code_lines"]) >= 3:
+                        spec["code_lines"] = [str(x)[:46] for x in parsed["code_lines"][:4]]
+                    if parsed.get("sticky_text"):
+                        spec["sticky_text"] = str(parsed["sticky_text"])[:54]
+                    if parsed.get("interview_q"):
+                        spec["interview_q"] = str(parsed["interview_q"])[:72]
+                    spec["hub_targets"] = [p[0] for p in spec["pipe_nodes"]]
+            except Exception:
+                pass
+    return spec
+
+
 def generate_thumbnail_9_16(
     topic: str,
     timeline: Any = None,
@@ -2634,11 +2860,12 @@ def generate_thumbnail_9_16(
     visual_engine: str = "hybrid_modern",
     output_path: Any = None,
     tone: str = "auto_2026_director",
+    variant_seed: Optional[int] = None,
 ) -> Path:
     """
-    Generates a dedicated, high-CTR 1080x1920 (9:16) YouTube Shorts / Reels Cover Poster
-    with top category + watermark chrome, bold highlighted hero typography, a framed centerpiece
-    visual diagram/3D tech showcase, and a bottom safe-zone CTA strip (never a raw frame 0 screenshot).
+    Generates a fresh, high-CTR 1080x1920 (9:16) DARK-THEME YouTube Shorts / Reels Cover Poster.
+    Every click / `variant_seed` produces a genuinely different layout archetype, dark accent theme,
+    background grid style, and topic-adapted hook/diagram (keeping backgrounds strictly dark).
     """
     import hashlib
     import time
@@ -2649,12 +2876,14 @@ def generate_thumbnail_9_16(
         dispatch_studio_layout,
         draw_procedural_3d_mesh,
         fetch_3d_extruded_svg,
-        render_procedural_backdrop,
         resolve_studio_world,
     )
 
     canvas_w, canvas_h = 1080, 1920
     clean_topic = str(topic or "System Design Deep Dive").strip()
+    v_idx = int(variant_seed) if variant_seed is not None else int(time.time_ns() // 1000000)
+    theme = _THUMB_DARK_THEMES[v_idx % len(_THUMB_DARK_THEMES)]
+
     art_style = str(timeline.get("art_style", "editorial_dark")) if isinstance(timeline, dict) else "editorial_dark"
     sc0 = timeline.get("scenes", [{}])[0] if (isinstance(timeline, dict) and timeline.get("scenes")) else {}
     eff_tone = resolve_effective_tone(tone, scene_tone=sc0.get("scene_tone") if isinstance(sc0, dict) else None, role="hook", idx=0)
@@ -2665,59 +2894,50 @@ def generate_thumbnail_9_16(
         topic=clean_topic,
     )
 
-    # Dedicated clean studio thumbnail palette: deep neutral slate canvas + crisp white type + single Sky/Royal Blue accent
-    # Never pulls random neon/pink/purple/lime worlds or multi-color background spotlights.
-    c_pri = (56, 189, 248)        # Crisp Sky Blue (#38BDF8)
-    c_btn = (37, 99, 235)         # Rich Royal Blue CTA (#2563EB) with crisp white text
-    c_muted_ui = (148, 163, 184)  # Neutral Slate Muted (#94A3B8)
-    c_soft_tint = (125, 211, 252) # Soft Sky Highlight (#7DD3FC)
-    c_card_bg = (17, 24, 39, 242)
-    c_card_alt = (22, 31, 48, 245)
-    c_card_border = (48, 62, 88, 210)
-    is_light = False
+    c_pri = theme["pri"]
+    c_btn = theme["btn"]
+    c_muted_ui = (148, 163, 184)
+    c_soft_tint = theme["soft"]
+    c_hex = theme["hex"]
+    bg_col = theme["bg"]
 
     thumb_world = dict(world)
     thumb_world.update({
         "is_light": False,
-        "bg_top": (11, 16, 29),
-        "bg_bot": (8, 12, 22),
+        "bg_top": bg_col,
+        "bg_bot": (max(4, bg_col[0] - 3), max(6, bg_col[1] - 4), max(10, bg_col[2] - 6)),
         "spot_a": (15, 23, 42),
         "spot_b": (15, 23, 42),
         "spot_c": (15, 23, 42),
-        "grid_col": (30, 41, 59),
+        "grid_col": theme["grid"],
         "text": (248, 250, 252),
         "muted": c_muted_ui,
         "cyan": c_pri,
         "purple": c_soft_tint,
-        "emerald": c_pri,
-        "amber": c_pri,
-        "rose": c_pri,
-        "card_bg": c_card_bg,
-        "card_layer": (13, 19, 33, 230),
-        "card_alt": c_card_alt,
-        "border": c_card_border,
-        "glass_rim": (148, 163, 184, 52),
-        "shadow_col": (2, 4, 10, 180),
+        "emerald": (52, 211, 153),
+        "amber": (251, 191, 36),
+        "rose": (244, 63, 94),
+        "card_bg": (14, 20, 34, 244),
+        "card_layer": (11, 16, 28, 236),
+        "card_alt": (20, 28, 45, 246),
+        "border": (*c_pri, 130),
+        "glass_rim": (148, 163, 184, 58),
+        "shadow_col": (2, 4, 10, 195),
     })
-    c_hex = "#38BDF8"
 
-    # Pure clean dark-slate vertical canvas with crisp minimal grid (ZERO colored blotches or spotlight gradients)
-    bg = Image.new("RGBA", (canvas_w, canvas_h), (10, 14, 26, 255))
-    bg_draw = ImageDraw.Draw(bg, "RGBA")
-    for gy in range(0, canvas_h, 64):
-        bg_draw.line((0, gy, canvas_w, gy), fill=(30, 41, 59, 42), width=1)
-    for gx in range(0, canvas_w, 64):
-        bg_draw.line((gx, 0, gx, canvas_h), fill=(30, 41, 59, 42), width=1)
-
+    # Strictly DARK background canvas with subtle rotating geometric grid
+    bg = Image.new("RGBA", (canvas_w, canvas_h), (*bg_col, 255))
+    _draw_dark_thumb_backdrop(bg, theme)
     stage = StudioStage(canvas_w, canvas_h, thumb_world)
 
     category_label, matched_icons = _infer_thumb_category_and_icons(clean_topic, timeline=timeline)
+    spec = _build_thumb_variant_spec(clean_topic, v_idx, matched_icons, timeline=timeline)
 
-    # 1. Top Creator Chrome (y=52..104 — clean neutral slate pills, zero neon borders)
+    # 1. Top Creator Chrome (Category/Angle + Watermark)
     cat_font = _cin_font(22, bold=True)
-    cat_txt = category_label
-    cat_w = int(stage.draw.textlength(cat_txt, font=cat_font)) + 66
-    stage.draw_glass_card((56, 52, 56 + cat_w, 104), radius=26, accent_col=None, active=False, elev=6)
+    cat_txt = f"{category_label} · {spec['angle_tag']}" if len(category_label) < 16 else spec["angle_tag"]
+    cat_w = min(620, int(stage.draw.textlength(cat_txt, font=cat_font)) + 64)
+    stage.draw_glass_card((56, 52, 56 + cat_w, 104), radius=26, accent_col=c_pri, active=False, elev=6)
     stage.draw.ellipse((76, 72, 88, 84), fill=c_pri)
     stage.draw.text((98, 65), cat_txt, fill=thumb_world["text"], font=cat_font)
 
@@ -2730,14 +2950,14 @@ def generate_thumbnail_9_16(
         stage.draw.ellipse((wx0 + 18, 72, wx0 + 30, 84), fill=c_pri)
         stage.draw.text((wx0 + 38, 65), wt, fill=thumb_world["text"], font=wm_font)
 
-    # 2. High-Impact Cover Headline & Curiosity Sub-Hook (y=142..515)
-    raw_headline = ""
-    if isinstance(timeline, dict):
-        raw_headline = str(timeline.get("hook_headline") or timeline.get("title") or "").strip()
-    if not raw_headline:
-        raw_headline = clean_topic
-    if len(raw_headline) > 84:
-        raw_headline = raw_headline[:81].rsplit(" ", 1)[0] + "..."
+    # 2. High-Impact Dynamic Cover Headline & Curiosity Sub-Hook (y=142..515)
+    raw_headline = spec["headline"]
+    if isinstance(timeline, dict) and v_idx == 0:
+        tl_hl = str(timeline.get("hook_headline") or timeline.get("title") or "").strip()
+        if tl_hl:
+            raw_headline = tl_hl
+    if len(raw_headline) > 72:
+        raw_headline = raw_headline[:69].rsplit(" ", 1)[0] + "..."
 
     h_font, h_lines, h_sz = _fit_cover_headline(stage.draw, raw_headline, 956, _cin_font)
     lh = int(h_sz * 1.18)
@@ -2747,50 +2967,41 @@ def generate_thumbnail_9_16(
         lx = int((canvas_w - lw) / 2.0)
         is_accent_line = (len(h_lines) > 1 and li == len(h_lines) - 1) or bool(re.search(r"\b\d+[%xmsKMB]?\b", ln))
         t_col = c_pri if is_accent_line else thumb_world["text"]
-        stage.draw.text((lx + 2, hy + 4), ln, fill=(4, 8, 18, 190), font=h_font)
+        stage.draw.text((lx + 2, hy + 4), ln, fill=(4, 8, 18, 195), font=h_font)
         stage.draw.text((lx, hy), ln, fill=t_col, font=h_font)
         hy += lh
 
-    # Sub-hook curiosity pill cleanly below headline
-    sub_hook = ""
-    if isinstance(timeline, dict) and timeline.get("scenes"):
-        for sc in timeline["scenes"]:
-            vd = sc.get("visual_data") or {}
-            cand = str(vd.get("question") or vd.get("problem_title") or vd.get("kicker") or vd.get("title") or "").strip()
-            if cand and cand.lower() != raw_headline.lower():
-                sub_hook = cand
-                break
-        if not sub_hook:
-            narr = re.sub(r"\[pause\]", " ", str(sc0.get("narration") or ""), flags=re.IGNORECASE).strip()
-            first_sent = re.split(r"[.!?]", narr)[0].strip()
-            if first_sent and first_sent.lower() != raw_headline.lower():
-                sub_hook = first_sent
-    if not sub_hook:
-        sub_hook = "Architecture • Internals • Production Trade-offs"
-    if len(sub_hook) > 74:
-        sub_hook = sub_hook[:71].rsplit(" ", 1)[0] + "..."
-
+    sub_hook = spec["sub_hook"]
+    if len(sub_hook) > 68:
+        sub_hook = sub_hook[:65].rsplit(" ", 1)[0] + "..."
     sub_y = min(446, hy + 18)
     sub_font = _cin_font(27, bold=True)
     sub_w = min(950, int(stage.draw.textlength(sub_hook, font=sub_font)) + 64)
     sx0 = (canvas_w - sub_w) // 2
-    stage.draw_glass_card((sx0, sub_y, sx0 + sub_w, sub_y + 62), radius=31, accent_col=None, active=False, elev=8)
+    stage.draw_glass_card((sx0, sub_y, sx0 + sub_w, sub_y + 62), radius=31, accent_col=c_pri, active=False, elev=8)
     _cin_wrap(stage.draw, (sx0 + 24, sub_y + 15), sub_hook, sub_font, (226, 232, 240), sub_w - 48, align="center", max_lines=1)
 
-    # 3. Framed Centerpiece Visual Showcase Card (x=56..1024, y=542..1492 — crisp neutral border)
+    # 3. Framed Centerpiece Visual Showcase Card (x=56..1024, y=542..1492)
     box_x0, box_y0, box_x1, box_y1 = 56, 542, 1024, 1492
-    stage.draw_glass_card((box_x0, box_y0, box_x1, box_y1), radius=34, accent_col=None, active=False, elev=14, layered=False)
+    stage.draw_glass_card((box_x0, box_y0, box_x1, box_y1), radius=34, accent_col=c_pri, active=False, elev=14, layered=False)
     for di in range(3):
         dx = box_x0 + 34 + di * 22
         stage.draw.ellipse((dx, box_y0 + 22, dx + 12, box_y0 + 34), fill=c_pri if di == 0 else (71, 85, 105, 190))
     win_lbl_font = _cin_font(19, bold=True, mono=True)
-    best_sc = _pick_best_thumb_scene(timeline) if isinstance(timeline, dict) else None
-    win_label = (str((best_sc or {}).get("visual_type") or "VISUAL ARCHITECTURE").replace("_", " ").upper())[:34]
+    l_mode = spec["layout_mode"]
+
+    # Pick rotating scenes when timeline is passed so timeline thumbnails also vary on repeat clicks!
+    best_sc = None
+    if isinstance(timeline, dict) and timeline.get("scenes"):
+        sc_pool = [s for s in timeline["scenes"] if isinstance(s, dict) and not str(s.get("visual_type") or "").startswith(("v2_", "v3_", "v4_", "v5_"))]
+        if sc_pool:
+            best_sc = sc_pool[v_idx % len(sc_pool)]
+
+    win_label = (str((best_sc or {}).get("visual_type") or l_mode).replace("_", " ").upper())[:34]
     stage.draw.text((box_x0 + 114, box_y0 + 17), f"// {win_label}", fill=c_muted_ui, font=win_lbl_font)
     stage.draw.line((box_x0 + 24, box_y0 + 54, box_x1 - 24, box_y0 + 54), fill=(51, 65, 85, 160), width=2)
 
     if best_sc is not None:
-        # Render centerpiece diagram into unified clean slate+blue world
         import copy
         clean_vd = copy.deepcopy(best_sc.get("visual_data") or {})
         for list_k in ("nodes", "satellites", "bars", "items", "steps", "stages"):
@@ -2799,14 +3010,7 @@ def generate_thumbnail_9_16(
                     if isinstance(item, dict) and "color" in item:
                         item["color"] = c_hex
         inner_stage = StudioStage(canvas_w, canvas_h, thumb_world)
-        dispatch_studio_layout(
-            inner_stage,
-            best_sc.get("visual_type", "architecture_flow"),
-            clean_vd,
-            1.0,
-            thumb_world,
-            topic=clean_topic,
-        )
+        dispatch_studio_layout(inner_stage, best_sc.get("visual_type", "architecture_flow"), clean_vd, 1.0, thumb_world, topic=clean_topic)
         inner_rgba = inner_stage.composite_onto(None)
         cropped = inner_rgba.crop((44, 308, 1036, 1420))
         target_w, target_h = box_x1 - box_x0 - 44, box_y1 - box_y0 - 82
@@ -2817,48 +3021,143 @@ def generate_thumbnail_9_16(
         py = box_y0 + 62 + ((box_y1 - box_y0 - 70) - nh) // 2
         stage.fg.alpha_composite(resized, (px, py))
     else:
-        # Standalone Cover Poster Centerpiece: clean sky-blue icons/mesh + neutral slate cards
-        draw_procedural_3d_mesh(stage, 540, 770, 150, "geodesic_sphere", c_pri, progress=0.65, active=False, alpha_mul=0.45, secondary_color=c_soft_tint)
+        # 6 Completely Distinct Standalone Dark Visual Layouts Based on `layout_mode`
+        if l_mode == "myth_vs_fix":
+            # Huge focal metric banner + Broken Myth vs Production Fix comparison
+            m_txt = spec["metric_big"]
+            m_fnt = _cin_font(62, bold=True)
+            mw = int(stage.draw.textlength(m_txt, font=m_fnt)) + 70
+            mx0 = (canvas_w - mw) // 2
+            stage.draw.rounded_rectangle((mx0, 636, mx0 + mw, 738), radius=24, fill=(*c_pri, 34), outline=(*c_pri, 220), width=3)
+            _cin_wrap(stage.draw, (mx0 + 20, 650), m_txt, m_fnt, c_pri, mw - 40, align="center", max_lines=1)
 
-        icon_positions = [(250, 770), (540, 770), (830, 770)]
-        stage.draw.line((295, 770, 785, 770), fill=(56, 189, 248, 120), width=3)
-        for ii, (ix, iy) in enumerate(icon_positions):
-            stage.draw_glass_card((ix - 82, iy - 82, ix + 82, iy + 82), radius=28, accent_col=None, active=False, elev=10)
-            ext_icon = fetch_3d_extruded_svg(matched_icons[ii], size_px=92, tint_hex=c_hex, depth=10, tint_rgb=c_pri)
-            if ext_icon is not None:
-                stage.fg.alpha_composite(ext_icon, (ix - ext_icon.width // 2, iy - ext_icon.height // 2))
-            else:
-                draw_procedural_3d_mesh(stage, ix, iy, 46, ("torus_3d", "atom_orbit", "cube_cluster_3d")[ii], c_pri, progress=0.75, active=False)
+            draw_procedural_3d_mesh(stage, 540, 865, 92, "torus_3d", c_pri, progress=0.72, active=False, alpha_mul=0.55, secondary_color=c_soft_tint)
+            # Two side-by-side comparison columns
+            stage.draw_glass_card((92, 955, 524, 1435), radius=24, accent_col=(244, 63, 94), active=False, elev=10)
+            stage.draw.text((126, 982), spec["bad_title"], fill=(253, 164, 175), font=_cin_font(28, bold=True))
+            stage.draw.line((122, 1030, 494, 1030), fill=(244, 63, 94, 120), width=2)
+            for bi, bp in enumerate(spec["bad_points"][:3]):
+                _cin_wrap(stage.draw, (124, 1054 + bi * 112), f"✗ {bp}", _cin_font(24, bold=True), (248, 250, 252), 370, max_lines=3)
 
-        short_topic = clean_topic if len(clean_topic) <= 26 else clean_topic[:26].rsplit(" ", 1)[0].rstrip(" ,:-")
-        pillar_specs = [
-            ("01", "CORE PROBLEM & TRAP", f"Why standard {short_topic} patterns break at scale"),
-            ("02", "UNDER THE HOOD", "Step-by-step architecture, internals & key metrics"),
-            ("03", "PRODUCTION FIX & TRADE-OFFS", "Real engineering patterns used in high-scale systems"),
-        ]
-        card_y = 955
-        for num_s, p_title, p_desc in pillar_specs:
-            stage.draw_glass_card((box_x0 + 38, card_y, box_x1 - 38, card_y + 150), radius=22, accent_col=None, active=False, elev=8)
-            stage.draw.rounded_rectangle((box_x0 + 58, card_y + 34, box_x0 + 132, card_y + 108), radius=18, fill=(56, 189, 248, 28), outline=(56, 189, 248, 165), width=2)
-            stage.draw.text((box_x0 + 76, card_y + 52), num_s, fill=c_pri, font=_cin_font(32, bold=True, mono=True))
-            stage.draw.text((box_x0 + 158, card_y + 30), p_title, fill=c_pri, font=_cin_font(22, bold=True))
-            _cin_wrap(stage.draw, (box_x0 + 158, card_y + 66), p_desc, _cin_font(25, bold=False), thumb_world["text"], box_x1 - box_x0 - 220, max_lines=2)
-            card_y += 170
+            stage.draw_glass_card((556, 955, 988, 1435), radius=24, accent_col=(52, 211, 153), active=False, elev=10)
+            stage.draw.text((590, 982), spec["good_title"], fill=(110, 231, 183), font=_cin_font(28, bold=True))
+            stage.draw.line((586, 1030, 958, 1030), fill=(52, 211, 153, 120), width=2)
+            for gi, gp in enumerate(spec["good_points"][:3]):
+                _cin_wrap(stage.draw, (588, 1054 + gi * 112), f"✓ {gp}", _cin_font(24, bold=True), (248, 250, 252), 370, max_lines=3)
 
-    # 4. Bottom Safe-Zone Value Strip & Crisp Royal-Blue CTA (y=1532..1722)
-    stage.draw_glass_card((56, 1532, 1024, 1722), radius=30, accent_col=None, active=False, elev=12)
+        elif l_mode == "live_code":
+            # Sleek Dark IDE Code Card + Hotspot Callout + Execution Drawer
+            stage.draw.rounded_rectangle((94, 636, 986, 1210), radius=22, fill=(9, 14, 28, 245), outline=(*c_pri, 175), width=2)
+            stage.draw.text((126, 656), "main.py  ·  LIVE SIMULATOR", fill=c_pri, font=_cin_font(22, bold=True, mono=True))
+            stage.draw.rounded_rectangle((838, 650, 956, 692), radius=10, fill=(52, 211, 153, 45), outline=(52, 211, 153, 210), width=2)
+            stage.draw.text((862, 658), "▶ RUN", fill=(110, 231, 183), font=_cin_font(21, bold=True))
+            stage.draw.line((112, 708, 968, 708), fill=(51, 65, 85, 160), width=2)
+
+            c_focus = int(spec.get("code_focus", 2))
+            for li, cl in enumerate(spec["code_lines"][:4], start=1):
+                ly = 736 + (li - 1) * 92
+                if li == c_focus:
+                    stage.draw.rounded_rectangle((112, ly - 10, 968, ly + 62), radius=12, fill=(*c_pri, 44), outline=(*c_pri, 210), width=2)
+                stage.draw.text((130, ly + 6), f"0{li}", fill=c_muted_ui, font=_cin_font(24, bold=True, mono=True))
+                stage.draw.text((192, ly + 4), cl[:40], fill=(248, 250, 252), font=_cin_font(25, bold=True, mono=True))
+
+            # Callout Tooltip Card + Output Metric Bar
+            stage.draw.rounded_rectangle((132, 1110, 950, 1230), radius=16, fill=(17, 24, 39, 250), outline=(251, 191, 36, 225), width=3)
+            stage.draw.text((160, 1126), f"↳ LINE 0{c_focus} INSIGHT", fill=(251, 191, 36), font=_cin_font(20, bold=True))
+            _cin_wrap(stage.draw, (160, 1162), spec["code_note"], _cin_font(26, bold=True), (248, 250, 252), 760, max_lines=1)
+
+            stage.draw_glass_card((94, 1265, 986, 1445), radius=20, accent_col=(52, 211, 153), active=False, elev=8)
+            stage.draw.text((126, 1290), "OUTPUT TRACE", fill=(148, 163, 184), font=_cin_font(21, bold=True, mono=True))
+            stage.draw.text((126, 1340), f"✓ {spec['metric_big']}  —  Verified Production Run", fill=(110, 231, 183), font=_cin_font(28, bold=True))
+
+        elif l_mode == "blueprint":
+            # Dark Blueprint Whiteboard with dashed architectural nodes + sticky note
+            for gy in range(620, 1460, 60):
+                stage.draw.line((80, gy, 1000, gy), fill=(*c_pri, 32), width=1)
+            for gx in range(80, 1020, 60):
+                stage.draw.line((gx, 620, gx, 1460), fill=(*c_pri, 32), width=1)
+            box_coords = [(120, 660, 480, 845), (590, 825, 960, 1010), (140, 1015, 520, 1200)]
+            for idx_b, ((bx0, by0, bx1, by1), (n_title, n_sub)) in enumerate(zip(box_coords, spec["pipe_nodes"])):
+                stage.draw.rounded_rectangle((bx0, by0, bx1, by1), radius=18, fill=(10, 22, 46, 240), outline=(*c_pri, 235), width=3)
+                stage.draw.text((bx0 + 26, by0 + 34), n_title, fill=(255, 255, 255), font=_cin_font(29, bold=True))
+                _cin_wrap(stage.draw, (bx0 + 26, by0 + 84), n_sub, _cin_font(23, bold=False, mono=True), c_pri, bx1 - bx0 - 48, max_lines=2)
+                if idx_b < 2:
+                    nx0, ny0 = (bx1, (by0 + by1) // 2) if idx_b == 0 else (bx0 + 180, by1)
+                    tx0, ty0 = (box_coords[idx_b + 1][0], (box_coords[idx_b + 1][1] + box_coords[idx_b + 1][3]) // 2) if idx_b == 0 else (box_coords[idx_b + 1][2], (box_coords[idx_b + 1][1] + box_coords[idx_b + 1][3]) // 2)
+                    stage.draw.line((nx0, ny0, tx0, ty0), fill=(*c_pri, 215), width=4)
+            # Sticky Note Card
+            stage.draw.rounded_rectangle((490, 1235, 960, 1440), radius=18, fill=(24, 22, 12, 245), outline=(251, 191, 36, 240), width=3)
+            stage.draw.text((520, 1260), spec["sticky_title"], fill=(251, 191, 36), font=_cin_font(22, bold=True))
+            _cin_wrap(stage.draw, (520, 1304), spec["sticky_text"], _cin_font(27, bold=True), (255, 255, 255), 410, max_lines=3)
+
+        elif l_mode == "iso_layers":
+            # 3-Tier Stacked Isometric Architecture Layers + 3D Mesh + Icons
+            draw_procedural_3d_mesh(stage, 540, 745, 118, "cube_cluster_3d", c_pri, progress=0.8, active=False, alpha_mul=0.55, secondary_color=c_soft_tint)
+            layer_colors = [c_pri, (52, 211, 153), (251, 191, 36)]
+            for li, (n_title, n_sub) in enumerate(spec["pipe_nodes"][:3]):
+                ly = 890 + li * 175
+                lc = layer_colors[li % 3]
+                stage.draw_glass_card((120, ly, 960, ly + 138), radius=24, accent_col=lc, active=False, elev=10)
+                stage.draw.rounded_rectangle((148, ly + 28, 232, ly + 110), radius=16, fill=(*lc, 34), outline=(*lc, 200), width=2)
+                stage.draw.text((168, ly + 48), f"L{li+1}", fill=lc, font=_cin_font(32, bold=True, mono=True))
+                stage.draw.text((258, ly + 26), n_title, fill=(255, 255, 255), font=_cin_font(30, bold=True))
+                _cin_wrap(stage.draw, (258, ly + 72), n_sub, _cin_font(24, bold=False), (203, 213, 225), 660, max_lines=1)
+                if li < 2:
+                    stage.draw.line((540, ly + 138, 540, ly + 175), fill=(*c_pri, 210), width=4)
+
+        elif l_mode == "interview_hub":
+            # FAANG Interview Bubble + Central Universal Hub radiating to 3 Nodes
+            stage.draw_glass_card((100, 636, 980, 815), radius=22, accent_col=c_pri, active=False, elev=10)
+            stage.draw.text((134, 658), "INTERVIEWER QUESTION", fill=c_pri, font=_cin_font(21, bold=True))
+            _cin_wrap(stage.draw, (134, 700), spec["interview_q"], _cin_font(28, bold=True), (255, 255, 255), 810, max_lines=2)
+
+            hub_x, hub_y = 540, 1020
+            targets_xy = [(220, 1320), (540, 1320), (860, 1320)]
+            for tx, ty in targets_xy:
+                stage.draw.line((hub_x, hub_y + 52, tx, ty - 68), fill=(*c_pri, 210), width=4)
+            stage.draw.rounded_rectangle((hub_x - 150, hub_y - 68, hub_x + 150, hub_y + 68), radius=24, fill=(*c_pri, 245))
+            _cin_wrap(stage.draw, (hub_x - 135, hub_y - 26), spec["hub_center"], _cin_font(40, bold=True), (8, 13, 27), 270, align="center", max_lines=1)
+
+            for (tx, ty), (n_title, n_sub) in zip(targets_xy, spec["pipe_nodes"][:3]):
+                stage.draw_glass_card((tx - 135, ty - 70, tx + 135, ty + 115), radius=20, accent_col=c_pri, active=False, elev=8)
+                _cin_wrap(stage.draw, (tx - 120, ty - 40), n_title, _cin_font(22, bold=True), (255, 255, 255), 240, align="center", max_lines=2)
+                _cin_wrap(stage.draw, (tx - 120, ty + 28), n_sub, _cin_font(19, bold=False), c_pri, 240, align="center", max_lines=2)
+
+        else:  # architecture (pipeline_flow with icons + glowing nodes + metric badge)
+            draw_procedural_3d_mesh(stage, 540, 755, 145, "geodesic_sphere", c_pri, progress=0.65, active=False, alpha_mul=0.45, secondary_color=c_soft_tint)
+            icon_positions = [(250, 755), (540, 755), (830, 755)]
+            stage.draw.line((295, 755, 785, 755), fill=(*c_pri, 140), width=3)
+            for ii, (ix, iy) in enumerate(icon_positions):
+                stage.draw_glass_card((ix - 82, iy - 82, ix + 82, iy + 82), radius=28, accent_col=c_pri, active=False, elev=10)
+                ext_icon = fetch_3d_extruded_svg(matched_icons[ii], size_px=92, tint_hex=c_hex, depth=10, tint_rgb=c_pri)
+                if ext_icon is not None:
+                    stage.fg.alpha_composite(ext_icon, (ix - ext_icon.width // 2, iy - ext_icon.height // 2))
+                else:
+                    draw_procedural_3d_mesh(stage, ix, iy, 46, ("torus_3d", "atom_orbit", "cube_cluster_3d")[ii], c_pri, progress=0.75, active=False)
+
+            card_y = 940
+            for num_s, (p_title, p_desc) in zip(("01", "02", "03"), spec["pipe_nodes"][:3]):
+                stage.draw_glass_card((box_x0 + 38, card_y, box_x1 - 38, card_y + 150), radius=22, accent_col=c_pri, active=False, elev=8)
+                stage.draw.rounded_rectangle((box_x0 + 58, card_y + 34, box_x0 + 132, card_y + 108), radius=18, fill=(*c_pri, 28), outline=(*c_pri, 180), width=2)
+                stage.draw.text((box_x0 + 76, card_y + 52), num_s, fill=c_pri, font=_cin_font(32, bold=True, mono=True))
+                stage.draw.text((box_x0 + 158, card_y + 30), p_title, fill=c_pri, font=_cin_font(24, bold=True))
+                _cin_wrap(stage.draw, (box_x0 + 158, card_y + 68), p_desc, _cin_font(25, bold=False), thumb_world["text"], box_x1 - box_x0 - 220, max_lines=2)
+                card_y += 170
+
+    # 4. Bottom Safe-Zone Value Strip & Crisp Accent CTA (y=1532..1722)
+    stage.draw_glass_card((56, 1532, 1024, 1722), radius=30, accent_col=c_pri, active=False, elev=12)
     chip_cat = "AI Engineering" if category_label.upper() in ("AI", "AI ENGINEERING") else category_label.title()
     chips = [
         chip_cat,
-        "Step-by-Step Visuals",
-        "Real Trade-offs",
+        spec["metric_big"],
+        "Step-by-Step",
     ]
     chip_font = _cin_font(22, bold=True)
     chip_ws = [int(stage.draw.textlength(ch, font=chip_font)) + 52 for ch in chips]
     total_cw = sum(chip_ws) + 18 * (len(chips) - 1)
     ch_x = (canvas_w - total_cw) // 2
     for ch_txt, cw in zip(chips, chip_ws):
-        stage.draw.rounded_rectangle((ch_x, 1554, ch_x + cw, 1604), radius=25, fill=(30, 41, 59, 220), outline=(71, 85, 105, 180), width=2)
+        stage.draw.rounded_rectangle((ch_x, 1554, ch_x + cw, 1604), radius=25, fill=(24, 34, 54, 230), outline=(*c_pri, 145), width=2)
         stage.draw.ellipse((ch_x + 18, 1574, ch_x + 28, 1584), fill=c_pri)
         stage.draw.text((ch_x + 36, 1566), ch_txt, fill=thumb_world["text"], font=chip_font)
         ch_x += cw + 18
@@ -2875,6 +3174,6 @@ def generate_thumbnail_9_16(
 
     im_out = stage.composite_onto(bg)
     if output_path is None:
-        output_path = OUTPUT_DIR / f"thumbnail_9x16_{int(time.time())}.png"
+        output_path = OUTPUT_DIR / f"thumbnail_9x16_v{(v_idx % 6) + 1}_{int(time.time())}.png"
     im_out.convert("RGB").save(output_path, "PNG", quality=98)
     return output_path
