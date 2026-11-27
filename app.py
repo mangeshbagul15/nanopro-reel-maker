@@ -800,6 +800,7 @@ with st.sidebar:
         st.info("☁️ Active: **Online Cloud Studio**")
         st.caption(f"Running in Cloud • Auto Export: **{export_w}×{export_h} @ {export_fps} FPS ({export_ext.upper()})**. Switch to your laptop's GPU for 4K.")
         st.link_button("⚡ Switch to Local RTX GPU Studio", "http://localhost:8501", width='stretch', type="primary")
+        st.caption("⚠️ Start the local Studio **first** on your laptop: double-click `Start-Studio.bat` (or run `streamlit run app.py`). Wait until it prints 'You can now view your Streamlit app', then click the button above.")
     
     st.markdown("---")
     with st.expander("☁️ Cloudflare R2 Storage (On-Demand)", expanded=False):
