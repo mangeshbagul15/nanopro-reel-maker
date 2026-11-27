@@ -1519,7 +1519,9 @@ with tab_create:
                 # 3. Scene-by-Scene Visual Breakdown ("Kontya scenes sathi konte visuals, kasa plan kela, konte element ghetle")
                 with st.expander("🎬 Scene-by-Scene Visual Storyboard & Elements Breakdown", expanded=False):
                     for idx, sc in enumerate(aligned_scenes):
-                        v_data = sc.get("visual_data", {})
+                        v_data = sc.get("visual_data") or {}
+                        if not isinstance(v_data, dict):
+                            v_data = {}
                         v_type = sc.get("visual_type", "cards")
                         st.markdown(f"#### 📍 Scene {idx + 1}: `{sc.get('role', 'Scene').upper()}` ({sc['start_time']:.1f}s ➔ {sc['end_time']:.1f}s • {sc['duration']:.1f}s)")
                         st.markdown(f"- **Visual Engine:** `{v_type}`")
@@ -1531,23 +1533,33 @@ with tab_create:
                         if v_type in ("v3_live_ide", "v5_live_ide"):
                             st.markdown(f"- **IDE File & Focus Lines:** `{v_data.get('file_name', 'main.py')}` (`{v_data.get('language', 'python')}`) • Focus lines: `{v_data.get('focus_lines', [])}`")
                             st.code("\n".join(str(x) for x in (v_data.get("code_lines") or [])[:6]), language=str(v_data.get("language") or "python"))
-                            _dr = v_data.get("output_drawer") or {}
+                            _dr = v_data.get("output_drawer") if isinstance(v_data.get("output_drawer"), dict) else {}
                             st.markdown(f"- **Output Drawer:** `{_dr.get('mode', 'terminal')}` — **{_dr.get('metric', '')}**")
                         elif v_type in ("v4_blueprint_whiteboard", "v7_blueprint_whiteboard"):
-                            _dnodes = " ➔ ".join(f"**[{n.get('label')}]**" for n in (v_data.get("diagram_nodes") or []))
+                            _dnodes = " ➔ ".join(
+                                f"**[{n.get('label') if isinstance(n, dict) else str(n)}]**"
+                                for n in (v_data.get("diagram_nodes") or [])
+                            )
                             st.markdown(f"- **Marker Nodes:** {_dnodes or 'Whiteboard diagram'}")
-                            _stickies = [f"`{s.get('title')}`: {s.get('text')}" for s in (v_data.get("sticky_notes") or [])]
+                            _stickies = [
+                                (f"`{s.get('title', 'NOTE')}`: {s.get('text', '')}" if isinstance(s, dict) else str(s))
+                                for s in (v_data.get("sticky_notes") or [])
+                                if s
+                            ]
                             if _stickies:
                                 st.markdown(f"- **Sticky Bubbles:** {' · '.join(_stickies)}")
                         elif v_type == "v5_datacenter_park":
-                            _dc_dept = (v_data.get("department") or {}).get("full", "")
-                            _dc_sp = (v_data.get("specialist") or {}).get("title", "")
+                            _dc_dept = (v_data.get("department") or {}).get("full", "") if isinstance(v_data.get("department"), dict) else ""
+                            _dc_sp = (v_data.get("specialist") or {}).get("title", "") if isinstance(v_data.get("specialist"), dict) else ""
                             st.markdown(f"- **Data Center Mode:** `{v_data.get('dc_mode')}` (`{v_data.get('travel_mode')}` travel) • **Department:** `{_dc_dept}` • **Specialist:** `{_dc_sp}`")
                         elif v_type in ("v2_vector_storyboard", "v2_spatial_isometric"):
                             st.markdown(f"- **Studio Mode:** `{v_data.get('widget_type') or v_data.get('scene_mode', 'world_cam')}`")
                         elif v_type == "architecture_flow":
                             nodes = v_data.get("nodes", [])
-                            node_labels = " ➔ ".join([f"**[{n.get('label')}]** ({n.get('sub', '')})" for n in nodes]) if nodes else "Pipeline nodes"
+                            node_labels = " ➔ ".join([
+                                f"**[{n.get('label')}]** ({n.get('sub', '')})" if isinstance(n, dict) else f"**[{n}]**"
+                                for n in nodes
+                            ]) if nodes else "Pipeline nodes"
                             st.markdown(f"- **Rendered Nodes:** {node_labels}")
                         elif v_type == "sql_table":
                             code_snip = v_data.get("code_snippet", "")

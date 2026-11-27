@@ -317,24 +317,24 @@ def _build_whiteboard_html(
     const stickyReserve = STATE.has_sticky ? (isPortrait ? 235 : 150) : 54;
     const usableTop = 64;
     const usableBot = VBH - stickyReserve;
-    const maxNodeTextW = isPortrait ? 310 : 250;
+    const maxNodeTextW = isPortrait ? 390 : 280;
     const nodeEntries = rawNodes.map((n, idx) => {{
       const kind = String(n.kind || 'box').toLowerCase();
-      const lblFont = '900 28px "Nirmala UI", "Segoe UI", sans-serif';
-      const subFont = '800 20px "Cascadia Code", monospace';
+      const lblFont = '900 34px "Nirmala UI", "Segoe UI", sans-serif';
+      const subFont = '800 23px "Cascadia Code", monospace';
       const lblLines = wrapTextLines(n.label || 'Node', maxNodeTextW, lblFont, 2);
       const subLines = n.sublabel ? wrapTextLines(n.sublabel, maxNodeTextW, subFont, 2) : [];
-      const lblMaxW = Math.max(...lblLines.map(l => measureTextPx(l, lblFont)), 90);
-      const subMaxW = subLines.length ? Math.max(...subLines.map(l => measureTextPx(l, subFont)), 60) : 0;
+      const lblMaxW = Math.max(...lblLines.map(l => measureTextPx(l, lblFont)), 120);
+      const subMaxW = subLines.length ? Math.max(...subLines.map(l => measureTextPx(l, subFont)), 80) : 0;
       const contentW = Math.max(lblMaxW, subMaxW);
-      const contentH = lblLines.length * 34 + (subLines.length ? 10 + subLines.length * 26 : 0);
+      const contentH = lblLines.length * 40 + (subLines.length ? 10 + subLines.length * 30 : 0);
 
-      let boxW = Math.max(245, Math.min(isPortrait ? 430 : 340, contentW + 64));
-      let boxH = Math.max(118, contentH + (kind === 'cylinder' ? 76 : 50));
+      let boxW = Math.max(300, Math.min(isPortrait ? 520 : 380, contentW + 76));
+      let boxH = Math.max(138, contentH + (kind === 'cylinder' ? 84 : 56));
       if (kind === 'diamond') {{
         // Diamond inner safe zone requires wider/taller vertices so text stays cleanly inside diagonals
-        boxW = Math.max(boxW + 76, contentW * 1.48 + 68);
-        boxH = Math.max(boxH + 46, contentH * 1.55 + 56);
+        boxW = Math.max(boxW + 96, contentW * 1.48 + 80);
+        boxH = Math.max(boxH + 54, contentH * 1.55 + 64);
       }}
       return {{
         cx: mapX(n.x),
@@ -452,22 +452,22 @@ def _build_whiteboard_html(
       if (e.label) {{
         const tg = makeEl('g', {{ opacity: 0 }});
         let lblTxt = String(e.label).trim();
-        const eFont = '900 20px "Cascadia Code", monospace';
-        while (lblTxt.length > 8 && measureTextPx(lblTxt, eFont) > 220) {{
+        const eFont = '900 23px "Cascadia Code", monospace';
+        while (lblTxt.length > 8 && measureTextPx(lblTxt, eFont) > 260) {{
           lblTxt = lblTxt.slice(0, -4) + '...';
         }}
-        const tw = Math.max(104, measureTextPx(lblTxt, eFont) + 34);
+        const tw = Math.max(122, measureTextPx(lblTxt, eFont) + 38);
         let lx = 0.25 * x1 + 0.5 * mx + 0.25 * x2;
         let ly = 0.25 * y1 + 0.5 * my + 0.25 * y2;
         lx = Math.max(tw * 0.5 + 16, Math.min(VBW - tw * 0.5 - 16, lx));
-        ly = Math.max(usableTop + 24, Math.min(usableBot - 24, ly));
+        ly = Math.max(usableTop + 26, Math.min(usableBot - 26, ly));
         tg.appendChild(makeEl('rect', {{
-          x: lx - tw / 2, y: ly - 20, width: tw, height: 40, rx: 12,
-          fill: '#071124', stroke: col, 'stroke-width': 2.4
+          x: lx - tw / 2, y: ly - 23, width: tw, height: 46, rx: 14,
+          fill: '#071124', stroke: col, 'stroke-width': 2.6
         }}));
         const txt = makeEl('text', {{
-          x: lx, y: ly + 7, 'text-anchor': 'middle', fill: '#FFFFFF',
-          'font-size': 20, 'font-weight': '900', 'font-family': 'Cascadia Code, monospace'
+          x: lx, y: ly + 8, 'text-anchor': 'middle', fill: '#FFFFFF',
+          'font-size': 23, 'font-weight': '900', 'font-family': 'Cascadia Code, monospace'
         }});
         txt.textContent = lblTxt;
         tg.appendChild(txt);
@@ -524,19 +524,19 @@ def _build_whiteboard_html(
 
       const lblCount = nd.lblLines.length;
       const subCount = nd.subLines.length;
-      const totalBlockH = lblCount * 34 + (subCount ? 8 + subCount * 26 : 0);
-      const yOffset = kind === 'cylinder' ? 18 : 0;
-      let curY = nd.cy + yOffset - totalBlockH * 0.5 + 24;
+      const totalBlockH = lblCount * 40 + (subCount ? 10 + subCount * 30 : 0);
+      const yOffset = kind === 'cylinder' ? 20 : 0;
+      let curY = nd.cy + yOffset - totalBlockH * 0.5 + 28;
 
       nd.lblLines.forEach(line => {{
         const lbl = makeEl('text', {{
           x: nd.cx, y: curY, 'text-anchor': 'middle',
-          fill: '#FFFFFF', 'font-size': 28, 'font-weight': '900',
+          fill: '#FFFFFF', 'font-size': 34, 'font-weight': '900',
           'font-family': 'Nirmala UI, Segoe UI, sans-serif'
         }});
         lbl.textContent = line;
         g.appendChild(lbl);
-        curY += 34;
+        curY += 40;
       }});
 
       if (subCount) {{
@@ -544,11 +544,11 @@ def _build_whiteboard_html(
         nd.subLines.forEach(line => {{
           const sub = makeEl('text', {{
             x: nd.cx, y: curY, 'text-anchor': 'middle',
-            fill: col, 'font-size': 20, 'font-weight': '800', 'font-family': 'Cascadia Code, monospace'
+            fill: col, 'font-size': 23, 'font-weight': '800', 'font-family': 'Cascadia Code, monospace'
           }});
           sub.textContent = line;
           g.appendChild(sub);
-          curY += 26;
+          curY += 30;
         }});
       }}
 
@@ -564,7 +564,8 @@ def _build_whiteboard_html(
 
     // 5. Aligned High-Contrast Sticky Callout Bubbles inside bottom dock
     const stickyEls = [];
-    (STATE.stickies || []).forEach((st, idx) => {{
+    (STATE.stickies || []).forEach((stRaw, idx) => {{
+      const st = (typeof stRaw === 'string') ? {{ title: 'KEY INSIGHT', text: stRaw, color: 'amber' }} : (stRaw || {{}});
       const col = PAL[st.color] || '#FBBF24';
       const rot = (STATE.stickies || []).length === 1 ? 0 : (idx % 2 === 0 ? -0.8 : 0.8);
       const dp = Number(st.dp !== undefined ? st.dp : 0.24 + idx * 0.16);

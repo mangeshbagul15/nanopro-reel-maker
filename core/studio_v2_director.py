@@ -307,8 +307,20 @@ def _normalize_v2_scenes(
                     {"id": "n2", "kind": "cylinder", "label": short_top[:18], "sublabel": "Core Layer", "x": 760, "y": 460, "color": "emerald"},
                 ]
                 vd["diagram_edges"] = [{"from": "n1", "to": "n2", "label": "flow", "color": "amber"}]
-            vd.setdefault("diagram_edges", [])
-            vd.setdefault("sticky_notes", [])
+            vd["diagram_edges"] = [e for e in (vd.get("diagram_edges") or []) if isinstance(e, dict)]
+            raw_st = vd.get("sticky_notes")
+            clean_st: List[Dict[str, Any]] = []
+            if isinstance(raw_st, dict):
+                raw_st = [raw_st]
+            if isinstance(raw_st, list):
+                for item in raw_st:
+                    if isinstance(item, dict) and (item.get("text") or item.get("title")):
+                        clean_st.append(item)
+                    elif isinstance(item, str) and item.strip():
+                        clean_st.append({"title": "KEY INSIGHT", "text": item.strip()[:72], "color": "amber"})
+            elif isinstance(raw_st, str) and raw_st.strip():
+                clean_st.append({"title": "KEY INSIGHT", "text": raw_st.strip()[:72], "color": "amber"})
+            vd["sticky_notes"] = clean_st
             vd["blueprint_zones"] = []
 
         _engine_labels = {
