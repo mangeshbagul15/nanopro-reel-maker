@@ -39,6 +39,7 @@ STUDIO_V2_MODE_OPTIONS = [
     ("v4_blueprint_whiteboard", "✏️ Studio V4 — Blueprint Whiteboard Studio (ByteByteGo / Excalidraw · Dark Grid · Marker Diagrams · Sticky Bubbles)"),
     ("v5_datacenter_park", "🏢 Studio V5 — Enterprise Data Center & IT Park (Campus → Dept → Engineer Fly-In)"),
     ("v6_agent_loop", "🔄 Studio V6 — LLM vs AI Agent Loop (Failure → Reflection → Recovery · Live Memory & Cost Meter)"),
+    ("v7_cost_room", "💰 Studio V7 — Agent Cost & Latency Control Room (Live Cost Meter · Token Stack · Call Ledger · Latency Waterfall)"),
 ]
 
 
@@ -52,6 +53,7 @@ def is_studio_v2_mode(mode_key: str) -> bool:
         "v4_blueprint_whiteboard",
         "v5_datacenter_park",
         "v6_agent_loop",
+        "v7_cost_room",
         "v5_live_ide",
         "v7_blueprint_whiteboard",
     ) or mk in STUDIO_PRO_KEYS
@@ -74,6 +76,8 @@ def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto"
         return "datacenter_park"
     if mk == "v6_agent_loop":
         return "agent_loop"
+    if mk == "v7_cost_room":
+        return "cost_room"
 
     low = f" {str(topic or '').lower()} "
     dc_kw = (
@@ -119,6 +123,13 @@ def resolve_v2_sub_engine(topic: str, mode_key: str, duration_mode: str = "auto"
     )
     if any(k in low for k in iso_kw) or str(duration_mode).lower() == "deep_dive":
         return "spatial_isometric"
+
+    cost_kw = (
+        "token bloat", "token cost", "llm bill", "llm cost", "reduce cost",
+        "cost reduce", "api bill", "cheap llm", "token kharch", "cost kaise",
+    )
+    if any(k in low for k in cost_kw):
+        return "cost_room"
     return "vector_storyboard"
 
 
@@ -189,6 +200,8 @@ def _scene_count_guidance(duration_mode: str, sub_engine: str) -> str:
         return "7 to 11 clear whiteboard scenes (Hook Dilemma -> Naive Sketch Flaw -> Core Blueprint Architecture -> Data Flow & Edge Case -> Trade-Off Sticky Summary -> CTA)"
     if sub_engine == "agent_loop":
         return "6 to 10 cognitive-loop scenes (Hook Split -> Simple LLM dead-end -> Agent Goal/Plan -> Tool Call Failure -> Reflection/Retry -> Loop #2 Recovery Verified -> Verdict -> Poll CTA)"
+    if sub_engine == "cost_room":
+        return "9 to 12 control-room scenes (Cost Hook -> Token Bloat Anatomy -> Call Ledger -> Anti-Pattern Scan -> Naive vs Optimized Compare -> Fix Cache -> Fix Summarize -> Fix Route/Early Exit -> Latency Waterfall -> Savings Verdict -> CTA)"
     return "8 to 11 crisp storyboard scenes (Interview Hook -> Misconception Meter -> Problem Scenario -> Spaghetti vs Clean Hub -> Paired Real-World Analogy -> Takeaway -> Follow CTA)"
 
 
@@ -365,6 +378,27 @@ def _normalize_v2_scenes(
                 vd["cta"].setdefault("option_b", "➡️ Simple LLM")
                 vd["cta"].setdefault("option_a", "🔄 Autonomous Agent")
                 vd["cta"].setdefault("footer_note", "Save this for your next system design!")
+        elif sub_engine == "cost_room":
+            sm = str(vd.get("scene_mode") or "cost_hook").strip()
+            if sm not in (
+                "cost_hook", "token_bloat_anatomy", "call_bloat_ledger", "anti_pattern_scan",
+                "cost_compare", "fix_caching", "fix_summarize", "fix_route_earlyexit",
+                "latency_waterfall", "verdict_savings", "cta",
+            ):
+                sm = "cost_hook"
+            vd["scene_mode"] = sm
+            if not str(vd.get("caption") or "").strip():
+                vd["caption"] = nar[:120]
+            if sm == "cost_hook" and not str(vd.get("question") or "").strip():
+                vd["question"] = f"AI Agent cost इतना ज़्यादा क्यों? — {short_top} का bill कैसे कम करें?"
+            if sm == "cta":
+                if not isinstance(vd.get("cta"), dict):
+                    vd["cta"] = {}
+                vd["cta"].setdefault("label_b", "BEFORE")
+                vd["cta"].setdefault("label_a", "AFTER")
+                vd["cta"].setdefault("option_b", "❌ Naive Agent")
+                vd["cta"].setdefault("option_a", "✅ Optimized Agent")
+                vd["cta"].setdefault("footer_note", "Save this before your next LLM bill!")
 
         _engine_labels = {
             "vector_storyboard": ("v2_vector_storyboard", "Studio V2 (Vector Storyboard)"),
@@ -372,6 +406,7 @@ def _normalize_v2_scenes(
             "live_ide": ("v3_live_ide", "Studio V3 (Live IDE & SQL/Python Simulator)"),
             "blueprint_whiteboard": ("v4_blueprint_whiteboard", "Studio V4 (Blueprint Whiteboard Studio)"),
             "agent_loop": ("v6_agent_loop", "Studio V6 (LLM vs AI Agent Loop)"),
+            "cost_room": ("v7_cost_room", "Studio V7 (Agent Cost & Latency Control Room)"),
         }
         v_type_out, r_eng_out = _engine_labels.get(sub_engine, (f"v2_{sub_engine}", f"Studio ({sub_engine})"))
 
@@ -2035,6 +2070,298 @@ def _fallback_agent_loop(topic: str, watermark: str, tone: str, cta_style: str, 
     }
 
 
+def _generate_v7_cost_room_llm(
+    topic: str,
+    tone: str,
+    duration_mode: str,
+    voice: str,
+    watermark: str,
+    audience_level: str,
+    hook_style: str,
+    cta_style: str,
+    cta_keyword: str,
+) -> Optional[Dict[str, Any]]:
+    lang_instr = _language_rule(voice, topic, tone=tone)
+    sc_guide = _scene_count_guidance(duration_mode, "cost_room")
+    cta_note = f"Comment '{cta_keyword.strip().upper()}'" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this before your next LLM bill!"
+
+    prompt = f"""You are a Studio V7 "Agent Cost & Latency Control Room" Director (observability / FinOps for AI agents).
+Design ONE continuous 9:16 dark "control room" storyboard JSON for topic: "{topic}"
+Audience: {audience_level} | Hook: {hook_style} | Final CTA: {cta_note}
+Target Scenes: {sc_guide}
+{lang_instr}
+
+PARADIGM (CRITICAL): Treat the AI agent as a metered service. Show a NAIVE agent (expensive + slow) vs an OPTIMIZED agent (cheap + fast) using a live cost meter, a token stack breakdown, a per-call ledger, a latency waterfall, and concrete optimization levers (prompt caching, history summarization, model routing + early exit).
+Reference KPI (use these exact numbers unless the topic implies otherwise): Naive = $0.84/req, 8.2s, 6 LLM calls, 26.4k tok. Optimized = $0.24/req, 2.9s, 3 calls, 8.1k tok. Savings: -72% cost, -64% latency, 90% cache hit.
+Do NOT draw architecture molecule/graph nodes. This is a FINANCE/OBSERVABILITY HUD, not a network diagram.
+
+Allowed `scene_mode` values (pick per scene): "cost_hook" | "token_bloat_anatomy" | "call_bloat_ledger" | "anti_pattern_scan" | "cost_compare" | "fix_caching" | "fix_summarize" | "fix_route_earlyexit" | "latency_waterfall" | "verdict_savings" | "cta".
+
+For EVERY scene's `visual_data` provide:
+- `scene_mode`, `hud_pill`, `headline_white` (max 3 words), `headline_accent` (max 3 words), `accent_color` ("cyan"|"emerald"|"violet"|"amber"|"rose")
+- `question` (only cost_hook), `caption` (one crisp narration line, <=120 chars)
+- `naive`: {{"label":"NAIVE AGENT","cost":0.84,"cost_label":"$0.84","latency":8.2,"lat_label":"8.2s","calls":6,"tokens":"26.4k"}}
+- `opt`: {{"label":"OPTIMIZED AGENT","cost":0.24,"cost_label":"$0.24","latency":2.9,"lat_label":"2.9s","calls":3,"tokens":"8.1k"}}
+- `token_stack`: list of {{"label":"Chat History","tok":3200,"color":"amber"}}, {{"label":"System Prompt","tok":2200,"color":"violet"}}, {{"label":"Tool Schemas","tok":1800,"color":"cyan"}}, {{"label":"Few-Shot Examples","tok":1400,"color":"blue"}}, {{"label":"Actual Task","tok":240,"color":"emerald"}}
+- `ledger`: list of {{"call":"#1","model":"GPT-4o","purpose":"Plan task","tok":"3.1k","cost":"$0.14","lat":"1.1s"}} (6 rows naive)
+- `anti_patterns`: list of {{"title":"Full history har call","detail":"Same 8k context resend"}} (4 items)
+- `waterfall`: list of {{"label":"TTFT","ms":480,"color":"cyan"}}, Tool Calls 1620/amber, Model Runs 3400/violet, Retries 2100/rose, Network 220/blue
+- `lever`: ONLY for fix_* scenes: {{"title":"Prompt Caching","saving":"-58% cost","how":"...","from_label":"$0.14 / req","from_v":1.0,"to_label":"$0.06 / req","to_v":0.42,"color":"emerald"}}
+- `savings`: {{"cost":"-72%","latency":"-64%","cache":"90%"}}
+- `cta` (ONLY final cta scene): {{"label_b":"BEFORE","label_a":"AFTER","option_b":"❌ Naive Agent","option_a":"✅ Optimized Agent","footer_note":"{cta_note}"}}
+Node/table labels MUST stay short. Put full sentences only in `question` / `caption` / narration.
+
+Scene arc: cost_hook (split hero) -> token_bloat_anatomy -> call_bloat_ledger -> anti_pattern_scan -> cost_compare -> fix_caching -> fix_summarize -> fix_route_earlyexit -> latency_waterfall -> verdict_savings -> final cta.
+
+Return STRICT JSON:
+{{ "scenes": [ {{ "scene_id": 1, "role": "hook|misconception|problem|solution|proof|cta", "sfx_cue": "punch_impact|pop_snap|alert_ping|success_chime|whoosh", "narration": "...", "visual_data": {{...}} }} ] }}"""
+
+    raw_text = ""
+    if GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            for m in ("gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-2.5-flash"):
+                try:
+                    res = client.models.generate_content(model=m, contents=prompt)
+                    cand = str(getattr(res, "text", "") or "").strip()
+                    if cand:
+                        raw_text = cand
+                        break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    if not raw_text and GROQ_API_KEY:
+        try:
+            from groq import Groq
+            gc = Groq(api_key=GROQ_API_KEY)
+            res = gc.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.4,
+                timeout=22,
+            )
+            raw_text = res.choices[0].message.content.strip() if res.choices else ""
+        except Exception:
+            pass
+
+    parsed = _extract_json_block(raw_text)
+    if not parsed or not isinstance(parsed.get("scenes"), list) or len(parsed["scenes"]) < 4:
+        return None
+    norm = _normalize_v2_scenes(parsed["scenes"], tone, watermark, "cost_room", topic=topic)
+    if len(norm) < 4:
+        return None
+    return {
+        "topic": topic,
+        "v2_engine": "cost_room",
+        "art_style": "v2_midnight_navy",
+        "header_brand": (watermark or DEFAULT_WATERMARK).strip(),
+        "scenes": norm,
+    }
+
+
+def _fallback_cost_room(topic: str, watermark: str, tone: str, cta_style: str, cta_keyword: str) -> Dict[str, Any]:
+    """Deterministic 10-scene Cost & Latency Control Room timeline — never fails, doubles as the reference blueprint."""
+    clean_topic = (topic.strip() or "AI Agent Cost & Latency")[:54]
+    cta_note = f"Comment '{cta_keyword.strip().upper()}' 👇" if cta_style == "comment_keyword" and cta_keyword.strip() else "Save this before your next LLM bill!"
+
+    naive = {"label": "NAIVE AGENT", "cost": 0.84, "cost_label": "$0.84", "latency": 8.2, "lat_label": "8.2s", "calls": 6, "tokens": "26.4k"}
+    opt = {"label": "OPTIMIZED AGENT", "cost": 0.24, "cost_label": "$0.24", "latency": 2.9, "lat_label": "2.9s", "calls": 3, "tokens": "8.1k"}
+    token_stack = [
+        {"label": "Chat History", "tok": 3200, "color": "amber"},
+        {"label": "System Prompt", "tok": 2200, "color": "violet"},
+        {"label": "Tool Schemas", "tok": 1800, "color": "cyan"},
+        {"label": "Few-Shot Examples", "tok": 1400, "color": "blue"},
+        {"label": "Actual Task", "tok": 240, "color": "emerald"},
+    ]
+    ledger = [
+        {"call": "#1", "model": "GPT-4o", "purpose": "Plan task", "tok": "3.1k", "cost": "$0.14", "lat": "1.1s"},
+        {"call": "#2", "model": "GPT-4o", "purpose": "Pick tool", "tok": "2.8k", "cost": "$0.12", "lat": "1.4s"},
+        {"call": "#3", "model": "GPT-4o", "purpose": "Run tool", "tok": "2.2k", "cost": "$0.10", "lat": "0.9s"},
+        {"call": "#4", "model": "GPT-4o", "purpose": "Self-critique", "tok": "3.6k", "cost": "$0.16", "lat": "1.3s"},
+        {"call": "#5", "model": "GPT-4o", "purpose": "Retry (no fix)", "tok": "4.1k", "cost": "$0.18", "lat": "1.6s"},
+        {"call": "#6", "model": "GPT-4o", "purpose": "Re-format", "tok": "2.0k", "cost": "$0.09", "lat": "0.7s"},
+    ]
+    anti = [
+        {"title": "Full history हर call", "detail": "Same 8k context हर LLM call में resend"},
+        {"title": "Over-powered model", "detail": "छोटे काम के लिए भी GPT-4o"},
+        {"title": "Blind retry loop", "detail": "Fail होने पर बिना reason retry"},
+        {"title": "No early exit", "detail": "Answer मिलने पर भी agent चलता रहा"},
+    ]
+    waterfall = [
+        {"label": "TTFT", "ms": 480, "color": "cyan"},
+        {"label": "Tool Calls", "ms": 1620, "color": "amber"},
+        {"label": "Model Runs", "ms": 3400, "color": "violet"},
+        {"label": "Retries", "ms": 2100, "color": "rose"},
+        {"label": "Network", "ms": 220, "color": "blue"},
+    ]
+    savings = {"cost": "-72%", "latency": "-64%", "cache": "90%"}
+
+    scenes = [
+        {
+            "role": "hook",
+            "duration": 4.5,
+            "sfx_cue": "punch_impact",
+            "narration": "AI Agent का bill इतना ज़्यादा क्यों आता है? ना machine slow, ना infra — problem है token bloat और extra LLM calls. चलो meter पर देखते हैं.",
+            "visual_data": {
+                "scene_mode": "cost_hook",
+                "hud_pill": "COST & LATENCY",
+                "headline_white": "Agent bill",
+                "headline_accent": "क्यों भारी?",
+                "accent_color": "cyan",
+                "question": f"AI Agent cost इतना ज़्यादा क्यों? — {clean_topic}",
+                "caption": "Naive $0.84/req · 8.2s · 6 calls 😰",
+                "naive": naive, "opt": opt,
+            },
+        },
+        {
+            "role": "misconception",
+            "duration": 5.0,
+            "sfx_cue": "pop_snap",
+            "narration": "99% tokens वही हैं जो हर call में फिर-फिर भेजे जाते हैं — chat history, system prompt, tool schemas. असली काम? बस 240 tokens.",
+            "visual_data": {
+                "scene_mode": "token_bloat_anatomy",
+                "hud_pill": "TOKEN STACK",
+                "headline_white": "90% tokens",
+                "headline_accent": "सिर्फ़ waste",
+                "accent_color": "amber",
+                "caption": "History 3.2k + System 2.2k + Tools 1.8k … task बस 240 tok.",
+                "token_stack": token_stack,
+            },
+        },
+        {
+            "role": "problem",
+            "duration": 5.5,
+            "sfx_cue": "alert_ping",
+            "narration": "हर step पर एक नया LLM call. Plan, tool pick, critique, retry, format — 6 calls × full context = cost आसमान पर.",
+            "visual_data": {
+                "scene_mode": "call_bloat_ledger",
+                "hud_pill": "CALL LEDGER",
+                "headline_white": "6 calls",
+                "headline_accent": "एक request में",
+                "accent_color": "rose",
+                "caption": "Call Ledger: #1→#6, हर call full context के साथ।",
+                "ledger": ledger,
+            },
+        },
+        {
+            "role": "problem",
+            "duration": 4.5,
+            "sfx_cue": "alert_ping",
+            "narration": "Anti-patterns जो bill बढ़ाते हैं: full history हर call, over-powered model, blind retry, और early exit का न होना।",
+            "visual_data": {
+                "scene_mode": "anti_pattern_scan",
+                "hud_pill": "ANTI-PATTERNS",
+                "headline_white": "Bill बढ़ाने",
+                "headline_accent": "वाले patterns",
+                "accent_color": "rose",
+                "caption": "Scanner: 4 wasteful patterns flag किए गए।",
+                "anti_patterns": anti,
+            },
+        },
+        {
+            "role": "proof",
+            "duration": 4.5,
+            "sfx_cue": "pop_snap",
+            "narration": "Optimize करने पर क्या होता है? Cost, latency और calls — तीनों आधे से भी कम। Side-by-side देखो.",
+            "visual_data": {
+                "scene_mode": "cost_compare",
+                "hud_pill": "NAIVE vs OPT",
+                "headline_white": "आधे से",
+                "headline_accent": "भी कम",
+                "accent_color": "emerald",
+                "caption": "Cost −72% · Latency −64% · Calls −50%",
+                "naive": naive, "opt": opt,
+            },
+        },
+        {
+            "role": "solution",
+            "duration": 4.5,
+            "sfx_cue": "success_chime",
+            "narration": "Fix #1 — Prompt Caching. Static prefix को cache करो, हर call पर सिर्फ़ बदला हुआ हिस्सा भेजो।",
+            "visual_data": {
+                "scene_mode": "fix_caching",
+                "hud_pill": "FIX 01 · CACHING",
+                "headline_white": "Cached prefix",
+                "headline_accent": "सस्ता",
+                "accent_color": "emerald",
+                "caption": "$0.14 → $0.06 per request (cache hit).",
+                "lever": {"title": "Prompt Caching", "saving": "-58% cost", "how": "System prompt + tool schemas cache karo — har call pe sirf delta bhejo.", "from_label": "$0.14 / req", "from_v": 1.0, "to_label": "$0.06 / req", "to_v": 0.42, "color": "emerald"},
+            },
+        },
+        {
+            "role": "solution",
+            "duration": 4.5,
+            "sfx_cue": "success_chime",
+            "narration": "Fix #2 — History Summarization. पुरानी chat को एक छोटी summary में squash करो, context repeat बंद।",
+            "visual_data": {
+                "scene_mode": "fix_summarize",
+                "hud_pill": "FIX 02 · SUMMARIZE",
+                "headline_white": "History को",
+                "headline_accent": "छोटा करो",
+                "accent_color": "cyan",
+                "caption": "History 3.2k → 0.9k tokens (-40%).",
+                "lever": {"title": "History Summarization", "saving": "-40% tokens", "how": "Purani chat ko 1 short summary me squash karo — context repeat khatam.", "from_label": "History 3.2k tok", "from_v": 1.0, "to_label": "Summary 0.9k tok", "to_v": 0.28, "color": "cyan"},
+            },
+        },
+        {
+            "role": "solution",
+            "duration": 4.5,
+            "sfx_cue": "success_chime",
+            "narration": "Fix #3 — Model Routing + Early Exit. आसान step छोटे model से, और जवाब मिलते ही loop बंद।",
+            "visual_data": {
+                "scene_mode": "fix_route_earlyexit",
+                "hud_pill": "FIX 03 · ROUTING",
+                "headline_white": "छोटा model +",
+                "headline_accent": "Early exit",
+                "accent_color": "violet",
+                "caption": "6 calls (GPT-4o) → 3 calls (mini).",
+                "lever": {"title": "Model Routing + Early Exit", "saving": "-52% calls", "how": "Easy step → chhota model; answer milte hi loop band karo.", "from_label": "6 calls · GPT-4o", "from_v": 1.0, "to_label": "3 calls · mini", "to_v": 0.5, "color": "violet"},
+            },
+        },
+        {
+            "role": "proof",
+            "duration": 4.5,
+            "sfx_cue": "pop_snap",
+            "narration": "Latency कहाँ जाती है? TTFT, tool calls, model runs, retries — waterfall में साफ़ दिखता है सबसे बड़ा culprit retries हैं.",
+            "visual_data": {
+                "scene_mode": "latency_waterfall",
+                "hud_pill": "LATENCY WATERFALL",
+                "headline_white": "Time कहाँ",
+                "headline_accent": "जाता है?",
+                "accent_color": "cyan",
+                "caption": "8.2s breakdown — retries सबसे भारी।",
+                "waterfall": waterfall,
+            },
+        },
+        {
+            "role": "cta",
+            "duration": 3.5,
+            "sfx_cue": "whoosh",
+            "narration": f"तीनों fix लगाते हो तो bill $0.84 से $0.24 — 72% कम! अपने agent में caching, summary और routing आज ही करो. {cta_note}",
+            "visual_data": {
+                "scene_mode": "cta",
+                "hud_pill": "VERDICT · SAVINGS",
+                "headline_white": "72% cost",
+                "headline_accent": "बचाओ",
+                "accent_color": "emerald",
+                "caption": "Cache 90% hit · History squash · Early exit.",
+                "naive": naive, "opt": opt,
+                "savings": savings,
+                "cta": {"label_b": "BEFORE", "label_a": "AFTER", "option_b": "❌ Naive Agent", "option_a": "✅ Optimized Agent", "footer_note": cta_note},
+            },
+        },
+    ]
+    return {
+        "topic": topic,
+        "v2_engine": "cost_room",
+        "art_style": "v2_midnight_navy",
+        "header_brand": (watermark or DEFAULT_WATERMARK).strip(),
+        "scenes": _normalize_v2_scenes(scenes, tone, watermark, "cost_room", topic=topic),
+    }
+
+
 def generate_v2_timeline(
     topic: str,
     v2_mode: str = "v2_auto",
@@ -2098,6 +2425,13 @@ def generate_v2_timeline(
         )
         if tl is None:
             tl = _fallback_agent_loop(topic, wm_clean, tone, cta_style, cta_keyword)
+    elif sub == "cost_room":
+        tl = _generate_v7_cost_room_llm(
+            topic, tone, duration_mode, voice, wm_clean,
+            audience_level, hook_style, cta_style, cta_keyword,
+        )
+        if tl is None:
+            tl = _fallback_cost_room(topic, wm_clean, tone, cta_style, cta_keyword)
     else:
         tl = _generate_v2_vector_llm(
             topic, tone, duration_mode, voice, wm_clean,

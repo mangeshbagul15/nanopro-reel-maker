@@ -23,7 +23,7 @@ _RELOAD_ORDER = [
     "core.director", "core.voice", "core.thumbnail_engine", "core.animator", "core.subtitles",
     "core.renderer", "core.quality_gate", "core.studio_v2_director",
     "core.studio_v2_vector", "core.studio_v2_isometric",
-    "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.studio_v5_datacenter", "core.studio_v6_agent_loop", "core.studio_pro_engines", "core.uploader",
+    "core.studio_v3_ide", "core.studio_v4_whiteboard", "core.studio_v5_datacenter", "core.studio_v6_agent_loop", "core.studio_v7_cost_room", "core.studio_pro_engines", "core.uploader",
 ]
 _loaded_core = [m for m in _RELOAD_ORDER if m in sys.modules] + [
     k for k in list(sys.modules.keys()) if k.startswith("core.") and k not in _RELOAD_ORDER
@@ -68,6 +68,7 @@ from core.studio_v5_datacenter import (
     render_v5_datacenter_scene_frames,
 )
 from core.studio_v6_agent_loop import render_v6_agent_loop_scene_frames
+from core.studio_v7_cost_room import render_v7_cost_room_scene_frames
 from core.studio_pro_engines import (
     STUDIO_PRO_KEYS,
     render_studio_pro_scene_frames,
@@ -1206,7 +1207,7 @@ with tab_create:
                     if sc_start - 0.1 <= float(w.get("start", 0.0)) <= sc_end + 0.1
                 ]
                 v_type = str(sc_obj.get("visual_type") or "")
-                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v3_live_ide", "v4_blueprint_whiteboard", "v5_datacenter_park", "v5_live_ide", "v6_agent_loop", "v7_blueprint_whiteboard") or v_type in STUDIO_PRO_KEYS:
+                if v_type in ("v2_vector_storyboard", "v2_spatial_isometric", "v3_live_ide", "v4_blueprint_whiteboard", "v5_datacenter_park", "v5_live_ide", "v6_agent_loop", "v7_cost_room", "v7_blueprint_whiteboard") or v_type in STUDIO_PRO_KEYS:
                     sc_obj.setdefault("visual_data", {})["watermark"] = channel_watermark
                 if v_type == "v2_vector_storyboard":
                     render_v2_vector_scene_frames(
@@ -1266,6 +1267,18 @@ with tab_create:
                     )
                 elif v_type == "v6_agent_loop":
                     render_v6_agent_loop_scene_frames(
+                        sc_obj,
+                        idx_i + 1,
+                        prev_scene=(aligned_scenes[idx_i - 1] if idx_i > 0 else None),
+                        format_ratio=aspect_ratio[0],
+                        scene_words=sc_words,
+                        tone=chosen_tone,
+                        fps=export_fps,
+                        res_scale=export_scale,
+                        frame_ext=export_ext,
+                    )
+                elif v_type == "v7_cost_room":
+                    render_v7_cost_room_scene_frames(
                         sc_obj,
                         idx_i + 1,
                         prev_scene=(aligned_scenes[idx_i - 1] if idx_i > 0 else None),
@@ -1635,6 +1648,18 @@ with tab_create:
                             st.markdown(f"- **Cognitive Loop Mode:** `{v_data.get('scene_mode', 'agent_loop')}`")
                             st.markdown(f"- **Simple LLM (Linear):** {_lnodes or 'Prompt ➔ LLM ➔ Answer'}")
                             st.markdown(f"- **Autonomous Agent (Loop):** {_rnodes or 'Goal ➔ Reason ➔ Tool ➔ Observe ➔ Final'}")
+                        elif v_type == "v7_cost_room":
+                            _naive = v_data.get("naive") or {}
+                            _opt = v_data.get("opt") or {}
+                            st.markdown(f"- **Control Room Mode:** `{v_data.get('scene_mode', 'cost_hook')}`")
+                            st.markdown(
+                                f"- **Naive Agent:** {_naive.get('cost_label', '$0.84')} · "
+                                f"{_naive.get('lat_label', '8.2s')} · {_naive.get('calls', 6)} calls"
+                            )
+                            st.markdown(
+                                f"- **Optimized Agent:** {_opt.get('cost_label', '$0.24')} · "
+                                f"{_opt.get('lat_label', '2.9s')} · {_opt.get('calls', 3)} calls"
+                            )
                         elif v_type in ("v2_vector_storyboard", "v2_spatial_isometric"):
                             st.markdown(f"- **Studio Mode:** `{v_data.get('widget_type') or v_data.get('scene_mode', 'world_cam')}`")
                         elif v_type in STUDIO_PRO_KEYS:
